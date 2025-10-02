@@ -1,0 +1,385 @@
+import React, { useState, useRef, useCallback, useReducer } from 'react';
+import Header from './components/Header';
+import SubHeader from './components/SubHeader';
+import LeftSidebar from './components/LeftSidebar';
+import BuildPanel from './components/BuildPanel';
+import SurveyCanvas from './components/SurveyCanvas';
+import RightSidebar from './components/RightSidebar';
+import SurveyStructureWidget from './components/SurveyStructureWidget';
+import GeminiPanel from './components/GeminiPanel';
+import type { Survey, Question, ToolboxItemData, QuestionType } from './types';
+import { initialSurveyData, toolboxItems as initialToolboxItems } from './constants';
+import { renumberSurveyVariables } from './utils';
+import { QuestionType as QTEnum } from './types';
+import { surveyReducer, SurveyActionType } from './state/surveyReducer';
+
+const App: React.FC = () => {
+  const [survey, dispatch] = useReducer(surveyReducer, initialSurveyData, renumberSurveyVariables);
+  const [toolboxItems, setToolboxItems] = useState<ToolboxItemData[]>(initialToolboxItems);
+  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
+  const [checkedQuestions, setCheckedQuestions] = useState<Set<string>>(new Set());
+  const [activeMainTab, setActiveMainTab] = useState<string>('Build');
+  const [isGeminiPanelOpen, setIsGeminiPanelOpen] = useState(false);
+  const [activeRightSidebarTab, setActiveRightSidebarTab] = useState('Settings');
+
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const [collapsedBlocks, setCollapsedBlocks] = useState<Set<string>>(new Set());
+
+  const handleBackToTop = useCallback(() => {
+    canvasContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const handleToggleCollapseAll = useCallback(() => {
+    setCollapsedBlocks(prev => {
+      const allBlockIds = survey.blocks.map(b => b.id);
+      if (prev.size >= allBlockIds.length) {
+        return new Set<string>();
+      } else {
+        return new Set<string>(allBlockIds);
+      }
+    });
+  }, [survey.blocks]);
+
+  const handleToggleBlockCollapse = useCallback((blockId: string) => {
+    setCollapsedBlocks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(blockId)) {
+        newSet.delete(blockId);
+      } else {
+        newSet.add(blockId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleCollapseBlock = useCallback((blockId: string) => {
+    setCollapsedBlocks(prev => {
+        const newSet = new Set(prev);
+        newSet.add(blockId);
+        return newSet;
+    });
+  }, []);
+
+  const handleExpandBlock = useCallback((blockId: string) => {
+    setCollapsedBlocks(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(blockId);
+        return newSet;
+    });
+  }, []);
+
+  const handleSelectQuestion = useCallback((question: Question | null, tab: string = 'Settings') => {
+    if (question === null) {
+      setSelectedQuestion(null);
+      return;
+    }
+    if (question.type === QTEnum.PageBreak) {
+      setSelectedQuestion(null);
+      return;
+    }
+    if (isGeminiPanelOpen) {
+      setIsGeminiPanelOpen(false);
+    }
+  
+    if (selectedQuestion?.id === question.id) {
+      if (tab !== 'Settings') {
+        setActiveRightSidebarTab(tab);
+      } else {
+        setSelectedQuestion(null);
+      }
+    } else {
+      setSelectedQuestion(question);
+      setActiveRightSidebarTab(tab);
+    }
+  }, [isGeminiPanelOpen, selectedQuestion]);
+  
+  const handleToggleGeminiPanel = useCallback(() => {
+    setIsGeminiPanelOpen(prev => {
+        const isOpen = !prev;
+        if (isOpen) {
+            setSelectedQuestion(null); 
+        }
+        return isOpen;
+    });
+  }, []);
+  
+  const handleUpdateQuestion = useCallback((questionId: string, updates: Partial<Question>) => {
+    dispatch({ type: SurveyActionType.UPDATE_QUESTION, payload: { questionId, updates } });
+    
+    // If the currently selected question is the one being updated, we need to refresh its state
+    if (selectedQuestion?.id === questionId) {
+        // This is a bit tricky since reducer updates are async. A simple way is to find the updated question post-update.
+        // A better way would be to get the updated survey state back from the reducer, but that complicates the architecture.
+        // For now, let's optimistically update the selected question.
+        setSelectedQuestion(prev => prev ? { ...prev, ...updates } : null);
+    }
+  }, [selectedQuestion]);
+  
+  const handleReorderQuestion = useCallback((draggedQuestionId: string, targetQuestionId: string | null, targetBlockId: string) => {
+    dispatch({ type: SurveyActionType.REORDER_QUESTION, payload: { draggedQuestionId, targetQuestionId, targetBlockId } });
+  }, []);
+
+  const handleReorderToolbox = useCallback((newItems: ToolboxItemData[]) => {
+    setToolboxItems(newItems);
+  }, []);
+
+  const handleReorderBlock = useCallback((draggedBlockId: string, targetBlockId: string | null) => {
+    dispatch({ type: SurveyActionType.REORDER_BLOCK, payload: { draggedBlockId, targetBlockId } });
+  }, []);
+
+  const handleAddQuestion = useCallback((questionType: QuestionType, targetQuestionId: string | null, targetBlockId: string) => {
+    const onQuestionAdded = (newQuestionId: string) => {
+        if (questionType !== QTEnum.PageBreak) {
+            // Find the full question object from the next state to select it
+            // This is tricky with reducer's async nature. We'll find it after the next render cycle.
+            setTimeout(() => {
+                const finalSurvey = survey; // This will be the updated survey on the next render
+                const addedQuestion = finalSurvey.blocks
+                    .flatMap(b => b.questions)
+                    .find(q => q.id === newQuestionId);
+                if (addedQuestion) {
+                    handleSelectQuestion(addedQuestion);
+                }
+            }, 0);
+        }
+    };
+    dispatch({ type: SurveyActionType.ADD_QUESTION, payload: { questionType, targetQuestionId, targetBlockId, onQuestionAdded } });
+  }, [survey, handleSelectQuestion]);
+  
+  const handleAddQuestionToBlock = useCallback((blockId: string) => {
+    // A bit of a workaround to get the new question ID for selection
+    const tempId = `temp-${Math.random()}`;
+    const onQuestionAdded = (newQuestionId: string) => {
+        setTimeout(() => {
+             const addedQuestion = survey.blocks
+                .flatMap(b => b.questions)
+                .find(q => q.id === newQuestionId);
+             if (addedQuestion) {
+                 handleSelectQuestion(addedQuestion);
+             }
+        }, 0);
+    };
+    dispatch({ type: SurveyActionType.ADD_QUESTION, payload: { questionType: QTEnum.Radio, targetQuestionId: null, targetBlockId: blockId, onQuestionAdded } });
+  }, [survey, handleSelectQuestion]);
+
+  const handleAddQuestionFromAI = useCallback((questionType: QuestionType, text: string, choiceStrings?: string[], afterQid?: string, beforeQid?: string) => {
+    dispatch({ type: SurveyActionType.ADD_QUESTION_FROM_AI, payload: { questionType, text, choiceStrings, afterQid, beforeQid } });
+  }, []);
+
+  const handleAddBlock = useCallback((blockId: string, position: 'above' | 'below') => {
+    dispatch({ type: SurveyActionType.ADD_BLOCK, payload: { blockId, position } });
+  }, []);
+
+  const handleCopyBlock = useCallback((blockId: string) => {
+    dispatch({ type: SurveyActionType.COPY_BLOCK, payload: { blockId } });
+  }, []);
+  
+  const handleExpandAllBlocks = useCallback(() => {
+    setCollapsedBlocks(new Set());
+  }, []);
+
+  const handleCollapseAllBlocks = useCallback(() => {
+    setCollapsedBlocks(new Set(survey.blocks.map(b => b.id)));
+  }, [survey.blocks]);
+
+  const handleDeleteQuestion = useCallback((questionId: string) => {
+    dispatch({ type: SurveyActionType.DELETE_QUESTION, payload: { questionId } });
+    if (selectedQuestion?.id === questionId) {
+        setSelectedQuestion(null);
+    }
+    setCheckedQuestions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(questionId);
+        return newSet;
+    });
+  }, [selectedQuestion]);
+
+  const handleDeleteBlock = useCallback((blockId: string) => {
+    if (!window.confirm('Are you sure you want to delete this block and all its questions? This action cannot be undone.')) {
+        return;
+    }
+    const blockToDelete = survey.blocks.find(b => b.id === blockId);
+    if (!blockToDelete) return;
+    
+    if (selectedQuestion && blockToDelete.questions.some(q => q.id === selectedQuestion.id)) {
+        setSelectedQuestion(null);
+    }
+
+    const questionIdsToDelete = new Set(blockToDelete.questions.map(q => q.id));
+    setCheckedQuestions(prev => {
+        const newSet = new Set(prev);
+        questionIdsToDelete.forEach(id => newSet.delete(id));
+        return newSet;
+    });
+
+    dispatch({ type: SurveyActionType.DELETE_BLOCK, payload: { blockId } });
+  }, [survey, selectedQuestion]);
+  
+  const handleToggleQuestionCheck = useCallback((questionId: string) => {
+    setCheckedQuestions(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(questionId)) {
+            newSet.delete(questionId);
+        } else {
+            newSet.add(questionId);
+        }
+        return newSet;
+    });
+  }, []);
+
+  const handleSelectAllInBlock = useCallback((blockId: string) => {
+    const block = survey.blocks.find(b => b.id === blockId);
+    if (!block) return;
+    const questionIds = block.questions
+        .filter(q => q.type !== QTEnum.PageBreak)
+        .map(q => q.id);
+        
+    setCheckedQuestions(prev => new Set([...prev, ...questionIds]));
+  }, [survey.blocks]);
+
+  const handleUnselectAllInBlock = useCallback((blockId: string) => {
+    const block = survey.blocks.find(b => b.id === blockId);
+    if (!block) return;
+    const questionIds = new Set(block.questions.map(q => q.id));
+    setCheckedQuestions(prev => {
+        const newSet = new Set(prev);
+        questionIds.forEach(id => newSet.delete(id));
+        return newSet;
+    });
+  }, [survey.blocks]);
+
+  const handleCopyQuestion = useCallback((questionId: string) => {
+    dispatch({ type: SurveyActionType.COPY_QUESTION, payload: { questionId } });
+  }, []);
+
+  const handleAddChoice = useCallback((questionId: string) => {
+    dispatch({ type: SurveyActionType.ADD_CHOICE, payload: { questionId } });
+  }, []);
+  
+  const handleDeleteChoice = useCallback((questionId: string, choiceId: string) => {
+    dispatch({ type: SurveyActionType.DELETE_CHOICE, payload: { questionId, choiceId } });
+  }, []);
+
+  const handleAddPageBreakAfterQuestion = useCallback((questionId: string) => {
+    dispatch({ type: SurveyActionType.ADD_PAGE_BREAK_AFTER_QUESTION, payload: { questionId } });
+  }, []);
+
+  const handleUpdateBlockTitle = useCallback((blockId: string, title: string) => {
+    dispatch({ type: SurveyActionType.UPDATE_BLOCK_TITLE, payload: { blockId, title } });
+  }, []);
+  
+  const handleUpdateSurveyTitle = useCallback((title: string) => {
+    dispatch({ type: SurveyActionType.UPDATE_SURVEY_TITLE, payload: { title } });
+  }, []);
+
+  const allBlocksCollapsed = survey.blocks.length > 0 && collapsedBlocks.size === survey.blocks.length;
+
+  return (
+    <div className="flex flex-col h-screen bg-surface text-on-surface">
+      <Header 
+        surveyName={survey.title} 
+        isGeminiPanelOpen={isGeminiPanelOpen} 
+        onToggleGeminiPanel={handleToggleGeminiPanel} 
+        onUpdateSurveyName={handleUpdateSurveyTitle}
+      />
+      <SubHeader />
+      <div className="flex flex-1 overflow-hidden">
+        <LeftSidebar activeTab={activeMainTab} setActiveTab={setActiveMainTab} />
+        <main className="flex flex-1 bg-surface overflow-hidden">
+          {activeMainTab === 'Build' ? (
+            <>
+              <BuildPanel 
+                survey={survey} 
+                onSelectQuestion={handleSelectQuestion} 
+                selectedQuestion={selectedQuestion} 
+                toolboxItems={toolboxItems}
+                onReorderToolbox={handleReorderToolbox}
+                onReorderQuestion={handleReorderQuestion}
+                onReorderBlock={handleReorderBlock}
+                onCopyBlock={handleCopyBlock}
+                onAddQuestionToBlock={handleAddQuestionToBlock}
+                onExpandAllBlocks={handleExpandAllBlocks}
+                onCollapseAllBlocks={handleCollapseAllBlocks}
+                onDeleteBlock={handleDeleteBlock}
+                onDeleteQuestion={handleDeleteQuestion}
+                onCopyQuestion={handleCopyQuestion}
+                onAddPageBreakAfterQuestion={handleAddPageBreakAfterQuestion}
+                onExpandBlock={handleExpandBlock}
+                onCollapseBlock={handleCollapseBlock}
+                onSelectAllInBlock={handleSelectAllInBlock}
+                onUnselectAllInBlock={handleUnselectAllInBlock}
+              />
+              
+              <div ref={canvasContainerRef} className={`flex-1 overflow-y-auto py-4 px-4 ${selectedQuestion || isGeminiPanelOpen ? 'pr-0' : ''}`}>
+                <SurveyCanvas 
+                  survey={survey} 
+                  selectedQuestion={selectedQuestion} 
+                  checkedQuestions={checkedQuestions}
+                  onSelectQuestion={handleSelectQuestion}
+                  onUpdateQuestion={handleUpdateQuestion}
+                  onDeleteQuestion={handleDeleteQuestion}
+                  onCopyQuestion={handleCopyQuestion}
+                  onDeleteBlock={handleDeleteBlock}
+                  onReorderQuestion={handleReorderQuestion}
+                  onReorderBlock={handleReorderBlock}
+                  onAddQuestion={handleAddQuestion}
+                  onAddBlock={handleAddBlock}
+                  onAddQuestionToBlock={handleAddQuestionToBlock}
+                  onToggleQuestionCheck={handleToggleQuestionCheck}
+                  onSelectAllInBlock={handleSelectAllInBlock}
+                  onUnselectAllInBlock={handleUnselectAllInBlock}
+                  toolboxItems={toolboxItems}
+                  collapsedBlocks={collapsedBlocks}
+                  onToggleBlockCollapse={handleToggleBlockCollapse}
+                  onCopyBlock={handleCopyBlock}
+                  onExpandAllBlocks={handleExpandAllBlocks}
+                  onCollapseAllBlocks={handleCollapseAllBlocks}
+                  onExpandBlock={handleExpandBlock}
+                  onCollapseBlock={handleCollapseBlock}
+                  onAddChoice={handleAddChoice}
+                  onAddPageBreakAfterQuestion={handleAddPageBreakAfterQuestion}
+                  onUpdateBlockTitle={handleUpdateBlockTitle}
+                  onUpdateSurveyTitle={handleUpdateSurveyTitle}
+                />
+              </div>
+
+              <div className="w-96 flex-shrink-0">
+                {isGeminiPanelOpen ? (
+                    <GeminiPanel 
+                      onClose={handleToggleGeminiPanel} 
+                      onAddQuestion={handleAddQuestionFromAI}
+                    />
+                ) : selectedQuestion ? (
+                    <RightSidebar 
+                      question={selectedQuestion} 
+                      onClose={() => handleSelectQuestion(null)} 
+                      activeTab={activeRightSidebarTab}
+                      onTabChange={setActiveRightSidebarTab}
+                      onUpdateQuestion={handleUpdateQuestion}
+                      onAddChoice={handleAddChoice}
+                      onDeleteChoice={handleDeleteChoice}
+                    />
+                ) : (
+                    <div className="pt-4 pr-4 pb-8 pl-4">
+                        <SurveyStructureWidget 
+                            survey={survey} 
+                            onBackToTop={handleBackToTop}
+                            onToggleCollapseAll={handleToggleCollapseAll}
+                            allBlocksCollapsed={allBlocksCollapsed}
+                        />
+                    </div>
+                )}
+              </div>
+            </>
+          ) : (
+             <div className="flex-1 flex items-center justify-center">
+                <p className="text-2xl text-on-surface-variant">{activeMainTab} page is not implemented yet.</p>
+             </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default App;

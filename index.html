@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Survey Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: 'hsl(var(--color-primary) / <alpha-value>)',
+              'on-primary': 'hsl(var(--color-on-primary) / <alpha-value>)',
+              'primary-container': 'hsl(var(--color-primary-container) / <alpha-value>)',
+              'on-primary-container': 'hsl(var(--color-on-primary-container) / <alpha-value>)',
+              
+              surface: 'hsl(var(--color-surface) / <alpha-value>)',
+              'surface-container': 'hsl(var(--color-surface-container) / <alpha-value>)',
+              'surface-container-high': 'hsl(var(--color-surface-container-high) / <alpha-value>)',
+              'surface-container-highest': 'hsl(var(--color-surface-container-highest) / <alpha-value>)',
+              
+              'on-surface': 'hsl(var(--color-on-surface) / <alpha-value>)',
+              'on-surface-variant': 'hsl(var(--color-on-surface-variant) / <alpha-value>)',
+              
+              outline: 'hsl(var(--color-outline) / <alpha-value>)',
+              'outline-variant': 'hsl(var(--color-outline-variant) / <alpha-value>)',
+
+              error: 'hsl(var(--color-error) / <alpha-value>)',
+              'on-error': 'hsl(var(--color-on-error) / <alpha-value>)',
+              'error-container': 'hsl(var(--color-error-container) / <alpha-value>)',
+              'on-error-container': 'hsl(var(--color-on-error-container) / <alpha-value>)',
+
+              success: 'hsl(var(--color-success) / <alpha-value>)',
+              'on-success': 'hsl(var(--color-on-success) / <alpha-value>)',
+              'success-container': 'hsl(var(--color-success-container) / <alpha-value>)',
+              'on-success-container': 'hsl(var(--color-on-success-container) / <alpha-value>)',
+            },
+            accentColor: {
+              primary: 'hsl(var(--color-primary) / <alpha-value>)',
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&family=Outfit:wght@300;500;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,1,0" />
+    <style id="custom-theme">
+      :root {
+        /* Light Theme Color Tokens */
+        --color-primary: 235 100% 67%;
+        --color-on-primary: 0 0% 100%;
+        --color-primary-container: 236 100% 94%;
+        --color-on-primary-container: 236 100% 10%;
+        
+        --color-surface: 257 50% 99%; /* Main app background */
+        --color-surface-container: 0 0% 100%; /* Cards, Sidebars, Modals */
+        --color-surface-container-high: 240 14% 95%; /* Hover states, headers */
+        --color-surface-container-highest: 231 11% 92%; /* Subtle pressed states */
+        
+        --color-on-surface: 240 6% 10%; /* Primary text */
+        --color-on-surface-variant: 221 7% 45%; /* Secondary text */
+        
+        --color-outline: 221 7% 47%; /* Main borders for interactive elements */
+        --color-outline-variant: 222 9% 87%; /* Subtle borders, dividers */
+        
+        --color-error: 353 84% 64%;
+        --color-on-error: 0 0% 100%;
+        --color-error-container: 353 100% 93%;
+        --color-on-error-container: 354 100% 13%;
+        
+        --color-success: 162 100% 31%;
+        --color-on-success: 0 0% 100%;
+        --color-success-container: 160 55% 87%;
+        --color-on-success-container: 161 100% 7%;
+      }
+      .dark {
+        /* Dark Theme Color Tokens */
+        --color-primary: 235 100% 86%;
+        --color-on-primary: 236 51% 21%;
+        --color-primary-container: 236 43% 40%;
+        --color-on-primary-container: 236 100% 94%;
+
+        --color-surface: 240 6% 10%; /* Main app background */
+        --color-surface-container: 230 5% 13%; /* Cards, Sidebars, Modals */
+        --color-surface-container-high: 228 5% 18%; /* Hover states, headers */
+        --color-surface-container-highest: 225 5% 23%; /* Subtle pressed states */
+
+        --color-on-surface: 223 8% 90%; /* Primary text */
+        --color-on-surface-variant: 222 9% 77%; /* Secondary text */
+        
+        --color-outline: 223 6% 59%; /* Main borders for interactive elements */
+        --color-outline-variant: 221 7% 28%; /* Subtle borders, dividers */
+
+        --color-error: 353 100% 84%;
+        --color-on-error: 354 86% 20%;
+        --color-error-container: 353 69% 41%;
+        --color-on-error-container: 353 100% 93%;
+        
+        --color-success: 161 58% 65%;
+        --color-on-success: 162 100% 11%;
+        --color-success-container: 161 100% 16%;
+        --color-on-success-container: 161 65% 89%;
+      }
+    </style>
+    <style>
+      body {
+        font-family: 'Open Sans', sans-serif;
+      }
+      .material-symbols-outlined {
+        user-select: none; /* Prevent text selection of icons */
+        line-height: 1;
+        vertical-align: middle;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.21.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

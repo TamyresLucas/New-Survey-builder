@@ -226,17 +226,22 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                     onBlur={handleTitleBlur}
                     onKeyDown={handleTitleKeyDown}
                     onClick={e => e.stopPropagation()}
-                    className="font-medium text-lg text-on-surface bg-transparent border-b border-primary focus:outline-none w-full"
-                    style={{ fontFamily: "'Outfit', sans-serif" }}
+                    className="font-semibold text-base text-on-surface bg-transparent border-b border-primary focus:outline-none w-full"
+                    style={{ fontFamily: "'Open Sans', sans-serif" }}
                 />
             ) : (
-                <h3 
-                    className="font-medium text-lg text-on-surface truncate" 
-                    style={{ fontFamily: "'Outfit', sans-serif" }}
+                <div 
+                    className="truncate" 
                     onClick={handleTitleClick}
                 >
-                    {block.title}
-                </h3>
+                    <span className="font-bold text-base text-on-surface mr-2">{block.bid}</span>
+                    <span 
+                        className="font-semibold text-base text-on-surface"
+                        style={{ fontFamily: "'Open Sans', sans-serif" }}
+                    >
+                        {block.title}
+                    </span>
+                </div>
             )}
           </div>
         </div>

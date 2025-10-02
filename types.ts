@@ -1,4 +1,5 @@
 
+
 import type React from 'react';
 
 export enum QuestionType {
@@ -59,6 +60,7 @@ export interface Question {
 
 export interface Block {
   id: string;
+  bid?: string;
   title: string;
   questions: Question[];
 }

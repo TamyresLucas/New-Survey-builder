@@ -12,6 +12,7 @@ import { initialSurveyData, toolboxItems as initialToolboxItems } from './consta
 import { renumberSurveyVariables } from './utils';
 import { QuestionType as QTEnum } from './types';
 import { surveyReducer, SurveyActionType } from './state/surveyReducer';
+import { PanelRightIcon } from './components/icons';
 
 const App: React.FC = () => {
   const [survey, dispatch] = useReducer(surveyReducer, initialSurveyData, renumberSurveyVariables);
@@ -19,8 +20,10 @@ const App: React.FC = () => {
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
   const [checkedQuestions, setCheckedQuestions] = useState<Set<string>>(new Set());
   const [activeMainTab, setActiveMainTab] = useState<string>('Build');
+  const [isBuildPanelOpen, setIsBuildPanelOpen] = useState(true);
   const [isGeminiPanelOpen, setIsGeminiPanelOpen] = useState(false);
   const [activeRightSidebarTab, setActiveRightSidebarTab] = useState('Settings');
+  const [isRightSidebarExpanded, setIsRightSidebarExpanded] = useState(false);
 
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const [collapsedBlocks, setCollapsedBlocks] = useState<Set<string>>(new Set());
@@ -71,6 +74,7 @@ const App: React.FC = () => {
   const handleSelectQuestion = useCallback((question: Question | null, tab: string = 'Settings') => {
     if (question === null) {
       setSelectedQuestion(null);
+      setIsRightSidebarExpanded(false); // Reset on close
       return;
     }
     if (question.type === QTEnum.PageBreak) {
@@ -86,6 +90,7 @@ const App: React.FC = () => {
         setActiveRightSidebarTab(tab);
       } else {
         setSelectedQuestion(null);
+        setIsRightSidebarExpanded(false); // Reset on close
       }
     } else {
       setSelectedQuestion(question);
@@ -98,11 +103,16 @@ const App: React.FC = () => {
         const isOpen = !prev;
         if (isOpen) {
             setSelectedQuestion(null); 
+            setIsRightSidebarExpanded(false);
         }
         return isOpen;
     });
   }, []);
   
+  const handleToggleRightSidebarExpand = useCallback(() => {
+    setIsRightSidebarExpanded(prev => !prev);
+  }, []);
+
   const handleUpdateQuestion = useCallback((questionId: string, updates: Partial<Question>) => {
     dispatch({ type: SurveyActionType.UPDATE_QUESTION, payload: { questionId, updates } });
     
@@ -272,6 +282,15 @@ const App: React.FC = () => {
     dispatch({ type: SurveyActionType.UPDATE_SURVEY_TITLE, payload: { title } });
   }, []);
 
+  const handleTabSelect = useCallback((tabId: string) => {
+    if (tabId === 'Build' && activeMainTab === 'Build') {
+      setIsBuildPanelOpen(prev => !prev);
+    } else if (tabId === 'Build') {
+      setIsBuildPanelOpen(true);
+    }
+    setActiveMainTab(tabId);
+  }, [activeMainTab]);
+
   const allBlocksCollapsed = survey.blocks.length > 0 && collapsedBlocks.size === survey.blocks.length;
 
   return (
@@ -284,33 +303,45 @@ const App: React.FC = () => {
       />
       <SubHeader />
       <div className="flex flex-1 overflow-hidden">
-        <LeftSidebar activeTab={activeMainTab} setActiveTab={setActiveMainTab} />
+        <LeftSidebar activeTab={activeMainTab} onTabSelect={handleTabSelect} />
         <main className="flex flex-1 bg-surface overflow-hidden">
           {activeMainTab === 'Build' ? (
             <>
-              <BuildPanel 
-                survey={survey} 
-                onSelectQuestion={handleSelectQuestion} 
-                selectedQuestion={selectedQuestion} 
-                toolboxItems={toolboxItems}
-                onReorderToolbox={handleReorderToolbox}
-                onReorderQuestion={handleReorderQuestion}
-                onReorderBlock={handleReorderBlock}
-                onCopyBlock={handleCopyBlock}
-                onAddQuestionToBlock={handleAddQuestionToBlock}
-                onExpandAllBlocks={handleExpandAllBlocks}
-                onCollapseAllBlocks={handleCollapseAllBlocks}
-                onDeleteBlock={handleDeleteBlock}
-                onDeleteQuestion={handleDeleteQuestion}
-                onCopyQuestion={handleCopyQuestion}
-                onAddPageBreakAfterQuestion={handleAddPageBreakAfterQuestion}
-                onExpandBlock={handleExpandBlock}
-                onCollapseBlock={handleCollapseBlock}
-                onSelectAllInBlock={handleSelectAllInBlock}
-                onUnselectAllInBlock={handleUnselectAllInBlock}
-              />
+              {isBuildPanelOpen && (
+                <BuildPanel
+                  survey={survey}
+                  onClose={() => setIsBuildPanelOpen(false)}
+                  onSelectQuestion={handleSelectQuestion}
+                  selectedQuestion={selectedQuestion}
+                  toolboxItems={toolboxItems}
+                  onReorderToolbox={handleReorderToolbox}
+                  onReorderQuestion={handleReorderQuestion}
+                  onReorderBlock={handleReorderBlock}
+                  onCopyBlock={handleCopyBlock}
+                  onAddQuestionToBlock={handleAddQuestionToBlock}
+                  onExpandAllBlocks={handleExpandAllBlocks}
+                  onCollapseAllBlocks={handleCollapseAllBlocks}
+                  onDeleteBlock={handleDeleteBlock}
+                  onDeleteQuestion={handleDeleteQuestion}
+                  onCopyQuestion={handleCopyQuestion}
+                  onAddPageBreakAfterQuestion={handleAddPageBreakAfterQuestion}
+                  onExpandBlock={handleExpandBlock}
+                  onCollapseBlock={handleCollapseBlock}
+                  onSelectAllInBlock={handleSelectAllInBlock}
+                  onUnselectAllInBlock={handleUnselectAllInBlock}
+                />
+              )}
               
-              <div ref={canvasContainerRef} className={`flex-1 overflow-y-auto py-4 px-4 ${selectedQuestion || isGeminiPanelOpen ? 'pr-0' : ''}`}>
+              <div ref={canvasContainerRef} className={`relative flex-1 overflow-y-auto py-4 px-4 transition-all duration-300 ${selectedQuestion || isGeminiPanelOpen ? 'pr-0' : ''}`}>
+                {!isBuildPanelOpen && (
+                  <button
+                    onClick={() => setIsBuildPanelOpen(true)}
+                    className="absolute top-4 left-0 z-10 p-2 rounded-r-md text-on-surface-variant hover:bg-surface-container-high"
+                    aria-label="Open build panel"
+                  >
+                    <PanelRightIcon className="text-xl" />
+                  </button>
+                )}
                 <SurveyCanvas 
                   survey={survey} 
                   selectedQuestion={selectedQuestion} 
@@ -343,7 +374,7 @@ const App: React.FC = () => {
                 />
               </div>
 
-              <div className="w-96 flex-shrink-0">
+              <div className={`flex-shrink-0 transition-all duration-300 ease-in-out ${isRightSidebarExpanded && selectedQuestion ? 'w-[50%]' : 'w-96'}`}>
                 {isGeminiPanelOpen ? (
                     <GeminiPanel 
                       onClose={handleToggleGeminiPanel} 
@@ -358,6 +389,8 @@ const App: React.FC = () => {
                       onUpdateQuestion={handleUpdateQuestion}
                       onAddChoice={handleAddChoice}
                       onDeleteChoice={handleDeleteChoice}
+                      isExpanded={isRightSidebarExpanded}
+                      onToggleExpand={handleToggleRightSidebarExpand}
                     />
                 ) : (
                     <div className="pt-4 pr-4 pb-8 pl-4">

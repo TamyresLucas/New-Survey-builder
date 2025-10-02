@@ -81,7 +81,8 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 !originalQuestion.choices?.length
             ) {
                 const questionText = originalQuestion.text;
-                const choiceRegex = /\s*\(\w+_\d+\).*?(?=\s*\(\w+_\d+\)|$)/g;
+                // Regex to find variables with optional parentheses, like (Q1_1) or Q1_1
+                const choiceRegex = /\s*\(?\w+_\d+\)?.*?(?=\s*\(?\w+_\d+\)?|$)/g;
                 const potentialChoices = questionText.match(choiceRegex);
     
                 if (potentialChoices && potentialChoices.length > 0) {

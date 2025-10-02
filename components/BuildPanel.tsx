@@ -1,9 +1,10 @@
 import React, { useState, useRef, useMemo, useEffect, memo, useCallback } from 'react';
-import { SearchIcon, XIcon, RadioIcon, WarningIcon, DragIndicatorIcon, ChevronDownIcon, DotsHorizontalIcon } from './icons';
+import { SearchIcon, PanelLeftIcon, RadioIcon, WarningIcon, DragIndicatorIcon, ChevronDownIcon, DotsHorizontalIcon } from './icons';
 import type { Survey, Question, ToolboxItemData } from '../types';
 import { QuestionType } from '../types';
 
 interface BuildPanelProps {
+  onClose: () => void;
   survey: Survey;
   onSelectQuestion: (question: Question | null) => void;
   selectedQuestion: Question | null;
@@ -170,7 +171,7 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
 
 
 const BuildPanel: React.FC<BuildPanelProps> = memo(({ 
-  survey, onSelectQuestion, selectedQuestion, toolboxItems, onReorderToolbox, onReorderQuestion, onReorderBlock,
+  onClose, survey, onSelectQuestion, selectedQuestion, toolboxItems, onReorderToolbox, onReorderQuestion, onReorderBlock,
   onCopyBlock, onAddQuestionToBlock, onExpandAllBlocks, onCollapseAllBlocks, onDeleteBlock, onDeleteQuestion, onCopyQuestion,
   onAddPageBreakAfterQuestion, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock
 }) => {
@@ -427,9 +428,9 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
       <div className="p-4 border-b border-outline-variant">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-on-surface" style={{ fontFamily: "'Open Sans', sans-serif" }}>Build</h2>
-          <div className="flex items-center text-on-surface-variant">
-            <XIcon className="text-xl" />
-          </div>
+          <button onClick={onClose} className="p-1 rounded-full text-on-surface-variant hover:bg-surface-container-high" aria-label="Collapse build panel">
+            <PanelLeftIcon className="text-xl" />
+          </button>
         </div>
         <div className="mt-4">
           <nav className="-mb-px flex space-x-6">
@@ -564,7 +565,10 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                     >
                       <div className="flex items-center cursor-grab flex-grow truncate">
                         <DragIndicatorIcon className="text-base mr-2 text-on-surface-variant flex-shrink-0" />
-                        <h3 className="text-sm font-semibold text-on-surface truncate">{block.title}</h3>
+                        <h3 className="text-sm font-semibold text-on-surface truncate">
+                          <span className="font-bold mr-2">{block.bid}</span>
+                          {block.title}
+                        </h3>
                       </div>
                       <div className="relative flex-shrink-0" ref={openMenuBlockId === block.id ? actionsMenuRef : null}>
                           <button

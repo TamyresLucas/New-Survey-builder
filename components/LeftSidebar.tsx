@@ -4,16 +4,16 @@ import { mainNavItems } from '../constants';
 
 interface LeftSidebarProps {
   activeTab: string;
-  setActiveTab: (tabId: string) => void;
+  onTabSelect: (tabId: string) => void;
 }
 
-const LeftSidebar: React.FC<LeftSidebarProps> = memo(({ activeTab, setActiveTab }) => {
+const LeftSidebar: React.FC<LeftSidebarProps> = memo(({ activeTab, onTabSelect }) => {
   return (
     <nav className="flex-shrink-0 w-20 bg-surface-container border-r border-outline-variant flex flex-col items-center py-4">
       {mainNavItems.map((item) => (
         <button
           key={item.id}
-          onClick={() => setActiveTab(item.id)}
+          onClick={() => onTabSelect(item.id)}
           className={`flex flex-col items-center justify-center w-16 h-16 rounded-lg mb-2 transition-colors ${
             activeTab === item.id 
               ? 'bg-primary-container text-primary' 

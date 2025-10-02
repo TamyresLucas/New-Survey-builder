@@ -16,18 +16,22 @@ export const NON_CHOICE_BASED_QUESTION_TYPES_WITH_TEXT = new Set<QuestionType>([
 
 
 /**
- * Iterates through the entire survey and renumbers all question QIDs and
+ * Iterates through the entire survey and renumbers all blocks and question QIDs and
  * their corresponding choice variables to be sequential.
  * @param survey The survey object to process.
  * @returns A new survey object with updated variables.
  */
 export const renumberSurveyVariables = (survey: Survey): Survey => {
   let questionCounter = 1;
+  let blockCounter = 1;
 
   // Deep clone the survey to avoid direct mutation
   const newSurvey = JSON.parse(JSON.stringify(survey));
 
   for (const block of newSurvey.blocks) {
+    block.bid = `BL${blockCounter}`;
+    blockCounter++;
+
     for (const question of block.questions) {
       if (question.type === QuestionType.PageBreak) {
         question.qid = ''; // Page breaks don't get a QID
@@ -41,10 +45,10 @@ export const renumberSurveyVariables = (survey: Survey): Survey => {
 
       if (question.choices) {
         question.choices.forEach((choice: any, choiceIndex: number) => {
-          // Regex to find a variable like (Q1_1) or (Q15_3) at the start of the string
-          const variableRegex = new RegExp(`^\\(${oldQid}_\\d+\\)\\s*`);
+          // Regex to find a variable like (Q1_1), Q1_1, (Q15_3), or Q15_3 at the start of the string
+          const variableRegex = new RegExp(`^\\(?${oldQid}_\\d+\\)?\\s*`);
           const label = choice.text.replace(variableRegex, '');
-          choice.text = `(${newQid}_${choiceIndex + 1}) ${label}`;
+          choice.text = `${newQid}_${choiceIndex + 1} ${label}`;
         });
       }
       questionCounter++;

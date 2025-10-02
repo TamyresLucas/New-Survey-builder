@@ -4,9 +4,8 @@ import React from 'react';
 type IconProps = { className?: string };
 
 // Base component for rendering a Google Material Symbol
-const MaterialSymbol: React.FC<IconProps & { icon: string; filled?: boolean }> = ({ icon, className, filled }) => {
-    const style: React.CSSProperties = filled ? { fontVariationSettings: "'FILL' 1" } : {};
-    return <span style={style} className={`material-symbols-outlined ${className}`}>{icon}</span>;
+const MaterialSymbol: React.FC<IconProps & { icon: string }> = ({ icon, className }) => {
+    return <span className={`material-symbols-rounded ${className}`}>{icon}</span>;
 };
 
 export const GridIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="apps" className={className} />;
@@ -33,10 +32,15 @@ export const ClockSolidIcon: React.FC<IconProps> = ({ className }) => <MaterialS
 export const ArrowRightAltIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="arrow_right_alt" className={className} />;
 export const WarningIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="warning" className={className} />;
 export const DragIndicatorIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="drag_indicator" className={className} />;
+export const ExpandIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="right_panel_open" className={className} />;
+export const CollapseIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="right_panel_close" className={className} />;
+export const PanelLeftIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="left_panel_close" className={className} />;
+export const PanelRightIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="left_panel_open" className={className} />;
+
 
 // Updated Icons for better matching
 export const DescriptionIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="format_paragraph" className={className} />;
-export const CheckboxFilledIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="check_box" className={className} filled />;
+export const CheckboxFilledIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="check_box" className={className} />;
 export const RadioIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="radio_button_checked" className={className} />;
 export const RadioButtonUncheckedIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="radio_button_unchecked" className={className} />;
 export const TextAnswerIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="title" className={className} />;
@@ -76,6 +80,7 @@ export const TimerIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol
 export const HeatmapIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="local_fire_department" className={className} />;
 export const CarrouselIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="view_carousel" className={className} />;
 export const SunIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="light_mode" className={className} />;
+// Fix: Corrected corrupted export for MoonIcon.
 export const MoonIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="dark_mode" className={className} />;
 export const SparkleIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="auto_awesome" className={className} />;
 // Fix: Add missing icon definitions for GeminiPanel

@@ -61,15 +61,15 @@ export const initialSurveyData: Survey = {
           text: 'Have you purchased coffee from our café in the past month?',
           type: QuestionType.Radio,
           choices: [
-            { id: 'q1c1', text: '(Q1_1) Yes' },
-            { id: 'q1c2', text: '(Q1_2) No' },
+            { id: 'q1c1', text: 'Q1_1 Yes' },
+            { id: 'q1c2', text: 'Q1_2 No' },
           ],
           skipLogic: 'If Q1 = "Q1_2", skip to Block 2 (Q6).',
         },
         {
           id: 'q2',
           qid: 'Q2',
-          text: 'How often do you visit our café? (Q2_1) Daily (Q2_2) 2-3 times a week (Q2_3) Once a week (Q2_4) Rarely',
+          text: 'How often do you visit our café? Q2_1 Daily Q2_2 2-3 times a week Q2_3 Once a week Q2_4 Rarely',
           type: QuestionType.Description,
         },
         {
@@ -78,11 +78,11 @@ export const initialSurveyData: Survey = {
           text: 'What type of coffee do you usually order?',
           type: QuestionType.Checkbox,
           choices: [
-            { id: 'q3c1', text: '(Q3_1) Espresso' },
-            { id: 'q3c2', text: '(Q3_2) Latte/Cappuccino' },
-            { id: 'q3c3', text: '(Q3_3) Cold Brew' },
-            { id: 'q3c4', text: '(Q3_4) Drip Coffee' },
-            { id: 'q3c5', text: '(Q3_5)Other: ____' },
+            { id: 'q3c1', text: 'Q3_1 Espresso' },
+            { id: 'q3c2', text: 'Q3_2 Latte/Cappuccino' },
+            { id: 'q3c3', text: 'Q3_3 Cold Brew' },
+            { id: 'q3c4', text: 'Q3_4 Drip Coffee' },
+            { id: 'q3c5', text: 'Q3_5 Other: ____' },
           ],
         },
         {

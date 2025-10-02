@@ -48,7 +48,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&family=Outfit:wght@300;500;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,1,0" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,1,0" />
     <style id="custom-theme">
       :root {
         /* Light Theme Color Tokens */
@@ -111,10 +111,12 @@
       body {
         font-family: 'Open Sans', sans-serif;
       }
-      .material-symbols-outlined {
+      .material-symbols-rounded {
         user-select: none; /* Prevent text selection of icons */
         line-height: 1;
         vertical-align: middle;
+        /* As per user request, fill all icons */
+        font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
       }
     </style>
   <script type="importmap">

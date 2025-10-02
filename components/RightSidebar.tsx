@@ -1,6 +1,6 @@
 import React, { memo, useState, useEffect } from 'react';
 import type { Question } from '../types';
-import { XIcon, PlusIcon } from './icons';
+import { XIcon, PlusIcon, ExpandIcon, CollapseIcon } from './icons';
 import { CHOICE_BASED_QUESTION_TYPES } from '../utils';
 
 interface RightSidebarProps {
@@ -11,6 +11,8 @@ interface RightSidebarProps {
   onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
   onAddChoice: (questionId: string) => void;
   onDeleteChoice: (questionId: string, choiceId: string) => void;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
 }
 
 const RightSidebar: React.FC<RightSidebarProps> = memo(({
@@ -21,6 +23,8 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
   onUpdateQuestion,
   onAddChoice,
   onDeleteChoice,
+  isExpanded,
+  onToggleExpand
 }) => {
   const [questionText, setQuestionText] = useState(question.text);
 
@@ -100,9 +104,18 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
         <h2 className="text-lg font-bold text-on-surface" style={{ fontFamily: "'Open Sans', sans-serif" }}>
           Edit question
         </h2>
-        <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface">
-          <XIcon className="text-2xl" />
-        </button>
+        <div className="flex items-center">
+            <button 
+                onClick={onToggleExpand} 
+                className="text-on-surface-variant hover:text-on-surface p-1 mr-1"
+                aria-label={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+            >
+                {isExpanded ? <CollapseIcon className="text-2xl" /> : <ExpandIcon className="text-2xl" />}
+            </button>
+            <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface p-1">
+                <XIcon className="text-2xl" />
+            </button>
+        </div>
       </div>
       <div className="border-b border-outline-variant">
         <nav className="-mb-px flex space-x-2 px-4">

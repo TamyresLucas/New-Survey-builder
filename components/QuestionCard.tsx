@@ -128,6 +128,17 @@ const QuestionCard: React.FC<{
         label: item.name,
         icon: item.icon,
         })), [toolboxItems]);
+        
+    const parseChoice = (text: string): { variable: string; label: string } => {
+        const match = text.match(/(^Q\d+_\d+)\s*/);
+        if (match) {
+            return {
+                variable: match[1],
+                label: text.substring(match[0].length)
+            };
+        }
+        return { variable: '', label: text };
+    };
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -170,8 +181,8 @@ const QuestionCard: React.FC<{
 
         if (hasChoices && !question.choices) {
             updates.choices = [
-                { id: `${question.id}c1`, text: `(${question.qid}_1) Yes` },
-                { id: `${question.id}c2`, text: `(${question.qid}_2) No` },
+                { id: `${question.id}c1`, text: `${question.qid}_1 Yes` },
+                { id: `${question.id}c2`, text: `${question.qid}_2 No` },
             ];
         } else if (!hasChoices) {
             updates.choices = undefined;
@@ -184,7 +195,12 @@ const QuestionCard: React.FC<{
     const handleStartEditing = useCallback((element: 'question' | string, currentText: string) => {
         if (editingElement) return;
         setEditingElement(element);
-        setEditText(currentText);
+        if (element === 'question') {
+            setEditText(currentText);
+        } else {
+            const { label } = parseChoice(currentText);
+            setEditText(label);
+        }
     }, [editingElement]);
     
     const handleCancelEditing = useCallback(() => {
@@ -194,28 +210,35 @@ const QuestionCard: React.FC<{
     
     const handleSaveChanges = useCallback(() => {
         if (!editingElement) return;
-
+    
         if (editingElement === 'question') {
             const newText = editText.trim();
             if (question.text !== newText && newText !== '') {
                 onUpdateQuestion(question.id, { text: newText });
             }
         } else { // It's a choice
-            const newChoices = question.choices?.map(choice =>
-                choice.id === editingElement
-                    ? { ...choice, text: editText.trim() }
-                    : choice
-            );
-        
             const originalChoice = question.choices?.find(c => c.id === editingElement);
-        
-            if (originalChoice && originalChoice.text !== editText.trim()) {
+            if (!originalChoice) {
+                handleCancelEditing();
+                return;
+            }
+    
+            const { variable } = parseChoice(originalChoice.text);
+            const newLabel = editText.trim();
+            const newText = variable ? `${variable} ${newLabel}` : newLabel;
+    
+            if (originalChoice.text !== newText) {
+                const newChoices = question.choices?.map(choice =>
+                    choice.id === editingElement
+                        ? { ...choice, text: newText }
+                        : choice
+                );
                 onUpdateQuestion(question.id, { choices: newChoices });
             }
         }
-
+    
         handleCancelEditing();
-    }, [editingElement, editText, question.id, question.text, question.choices, onUpdateQuestion, handleCancelEditing]);
+    }, [editingElement, editText, question, onUpdateQuestion, handleCancelEditing]);
     
     const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -225,6 +248,19 @@ const QuestionCard: React.FC<{
             handleCancelEditing();
         }
     }, [handleSaveChanges, handleCancelEditing]);
+    
+    const renderChoiceText = (text: string) => {
+        const { variable, label } = parseChoice(text);
+        if (variable) {
+            return (
+                <>
+                    <span className="font-bold text-on-surface">{variable}</span>
+                    <span className="ml-1">{label}</span>
+                </>
+            );
+        }
+        return <>{label}</>;
+    };
 
     if (question.type === QuestionType.PageBreak) {
         return (
@@ -382,7 +418,7 @@ const QuestionCard: React.FC<{
                                     />
                                 ) : (
                                     <span onClick={(e) => { e.stopPropagation(); handleStartEditing(choice.id, choice.text); }} className="text-on-surface flex-grow min-h-[24px]">
-                                        {choice.text}
+                                        {renderChoiceText(choice.text)}
                                     </span>
                                 )}
                                 <button

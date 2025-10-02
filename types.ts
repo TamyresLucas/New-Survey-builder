@@ -1,13 +1,11 @@
-import type React from 'react';
-// FIX: Import Position enum from @xyflow/react to resolve type incompatibility for handles.
-import type { Position, XYPosition } from '@xyflow/react';
 
+import type React from 'react';
 
 export enum QuestionType {
   Radio = 'Radio Button',
   Checkbox = 'Checkbox',
   Description = 'Description',
-  TextEntry = 'Text Entry',
+  Text = 'Text Answer',
   PageBreak = 'Page Break',
   ChoiceGrid = 'Choice Grid',
   Autocomplete = 'Autocomplete',
@@ -20,10 +18,18 @@ export enum QuestionType {
   EmailAddressAnswer = 'Email Address Answer',
   FileUpload = 'File Upload',
   HybridGrid = 'Hybrid Grid',
+  ImageAreaEvaluator = 'Image Area Evaluator',
+  ImageAreaSelector = 'Image Area Selector',
+  ImageChoiceGrid = 'Image Choice Grid',
+  ImageSelector = 'Image Selector',
   LookupTable = 'Lookup Table',
   NetPromoterNPS = 'Net Promoter (NPS)',
   NumericRanking = 'Numeric Ranking',
   NumericAnswer = 'Numeric Answer',
+<<<<<<< HEAD
+=======
+  OpenEndAnswer = 'Open-End Answer',
+>>>>>>> a328607 (feat: Initialize Survey Builder UI project)
   RespondentEmail = 'Respondent Email',
   RespondentLanguage = 'Respondent Language',
   RespondentMetadata = 'Respondent Metadata',
@@ -36,13 +42,19 @@ export enum QuestionType {
   StarRating = 'Star Rating',
   TextHighlighter = 'Text Highlighter',
   Timer = 'Timer',
+<<<<<<< HEAD
   ImageSelector = 'Image Selector',
   ImageChoiceGrid = 'Image Choice Grid',
+=======
+  Heatmap = 'Heatmap',
+  Carrousel = 'Carrousel',
+>>>>>>> a328607 (feat: Initialize Survey Builder UI project)
 }
 
 export interface Choice {
   id: string;
   text: string;
+<<<<<<< HEAD
   visible?: boolean;
   color?: string | null;
   allowTextEntry?: boolean;
@@ -290,10 +302,22 @@ export interface QuestionRandomizationRule {
   pattern: RandomizationPattern;
   questionGroupId?: string;
   isConfirmed?: boolean;
+=======
+}
+
+export interface Question {
+  id: string;
+  qid: string;
+  text: string;
+  type: QuestionType;
+  choices?: Choice[];
+  skipLogic?: string;
+>>>>>>> a328607 (feat: Initialize Survey Builder UI project)
 }
 
 export interface Block {
   id: string;
+<<<<<<< HEAD
   bid?: string;
   title: string;
   questions: Question[];
@@ -312,14 +336,21 @@ export interface Block {
   autoAdvance?: boolean;
   automaticPageBreaks?: boolean;
   hideBackButton?: boolean;
+=======
+  title: string;
+  questions: Question[];
+>>>>>>> a328607 (feat: Initialize Survey Builder UI project)
 }
 
 export interface Survey {
   title: string;
   blocks: Block[];
+<<<<<<< HEAD
   pagingMode: 'one-per-page' | 'multi-per-page';
   globalAutoAdvance?: boolean;
   lastLogicValidationMessage?: string;
+=======
+>>>>>>> a328607 (feat: Initialize Survey Builder UI project)
 }
 
 export interface ToolboxItemData {
@@ -336,6 +367,7 @@ export interface NavItem {
 export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
+<<<<<<< HEAD
 }
 
 // --- NEW DATA MODEL FOR LOGIC VALIDATION ---
@@ -476,3 +508,6 @@ export const isTextEntryNode = (node: Node): node is TextEntryNode => node.type 
 export const isDescriptionNode = (node: Node): node is DescriptionNode => node.type === 'description_node';
 
 export type SurveyStatus = 'draft' | 'active' | 'stopped';
+=======
+}
+>>>>>>> a328607 (feat: Initialize Survey Builder UI project)

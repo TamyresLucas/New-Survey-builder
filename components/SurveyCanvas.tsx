@@ -13,9 +13,10 @@ interface SurveyCanvasProps {
   onDeleteBlock: (blockId: string) => void;
   onReorderQuestion: (draggedQuestionId: string, targetQuestionId: string | null, targetBlockId: string) => void;
   onReorderBlock: (draggedBlockId: string, targetBlockId: string | null) => void;
+  onAddBlockFromToolbox: (targetBlockId: string | null) => void;
   onAddQuestion: (questionType: QuestionType, targetQuestionId: string | null, targetBlockId: string) => void;
   onAddBlock: (blockId: string, position: 'above' | 'below') => void;
-  onAddQuestionToBlock: (blockId: string) => void;
+  onAddQuestionToBlock: (blockId: string, questionType: QuestionType) => void;
   onToggleQuestionCheck: (questionId: string) => void;
   onSelectAllInBlock: (blockId: string) => void;
   onUnselectAllInBlock: (blockId: string) => void;
@@ -40,10 +41,11 @@ const DropIndicator = () => (
     </div>
 );
 
-const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuestion, checkedQuestions, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onDeleteBlock, onReorderQuestion, onReorderBlock, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, collapsedBlocks, onToggleBlockCollapse, onCopyBlock, onExpandAllBlocks, onCollapseAllBlocks, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onUpdateSurveyTitle }) => {
+const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuestion, checkedQuestions, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onDeleteBlock, onReorderQuestion, onReorderBlock, onAddBlockFromToolbox, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, collapsedBlocks, onToggleBlockCollapse, onCopyBlock, onExpandAllBlocks, onCollapseAllBlocks, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onUpdateSurveyTitle }) => {
   const [draggedQuestionId, setDraggedQuestionId] = useState<string | null>(null);
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
   const [dropTargetBlockId, setDropTargetBlockId] = useState<string | null>(null);
+  const [isDraggingNewBlock, setIsDraggingNewBlock] = useState(false);
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(survey.title);
@@ -91,15 +93,24 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
     }
   }, [selectedQuestion]);
 
+  const handleDragEnter = (e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes('application/survey-toolbox-block')) {
+        setIsDraggingNewBlock(true);
+    }
+  };
+
   const handleBlockDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    if (!draggedBlockId) return;
+    const isDraggingExistingBlock = !!draggedBlockId;
+    const isAddingNewBlock = e.dataTransfer.types.includes('application/survey-toolbox-block');
 
+    if (!isDraggingExistingBlock && !isAddingNewBlock) return;
+    
     const blockElements = [...(e.currentTarget as HTMLDivElement).querySelectorAll('div[data-block-id]')] as HTMLDivElement[];
     
     const closest = blockElements.reduce(
         (acc, child) => {
-            if (child.dataset.blockId === draggedBlockId) return acc;
+            if (isDraggingExistingBlock && child.dataset.blockId === draggedBlockId) return acc;
             
             const box = child.getBoundingClientRect();
             const offset = e.clientY - (box.top + box.height / 2);
@@ -117,21 +128,29 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
   
   const handleBlockDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    if (draggedBlockId) {
-      onReorderBlock(draggedBlockId, dropTargetBlockId);
+    const isAddingNewBlock = e.dataTransfer.types.includes('application/survey-toolbox-block');
+
+    if (isAddingNewBlock) {
+        onAddBlockFromToolbox(dropTargetBlockId);
+    } else if (draggedBlockId) {
+        onReorderBlock(draggedBlockId, dropTargetBlockId);
     }
+    
     setDraggedBlockId(null);
     setDropTargetBlockId(null);
+    setIsDraggingNewBlock(false);
   };
 
   const handleBlockLeave = (e: React.DragEvent) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
         setDropTargetBlockId(null);
+        setIsDraggingNewBlock(false);
     }
   };
   
   return (
     <div
+      onDragEnter={handleDragEnter}
       onDragOver={handleBlockDragOver}
       onDrop={handleBlockDrop}
       onDragLeave={handleBlockLeave}
@@ -200,7 +219,7 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
           />
         </React.Fragment>
       ))}
-      {dropTargetBlockId === null && draggedBlockId && <DropIndicator />}
+      {dropTargetBlockId === null && (draggedBlockId || isDraggingNewBlock) && <DropIndicator />}
     </div>
   );
 });

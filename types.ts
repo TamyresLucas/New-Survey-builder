@@ -56,6 +56,9 @@ export interface Question {
   type: QuestionType;
   choices?: Choice[];
   skipLogic?: string;
+  isHidden?: boolean;
+  hideBackButton?: boolean;
+  forceResponse?: boolean;
 }
 
 export interface Block {

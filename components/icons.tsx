@@ -87,3 +87,15 @@ export const SparkleIcon: React.FC<IconProps> = ({ className }) => <MaterialSymb
 export const SendIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="send" className={className} />;
 export const LoaderIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="progress_activity" className={className} />;
 export const AccountCircleIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="account_circle" className={className} />;
+
+// Icons for Bulk Edit Panel
+export const ContentCopyIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="content_copy" className={className} />;
+export const LibraryAddIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="library_add" className={className} />;
+export const DriveFileMoveIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="drive_file_move" className={className} />;
+export const CreateNewFolderIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="create_new_folder" className={className} />;
+export const VisibilityOffIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="visibility_off" className={className} />;
+export const HideSourceIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="hide_source" className={className} />;
+export const TaskAltIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="task_alt" className={className} />;
+export const DeleteIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="delete" className={className} />;
+
+export const ChevronRightIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="chevron_right" className={className} />;

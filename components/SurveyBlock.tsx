@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, memo, useCallback } from 'react';
 import type { Block, Question, ToolboxItemData, QuestionType, Choice } from '../types';
 import QuestionCard from './QuestionCard';
 import { ChevronDownIcon, DotsHorizontalIcon, DragIndicatorIcon } from './icons';
+import { BlockActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
 
 const DropIndicator = () => (
     <div className="relative h-px w-full bg-primary my-2">
@@ -9,46 +10,6 @@ const DropIndicator = () => (
       <div className="absolute right-0 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
     </div>
 );
-
-const BlockActionsMenu: React.FC<{
-  onCopy: () => void;
-  onAddQuestion: () => void;
-  onAddBlockAbove: () => void;
-  onAddBlockBelow: () => void;
-  onSelectAll: () => void;
-  onUnselectAll: () => void;
-  onExpand: () => void;
-  onCollapse: () => void;
-  onDelete: () => void;
-}> = ({ onCopy, onAddQuestion, onAddBlockAbove, onAddBlockBelow, onSelectAll, onUnselectAll, onExpand, onCollapse, onDelete }) => {
-  return (
-    <div className="absolute top-full right-0 mt-2 w-48 bg-surface-container border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-      <div className="py-1">
-        <button onClick={onAddQuestion} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add question</button>
-        <button onClick={onAddBlockAbove} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add block above</button>
-        <button onClick={onAddBlockBelow} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add block below</button>
-      </div>
-      <div className="border-t border-dotted border-outline-variant mx-2" />
-      <div className="py-1">
-        <button onClick={onCopy} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Duplicate</button>
-      </div>
-       <div className="border-t border-dotted border-outline-variant mx-2" />
-      <div className="py-1">
-        <button onClick={onSelectAll} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Select All</button>
-        <button onClick={onUnselectAll} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Unselect All</button>
-      </div>
-      <div className="border-t border-dotted border-outline-variant mx-2" />
-      <div className="py-1">
-        <button onClick={onExpand} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Expand block</button>
-        <button onClick={onCollapse} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Collapse block</button>
-      </div>
-      <div className="border-t border-dotted border-outline-variant mx-2" />
-      <div className="py-1">
-        <button onClick={onDelete} className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container">Delete</button>
-      </div>
-    </div>
-  );
-};
 
 interface SurveyBlockProps {
     block: Block;
@@ -62,7 +23,7 @@ interface SurveyBlockProps {
     onReorderQuestion: (draggedQuestionId: string, targetQuestionId: string | null, targetBlockId: string) => void;
     onAddQuestion: (questionType: QuestionType, targetQuestionId: string | null, targetBlockId: string) => void;
     onAddBlock: (blockId: string, position: 'above' | 'below') => void;
-    onAddQuestionToBlock: (blockId: string) => void;
+    onAddQuestionToBlock: (blockId: string, questionType: QuestionType) => void;
     onToggleQuestionCheck: (questionId: string) => void;
     onSelectAllInBlock: (blockId: string) => void;
     onUnselectAllInBlock: (blockId: string) => void;
@@ -95,11 +56,17 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(block.title);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  
+  const [isAddQuestionMenuOpen, setIsAddQuestionMenuOpen] = useState(false);
+  const addQuestionMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
         if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
             setIsActionsMenuOpen(false);
+        }
+        if (addQuestionMenuRef.current && !addQuestionMenuRef.current.contains(event.target as Node)) {
+            setIsAddQuestionMenuOpen(false);
         }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -257,8 +224,10 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
             </button>
             {isActionsMenuOpen && (
                 <BlockActionsMenu
-                    onCopy={() => { onCopyBlock(block.id); setIsActionsMenuOpen(false); }}
-                    onAddQuestion={() => { onAddQuestionToBlock(block.id); setIsActionsMenuOpen(false); }}
+                    onDuplicate={() => { onCopyBlock(block.id); setIsActionsMenuOpen(false); }}
+                    onAddQuestion={(questionType) => { onAddQuestionToBlock(block.id, questionType); setIsActionsMenuOpen(false); }}
+                    toolboxItems={toolboxItems}
+                    onAddFromLibrary={() => { alert('Add from library functionality not implemented.'); setIsActionsMenuOpen(false); }}
                     onAddBlockAbove={() => { onAddBlock(block.id, 'above'); setIsActionsMenuOpen(false); }}
                     onAddBlockBelow={() => { onAddBlock(block.id, 'below'); setIsActionsMenuOpen(false); }}
                     onSelectAll={() => { onSelectAllInBlock(block.id); setIsActionsMenuOpen(false); }}
@@ -277,31 +246,71 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
           onDragLeave={handleDragLeave}
           className="p-4"
         >
-          {block.questions.map((question, index) => (
-            <React.Fragment key={question.id}>
-              {dropTargetId === question.id && <DropIndicator />}
-              <div className={index > 0 ? "mt-4" : ""}>
-                <QuestionCard
-                  question={question}
-                  id={`question-card-${question.id}`}
-                  isSelected={selectedQuestion?.id === question.id}
-                  isChecked={checkedQuestions.has(question.id)}
-                  onSelect={onSelectQuestion}
-                  onUpdateQuestion={onUpdateQuestion}
-                  onDeleteQuestion={onDeleteQuestion}
-                  onCopyQuestion={onCopyQuestion}
-                  onToggleCheck={onToggleQuestionCheck}
-                  toolboxItems={toolboxItems}
-                  isDragging={draggedQuestionId === question.id}
-                  onDragStart={() => setDraggedQuestionId(question.id)}
-                  onDragEnd={() => setDraggedQuestionId(null)}
-                  onAddChoice={onAddChoice}
-                  onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
-                />
+          {block.questions.length > 0 ? (
+            <>
+              {block.questions.map((question, index) => (
+                <React.Fragment key={question.id}>
+                  {dropTargetId === question.id && <DropIndicator />}
+                  <div className={index > 0 ? "mt-4" : ""}>
+                    <QuestionCard
+                      question={question}
+                      id={`question-card-${question.id}`}
+                      isSelected={selectedQuestion?.id === question.id}
+                      isChecked={checkedQuestions.has(question.id)}
+                      onSelect={onSelectQuestion}
+                      onUpdateQuestion={onUpdateQuestion}
+                      onDeleteQuestion={onDeleteQuestion}
+                      onCopyQuestion={onCopyQuestion}
+                      onToggleCheck={onToggleQuestionCheck}
+                      toolboxItems={toolboxItems}
+                      isDragging={draggedQuestionId === question.id}
+                      onDragStart={() => {
+                        setDraggedQuestionId(question.id);
+                        onSelectQuestion(question);
+                      }}
+                      onDragEnd={() => setDraggedQuestionId(null)}
+                      onAddChoice={onAddChoice}
+                      onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
+                    />
+                  </div>
+                </React.Fragment>
+              ))}
+              {dropTargetId === null && (draggedQuestionId || isToolboxDragOver) && <DropIndicator />}
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <div className="flex justify-center space-x-4">
+                 <div className="relative" ref={addQuestionMenuRef}>
+                    <button
+                        onClick={() => setIsAddQuestionMenuOpen(prev => !prev)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-on-primary bg-primary rounded-md hover:opacity-90 transition-opacity"
+                        aria-haspopup="true"
+                        aria-expanded={isAddQuestionMenuOpen}
+                    >
+                        <span>Add new question</span>
+                        <ChevronDownIcon className="text-base" />
+                    </button>
+                    {isAddQuestionMenuOpen && (
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 z-10">
+                            <QuestionTypeSelectionMenuContent 
+                                toolboxItems={toolboxItems}
+                                onSelect={(questionType) => {
+                                    onAddQuestionToBlock(block.id, questionType);
+                                    setIsAddQuestionMenuOpen(false);
+                                }}
+                            />
+                        </div>
+                    )}
+                </div>
+                <button
+                  onClick={() => alert('Add from library functionality not implemented.')}
+                  className="px-4 py-2 text-sm font-semibold text-on-surface bg-surface-container-high border border-outline rounded-md hover:bg-surface-container-highest transition-colors"
+                >
+                  Add from library
+                </button>
               </div>
-            </React.Fragment>
-          ))}
-          {dropTargetId === null && (draggedQuestionId || isToolboxDragOver) && <DropIndicator />}
+            </div>
+          )}
         </div>
       )}
     </div>

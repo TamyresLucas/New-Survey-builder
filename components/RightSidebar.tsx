@@ -1,7 +1,7 @@
 import React, { memo, useState, useEffect, useCallback, useRef } from 'react';
 import type { Question, ToolboxItemData, Choice } from '../types';
-import { QuestionType } from '../types';
-import { generateId, parseChoice } from '../utils';
+import { QuestionType, RandomizationType } from '../types';
+import { generateId, parseChoice, CHOICE_BASED_QUESTION_TYPES } from '../utils';
 import { PasteChoicesModal } from './PasteChoicesModal';
 import { 
     XIcon, PlusIcon, ExpandIcon, CollapseIcon, ChevronDownIcon, DragIndicatorIcon,
@@ -37,7 +37,6 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
 }) => {
   const [questionText, setQuestionText] = useState(question.text);
   const [expandedChoiceId, setExpandedChoiceId] = useState<string | null>(null);
-  const [advancedExpanded, setAdvancedExpanded] = useState(false);
   const [previewDevice, setPreviewDevice] = useState('desktop');
   const [previewOrientation, setOrientation] = useState('portrait');
   const [isTypeMenuOpen, setIsTypeMenuOpen] = useState(false);
@@ -48,7 +47,6 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
   useEffect(() => {
     setQuestionText(question.text);
     setExpandedChoiceId(null);
-    setAdvancedExpanded(false);
     setIsTypeMenuOpen(false);
   }, [question]);
 
@@ -107,6 +105,18 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
     }));
 
     handleUpdate({ choices: newChoices });
+  };
+  
+  const isRandomizationEnabled = question.behavior?.randomizationType !== RandomizationType.None && !!question.behavior?.randomizationType;
+
+  const handleToggleRandomization = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const isEnabled = e.target.checked;
+      handleUpdate({
+          behavior: {
+              ...question.behavior,
+              randomizationType: isEnabled ? RandomizationType.Permutation : RandomizationType.None,
+          }
+      });
   };
 
   const CurrentQuestionType = toolboxItems.find(item => item.name === question.type);
@@ -218,9 +228,11 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                     <label className="text-xs font-medium text-on-surface-variant">Fixed Position</label>
                     <input type="checkbox" checked={choice.fixed ?? false} onChange={e => handleChoicePropertyChange(choice.id, 'fixed', e.target.checked)} className="accent-primary" />
                   </div>
-                  <div>
-                    <label className="text-xs font-medium text-on-surface-variant block mb-1">Allow Text Entry</label>
-                     <input type="checkbox" checked={choice.allowTextEntry ?? false} onChange={e => handleChoicePropertyChange(choice.id, 'allowTextEntry', e.target.checked)} className="accent-primary" />
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-on-surface-variant">Allow Text Entry</label>
+                    <div className="flex items-center justify-end">
+                      <input type="checkbox" checked={choice.allowTextEntry ?? false} onChange={e => handleChoicePropertyChange(choice.id, 'allowTextEntry', e.target.checked)} className="accent-primary" />
+                    </div>
                   </div>
                 </div>
               )}
@@ -232,22 +244,27 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
           <button onClick={() => setIsPasteModalOpen(true)} className="flex items-center text-sm font-medium text-primary hover:underline"><ContentPasteIcon className="text-base mr-1" /> Copy and paste</button>
         </div>
       </div>
-
-      <div className="border-t border-outline-variant pt-6">
-        <button onClick={() => setAdvancedExpanded(!advancedExpanded)} className="w-full flex items-center justify-between text-sm font-medium text-on-surface hover:text-primary">
-          <span>Advanced Settings</span>
-          <ChevronDownIcon className={`text-lg transition-transform ${advancedExpanded ? 'rotate-180' : ''}`} />
-        </button>
-        {advancedExpanded && (
-          <div className="mt-4 space-y-6">
-             <h4 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-3">Display & Layout</h4>
-          </div>
-        )}
-      </div>
     </div>
   );
 
-  const renderBehaviorTab = () => (
+  const renderBehaviorTab = () => {
+    const isChoiceBased = CHOICE_BASED_QUESTION_TYPES.has(question.type);
+
+    const randomizationOptions: { value: RandomizationType; label: string; tooltip: string }[] = [
+        { value: RandomizationType.None, label: 'None', tooltip: 'Choices are displayed in the order they are defined.' },
+        { value: RandomizationType.Permutation, label: 'Permutation', tooltip: 'Randomly shuffles the order of all choices for each respondent.' },
+        { value: RandomizationType.RandomReverse, label: 'Random reverse', tooltip: 'Randomly shows choices in either the original or the reversed order to respondents.' },
+        { value: RandomizationType.ReverseOrder, label: 'Reverse order', tooltip: 'Displays all choices in the reverse of their defined order for every respondent.' },
+        { value: RandomizationType.Rotation, label: 'Rotation', tooltip: 'Cycles the choice order. For each new respondent, the first choice is moved to the end.' },
+        { value: RandomizationType.SortByCode, label: 'Sort by code', tooltip: 'Sorts choices based on their code (e.g., Q1_1, Q1_2) alphabetically/numerically.' },
+        { value: RandomizationType.SortByText, label: 'Sort by text', tooltip: 'Sorts choices alphabetically based on their visible text label.' },
+        { value: RandomizationType.Synchronized, label: 'Synchronized', tooltip: 'Matches the randomized choice order of another specified question.' },
+    ];
+    
+    const dropdownRandomizationOptions = randomizationOptions.filter(opt => opt.value !== RandomizationType.None);
+    const currentRandomizationTooltip = randomizationOptions.find(opt => opt.value === (question.behavior?.randomizationType || RandomizationType.None))?.tooltip;
+
+    return (
      <div className="space-y-6">
         <div>
             <h3 className="text-sm font-medium text-on-surface mb-2">Display Logic</h3>
@@ -255,31 +272,76 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
             <button onClick={() => alert("Not implemented")} className="flex items-center text-sm font-medium text-primary hover:underline"><PlusIcon className="text-base mr-1" />Add Display Logic</button>
         </div>
 
-        <div className="border-t border-outline-variant pt-6">
-            <h3 className="text-sm font-medium text-on-surface mb-2">Skip Logic</h3>
-            <p className="text-xs text-on-surface-variant mb-3">Skip to different questions based on the selected answer</p>
-            <div className="space-y-2">
-                {(question.choices || []).map(choice => (
-                    <div key={choice.id} className="flex items-center gap-2">
-                        <span className="text-sm text-on-surface flex-shrink-0 w-32 truncate">{parseChoice(choice.text).label}</span>
-                        <ArrowRightAltIcon className="text-on-surface-variant flex-shrink-0" />
-                        <select className="flex-1 bg-surface border border-outline rounded-md p-2 text-sm">
-                            <option value="next">Next Question</option>
-                            <option value="end">End of Survey</option>
-                        </select>
-                    </div>
-                ))}
+        {isChoiceBased && (
+        <>
+            <div className="border-t border-outline-variant pt-6">
+              <div className="flex items-center justify-between">
+                  <div>
+                      <label htmlFor="randomize-choices-toggle" className="text-sm font-medium text-on-surface">
+                          Randomize choices
+                      </label>
+                      <p className="text-xs text-on-surface-variant mt-0.5">Show choices in a random order</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                          type="checkbox"
+                          id="randomize-choices-toggle"
+                          checked={isRandomizationEnabled}
+                          onChange={handleToggleRandomization}
+                          className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
+              </div>
+              {isRandomizationEnabled && (
+                  <div className="mt-4">
+                      <label htmlFor="randomize-choices-type" className="block text-sm font-medium text-on-surface-variant mb-1">Randomization type</label>
+                      <div className="relative">
+                          <select
+                              id="randomize-choices-type"
+                              value={question.behavior?.randomizationType || RandomizationType.Permutation}
+                              onChange={(e) => handleUpdate({
+                                  behavior: {
+                                      ...question.behavior,
+                                      randomizationType: e.target.value as RandomizationType,
+                                  }
+                              })}
+                              className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                          >
+                              {dropdownRandomizationOptions.map(opt => (
+                                  <option key={opt.value} value={opt.value} title={opt.tooltip}>
+                                      {opt.label}
+                                  </option>
+                              ))}
+                          </select>
+                          <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                      </div>
+                      {currentRandomizationTooltip && <p className="text-xs text-on-surface-variant mt-1">{currentRandomizationTooltip}</p>}
+                  </div>
+              )}
             </div>
-        </div>
+            
+            <div className="border-t border-outline-variant pt-6">
+                <h3 className="text-sm font-medium text-on-surface mb-2">Skip Logic</h3>
+                <p className="text-xs text-on-surface-variant mb-3">Skip to different questions based on the selected answer</p>
+                <div className="space-y-2">
+                    {(question.choices || []).map(choice => (
+                        <div key={choice.id} className="flex items-center gap-2">
+                            <span className="text-sm text-on-surface flex-shrink-0 w-32 truncate">{parseChoice(choice.text).label}</span>
+                            <ArrowRightAltIcon className="text-on-surface-variant flex-shrink-0" />
+                            <select className="flex-1 bg-surface border border-outline rounded-md p-2 text-sm">
+                                <option value="next">Next Question</option>
+                                <option value="end">End of Survey</option>
+                            </select>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </>
+        )}
      </div>
-  );
-
-  const renderVariablesTab = () => (
-    <div className="text-center py-8">
-        <p className="text-on-surface-variant">Variable management is handled automatically.</p>
-        <p className="text-xs text-on-surface-variant mt-2">Variables are auto-generated based on question ID and update automatically.</p>
-    </div>
-  );
+    );
+  };
 
   const renderPreviewTab = () => (
     <div className="space-y-4">
@@ -323,14 +385,117 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
       </div>
     </div>
   );
+  
+  const renderAdvancedTab = () => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-medium text-on-surface mb-2">Display & Layout</h3>
+        <p className="text-xs text-on-surface-variant mb-4">Fine-tune the appearance of choices.</p>
+        
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="choice-orientation" className="block text-sm font-medium text-on-surface-variant mb-1">Choice Orientation</label>
+            <div className="relative">
+                <select 
+                  id="choice-orientation" 
+                  value={question.advancedSettings?.choiceOrientation || 'vertical'} 
+                  onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, choiceOrientation: e.target.value as any } })} 
+                  className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                >
+                    <option value="vertical">Vertical</option>
+                    <option value="horizontal">Horizontal</option>
+                    <option value="grid">Grid</option>
+                </select>
+                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+            </div>
+          </div>
+
+          {question.advancedSettings?.choiceOrientation === 'grid' && (
+            <div>
+              <label htmlFor="num-columns" className="block text-sm font-medium text-on-surface-variant mb-1">Number of Columns</label>
+              <input
+                type="number"
+                id="num-columns"
+                min="2"
+                max="10"
+                value={question.advancedSettings?.numColumns || 2}
+                onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, numColumns: parseInt(e.target.value, 10) } })}
+                className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+              />
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="choice-width" className="block text-sm font-medium text-on-surface-variant mb-1">Choice Width</label>
+            <div className="relative">
+                <select 
+                  id="choice-width" 
+                  value={question.advancedSettings?.choiceWidth || 'auto'} 
+                  onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, choiceWidth: e.target.value as any } })} 
+                  className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                >
+                    <option value="auto">Auto</option>
+                    <option value="full">Full Width</option>
+                    <option value="fixed">Fixed</option>
+                </select>
+                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-outline-variant pt-6">
+        <h3 className="text-sm font-medium text-on-surface mb-2">Image Settings</h3>
+        <p className="text-xs text-on-surface-variant mb-4">Configure how images are displayed with choices.</p>
+        
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="image-position" className="block text-sm font-medium text-on-surface-variant mb-1">Image Position</label>
+            <div className="relative">
+                <select 
+                  id="image-position" 
+                  value={question.advancedSettings?.imagePosition || 'hidden'} 
+                  onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, imagePosition: e.target.value as any } })} 
+                  className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                >
+                    <option value="hidden">Hidden</option>
+                    <option value="above">Above Text</option>
+                    <option value="left">Left of Text</option>
+                    <option value="right">Right of Text</option>
+                </select>
+                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="image-size" className="block text-sm font-medium text-on-surface-variant mb-1">Image Size</label>
+            <div className="relative">
+                <select 
+                  id="image-size" 
+                  value={question.advancedSettings?.imageSize || 'medium'} 
+                  onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, imageSize: e.target.value as any } })} 
+                  className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                >
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
 
   const renderTabContent = () => {
     switch(activeTab) {
         case 'Settings': return renderSettingsTab();
         case 'Behavior': return renderBehaviorTab();
-        case 'Variables': return renderVariablesTab();
         case 'Preview': return renderPreviewTab();
+        case 'Advanced': return renderAdvancedTab();
         default: return <p>Content not available</p>;
     }
   }
@@ -363,7 +528,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
         </div>
         <div className="border-b border-outline-variant">
           <nav className="-mb-px flex space-x-2 px-4">
-            {['Settings', 'Behavior', 'Variables', 'Preview'].map(tab => (
+            {['Settings', 'Behavior', 'Preview', 'Advanced'].map(tab => (
               <button
                 key={tab}
                 onClick={() => onTabChange(tab)}

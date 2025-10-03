@@ -469,6 +469,7 @@ const App: React.FC = () => {
                       onDeleteChoice={handleDeleteChoice}
                       isExpanded={isRightSidebarExpanded}
                       onToggleExpand={handleToggleRightSidebarExpand}
+                      toolboxItems={toolboxItems}
                     />
                 ) : (
                     <div className="pt-4 pr-4 pb-8 pl-4">

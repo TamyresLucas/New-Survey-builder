@@ -1,5 +1,4 @@
 
-
 import type React from 'react';
 
 export enum QuestionType {
@@ -47,6 +46,12 @@ export enum QuestionType {
 export interface Choice {
   id: string;
   text: string;
+  visible?: boolean;
+  fixed?: boolean;
+  color?: string | null;
+  image?: string | null;
+  allowTextEntry?: boolean;
+  description?: string;
 }
 
 export interface Question {
@@ -59,6 +64,31 @@ export interface Question {
   isHidden?: boolean;
   hideBackButton?: boolean;
   forceResponse?: boolean;
+
+  // New properties for detailed editing
+  answerFormat?: 'list' | 'dropdown' | 'horizontal';
+  advancedSettings?: {
+    choiceOrientation?: 'vertical' | 'horizontal' | 'grid';
+    numColumns?: number;
+    choiceWidth?: 'auto' | 'full' | 'fixed';
+    imagePosition?: 'above' | 'left' | 'right' | 'hidden';
+    imageSize?: 'small' | 'medium' | 'large' | 'custom';
+  };
+  styleOverrides?: {
+    customColor?: string | null;
+    customFont?: string | null;
+    customFontSize?: number | null;
+    customSpacing?: number | null;
+  };
+  behavior?: {
+    displayLogic?: any[]; // Simplified for now
+    skipLogicPerChoice?: Record<string, string>;
+    randomizeChoices?: boolean;
+    reverseChoices?: boolean;
+    carryForwardSource?: string;
+    carryForwardType?: 'all' | 'selected' | 'unselected';
+    defaultValue?: string;
+  };
 }
 
 export interface Block {

@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 // Generic props for icons
@@ -99,3 +100,15 @@ export const TaskAltIcon: React.FC<IconProps> = ({ className }) => <MaterialSymb
 export const DeleteIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="delete" className={className} />;
 
 export const ChevronRightIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="chevron_right" className={className} />;
+export const MoreVertIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="more_vert" className={className} />;
+export const ImageIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="image" className={className} />;
+
+// Preview Icons
+export const ComputerIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="computer" className={className} />;
+export const TabletIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="tablet_mac" className={className} />;
+export const SmartphoneIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="smartphone" className={className} />;
+
+// More new icons from spec
+export const LockIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="lock" className={className} />;
+export const LockOpenIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="lock_open" className={className} />;
+export const ContentPasteIcon: React.FC<IconProps> = ({ className }) => <MaterialSymbol icon="content_paste" className={className} />;

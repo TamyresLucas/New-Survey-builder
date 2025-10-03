@@ -7,6 +7,7 @@ import {
     RadioButtonUncheckedIcon
 } from './icons';
 import { QuestionActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
+import { parseChoice } from '../utils';
 
 const QuestionCard: React.FC<{ 
     question: Question, 
@@ -48,16 +49,6 @@ const QuestionCard: React.FC<{
         icon: item.icon,
         })), [toolboxItems]);
         
-    const parseChoice = (text: string): { variable: string; label: string } => {
-        const match = text.match(/(^Q\d+_\d+)\s*/);
-        if (match) {
-            return {
-                variable: match[1],
-                label: text.substring(match[0].length)
-            };
-        }
-        return { variable: '', label: text };
-    };
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {

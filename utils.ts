@@ -1,6 +1,27 @@
 import type { Survey } from './types';
 import { QuestionType } from './types';
 
+export const generateId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+/**
+ * Parses a choice string like "Q1_1 Yes" into its variable and label parts.
+ * @param text The full choice text.
+ * @returns An object with 'variable' and 'label' properties.
+ */
+export const parseChoice = (text: string): { variable: string; label: string } => {
+    // Matches a variable like Q1_1 at the start of the string, followed by optional space.
+    const match = text.match(/(^Q\d+_\d+)\s*/);
+    if (match) {
+        return {
+            variable: match[1],
+            label: text.substring(match[0].length)
+        };
+    }
+    // If no variable is found, the entire string is considered the label.
+    return { variable: '', label: text };
+};
+
+
 export const CHOICE_BASED_QUESTION_TYPES = new Set<QuestionType>([
   QuestionType.Radio,
   QuestionType.Checkbox,

@@ -6,10 +6,9 @@ interface PasteChoicesModalProps {
   onClose: () => void;
   onSave: (choicesText: string) => void;
   initialChoicesText: string;
-  primaryActionLabel: string;
 }
 
-export const PasteChoicesModal: React.FC<PasteChoicesModalProps> = ({ isOpen, onClose, onSave, initialChoicesText, primaryActionLabel }) => {
+export const PasteChoicesModal: React.FC<PasteChoicesModalProps> = ({ isOpen, onClose, onSave, initialChoicesText }) => {
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -63,7 +62,7 @@ export const PasteChoicesModal: React.FC<PasteChoicesModalProps> = ({ isOpen, on
       >
         <div className="p-4 border-b border-outline-variant flex items-center justify-between">
           <h2 className="text-lg font-bold text-on-surface">Copy and Paste Choices</h2>
-          <button onClick={onClose} className="p-1 rounded-full text-on-surface-variant hover:bg-surface-container-lowest">
+          <button onClick={onClose} className="p-1 rounded-full text-on-surface-variant hover:bg-surface-container-high">
             <XIcon className="text-xl" />
           </button>
         </div>
@@ -94,15 +93,15 @@ Choice 3..."
         <div className="p-4 border-t border-outline-variant flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-button-primary text-primary rounded-full hover:bg-primary-container"
+            className="px-4 py-2 text-sm font-semibold text-primary rounded-full hover:bg-primary-container"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-6 py-2 text-sm font-button-primary text-on-primary bg-primary rounded-full hover:opacity-90"
+            className="px-6 py-2 text-sm font-semibold text-on-primary bg-primary rounded-full hover:opacity-90"
           >
-            {primaryActionLabel}
+            Add Choices
           </button>
         </div>
       </div>

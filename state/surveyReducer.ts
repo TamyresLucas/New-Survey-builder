@@ -1,5 +1,5 @@
 import type { Survey, Question, Block, QuestionType, Choice } from '../types';
-import { renumberSurveyVariables } from '../utils';
+import { renumberSurveyVariables, generateId } from '../utils';
 import { CHOICE_BASED_QUESTION_TYPES, NON_CHOICE_BASED_QUESTION_TYPES_WITH_TEXT } from '../utils';
 import { QuestionType as QTEnum } from '../types';
 
@@ -31,8 +31,6 @@ export interface Action {
     type: SurveyActionType;
     payload: any;
 }
-
-const generateId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
 export function surveyReducer(state: Survey, action: Action): Survey {
     const newState = JSON.parse(JSON.stringify(state));

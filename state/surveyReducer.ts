@@ -20,6 +20,11 @@ export enum SurveyActionType {
     DELETE_BLOCK = 'DELETE_BLOCK',
     COPY_BLOCK = 'COPY_BLOCK',
     REORDER_BLOCK = 'REORDER_BLOCK',
+    ADD_BLOCK_FROM_TOOLBOX = 'ADD_BLOCK_FROM_TOOLBOX',
+    BULK_DELETE_QUESTIONS = 'BULK_DELETE_QUESTIONS',
+    BULK_DUPLICATE_QUESTIONS = 'BULK_DUPLICATE_QUESTIONS',
+    BULK_UPDATE_QUESTIONS = 'BULK_UPDATE_QUESTIONS',
+    BULK_MOVE_TO_NEW_BLOCK = 'BULK_MOVE_TO_NEW_BLOCK',
 }
 
 export interface Action {
@@ -326,7 +331,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
         case SurveyActionType.ADD_BLOCK: {
             const { blockId, position } = action.payload;
-            const newBlock: Block = { id: generateId('block'), title: 'New Block', questions: [] };
+            const newBlock: Block = { id: generateId('block'), title: 'New block', questions: [] };
             const targetIndex = newState.blocks.findIndex((b: Block) => b.id === blockId);
             if (targetIndex === -1) return state;
             
@@ -378,6 +383,118 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                     blocks.push(draggedBlock);
                 }
             }
+            return renumberSurveyVariables(newState);
+        }
+
+        case SurveyActionType.ADD_BLOCK_FROM_TOOLBOX: {
+            const { targetBlockId } = action.payload;
+            const newBlock: Block = { id: generateId('block'), title: 'New block', questions: [] };
+            
+            if (targetBlockId === null) {
+                // Dropped at the end
+                newState.blocks.push(newBlock);
+            } else {
+                const targetIndex = newState.blocks.findIndex((b: Block) => b.id === targetBlockId);
+                if (targetIndex !== -1) {
+                    newState.blocks.splice(targetIndex, 0, newBlock);
+                } else {
+                    // Fallback: if target not found for some reason, add to end
+                    newState.blocks.push(newBlock);
+                }
+            }
+            return renumberSurveyVariables(newState);
+        }
+
+        case SurveyActionType.BULK_DELETE_QUESTIONS: {
+            const { questionIds } = action.payload; // questionIds is a Set<string>
+            newState.blocks.forEach((block: Block) => {
+                block.questions = block.questions.filter((q: Question) => !questionIds.has(q.id));
+            });
+            // remove empty blocks
+            newState.blocks = newState.blocks.filter((block: Block) => block.questions.length > 0 || newState.blocks.length === 1);
+            return renumberSurveyVariables(newState);
+        }
+
+        case SurveyActionType.BULK_UPDATE_QUESTIONS: {
+            const { questionIds, updates } = action.payload; // questionIds is a Set<string>
+            newState.blocks.forEach((block: Block) => {
+                block.questions.forEach((q: Question) => {
+                    if (questionIds.has(q.id)) {
+                        Object.assign(q, updates);
+                    }
+                });
+            });
+            return newState; // Renumbering not needed for property updates
+        }
+
+        case SurveyActionType.BULK_DUPLICATE_QUESTIONS: {
+            const { questionIds } = action.payload; // questionIds is a Set<string>
+            const questionsToCopy: Question[] = [];
+            let lastQuestionBlockIndex = -1;
+            let lastQuestionIndex = -1;
+
+            // Find all questions to copy and the position of the last one
+            for (let i = newState.blocks.length - 1; i >= 0; i--) {
+                const block = newState.blocks[i];
+                for (let j = block.questions.length - 1; j >= 0; j--) {
+                    const question = block.questions[j];
+                    if (questionIds.has(question.id)) {
+                        questionsToCopy.unshift(JSON.parse(JSON.stringify(question))); // Keep original order
+                        if (lastQuestionIndex === -1) {
+                            lastQuestionIndex = j;
+                            lastQuestionBlockIndex = i;
+                        }
+                    }
+                }
+            }
+
+            if (questionsToCopy.length === 0 || lastQuestionBlockIndex === -1) {
+                return state;
+            }
+
+            const duplicatedQuestions = questionsToCopy.map((q: Question) => ({
+                ...q,
+                id: generateId('q'),
+                choices: q.choices?.map((c: Choice) => ({ ...c, id: generateId('c') }))
+            }));
+
+            newState.blocks[lastQuestionBlockIndex].questions.splice(lastQuestionIndex + 1, 0, ...duplicatedQuestions);
+
+            return renumberSurveyVariables(newState);
+        }
+
+        case SurveyActionType.BULK_MOVE_TO_NEW_BLOCK: {
+            const { questionIds } = action.payload; // questionIds is a Set<string>
+            const questionsToMove: Question[] = [];
+            let firstQuestionBlockIndex = -1;
+
+            // Extract questions to move
+            newState.blocks.forEach((block: Block, blockIndex: number) => {
+                const questionsInBlock = block.questions.filter(q => questionIds.has(q.id));
+                if (questionsInBlock.length > 0 && firstQuestionBlockIndex === -1) {
+                    firstQuestionBlockIndex = blockIndex;
+                }
+                questionsToMove.push(...questionsInBlock);
+                block.questions = block.questions.filter(q => !questionIds.has(q.id));
+            });
+            
+            if (questionsToMove.length === 0) return state;
+
+            const newBlock: Block = {
+                id: generateId('block'),
+                title: 'New block',
+                questions: questionsToMove,
+            };
+
+            const insertionIndex = firstQuestionBlockIndex !== -1 ? firstQuestionBlockIndex + 1 : newState.blocks.length;
+            newState.blocks.splice(insertionIndex, 0, newBlock);
+
+            // Cleanup any empty blocks
+            newState.blocks = newState.blocks.filter((block: Block) => block.questions.length > 0);
+            if (newState.blocks.length === 0) { // Should not happen if we moved questions, but as a safeguard
+                newState.blocks.push({ id: generateId('block'), title: 'Default Block', questions: [] });
+            }
+
             return renumberSurveyVariables(newState);
         }
 

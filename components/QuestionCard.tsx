@@ -6,88 +6,7 @@ import {
     CheckboxOutlineIcon, XIcon, DragIndicatorIcon, PlusIcon,
     RadioButtonUncheckedIcon
 } from './icons';
-
-const QuestionActionsMenu: React.FC<{
-  onDuplicate: () => void;
-  onDelete: () => void;
-  onAddPageBreak: () => void;
-}> = ({ onDuplicate, onDelete, onAddPageBreak }) => {
-  const menuItems = [
-    { label: 'Move to block', action: () => {} },
-    { label: 'Duplicate', action: onDuplicate },
-    { label: 'Replace from library', action: () => {} },
-    { label: 'Add to library', action: () => {} },
-    { label: 'Add page break', action: onAddPageBreak },
-    { label: 'Add note', action: () => {} },
-  ];
-
-  return (
-    <div className="absolute top-full right-0 mt-2 w-56 bg-surface-container-high border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-      <ul className="py-1">
-        {menuItems.map((item, index) => (
-          <li key={item.label}>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                item.action();
-              }}
-              className={`w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest`}
-            >
-              {item.label}
-            </button>
-          </li>
-        ))}
-      </ul>
-      <div className="border-t border-dotted border-outline-variant mx-2" />
-      <div className="py-1">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container"
-        >
-          Delete
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const QuestionTypeMenu: React.FC<{ 
-  onSelect: (type: QuestionType) => void,
-  toolboxItems: ToolboxItemData[] 
-}> = ({ onSelect, toolboxItems }) => {
-    const questionTypeOptions = toolboxItems
-      .filter(item => item.name !== 'Block' && item.name !== 'Page Break')
-      .map(item => ({
-        type: item.name as QuestionType,
-        label: item.name,
-        icon: item.icon,
-      }));
-
-    return (
-      <div className="absolute top-full right-0 mt-2 w-64 max-h-80 overflow-y-auto bg-surface-container border border-outline-variant rounded-md shadow-lg z-20 py-1" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-        <ul>
-          {questionTypeOptions.map(({ type, label, icon: Icon }) => (
-            <li key={type}>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelect(type);
-                }}
-                className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high flex items-center"
-              >
-                <Icon className="text-base mr-3 text-primary flex-shrink-0" />
-                <span className="truncate">{label}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-};
-
+import { QuestionActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
 
 const QuestionCard: React.FC<{ 
     question: Question, 
@@ -336,7 +255,6 @@ const QuestionCard: React.FC<{
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                onSelect(question, 'Settings');
                                 setIsTypeMenuOpen(prev => !prev);
                             }}
                             className="flex items-center gap-2 rounded-md px-2 py-1 border border-outline-variant hover:bg-surface-container-highest"
@@ -345,7 +263,11 @@ const QuestionCard: React.FC<{
                             <span className="font-medium text-sm text-on-surface">{question.type}</span>
                             <ChevronDownIcon className="text-base" />
                         </button>
-                        {isTypeMenuOpen && <QuestionTypeMenu onSelect={handleTypeSelect} toolboxItems={toolboxItems} />}
+                        {isTypeMenuOpen && (
+                          <div className="absolute top-full right-0 mt-2 w-64" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+                            <QuestionTypeSelectionMenuContent onSelect={handleTypeSelect} toolboxItems={toolboxItems} />
+                          </div>
+                        )}
                     </div>
                     <div ref={actionsMenuContainerRef} className="relative transition-opacity">
                         <button
@@ -387,7 +309,13 @@ const QuestionCard: React.FC<{
                         }}
                     />
                 ) : (
-                    <p onClick={(e) => { e.stopPropagation(); handleStartEditing('question', question.text); }} className="text-on-surface min-h-[24px]">
+                    <p onClick={(e) => { 
+                        e.stopPropagation(); 
+                        if (!isSelected) {
+                            onSelect(question);
+                        }
+                        handleStartEditing('question', question.text); 
+                    }} className="text-on-surface min-h-[24px]">
                         {question.text}
                     </p>
                 )}
@@ -417,7 +345,13 @@ const QuestionCard: React.FC<{
                                         className="w-full bg-surface border-b border-primary focus:outline-none p-1 text-on-surface"
                                     />
                                 ) : (
-                                    <span onClick={(e) => { e.stopPropagation(); handleStartEditing(choice.id, choice.text); }} className="text-on-surface flex-grow min-h-[24px]">
+                                    <span onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        if (!isSelected) {
+                                            onSelect(question);
+                                        }
+                                        handleStartEditing(choice.id, choice.text); 
+                                    }} className="text-on-surface flex-grow min-h-[24px]">
                                         {renderChoiceText(choice.text)}
                                     </span>
                                 )}
@@ -435,7 +369,13 @@ const QuestionCard: React.FC<{
                             </div>
                         ))}
                          <button
-                            onClick={(e) => { e.stopPropagation(); onAddChoice(question.id); }}
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                if (!isSelected) {
+                                    onSelect(question);
+                                }
+                                onAddChoice(question.id); 
+                            }}
                             className="flex items-center text-sm text-primary font-medium mt-2 hover:underline"
                         >
                             <PlusIcon className="text-base mr-1" /> Add choice

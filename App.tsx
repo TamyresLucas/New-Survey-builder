@@ -1,4 +1,6 @@
-import React, { useState, useRef, useCallback, useReducer } from 'react';
+
+
+import React, { useState, useRef, useCallback, useReducer, useEffect } from 'react';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
 import LeftSidebar from './components/LeftSidebar';
@@ -7,6 +9,7 @@ import SurveyCanvas from './components/SurveyCanvas';
 import RightSidebar from './components/RightSidebar';
 import SurveyStructureWidget from './components/SurveyStructureWidget';
 import GeminiPanel from './components/GeminiPanel';
+import { BulkEditPanel } from './components/BulkEditPanel';
 import type { Survey, Question, ToolboxItemData, QuestionType } from './types';
 import { initialSurveyData, toolboxItems as initialToolboxItems } from './constants';
 import { renumberSurveyVariables } from './utils';
@@ -26,11 +29,57 @@ const App: React.FC = () => {
   const [isRightSidebarExpanded, setIsRightSidebarExpanded] = useState(false);
 
   const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const rightPanelRef = useRef<HTMLDivElement>(null);
   const [collapsedBlocks, setCollapsedBlocks] = useState<Set<string>>(new Set());
 
   const handleBackToTop = useCallback(() => {
     canvasContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
+
+  // Fix: Moved handleSelectQuestion before the useEffect that uses it to resolve a 'used before declaration' error.
+  const handleSelectQuestion = useCallback((question: Question | null, tab: string = 'Settings') => {
+    if (question === null) {
+      setSelectedQuestion(null);
+      setIsRightSidebarExpanded(false); // Reset on close
+      return;
+    }
+    if (question.type === QTEnum.PageBreak) {
+      setSelectedQuestion(null);
+      return;
+    }
+    if (isGeminiPanelOpen) {
+      setIsGeminiPanelOpen(false);
+    }
+  
+    if (selectedQuestion?.id === question.id) {
+      if (tab !== 'Settings') {
+        setActiveRightSidebarTab(tab);
+      }
+      // If the same question is clicked, keep it selected. Deselection is handled by clicking outside or closing the sidebar.
+    } else {
+      setSelectedQuestion(question);
+      setActiveRightSidebarTab(tab);
+    }
+  }, [isGeminiPanelOpen, selectedQuestion]);
+
+  // Effect to handle clicks outside of the selected question card and right panel to deselect.
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (selectedQuestion) {
+            const target = event.target as Node;
+            const isClickInRightPanel = rightPanelRef.current?.contains(target);
+            const isClickInQuestionCard = (event.target as HTMLElement).closest('[data-question-id]');
+            
+            if (!isClickInRightPanel && !isClickInQuestionCard) {
+                handleSelectQuestion(null);
+            }
+        }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [selectedQuestion, handleSelectQuestion]); // handleSelectQuestion is memoized
 
   const handleToggleCollapseAll = useCallback(() => {
     setCollapsedBlocks(prev => {
@@ -71,33 +120,6 @@ const App: React.FC = () => {
     });
   }, []);
 
-  const handleSelectQuestion = useCallback((question: Question | null, tab: string = 'Settings') => {
-    if (question === null) {
-      setSelectedQuestion(null);
-      setIsRightSidebarExpanded(false); // Reset on close
-      return;
-    }
-    if (question.type === QTEnum.PageBreak) {
-      setSelectedQuestion(null);
-      return;
-    }
-    if (isGeminiPanelOpen) {
-      setIsGeminiPanelOpen(false);
-    }
-  
-    if (selectedQuestion?.id === question.id) {
-      if (tab !== 'Settings') {
-        setActiveRightSidebarTab(tab);
-      } else {
-        setSelectedQuestion(null);
-        setIsRightSidebarExpanded(false); // Reset on close
-      }
-    } else {
-      setSelectedQuestion(question);
-      setActiveRightSidebarTab(tab);
-    }
-  }, [isGeminiPanelOpen, selectedQuestion]);
-  
   const handleToggleGeminiPanel = useCallback(() => {
     setIsGeminiPanelOpen(prev => {
         const isOpen = !prev;
@@ -137,6 +159,10 @@ const App: React.FC = () => {
     dispatch({ type: SurveyActionType.REORDER_BLOCK, payload: { draggedBlockId, targetBlockId } });
   }, []);
 
+  const handleAddBlockFromToolbox = useCallback((targetBlockId: string | null) => {
+    dispatch({ type: SurveyActionType.ADD_BLOCK_FROM_TOOLBOX, payload: { targetBlockId } });
+  }, []);
+
   const handleAddQuestion = useCallback((questionType: QuestionType, targetQuestionId: string | null, targetBlockId: string) => {
     const onQuestionAdded = (newQuestionId: string) => {
         if (questionType !== QTEnum.PageBreak) {
@@ -156,20 +182,20 @@ const App: React.FC = () => {
     dispatch({ type: SurveyActionType.ADD_QUESTION, payload: { questionType, targetQuestionId, targetBlockId, onQuestionAdded } });
   }, [survey, handleSelectQuestion]);
   
-  const handleAddQuestionToBlock = useCallback((blockId: string) => {
-    // A bit of a workaround to get the new question ID for selection
-    const tempId = `temp-${Math.random()}`;
+  const handleAddQuestionToBlock = useCallback((blockId: string, questionType: QuestionType) => {
     const onQuestionAdded = (newQuestionId: string) => {
-        setTimeout(() => {
-             const addedQuestion = survey.blocks
-                .flatMap(b => b.questions)
-                .find(q => q.id === newQuestionId);
-             if (addedQuestion) {
-                 handleSelectQuestion(addedQuestion);
-             }
-        }, 0);
+        if (questionType !== QTEnum.PageBreak) {
+            setTimeout(() => {
+                const addedQuestion = survey.blocks
+                    .flatMap(b => b.questions)
+                    .find(q => q.id === newQuestionId);
+                if (addedQuestion) {
+                    handleSelectQuestion(addedQuestion);
+                }
+            }, 0);
+        }
     };
-    dispatch({ type: SurveyActionType.ADD_QUESTION, payload: { questionType: QTEnum.Radio, targetQuestionId: null, targetBlockId: blockId, onQuestionAdded } });
+    dispatch({ type: SurveyActionType.ADD_QUESTION, payload: { questionType, targetQuestionId: null, targetBlockId: blockId, onQuestionAdded } });
   }, [survey, handleSelectQuestion]);
 
   const handleAddQuestionFromAI = useCallback((questionType: QuestionType, text: string, choiceStrings?: string[], afterQid?: string, beforeQid?: string) => {
@@ -205,9 +231,6 @@ const App: React.FC = () => {
   }, [selectedQuestion]);
 
   const handleDeleteBlock = useCallback((blockId: string) => {
-    if (!window.confirm('Are you sure you want to delete this block and all its questions? This action cannot be undone.')) {
-        return;
-    }
     const blockToDelete = survey.blocks.find(b => b.id === blockId);
     if (!blockToDelete) return;
     
@@ -293,6 +316,47 @@ const App: React.FC = () => {
 
   const allBlocksCollapsed = survey.blocks.length > 0 && collapsedBlocks.size === survey.blocks.length;
 
+  // Bulk action handlers
+  const handleClearSelection = useCallback(() => {
+    setCheckedQuestions(new Set());
+  }, []);
+
+  const handleBulkDelete = useCallback(() => {
+    if (window.confirm(`Are you sure you want to delete ${checkedQuestions.size} questions?`)) {
+      dispatch({ type: SurveyActionType.BULK_DELETE_QUESTIONS, payload: { questionIds: checkedQuestions } });
+      handleClearSelection();
+    }
+  }, [checkedQuestions, handleClearSelection]);
+  
+  const handleBulkDuplicate = useCallback(() => {
+    dispatch({ type: SurveyActionType.BULK_DUPLICATE_QUESTIONS, payload: { questionIds: checkedQuestions } });
+    handleClearSelection();
+  }, [checkedQuestions, handleClearSelection]);
+
+  const handleBulkMoveToNewBlock = useCallback(() => {
+    dispatch({ type: SurveyActionType.BULK_MOVE_TO_NEW_BLOCK, payload: { questionIds: checkedQuestions } });
+    handleClearSelection();
+  }, [checkedQuestions, handleClearSelection]);
+  
+  const createBulkUpdateHandler = useCallback((updates: Partial<Question>) => () => {
+    dispatch({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates } });
+    // Keep selection for multi-step bulk edits
+    // handleClearSelection();
+  }, [checkedQuestions]);
+
+  const handleBulkHideQuestion = createBulkUpdateHandler({ isHidden: true });
+  const handleBulkHideBackButton = createBulkUpdateHandler({ hideBackButton: true });
+  const handleBulkForceResponse = createBulkUpdateHandler({ forceResponse: true });
+  
+  // Deselect single question when bulk selecting
+  useEffect(() => {
+    if (checkedQuestions.size >= 2 && selectedQuestion) {
+      handleSelectQuestion(null);
+    }
+  }, [checkedQuestions.size, selectedQuestion, handleSelectQuestion]);
+
+  const showBulkEditPanel = checkedQuestions.size >= 2;
+
   return (
     <div className="flex flex-col h-screen bg-surface text-on-surface">
       <Header 
@@ -332,7 +396,7 @@ const App: React.FC = () => {
                 />
               )}
               
-              <div ref={canvasContainerRef} className={`relative flex-1 overflow-y-auto py-4 px-4 transition-all duration-300 ${selectedQuestion || isGeminiPanelOpen ? 'pr-0' : ''}`}>
+              <div ref={canvasContainerRef} className={`relative flex-1 overflow-y-auto py-4 px-4 transition-all duration-300 ${selectedQuestion || isGeminiPanelOpen || showBulkEditPanel ? 'pr-0' : ''}`}>
                 {!isBuildPanelOpen && (
                   <button
                     onClick={() => setIsBuildPanelOpen(true)}
@@ -353,8 +417,8 @@ const App: React.FC = () => {
                   onDeleteBlock={handleDeleteBlock}
                   onReorderQuestion={handleReorderQuestion}
                   onReorderBlock={handleReorderBlock}
+                  onAddBlockFromToolbox={handleAddBlockFromToolbox}
                   onAddQuestion={handleAddQuestion}
-                  onAddBlock={handleAddBlock}
                   onAddQuestionToBlock={handleAddQuestionToBlock}
                   onToggleQuestionCheck={handleToggleQuestionCheck}
                   onSelectAllInBlock={handleSelectAllInBlock}
@@ -362,6 +426,7 @@ const App: React.FC = () => {
                   toolboxItems={toolboxItems}
                   collapsedBlocks={collapsedBlocks}
                   onToggleBlockCollapse={handleToggleBlockCollapse}
+                  // Fix: `onCopyBlock` was passed as a prop, but was not defined. Changed to use `handleCopyBlock`.
                   onCopyBlock={handleCopyBlock}
                   onExpandAllBlocks={handleExpandAllBlocks}
                   onCollapseAllBlocks={handleCollapseAllBlocks}
@@ -374,12 +439,25 @@ const App: React.FC = () => {
                 />
               </div>
 
-              <div className={`flex-shrink-0 transition-all duration-300 ease-in-out ${isRightSidebarExpanded && selectedQuestion ? 'w-[50%]' : 'w-96'}`}>
+              <div ref={rightPanelRef} className={`flex-shrink-0 transition-all duration-300 ease-in-out ${isRightSidebarExpanded && selectedQuestion ? 'w-[50%]' : 'w-96'}`}>
                 {isGeminiPanelOpen ? (
                     <GeminiPanel 
                       onClose={handleToggleGeminiPanel} 
                       onAddQuestion={handleAddQuestionFromAI}
                     />
+                ) : showBulkEditPanel ? (
+                  <BulkEditPanel
+                    checkedQuestionCount={checkedQuestions.size}
+                    onClose={handleClearSelection}
+                    onDuplicate={handleBulkDuplicate}
+                    onAddToLibrary={() => alert('Add to Library functionality not implemented.')}
+                    onMoveQuestions={() => alert('Move Questions functionality not implemented.')}
+                    onMoveToNewBlock={handleBulkMoveToNewBlock}
+                    onHideQuestion={handleBulkHideQuestion}
+                    onHideBackButton={handleBulkHideBackButton}
+                    onForceResponse={handleBulkForceResponse}
+                    onDelete={handleBulkDelete}
+                  />
                 ) : selectedQuestion ? (
                     <RightSidebar 
                       question={selectedQuestion} 

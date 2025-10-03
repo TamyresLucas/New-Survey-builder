@@ -1,7 +1,8 @@
 import React, { useState, useRef, useMemo, useEffect, memo, useCallback } from 'react';
 import { SearchIcon, PanelLeftIcon, RadioIcon, WarningIcon, DragIndicatorIcon, ChevronDownIcon, DotsHorizontalIcon } from './icons';
-import type { Survey, Question, ToolboxItemData } from '../types';
-import { QuestionType } from '../types';
+import type { Survey, Question, ToolboxItemData, QuestionType } from '../types';
+import { QuestionType as QTEnum } from '../types';
+import { BlockActionsMenu, QuestionActionsMenu } from './ActionMenus';
 
 interface BuildPanelProps {
   onClose: () => void;
@@ -13,7 +14,7 @@ interface BuildPanelProps {
   onReorderQuestion: (draggedQuestionId: string, targetQuestionId: string | null, targetBlockId: string) => void;
   onReorderBlock: (draggedBlockId: string, targetBlockId: string | null) => void;
   onCopyBlock: (blockId: string) => void;
-  onAddQuestionToBlock: (blockId: string) => void;
+  onAddQuestionToBlock: (blockId: string, questionType: QuestionType) => void;
   onExpandAllBlocks: () => void;
   onCollapseAllBlocks: () => void;
   onExpandBlock: (blockId: string) => void;
@@ -25,81 +26,6 @@ interface BuildPanelProps {
   onSelectAllInBlock: (blockId: string) => void;
   onUnselectAllInBlock: (blockId: string) => void;
 }
-
-const ContentBlockActionsMenu: React.FC<{
-  onCopy: () => void;
-  onAddQuestion: () => void;
-  onSelectAll: () => void;
-  onUnselectAll: () => void;
-  onExpand: () => void;
-  onCollapse: () => void;
-  onDelete: () => void;
-}> = ({ onCopy, onAddQuestion, onSelectAll, onUnselectAll, onExpand, onCollapse, onDelete }) => {
-  return (
-    <div className="absolute top-full right-0 mt-2 w-48 bg-surface-container border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-      <div className="py-1">
-        <button onClick={onCopy} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Duplicate</button>
-        <button onClick={onAddQuestion} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add question</button>
-      </div>
-      <div className="border-t border-dotted border-outline-variant mx-2" />
-      <div className="py-1">
-        <button onClick={onSelectAll} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Select All</button>
-        <button onClick={onUnselectAll} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Unselect All</button>
-      </div>
-      <div className="border-t border-dotted border-outline-variant mx-2" />
-      <div className="py-1">
-        <button onClick={onExpand} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Expand All</button>
-        <button onClick={onCollapse} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Collapse All</button>
-      </div>
-      <div className="border-t border-dotted border-outline-variant mx-2" />
-      <div className="py-1">
-        <button onClick={onDelete} className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container">Delete</button>
-      </div>
-    </div>
-  );
-};
-
-const ContentQuestionActionsMenu: React.FC<{
-  onDelete: () => void;
-  onCopy: () => void;
-  onAddPageBreak: () => void;
-}> = ({ onDelete, onCopy, onAddPageBreak }) => {
-  const menuItems = [
-    { label: 'Move to block', action: () => {} },
-    { label: 'Duplicate', action: onCopy },
-    { label: 'Replace from library', action: () => {} },
-    { label: 'Add to library', action: () => {} },
-    { label: 'Add page break', action: onAddPageBreak },
-    { label: 'Add note', action: () => {} },
-  ];
-
-  return (
-    <div className="absolute top-full right-0 mt-2 w-56 bg-surface-container border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-      <ul className="py-1">
-        {menuItems.map((item, index) => (
-          <li key={item.label}>
-            <button
-              onClick={item.action}
-              className={`w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high ${index === 0 ? 'bg-surface-container-high' : ''}`}
-            >
-              {item.label}
-            </button>
-          </li>
-        ))}
-      </ul>
-      <div className="border-t border-dotted border-outline-variant mx-2" />
-      <div className="py-1">
-        <button
-          onClick={onDelete}
-          className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container"
-        >
-          Delete
-        </button>
-      </div>
-    </div>
-  );
-};
-
 
 const DropIndicator = ({ small = false }: { small?: boolean }) => (
     <div className={`px-4 ${small ? 'my-0' : 'my-1'}`}>
@@ -157,9 +83,9 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
                         <DotsHorizontalIcon className="text-base" />
                     </button>
                     {isMenuOpen && (
-                        <ContentQuestionActionsMenu
+                        <QuestionActionsMenu
                             onDelete={() => { onDeleteQuestion(question.id); setIsMenuOpen(false); }}
-                            onCopy={() => { onCopyQuestion(question.id); setIsMenuOpen(false); }}
+                            onDuplicate={() => { onCopyQuestion(question.id); setIsMenuOpen(false); }}
                             onAddPageBreak={() => { onAddPageBreakAfterQuestion(question.id); setIsMenuOpen(false); }}
                         />
                     )}
@@ -243,7 +169,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
         blocks = blocks
             .map(block => ({
                 ...block,
-                questions: block.questions.filter(question => question.type !== QuestionType.Description && question.type !== QuestionType.PageBreak),
+                questions: block.questions.filter(question => question.type !== QTEnum.Description && question.type !== QTEnum.PageBreak),
             }))
             .filter(block => block.questions.length > 0);
     } else if (questionTypeFilter !== 'All content') {
@@ -275,7 +201,9 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   
   const handleToolboxDragStart = (e: React.DragEvent, index: number, item: ToolboxItemData) => {
     e.dataTransfer.setData('text/plain', index.toString());
-    if (item.name !== 'Block') {
+    if (item.name === 'Block') {
+      e.dataTransfer.setData('application/survey-toolbox-block', 'true');
+    } else {
       e.dataTransfer.setData('application/survey-toolbox-item', item.name);
     }
     setDraggedToolboxIndex(index);
@@ -336,6 +264,10 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   const handleContentDragStart = (e: React.DragEvent, questionId: string) => {
     e.dataTransfer.setData('text/plain', questionId);
     setDraggedContentId(questionId);
+    const questionToSelect = survey.blocks.flatMap(b => b.questions).find(q => q.id === questionId);
+    if (questionToSelect) {
+      onSelectQuestion(questionToSelect);
+    }
   };
 
   const handleContentDragOver = (e: React.DragEvent, blockId: string) => {
@@ -578,9 +510,10 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                               <DotsHorizontalIcon className="text-base" />
                           </button>
                           {openMenuBlockId === block.id && (
-                              <ContentBlockActionsMenu
-                                  onCopy={() => { onCopyBlock(block.id); setOpenMenuBlockId(null); }}
-                                  onAddQuestion={() => { onAddQuestionToBlock(block.id); setOpenMenuBlockId(null); }}
+                              <BlockActionsMenu
+                                  onDuplicate={() => { onCopyBlock(block.id); setOpenMenuBlockId(null); }}
+                                  onAddQuestion={(questionType) => { onAddQuestionToBlock(block.id, questionType); setOpenMenuBlockId(null); }}
+                                  toolboxItems={toolboxItems}
                                   onSelectAll={() => { onSelectAllInBlock(block.id); setOpenMenuBlockId(null); }}
                                   onUnselectAll={() => { onUnselectAllInBlock(block.id); setOpenMenuBlockId(null); }}
                                   onExpand={() => { onExpandBlock(block.id); setOpenMenuBlockId(null); }}

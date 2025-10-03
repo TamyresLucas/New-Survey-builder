@@ -54,6 +54,17 @@ export interface Choice {
   description?: string;
 }
 
+export enum RandomizationType {
+  None = 'none',
+  Permutation = 'permutation',
+  RandomReverse = 'random_reverse',
+  ReverseOrder = 'reverse_order',
+  Rotation = 'rotation',
+  SortByCode = 'sort_by_code',
+  SortByText = 'sort_by_text',
+  Synchronized = 'synchronized',
+}
+
 export interface Question {
   id: string;
   qid: string;
@@ -83,8 +94,7 @@ export interface Question {
   behavior?: {
     displayLogic?: any[]; // Simplified for now
     skipLogicPerChoice?: Record<string, string>;
-    randomizeChoices?: boolean;
-    reverseChoices?: boolean;
+    randomizationType?: RandomizationType;
     carryForwardSource?: string;
     carryForwardType?: 'all' | 'selected' | 'unselected';
     defaultValue?: string;

@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 import React, { useState, useRef, useCallback, useReducer, useEffect } from 'react';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
@@ -62,7 +55,6 @@ const App: React.FC = () => {
     canvasContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // Fix: Moved handleSelectQuestion before the useEffect that uses it to resolve a 'used before declaration' error.
   const handleSelectQuestion = useCallback((question: Question | null, tab: string = 'Settings') => {
     if (question === null) {
       setSelectedQuestion(null);
@@ -386,15 +378,17 @@ const App: React.FC = () => {
     handleClearSelection();
   }, [checkedQuestions, handleClearSelection]);
   
-  const createBulkUpdateHandler = useCallback((updates: Partial<Question>) => () => {
-    dispatch({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates } });
-    // Keep selection for multi-step bulk edits
-    // handleClearSelection();
+  const handleBulkHideQuestion = useCallback(() => {
+    dispatch({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { isHidden: true } } });
   }, [checkedQuestions]);
 
-  const handleBulkHideQuestion = createBulkUpdateHandler({ isHidden: true });
-  const handleBulkHideBackButton = createBulkUpdateHandler({ hideBackButton: true });
-  const handleBulkForceResponse = createBulkUpdateHandler({ forceResponse: true });
+  const handleBulkHideBackButton = useCallback(() => {
+    dispatch({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { hideBackButton: true } } });
+  }, [checkedQuestions]);
+  
+  const handleBulkForceResponse = useCallback(() => {
+    dispatch({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { forceResponse: true } } });
+  }, [checkedQuestions]);
   
   // Deselect single question when bulk selecting
   useEffect(() => {
@@ -467,7 +461,6 @@ const App: React.FC = () => {
                   onReorderBlock={handleReorderBlock}
                   onAddBlockFromToolbox={handleAddBlockFromToolbox}
                   onAddQuestion={handleAddQuestion}
-                  // FIX: Pass the handleAddBlock function to satisfy the SurveyCanvasProps interface.
                   onAddBlock={handleAddBlock}
                   onAddQuestionToBlock={handleAddQuestionToBlock}
                   onToggleQuestionCheck={handleToggleQuestionCheck}
@@ -476,7 +469,6 @@ const App: React.FC = () => {
                   toolboxItems={toolboxItems}
                   collapsedBlocks={collapsedBlocks}
                   onToggleBlockCollapse={handleToggleBlockCollapse}
-                  // Fix: `onCopyBlock` was passed as a prop, but was not defined. Changed to use `handleCopyBlock`.
                   onCopyBlock={handleCopyBlock}
                   onExpandAllBlocks={handleExpandAllBlocks}
                   onCollapseAllBlocks={handleCollapseAllBlocks}

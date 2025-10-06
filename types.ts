@@ -1,5 +1,3 @@
-
-
 import type React from 'react';
 
 export enum QuestionType {
@@ -19,10 +17,6 @@ export enum QuestionType {
   EmailAddressAnswer = 'Email Address Answer',
   FileUpload = 'File Upload',
   HybridGrid = 'Hybrid Grid',
-  ImageAreaEvaluator = 'Image Area Evaluator',
-  ImageAreaSelector = 'Image Area Selector',
-  ImageChoiceGrid = 'Image Choice Grid',
-  ImageSelector = 'Image Selector',
   LookupTable = 'Lookup Table',
   NetPromoterNPS = 'Net Promoter (NPS)',
   NumericRanking = 'Numeric Ranking',
@@ -39,39 +33,75 @@ export enum QuestionType {
   StarRating = 'Star Rating',
   TextHighlighter = 'Text Highlighter',
   Timer = 'Timer',
-  Heatmap = 'Heatmap',
-  Carrousel = 'Carrousel',
+  // Fix: Add missing question types to resolve compilation errors.
+  ImageSelector = 'Image Selector',
+  ImageChoiceGrid = 'Image Choice Grid',
 }
 
 export interface Choice {
   id: string;
   text: string;
   visible?: boolean;
-  fixed?: boolean;
+  fixedPosition?: boolean;
   color?: string | null;
-  image?: string | null;
   allowTextEntry?: boolean;
   description?: string;
 }
 
-export enum RandomizationType {
-  None = 'none',
-  Permutation = 'permutation',
-  RandomReverse = 'random_reverse',
-  ReverseOrder = 'reverse_order',
-  Rotation = 'rotation',
-  SortByCode = 'sort_by_code',
-  SortByText = 'sort_by_text',
-  Synchronized = 'synchronized',
+// --- NEW DATA MODELS FOR BEHAVIOR TAB ---
+
+export interface DisplayLogicCondition {
+  id: string;
+  questionId: string; // This is the QID, e.g., "Q1"
+  operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty';
+  value: string;
 }
 
-export interface ChoiceBehaviorRule {
-  id: string;
-  type: 'eliminate' | 'exclude';
-  targetChoiceId: string;
-  sourceQuestionId: string;
-  sourceChoiceId: string;
+export interface DisplayLogic {
+  operator: 'AND' | 'OR';
+  conditions: DisplayLogicCondition[];
 }
+
+export interface SkipLogicRule {
+  choiceId: string;
+  skipTo: string; // 'next' | question ID (internal id) | 'end'
+}
+
+export type SkipLogic = {
+  type: 'simple';
+  skipTo: string; // 'next' | question ID (internal id) | 'end'
+} | {
+  type: 'per_choice';
+  rules: SkipLogicRule[];
+};
+
+export interface ChoiceLogic {
+  id: string;
+  choiceId: string;
+  exclusive?: boolean;
+  hidden?: boolean;
+}
+
+export interface Piping {
+  id: string;
+  questionId: string; // QID
+  field: string;
+  questionText: string;
+}
+
+export interface CarryForward {
+  sourceQuestionId: string; // internal id of the source question
+  onlySelected: boolean;
+  onlyNotSelected: boolean;
+}
+
+export interface AnswerBehavior {
+  randomizeChoices?: boolean;
+  choiceLogic?: ChoiceLogic[];
+  piping?: Piping[];
+  carryForward?: CarryForward;
+}
+
 
 export interface Question {
   id: string;
@@ -79,7 +109,6 @@ export interface Question {
   text: string;
   type: QuestionType;
   choices?: Choice[];
-  skipLogic?: string;
   isHidden?: boolean;
   hideBackButton?: boolean;
   forceResponse?: boolean;
@@ -93,7 +122,6 @@ export interface Question {
       customRegex?: string;
       minLength?: number | null;
       maxLength?: number | null;
-      errorMessage?: string;
     };
     advanced?: {
       showCharCounter?: boolean;
@@ -106,13 +134,11 @@ export interface Question {
   };
 
   // New properties for detailed editing
-  answerFormat?: 'list' | 'dropdown' | 'horizontal' | 'image';
+  answerFormat?: 'list' | 'dropdown' | 'horizontal';
   advancedSettings?: {
     choiceOrientation?: 'vertical' | 'horizontal' | 'grid';
     numColumns?: number;
     choiceWidth?: 'auto' | 'full' | 'fixed';
-    imagePosition?: 'above' | 'left' | 'right' | 'hidden';
-    imageSize?: 'small' | 'medium' | 'large' | 'custom';
   };
   styleOverrides?: {
     customColor?: string | null;
@@ -120,18 +146,11 @@ export interface Question {
     customFontSize?: number | null;
     customSpacing?: number | null;
   };
-  behavior?: {
-    displayLogic?: any[]; // Simplified for now
-    skipLogicPerChoice?: Record<string, string>;
-    randomizationType?: RandomizationType;
-    carryForwardSource?: string;
-    carryForwardType?: 'all' | 'selected' | 'unselected';
-    defaultValue?: string;
-    eliminateAnsweredIn?: string;
-    eliminateNotAnsweredIn?: string;
-    excludeFromElimination?: string[];
-    choiceBehaviorRules?: ChoiceBehaviorRule[];
-  };
+  
+  // --- NEW BEHAVIOR PROPERTIES ---
+  displayLogic?: DisplayLogic;
+  skipLogic?: SkipLogic;
+  answerBehavior?: AnswerBehavior;
 }
 
 export interface Block {

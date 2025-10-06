@@ -10,9 +10,51 @@ import {
 import { QuestionActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
 import { parseChoice } from '../utils';
 
+// Helper for inline editing with contentEditable
+const EditableText: React.FC<{
+    html: string;
+    onChange: (html: string) => void;
+    onFocus: () => void;
+    className: string;
+}> = ({ html, onChange, onFocus, className }) => {
+    const elementRef = useRef<HTMLDivElement>(null);
+    const lastHtml = useRef(html);
+
+    useEffect(() => {
+        if (elementRef.current && html !== elementRef.current.innerHTML) {
+            elementRef.current.innerHTML = html;
+        }
+        lastHtml.current = html;
+    }, [html]);
+
+    const handleBlur = () => {
+        const currentHtml = elementRef.current?.innerHTML || '';
+        if (lastHtml.current !== currentHtml) {
+            onChange(currentHtml);
+        }
+    };
+
+    const stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
+
+    return (
+        <div
+            ref={elementRef}
+            className={`${className} focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 rounded-sm cursor-text`}
+            contentEditable
+            suppressContentEditableWarning
+            dangerouslySetInnerHTML={{ __html: html }}
+            onBlur={handleBlur}
+            onFocus={onFocus}
+            onClick={stopPropagation}
+            onMouseDown={stopPropagation} // Also stop mousedown to prevent App.tsx's deselect logic
+        />
+    );
+};
+
+
 const ChoiceDropIndicator = () => (
     <div className="relative h-px w-full bg-primary my-1 ml-6">
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-primary" />
+        <div className="absolute left-0 top-1-2 -translate-y-1-2 h-1.5 w-1.5 rounded-full bg-primary" />
     </div>
 );
 
@@ -43,11 +85,6 @@ const QuestionCard: React.FC<{
     const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
     const actionsMenuContainerRef = useRef<HTMLDivElement>(null);
     
-    const [editingElement, setEditingElement] = useState<'question' | string | null>(null); // 'question' or choice.id
-    const [editText, setEditText] = useState('');
-    const editInputRef = useRef<HTMLInputElement>(null);
-    const editTextAreaRef = useRef<HTMLTextAreaElement>(null);
-
     const [draggedChoiceId, setDraggedChoiceId] = useState<string | null>(null);
     const [dropTargetChoiceId, setDropTargetChoiceId] = useState<string | null>(null);
 
@@ -81,20 +118,6 @@ const QuestionCard: React.FC<{
         };
     }, [isTypeMenuOpen, isActionsMenuOpen]);
     
-    useEffect(() => {
-        if (editingElement === 'question' && editTextAreaRef.current) {
-            const textarea = editTextAreaRef.current;
-            textarea.focus();
-            // Auto-resize on focus
-            textarea.style.height = 'auto';
-            textarea.style.height = `${textarea.scrollHeight}px`;
-        } else if (editingElement && editInputRef.current) {
-            editInputRef.current.focus();
-            editInputRef.current.select();
-        }
-    }, [editingElement]);
-
-
     const handleTypeSelect = useCallback((newType: QuestionType) => {
         const updates: Partial<Question> = { type: newType };
         
@@ -114,63 +137,6 @@ const QuestionCard: React.FC<{
         setIsTypeMenuOpen(false);
     }, [onUpdateQuestion, question.id, question.choices, question.qid, questionTypeOptions]);
     
-    const handleStartEditing = useCallback((element: 'question' | string, currentText: string) => {
-        if (editingElement) return;
-        setEditingElement(element);
-        if (element === 'question') {
-            setEditText(currentText);
-        } else {
-            const { label } = parseChoice(currentText);
-            setEditText(label);
-        }
-    }, [editingElement]);
-    
-    const handleCancelEditing = useCallback(() => {
-        setEditingElement(null);
-        setEditText('');
-    }, []);
-    
-    const handleSaveChanges = useCallback(() => {
-        if (!editingElement) return;
-    
-        if (editingElement === 'question') {
-            const newText = editText.trim();
-            if (question.text !== newText && newText !== '') {
-                onUpdateQuestion(question.id, { text: newText });
-            }
-        } else { // It's a choice
-            const originalChoice = question.choices?.find(c => c.id === editingElement);
-            if (!originalChoice) {
-                handleCancelEditing();
-                return;
-            }
-    
-            const { variable } = parseChoice(originalChoice.text);
-            const newLabel = editText.trim();
-            const newText = variable ? `${variable} ${newLabel}` : newLabel;
-    
-            if (originalChoice.text !== newText) {
-                const newChoices = question.choices?.map(choice =>
-                    choice.id === editingElement
-                        ? { ...choice, text: newText }
-                        : choice
-                );
-                onUpdateQuestion(question.id, { choices: newChoices });
-            }
-        }
-    
-        handleCancelEditing();
-    }, [editingElement, editText, question, onUpdateQuestion, handleCancelEditing]);
-    
-    const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSaveChanges();
-        } else if (e.key === 'Escape') {
-            handleCancelEditing();
-        }
-    }, [handleSaveChanges, handleCancelEditing]);
-
     const handleChoiceDragStart = useCallback((e: React.DragEvent, choiceId: string) => {
         e.stopPropagation();
         setDraggedChoiceId(choiceId);
@@ -218,19 +184,6 @@ const QuestionCard: React.FC<{
         setDraggedChoiceId(null);
         setDropTargetChoiceId(null);
     }, []);
-    
-    const renderChoiceText = (text: string) => {
-        const { variable, label } = parseChoice(text);
-        if (variable) {
-            return (
-                <>
-                    <span className="font-bold text-on-surface">{variable}</span>
-                    <span className="ml-1">{label}</span>
-                </>
-            );
-        }
-        return <>{label}</>;
-    };
 
     if (question.type === QuestionType.PageBreak) {
         return (
@@ -276,7 +229,7 @@ const QuestionCard: React.FC<{
         <div
             id={id}
             data-question-id={question.id}
-            draggable={!editingElement}
+            draggable={true}
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
             onClick={() => onSelect(question)}
@@ -344,31 +297,22 @@ const QuestionCard: React.FC<{
 
             {/* Grid Cell 3: Body Content (starts in column 2) */}
             <div className="col-start-2 mt-3">
-                {editingElement === 'question' ? (
-                    <textarea
-                        ref={editTextAreaRef}
-                        value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
-                        onBlur={handleSaveChanges}
-                        onKeyDown={handleKeyDown}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-full bg-surface border-b-2 border-primary focus:outline-none p-1 text-on-surface resize-none"
-                        onInput={(e) => {
-                            const target = e.target as HTMLTextAreaElement;
-                            target.style.height = 'auto';
-                            target.style.height = `${target.scrollHeight}px`;
-                        }}
-                    />
-                ) : (
-                    <p onClick={(e) => { 
-                        e.stopPropagation(); 
-                        if (!isSelected) {
-                            onSelect(question);
-                        }
-                        handleStartEditing('question', question.text); 
-                    }} className="text-on-surface min-h-[24px]">
-                        {question.text}
-                    </p>
+                <EditableText
+                    html={question.text}
+                    onChange={(newText) => onUpdateQuestion(question.id, { text: newText })}
+                    onFocus={() => onSelect(question)}
+                    className="text-on-surface min-h-[24px]"
+                />
+                
+                {question.type === QuestionType.TextEntry && (
+                    <div className="mt-4">
+                        <textarea
+                            className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface resize-y cursor-default"
+                            rows={question.textEntrySettings?.answerLength === 'paragraph' ? 4 : question.textEntrySettings?.answerLength === 'essay' ? 8 : 1}
+                            placeholder={question.textEntrySettings?.placeholder || ''}
+                            readOnly
+                        />
+                    </div>
                 )}
                 
                 {question.choices && (
@@ -380,63 +324,61 @@ const QuestionCard: React.FC<{
                             setDropTargetChoiceId(null);
                         }}
                     >
-                        {question.choices.map((choice, index) => (
-                            <React.Fragment key={choice.id}>
-                                {dropTargetChoiceId === choice.id && <ChoiceDropIndicator />}
-                                <div 
-                                    className={`flex items-center group/choice transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
-                                    draggable={!editingElement}
-                                    onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
-                                    onDragOver={(e) => handleChoiceDragOver(e, choice.id)}
-                                    onDragEnd={handleChoiceDragEnd}
-                                >
-                                    <DragIndicatorIcon className="text-xl text-on-surface-variant mr-1 cursor-grab opacity-0 group-hover/choice:opacity-100" />
-                                    {question.type === QuestionType.Radio ? (
-                                        index === 0 ? (
-                                            <RadioIcon className="text-xl text-on-surface-variant mr-2" />
-                                        ) : (
-                                            <RadioButtonUncheckedIcon className="text-xl text-on-surface-variant mr-2" />
-                                        )
-                                    ) : (
-                                        <CheckboxOutlineIcon className="text-xl text-on-surface-variant mr-2" />
-                                    )}
-                                    {editingElement === choice.id ? (
-                                        <input
-                                            ref={editInputRef}
-                                            type="text"
-                                            value={editText}
-                                            onChange={(e) => setEditText(e.target.value)}
-                                            onBlur={handleSaveChanges}
-                                            onKeyDown={handleKeyDown}
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="w-full bg-surface border-b border-primary focus:outline-none p-1 text-on-surface"
-                                        />
-                                    ) : (
-                                        <span onClick={(e) => { 
-                                            e.stopPropagation(); 
-                                            if (!isSelected) {
-                                                onSelect(question);
-                                            }
-                                            handleStartEditing(choice.id, choice.text); 
-                                        }} className="text-on-surface flex-grow min-h-[24px] flex items-center gap-2">
-                                            {question.answerFormat === 'image' && choice.image && <ImageIcon className="text-base text-on-surface-variant" />}
-                                            {renderChoiceText(choice.text)}
-                                        </span>
-                                    )}
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            const newChoices = question.choices?.filter(c => c.id !== choice.id);
-                                            onUpdateQuestion(question.id, { choices: newChoices });
-                                        }}
-                                        className="ml-2 p-1 rounded-full text-on-surface-variant hover:bg-surface-container-highest opacity-0 group-hover/choice:opacity-100"
-                                        aria-label="Remove choice"
+                        {question.choices.map((choice, index) => {
+                            const { variable, label } = parseChoice(choice.text);
+                            return (
+                                <React.Fragment key={choice.id}>
+                                    {dropTargetChoiceId === choice.id && <ChoiceDropIndicator />}
+                                    <div 
+                                        className={`flex items-center group/choice transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
+                                        draggable={true}
+                                        onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
+                                        onDragOver={(e) => handleChoiceDragOver(e, choice.id)}
+                                        onDragEnd={handleChoiceDragEnd}
                                     >
-                                        <XIcon className="text-base" />
-                                    </button>
-                                </div>
-                            </React.Fragment>
-                        ))}
+                                        <DragIndicatorIcon className="text-xl text-on-surface-variant mr-1 cursor-grab opacity-0 group-hover/choice:opacity-100" />
+                                        {question.type === QuestionType.Radio ? (
+                                            index === 0 ? (
+                                                <RadioIcon className="text-xl text-on-surface-variant mr-2" />
+                                            ) : (
+                                                <RadioButtonUncheckedIcon className="text-xl text-on-surface-variant mr-2" />
+                                            )
+                                        ) : (
+                                            <CheckboxOutlineIcon className="text-xl text-on-surface-variant mr-2" />
+                                        )}
+                                        
+                                        <div className="text-on-surface flex-grow min-h-[24px] flex items-center gap-2">
+                                            {question.answerFormat === 'image' && choice.image && <ImageIcon className="text-base text-on-surface-variant" />}
+                                            {variable && <span className="font-bold text-on-surface">{variable}</span>}
+                                            <EditableText
+                                                html={label}
+                                                onChange={(newLabel) => {
+                                                    const newText = variable ? `${variable} ${newLabel}` : newLabel;
+                                                    const newChoices = (question.choices || []).map(c => 
+                                                        c.id === choice.id ? { ...c, text: newText } : c
+                                                    );
+                                                    onUpdateQuestion(question.id, { choices: newChoices });
+                                                }}
+                                                onFocus={() => onSelect(question)}
+                                                className="text-on-surface flex-grow"
+                                            />
+                                        </div>
+                                        
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const newChoices = question.choices?.filter(c => c.id !== choice.id);
+                                                onUpdateQuestion(question.id, { choices: newChoices });
+                                            }}
+                                            className="ml-2 p-1 rounded-full text-on-surface-variant hover:bg-surface-container-highest opacity-0 group-hover/choice:opacity-100"
+                                            aria-label="Remove choice"
+                                        >
+                                            <XIcon className="text-base" />
+                                        </button>
+                                    </div>
+                                </React.Fragment>
+                            );
+                        })}
                         {dropTargetChoiceId === null && draggedChoiceId && <ChoiceDropIndicator />}
                         <button
                             onClick={(e) => { 

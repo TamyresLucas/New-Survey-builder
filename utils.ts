@@ -31,8 +31,7 @@ export const CHOICE_BASED_QUESTION_TYPES = new Set<QuestionType>([
 
 export const NON_CHOICE_BASED_QUESTION_TYPES_WITH_TEXT = new Set<QuestionType>([
   QuestionType.Description,
-  QuestionType.Text,
-  QuestionType.OpenEndAnswer,
+  QuestionType.TextEntry,
 ]);
 
 

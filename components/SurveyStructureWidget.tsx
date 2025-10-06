@@ -53,8 +53,9 @@ const calculateQuestionPoints = (question: Question): number => {
             return question.choices?.length || 1;
 
         // Open-ended/text questions: 3 points
-        case QuestionType.Text:
-        case QuestionType.OpenEndAnswer:
+// FIX: Property 'Text' does not exist on type 'typeof QuestionType'.
+// FIX: Property 'OpenEndAnswer' does not exist on type 'typeof QuestionType'.
+        case QuestionType.TextEntry:
         case QuestionType.EmailAddressAnswer:
         case QuestionType.NumericAnswer:
         case QuestionType.Signature:

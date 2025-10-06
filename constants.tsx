@@ -1,4 +1,5 @@
 
+
 import type { Survey, ToolboxItemData, NavItem } from './types';
 import { QuestionType } from './types';
 import { 
@@ -11,7 +12,7 @@ import {
   DescriptionIcon as DescriptionToolboxIcon,
   CheckboxFilledIcon as CheckboxToolboxIcon,
   RadioIcon, 
-  TextAnswerIcon, 
+  OpenEndAnswerIcon as TextEntryIcon, 
   ChoiceGridIcon, 
   AutocompleteIcon, 
   CardSortIcon, 
@@ -31,7 +32,6 @@ import {
   NpsIcon,
   NumericRankingIcon,
   NumericAnswerIcon,
-  OpenEndAnswerIcon,
   RespondentEmailIcon,
   RespondentLanguageIcon,
   RespondentMetadataIcon,
@@ -69,8 +69,12 @@ export const initialSurveyData: Survey = {
         {
           id: 'q2',
           qid: 'Q2',
-          text: 'How often do you visit our café? Q2_1 Daily Q2_2 2-3 times a week Q2_3 Once a week Q2_4 Rarely',
-          type: QuestionType.Description,
+          text: 'How often do you visit our café?',
+          type: QuestionType.TextEntry,
+          textEntrySettings: {
+            answerLength: 'short',
+            placeholder: 'e.g., Once a week'
+          }
         },
         {
           id: 'q3',
@@ -116,7 +120,7 @@ export const toolboxItems: ToolboxItemData[] = [
     { name: 'Description', icon: DescriptionToolboxIcon },
     { name: 'Checkbox', icon: CheckboxToolboxIcon },
     { name: 'Radio Button', icon: RadioIcon },
-    { name: 'Text Answer', icon: TextAnswerIcon },
+    { name: 'Text Entry', icon: TextEntryIcon },
     { name: 'Choice Grid', icon: ChoiceGridIcon },
     { name: 'Autocomplete', icon: AutocompleteIcon },
     { name: 'Card Sort', icon: CardSortIcon },
@@ -136,7 +140,6 @@ export const toolboxItems: ToolboxItemData[] = [
     { name: 'Net Promoter (NPS)', icon: NpsIcon },
     { name: 'Numeric Ranking', icon: NumericRankingIcon },
     { name: 'Numeric Answer', icon: NumericAnswerIcon },
-    { name: 'Open-End Answer', icon: OpenEndAnswerIcon },
     { name: 'Respondent Email', icon: RespondentEmailIcon },
     { name: 'Respondent Language', icon: RespondentLanguageIcon },
     { name: 'Respondent Metadata', icon: RespondentMetadataIcon },

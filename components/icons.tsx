@@ -58,6 +58,7 @@ export const DrillDownIcon: React.FC<IconProps> = ({ className, style }) => <Mat
 export const DropDownIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="format_list_bulleted" className={className} style={style} />;
 export const EmailIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="alternate_email" className={className} style={style} />;
 export const HybridGridIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="grid_on" className={className} style={style} />;
+export const OpenEndAnswerIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="edit_note" className={className} style={style} />;
 
 // New Icons
 export const FileUploadIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="upload_file" className={className} style={style} />;
@@ -69,7 +70,6 @@ export const LookupTableIcon: React.FC<IconProps> = ({ className, style }) => <M
 export const NpsIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="sentiment_satisfied" className={className} style={style} />;
 export const NumericRankingIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="format_list_numbered" className={className} style={style} />;
 export const NumericAnswerIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="pin" className={className} style={style} />;
-export const OpenEndAnswerIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="edit_note" className={className} style={style} />;
 export const RespondentEmailIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="mail" className={className} style={style} />;
 export const RespondentLanguageIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="translate" className={className} style={style} />;
 export const RespondentMetadataIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="group" className={className} style={style} />;
@@ -112,6 +112,7 @@ export const TabletIcon: React.FC<IconProps> = ({ className, style }) => <Materi
 export const SmartphoneIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="smartphone" className={className} style={style} />;
 export const SignalIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="signal_cellular_alt" className={className} style={style} />;
 export const BatteryIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="battery_full" className={className} style={style} />;
+export const InfoIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="info" className={className} style={style} />;
 
 
 // More new icons from spec

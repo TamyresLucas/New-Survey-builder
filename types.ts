@@ -6,7 +6,7 @@ export enum QuestionType {
   Radio = 'Radio Button',
   Checkbox = 'Checkbox',
   Description = 'Description',
-  Text = 'Text Answer',
+  TextEntry = 'Text Entry',
   PageBreak = 'Page Break',
   ChoiceGrid = 'Choice Grid',
   Autocomplete = 'Autocomplete',
@@ -27,7 +27,6 @@ export enum QuestionType {
   NetPromoterNPS = 'Net Promoter (NPS)',
   NumericRanking = 'Numeric Ranking',
   NumericAnswer = 'Numeric Answer',
-  OpenEndAnswer = 'Open-End Answer',
   RespondentEmail = 'Respondent Email',
   RespondentLanguage = 'Respondent Language',
   RespondentMetadata = 'Respondent Metadata',
@@ -84,6 +83,27 @@ export interface Question {
   isHidden?: boolean;
   hideBackButton?: boolean;
   forceResponse?: boolean;
+
+  // New properties for Text Entry
+  textEntrySettings?: {
+    answerLength?: 'short' | 'paragraph' | 'essay';
+    placeholder?: string;
+    validation?: {
+      contentType?: 'none' | 'email' | 'phone' | 'number' | 'url' | 'date' | 'postal_code' | 'custom_regex';
+      customRegex?: string;
+      minLength?: number | null;
+      maxLength?: number | null;
+      errorMessage?: string;
+    };
+    advanced?: {
+      showCharCounter?: boolean;
+      counterType?: 'remaining' | 'used' | 'both';
+      autoResize?: boolean;
+      textBoxWidth?: 'full' | 'large' | 'medium' | 'small';
+      customFontSize?: number | null;
+      customBorderColor?: string | null;
+    };
+  };
 
   // New properties for detailed editing
   answerFormat?: 'list' | 'dropdown' | 'horizontal' | 'image';

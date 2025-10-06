@@ -1266,80 +1266,125 @@ const PipingEditor: React.FC<{ question: Question; onUpdate: (updates: Partial<Q
 
 const CarryForwardEditor: React.FC<{ question: Question; previousChoiceQuestions: Question[]; onUpdate: (updates: Partial<Question>) => void; }> = ({ question, previousChoiceQuestions, onUpdate }) => {
     const carryForward = question.answerBehavior?.carryForward;
+    const isEnabled = !!carryForward;
 
-    const setCarryForwardSource = (sourceQuestionId: string | null) => {
-        if (!sourceQuestionId) {
+    const handleToggle = (enabled: boolean) => {
+        if (enabled) {
+            onUpdate({
+                answerBehavior: {
+                    ...question.answerBehavior,
+                    carryForward: {
+                        sourceQuestionId: '',
+                        onlySelected: false,
+                        onlyNotSelected: false,
+                    },
+                },
+            });
+        } else {
             const { carryForward, ...rest } = question.answerBehavior || {};
-            onUpdate({ answerBehavior: rest });
-            return;
+            const newAnswerBehavior = Object.keys(rest).length > 0 ? rest : undefined;
+            onUpdate({ answerBehavior: newAnswerBehavior });
         }
+    };
+
+    const setCarryForwardSource = (sourceQuestionId: string) => {
+        if (!isEnabled) return;
         onUpdate({
             answerBehavior: {
                 ...question.answerBehavior,
                 carryForward: {
+                    ...(question.answerBehavior!.carryForward!),
                     sourceQuestionId,
-                    onlySelected: false,
-                    onlyNotSelected: false,
                 },
             },
         });
     };
 
     const setCarryForwardFilter = (filters: Partial<CarryForward>) => {
-        if (!carryForward) return;
-        onUpdate({ answerBehavior: { ...question.answerBehavior, carryForward: { ...carryForward, ...filters } } });
+        if (!isEnabled) return;
+        onUpdate({ 
+            answerBehavior: { 
+                ...question.answerBehavior, 
+                carryForward: { 
+                    ...question.answerBehavior!.carryForward!, 
+                    ...filters 
+                } 
+            } 
+        });
     };
-
-    const getQuestionText = (qid: string) => truncate(previousChoiceQuestions.find(q => q.id === qid)?.text || '', 50);
+    
+    const getQuestionText = (questionId: string) => {
+        const sourceQuestion = previousChoiceQuestions.find(q => q.id === questionId);
+        if (!sourceQuestion) return 'Unknown Question';
+        return `${sourceQuestion.qid}: ${truncate(sourceQuestion.text, 50)}`;
+    }
 
     return (
         <div>
-            <h3 className="text-sm font-medium text-on-surface mb-1">Carry Forward</h3>
-            <p className="text-xs text-on-surface-variant mb-3">Reuse answer choices from a previous question</p>
-            {!carryForward ? (
+            <div className="flex items-center justify-between gap-2">
                 <div>
-                    <label htmlFor="carry-forward-source" className="block text-xs font-medium text-on-surface-variant mb-1">Source Question</label>
-                    <div className="relative">
-                        <select id="carry-forward-source" value={''} onChange={(e) => setCarryForwardSource(e.target.value)} className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none">
-                            <option value="">Select a question...</option>
-                            {previousChoiceQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}
-                        </select>
-                        <ChevronDownIcon className="material-symbols-rounded absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-                    </div>
-                    <p className="text-xs text-on-surface-variant mt-1">Only questions with answer choices can be selected</p>
+                    <h3 className="text-sm font-medium text-on-surface">Carry Forward</h3>
+                    <p className="text-xs text-on-surface-variant mt-0.5">Reuse answer choices from a previous question</p>
                 </div>
-            ) : (
-                <div className="p-3 bg-surface-container-high rounded-md">
-                    <div className="flex items-center justify-between mb-3">
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={isEnabled}
+                        onChange={(e) => handleToggle(e.target.checked)}
+                        className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+            </div>
+
+            {isEnabled && (
+                <div className="mt-4 space-y-4">
+                    {!carryForward.sourceQuestionId ? (
                         <div>
-                            <p className="text-xs font-medium text-on-surface-variant">Carrying forward from:</p>
-                            <p className="text-sm font-medium text-on-surface">{question.qid}: {getQuestionText(carryForward.sourceQuestionId)}</p>
+                            <label htmlFor="carry-forward-source" className="block text-xs font-medium text-on-surface-variant mb-1">Source Question</label>
+                            <div className="relative">
+                                <select id="carry-forward-source" value={''} onChange={(e) => setCarryForwardSource(e.target.value)} className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none">
+                                    <option value="">Select a question...</option>
+                                    {previousChoiceQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}
+                                </select>
+                                <ChevronDownIcon className="material-symbols-rounded absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                            </div>
+                            <p className="text-xs text-on-surface-variant mt-1">Only questions with answer choices can be selected</p>
                         </div>
-                        <button onClick={() => setCarryForwardSource(null)} className="text-xs font-medium text-primary hover:underline">Change</button>
-                    </div>
-                    <div className="space-y-2">
-                        <label className="flex items-start gap-2 text-xs text-on-surface cursor-pointer">
-                            <input type="checkbox" checked={carryForward.onlySelected || false} onChange={(e) => setCarryForwardFilter({ onlySelected: e.target.checked, onlyNotSelected: false })} className="w-4 h-4 mt-0.5 accent-primary cursor-pointer" />
-                            <div>
-                                <div className="font-medium">Only carry forward choices that were selected</div>
-                                <div className="text-on-surface-variant">Show only the choices the respondent selected</div>
+                    ) : (
+                        <div className="p-3 bg-surface-container-high rounded-md">
+                            <div className="flex items-center justify-between mb-3">
+                                <div>
+                                    <p className="text-xs font-medium text-on-surface-variant">Carrying forward from:</p>
+                                    <p className="text-sm font-medium text-on-surface">{getQuestionText(carryForward.sourceQuestionId)}</p>
+                                </div>
+                                <button onClick={() => setCarryForwardSource('')} className="text-xs font-medium text-primary hover:underline">Change</button>
                             </div>
-                        </label>
-                        <label className="flex items-start gap-2 text-xs text-on-surface cursor-pointer">
-                            <input type="checkbox" checked={carryForward.onlyNotSelected || false} onChange={(e) => setCarryForwardFilter({ onlyNotSelected: e.target.checked, onlySelected: false })} className="w-4 h-4 mt-0.5 accent-primary cursor-pointer" />
-                            <div>
-                                <div className="font-medium">Only carry forward choices that were NOT selected</div>
-                                <div className="text-on-surface-variant">Show only the choices the respondent did not select</div>
+                            <div className="space-y-2">
+                                <label className="flex items-start gap-2 text-xs text-on-surface cursor-pointer">
+                                    <input type="checkbox" checked={carryForward.onlySelected || false} onChange={(e) => setCarryForwardFilter({ onlySelected: e.target.checked, onlyNotSelected: false })} className="w-4 h-4 mt-0.5 accent-primary cursor-pointer" />
+                                    <div>
+                                        <div className="font-medium">Only carry forward choices that were selected</div>
+                                        <div className="text-on-surface-variant">Show only the choices the respondent selected</div>
+                                    </div>
+                                </label>
+                                <label className="flex items-start gap-2 text-xs text-on-surface cursor-pointer">
+                                    <input type="checkbox" checked={carryForward.onlyNotSelected || false} onChange={(e) => setCarryForwardFilter({ onlyNotSelected: e.target.checked, onlySelected: false })} className="w-4 h-4 mt-0.5 accent-primary cursor-pointer" />
+                                    <div>
+                                        <div className="font-medium">Only carry forward choices that were NOT selected</div>
+                                        <div className="text-on-surface-variant">Show only the choices the respondent did not select</div>
+                                    </div>
+                                </label>
                             </div>
-                        </label>
+                        </div>
+                    )}
+                     <div className="p-3 bg-surface-container-high rounded-md">
+                        <p className="text-xs font-medium text-on-surface mb-1">💡 Use case:</p>
+                        <p className="text-xs text-on-surface-variant mb-1"><strong>Q1:</strong> "Which products have you used?" (Checkbox)</p>
+                        <p className="text-xs text-on-surface-variant"><strong>Q2:</strong> "Which of these would you recommend?" (Carry forward from Q1)</p>
                     </div>
                 </div>
             )}
-             <div className="mt-3 p-3 bg-surface-container-high rounded-md">
-                <p className="text-xs font-medium text-on-surface mb-1">💡 Use case:</p>
-                <p className="text-xs text-on-surface-variant mb-1"><strong>Q1:</strong> "Which products have you used?" (Checkbox)</p>
-                <p className="text-xs text-on-surface-variant"><strong>Q2:</strong> "Which of these would you recommend?" (Carry forward from Q1)</p>
-            </div>
         </div>
     );
 };

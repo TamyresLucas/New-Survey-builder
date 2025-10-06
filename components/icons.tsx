@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 
 // Generic props for icons
@@ -62,10 +63,6 @@ export const OpenEndAnswerIcon: React.FC<IconProps> = ({ className, style }) => 
 
 // New Icons
 export const FileUploadIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="upload_file" className={className} style={style} />;
-export const ImageAreaEvaluatorIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="image_aspect_ratio" className={className} style={style} />;
-export const ImageAreaSelectorIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="image_aspect_ratio" className={className} style={style} />;
-export const ImageChoiceGridIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="imagesmode" className={className} style={style} />;
-export const ImageSelectorIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="image" className={className} style={style} />;
 export const LookupTableIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="table_view" className={className} style={style} />;
 export const NpsIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="sentiment_satisfied" className={className} style={style} />;
 export const NumericRankingIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="format_list_numbered" className={className} style={style} />;
@@ -81,8 +78,6 @@ export const SliderIcon: React.FC<IconProps> = ({ className, style }) => <Materi
 export const StarRatingIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="star" className={className} style={style} />;
 export const TextHighlighterIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="format_ink_highlighter" className={className} style={style} />;
 export const TimerIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="timer" className={className} style={style} />;
-export const HeatmapIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="local_fire_department" className={className} style={style} />;
-export const CarrouselIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="view_carousel" className={className} style={style} />;
 export const SunIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="light_mode" className={className} style={style} />;
 // Fix: Corrected corrupted export for MoonIcon.
 export const MoonIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="dark_mode" className={className} style={style} />;
@@ -104,7 +99,6 @@ export const DeleteIcon: React.FC<IconProps> = ({ className, style }) => <Materi
 
 export const ChevronRightIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="chevron_right" className={className} style={style} />;
 export const MoreVertIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="more_vert" className={className} style={style} />;
-export const ImageIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="image" className={className} style={style} />;
 
 // Preview Icons
 export const ComputerIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="computer" className={className} style={style} />;
@@ -119,3 +113,4 @@ export const InfoIcon: React.FC<IconProps> = ({ className, style }) => <Material
 export const LockIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="lock" className={className} style={style} />;
 export const LockOpenIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="lock_open" className={className} style={style} />;
 export const ContentPasteIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="content_paste" className={className} style={style} />;
+export const ShuffleIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="shuffle" className={className} style={style} />;

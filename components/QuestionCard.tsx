@@ -4,8 +4,7 @@ import { QuestionType } from '../types';
 import { 
     DotsHorizontalIcon, RadioIcon, ChevronDownIcon, 
     CheckboxOutlineIcon, XIcon, DragIndicatorIcon, PlusIcon,
-    RadioButtonUncheckedIcon,
-    ImageIcon
+    RadioButtonUncheckedIcon
 } from './icons';
 import { QuestionActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
 import { parseChoice } from '../utils';
@@ -348,7 +347,6 @@ const QuestionCard: React.FC<{
                                         )}
                                         
                                         <div className="text-on-surface flex-grow min-h-[24px] flex items-center gap-2">
-                                            {question.answerFormat === 'image' && choice.image && <ImageIcon className="text-base text-on-surface-variant" />}
                                             {variable && <span className="font-bold text-on-surface">{variable}</span>}
                                             <EditableText
                                                 html={label}

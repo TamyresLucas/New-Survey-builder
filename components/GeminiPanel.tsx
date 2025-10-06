@@ -26,7 +26,6 @@ const addQuestionFunctionDeclaration: FunctionDeclaration = {
         type: {
           type: Type.STRING,
           description: 'The type of question.',
-// FIX: Property 'Text' does not exist on type 'typeof QuestionType'.
           enum: [QTEnum.Radio, QTEnum.Checkbox, QTEnum.Description, QTEnum.TextEntry],
         },
         choices: {
@@ -62,7 +61,6 @@ const changeQuestionTypeFunctionDeclaration: FunctionDeclaration = {
         new_type: {
           type: Type.STRING,
           description: 'The new type for the question.',
-// FIX: Property 'Text' does not exist on type 'typeof QuestionType'.
           enum: [QTEnum.Radio, QTEnum.Checkbox, QTEnum.Description, QTEnum.TextEntry],
         },
       },

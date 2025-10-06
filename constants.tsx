@@ -1,5 +1,7 @@
 
 
+
+
 import type { Survey, ToolboxItemData, NavItem } from './types';
 import { QuestionType } from './types';
 import { 
@@ -24,10 +26,6 @@ import {
   EmailIcon, 
   FileUploadIcon,
   HybridGridIcon,
-  ImageAreaEvaluatorIcon,
-  ImageAreaSelectorIcon,
-  ImageChoiceGridIcon,
-  ImageSelectorIcon,
   LookupTableIcon,
   NpsIcon,
   NumericRankingIcon,
@@ -43,8 +41,6 @@ import {
   StarRatingIcon,
   TextHighlighterIcon,
   TimerIcon,
-  HeatmapIcon,
-  CarrouselIcon
 } from './components/icons';
 
 
@@ -64,7 +60,11 @@ export const initialSurveyData: Survey = {
             { id: 'q1c1', text: 'Q1_1 Yes' },
             { id: 'q1c2', text: 'Q1_2 No' },
           ],
-          skipLogic: 'If Q1 = "Q1_2", skip to Block 2 (Q6).',
+          // Fix: Replaced invalid string with a valid SkipLogic object.
+          skipLogic: {
+            type: 'per_choice',
+            rules: [{ choiceId: 'q1c2', skipTo: 'end' }],
+          },
         },
         {
           id: 'q2',
@@ -132,10 +132,6 @@ export const toolboxItems: ToolboxItemData[] = [
     { name: 'Email Address Answer', icon: EmailIcon },
     { name: 'File Upload', icon: FileUploadIcon },
     { name: 'Hybrid Grid', icon: HybridGridIcon },
-    { name: 'Image Area Evaluator', icon: ImageAreaEvaluatorIcon },
-    { name: 'Image Area Selector', icon: ImageAreaSelectorIcon },
-    { name: 'Image Choice Grid', icon: ImageChoiceGridIcon },
-    { name: 'Image Selector', icon: ImageSelectorIcon },
     { name: 'Lookup Table', icon: LookupTableIcon },
     { name: 'Net Promoter (NPS)', icon: NpsIcon },
     { name: 'Numeric Ranking', icon: NumericRankingIcon },
@@ -152,6 +148,4 @@ export const toolboxItems: ToolboxItemData[] = [
     { name: 'Star Rating', icon: StarRatingIcon },
     { name: 'Text Highlighter', icon: TextHighlighterIcon },
     { name: 'Timer', icon: TimerIcon },
-    { name: 'Heatmap', icon: HeatmapIcon },
-    { name: 'Carrousel', icon: CarrouselIcon },
 ];

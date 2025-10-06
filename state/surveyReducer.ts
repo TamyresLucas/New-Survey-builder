@@ -194,12 +194,17 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             }
 
             if (!questionAdded) {
-                const lastBlock = newState.blocks[newState.blocks.length - 1];
-                if (lastBlock) {
-                    lastBlock.questions.push(newQuestion);
-                } else {
-                    return state;
+                let lastBlock = newState.blocks[newState.blocks.length - 1];
+                if (!lastBlock) {
+                    // If no blocks exist, create one.
+                    lastBlock = {
+                        id: generateId('block'),
+                        title: 'Default Block',
+                        questions: []
+                    };
+                    newState.blocks.push(lastBlock);
                 }
+                lastBlock.questions.push(newQuestion);
             }
 
             return renumberSurveyVariables(newState);
@@ -341,6 +346,13 @@ export function surveyReducer(state: Survey, action: Action): Survey {
         case SurveyActionType.DELETE_BLOCK: {
             const { blockId } = action.payload;
             newState.blocks = newState.blocks.filter((b: Block) => b.id !== blockId);
+            if (newState.blocks.length === 0) {
+                newState.blocks.push({
+                    id: generateId('block'),
+                    title: 'Default Block',
+                    questions: []
+                });
+            }
             return renumberSurveyVariables(newState);
         }
 

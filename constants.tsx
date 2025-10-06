@@ -1,7 +1,3 @@
-
-
-
-
 import type { Survey, ToolboxItemData, NavItem } from './types';
 import { QuestionType } from './types';
 import { 
@@ -60,11 +56,6 @@ export const initialSurveyData: Survey = {
             { id: 'q1c1', text: 'Q1_1 Yes' },
             { id: 'q1c2', text: 'Q1_2 No' },
           ],
-          // Fix: Replaced invalid string with a valid SkipLogic object.
-          skipLogic: {
-            type: 'per_choice',
-            rules: [{ choiceId: 'q1c2', skipTo: 'end' }],
-          },
         },
         {
           id: 'q2',

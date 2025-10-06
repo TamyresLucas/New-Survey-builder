@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import type { Survey, Question } from '../types';
 import { QuestionIcon, BlockIcon, ClockSolidIcon } from './icons';
 import { QuestionType } from '../types';
@@ -77,29 +77,33 @@ const calculateQuestionPoints = (question: Question): number => {
 };
 
 const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ survey, onBackToTop, onToggleCollapseAll, allBlocksCollapsed }) => {
-  const allQuestions = survey.blocks.flatMap(block => block.questions);
+  const { totalQuestions, requiredQuestions, totalBlocks, completionTimeString } = useMemo(() => {
+    const allQuestions = survey.blocks.flatMap(block => block.questions);
   
-  // Per user request, filter out non-interactive "questions" like descriptions from counts.
-  const countableQuestions = allQuestions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak);
-
-  const totalQuestions = countableQuestions.length;
-  const totalBlocks = survey.blocks.length;
+    // Per user request, filter out non-interactive "questions" like descriptions from counts.
+    const countableQuestions = allQuestions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak);
   
-  // "Required questions" is functionally the same as total questions based on current logic.
-  const requiredQuestions = totalQuestions;
+    const totalQuestions = countableQuestions.length;
+    const totalBlocks = survey.blocks.length;
+    
+    // "Required questions" is functionally the same as total questions based on current logic.
+    const requiredQuestions = totalQuestions;
+    
+    // Calculate total points based on the provided logic for all questions, as descriptions already have 0 points.
+    const totalPoints = allQuestions.reduce((sum, question) => sum + calculateQuestionPoints(question), 0);
   
-  // Calculate total points based on the provided logic for all questions, as descriptions already have 0 points.
-  const totalPoints = allQuestions.reduce((sum, question) => sum + calculateQuestionPoints(question), 0);
+    // Convert points to time (8 points per minute)
+    const estimatedTimeInMinutes = Math.round(totalPoints / 8);
+  
+    let completionTimeString: string;
+    if (estimatedTimeInMinutes < 1) {
+        completionTimeString = requiredQuestions > 0 ? "<1 min" : "0 min";
+    } else {
+        completionTimeString = `${estimatedTimeInMinutes} min`;
+    }
 
-  // Convert points to time (8 points per minute)
-  const estimatedTimeInMinutes = Math.round(totalPoints / 8);
-
-  let completionTimeString: string;
-  if (estimatedTimeInMinutes < 1) {
-      completionTimeString = requiredQuestions > 0 ? "<1 min" : "0 min";
-  } else {
-      completionTimeString = `${estimatedTimeInMinutes} min`;
-  }
+    return { totalQuestions, requiredQuestions, totalBlocks, completionTimeString };
+  }, [survey]);
 
   return (
     <aside className="w-full bg-surface-container border border-outline-variant rounded-lg flex-shrink-0 flex flex-col p-4 gap-4 h-fit">

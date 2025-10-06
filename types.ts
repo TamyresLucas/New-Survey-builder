@@ -1,4 +1,5 @@
 
+
 import type React from 'react';
 
 export enum QuestionType {
@@ -65,6 +66,14 @@ export enum RandomizationType {
   Synchronized = 'synchronized',
 }
 
+export interface ChoiceBehaviorRule {
+  id: string;
+  type: 'eliminate' | 'exclude';
+  targetChoiceId: string;
+  sourceQuestionId: string;
+  sourceChoiceId: string;
+}
+
 export interface Question {
   id: string;
   qid: string;
@@ -77,7 +86,7 @@ export interface Question {
   forceResponse?: boolean;
 
   // New properties for detailed editing
-  answerFormat?: 'list' | 'dropdown' | 'horizontal';
+  answerFormat?: 'list' | 'dropdown' | 'horizontal' | 'image';
   advancedSettings?: {
     choiceOrientation?: 'vertical' | 'horizontal' | 'grid';
     numColumns?: number;
@@ -98,6 +107,10 @@ export interface Question {
     carryForwardSource?: string;
     carryForwardType?: 'all' | 'selected' | 'unselected';
     defaultValue?: string;
+    eliminateAnsweredIn?: string;
+    eliminateNotAnsweredIn?: string;
+    excludeFromElimination?: string[];
+    choiceBehaviorRules?: ChoiceBehaviorRule[];
   };
 }
 

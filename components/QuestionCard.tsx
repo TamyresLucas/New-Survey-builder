@@ -4,10 +4,17 @@ import { QuestionType } from '../types';
 import { 
     DotsHorizontalIcon, RadioIcon, ChevronDownIcon, 
     CheckboxOutlineIcon, XIcon, DragIndicatorIcon, PlusIcon,
-    RadioButtonUncheckedIcon
+    RadioButtonUncheckedIcon,
+    ImageIcon
 } from './icons';
 import { QuestionActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
 import { parseChoice } from '../utils';
+
+const ChoiceDropIndicator = () => (
+    <div className="relative h-px w-full bg-primary my-1 ml-6">
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-primary" />
+    </div>
+);
 
 const QuestionCard: React.FC<{ 
     question: Question, 
@@ -40,6 +47,11 @@ const QuestionCard: React.FC<{
     const [editText, setEditText] = useState('');
     const editInputRef = useRef<HTMLInputElement>(null);
     const editTextAreaRef = useRef<HTMLTextAreaElement>(null);
+
+    const [draggedChoiceId, setDraggedChoiceId] = useState<string | null>(null);
+    const [dropTargetChoiceId, setDropTargetChoiceId] = useState<string | null>(null);
+
+    const isAnyMenuOpen = isTypeMenuOpen || isActionsMenuOpen;
 
     const questionTypeOptions = useMemo(() => toolboxItems
         .filter(item => item.name !== 'Block' && item.name !== 'Page Break')
@@ -158,6 +170,54 @@ const QuestionCard: React.FC<{
             handleCancelEditing();
         }
     }, [handleSaveChanges, handleCancelEditing]);
+
+    const handleChoiceDragStart = useCallback((e: React.DragEvent, choiceId: string) => {
+        e.stopPropagation();
+        setDraggedChoiceId(choiceId);
+        e.dataTransfer.effectAllowed = 'move';
+    }, []);
+
+    const handleChoiceDragOver = useCallback((e: React.DragEvent, choiceId: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (draggedChoiceId !== choiceId) {
+            setDropTargetChoiceId(choiceId);
+        }
+    }, [draggedChoiceId]);
+
+    const handleChoiceDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!draggedChoiceId || !question.choices) return;
+        
+        const choices = [...question.choices];
+        const draggedIndex = choices.findIndex(c => c.id === draggedChoiceId);
+        if (draggedIndex === -1) return;
+        
+        const [draggedItem] = choices.splice(draggedIndex, 1);
+        
+        if (dropTargetChoiceId === null) {
+            choices.push(draggedItem);
+        } else {
+            const dropIndex = choices.findIndex(c => c.id === dropTargetChoiceId);
+            if (dropIndex !== -1) {
+                choices.splice(dropIndex, 0, draggedItem);
+            } else {
+                choices.push(draggedItem); // Fallback
+            }
+        }
+        
+        onUpdateQuestion(question.id, { choices });
+        setDraggedChoiceId(null);
+        setDropTargetChoiceId(null);
+    }, [draggedChoiceId, dropTargetChoiceId, question.id, question.choices, onUpdateQuestion]);
+    
+    const handleChoiceDragEnd = useCallback((e: React.DragEvent) => {
+        e.stopPropagation();
+        setDraggedChoiceId(null);
+        setDropTargetChoiceId(null);
+    }, []);
     
     const renderChoiceText = (text: string) => {
         const { variable, label } = parseChoice(text);
@@ -220,9 +280,9 @@ const QuestionCard: React.FC<{
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
             onClick={() => onSelect(question)}
-            className={`p-4 rounded-lg border-2 transition-all cursor-grab group grid grid-cols-[auto_1fr] items-center gap-x-3 ${
+            className={`p-4 rounded-lg border-2 transition-all cursor-grab group grid grid-cols-[auto_1fr] items-center gap-x-3 relative ${
                 isSelected ? 'border-primary bg-surface-container-high shadow-md' : 'border-outline-variant hover:border-outline'
-            } ${isDragging ? 'opacity-50' : ''}`}
+            } ${isDragging ? 'opacity-50' : ''} ${isAnyMenuOpen ? 'z-10' : ''}`}
         >
             {/* Grid Cell 1: Checkbox */}
             <input
@@ -255,7 +315,7 @@ const QuestionCard: React.FC<{
                             <ChevronDownIcon className="text-base" />
                         </button>
                         {isTypeMenuOpen && (
-                          <div className="absolute top-full right-0 mt-2 w-64" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+                          <div className="absolute top-full right-0 mt-2 w-64 z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
                             <QuestionTypeSelectionMenuContent onSelect={handleTypeSelect} toolboxItems={toolboxItems} />
                           </div>
                         )}
@@ -312,54 +372,73 @@ const QuestionCard: React.FC<{
                 )}
                 
                 {question.choices && (
-                    <div className="mt-4 space-y-2">
+                    <div 
+                        className="mt-4 space-y-2"
+                        onDrop={handleChoiceDrop}
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            setDropTargetChoiceId(null);
+                        }}
+                    >
                         {question.choices.map((choice, index) => (
-                            <div key={choice.id} className="flex items-center group/choice">
-                                {question.type === QuestionType.Radio ? (
-                                    index === 0 ? (
-                                        <RadioIcon className="text-xl text-on-surface-variant mr-2" />
-                                    ) : (
-                                        <RadioButtonUncheckedIcon className="text-xl text-on-surface-variant mr-2" />
-                                    )
-                                ) : (
-                                    <CheckboxOutlineIcon className="text-xl text-on-surface-variant mr-2" />
-                                )}
-                                {editingElement === choice.id ? (
-                                    <input
-                                        ref={editInputRef}
-                                        type="text"
-                                        value={editText}
-                                        onChange={(e) => setEditText(e.target.value)}
-                                        onBlur={handleSaveChanges}
-                                        onKeyDown={handleKeyDown}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="w-full bg-surface border-b border-primary focus:outline-none p-1 text-on-surface"
-                                    />
-                                ) : (
-                                    <span onClick={(e) => { 
-                                        e.stopPropagation(); 
-                                        if (!isSelected) {
-                                            onSelect(question);
-                                        }
-                                        handleStartEditing(choice.id, choice.text); 
-                                    }} className="text-on-surface flex-grow min-h-[24px]">
-                                        {renderChoiceText(choice.text)}
-                                    </span>
-                                )}
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        const newChoices = question.choices?.filter(c => c.id !== choice.id);
-                                        onUpdateQuestion(question.id, { choices: newChoices });
-                                    }}
-                                    className="ml-2 p-1 rounded-full text-on-surface-variant hover:bg-surface-container-highest opacity-0 group-hover/choice:opacity-100"
-                                    aria-label="Remove choice"
+                            <React.Fragment key={choice.id}>
+                                {dropTargetChoiceId === choice.id && <ChoiceDropIndicator />}
+                                <div 
+                                    className={`flex items-center group/choice transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
+                                    draggable={!editingElement}
+                                    onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
+                                    onDragOver={(e) => handleChoiceDragOver(e, choice.id)}
+                                    onDragEnd={handleChoiceDragEnd}
                                 >
-                                    <XIcon className="text-base" />
-                                </button>
-                            </div>
+                                    <DragIndicatorIcon className="text-xl text-on-surface-variant mr-1 cursor-grab opacity-0 group-hover/choice:opacity-100" />
+                                    {question.type === QuestionType.Radio ? (
+                                        index === 0 ? (
+                                            <RadioIcon className="text-xl text-on-surface-variant mr-2" />
+                                        ) : (
+                                            <RadioButtonUncheckedIcon className="text-xl text-on-surface-variant mr-2" />
+                                        )
+                                    ) : (
+                                        <CheckboxOutlineIcon className="text-xl text-on-surface-variant mr-2" />
+                                    )}
+                                    {editingElement === choice.id ? (
+                                        <input
+                                            ref={editInputRef}
+                                            type="text"
+                                            value={editText}
+                                            onChange={(e) => setEditText(e.target.value)}
+                                            onBlur={handleSaveChanges}
+                                            onKeyDown={handleKeyDown}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="w-full bg-surface border-b border-primary focus:outline-none p-1 text-on-surface"
+                                        />
+                                    ) : (
+                                        <span onClick={(e) => { 
+                                            e.stopPropagation(); 
+                                            if (!isSelected) {
+                                                onSelect(question);
+                                            }
+                                            handleStartEditing(choice.id, choice.text); 
+                                        }} className="text-on-surface flex-grow min-h-[24px] flex items-center gap-2">
+                                            {question.answerFormat === 'image' && choice.image && <ImageIcon className="text-base text-on-surface-variant" />}
+                                            {renderChoiceText(choice.text)}
+                                        </span>
+                                    )}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const newChoices = question.choices?.filter(c => c.id !== choice.id);
+                                            onUpdateQuestion(question.id, { choices: newChoices });
+                                        }}
+                                        className="ml-2 p-1 rounded-full text-on-surface-variant hover:bg-surface-container-highest opacity-0 group-hover/choice:opacity-100"
+                                        aria-label="Remove choice"
+                                    >
+                                        <XIcon className="text-base" />
+                                    </button>
+                                </div>
+                            </React.Fragment>
                         ))}
-                         <button
+                        {dropTargetChoiceId === null && draggedChoiceId && <ChoiceDropIndicator />}
+                        <button
                             onClick={(e) => { 
                                 e.stopPropagation(); 
                                 if (!isSelected) {

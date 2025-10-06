@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useRef, useCallback, useReducer, useEffect } from 'react';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
@@ -30,7 +31,12 @@ const App: React.FC = () => {
 
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const rightPanelRef = useRef<HTMLDivElement>(null);
+  const surveyRef = useRef(survey);
   const [collapsedBlocks, setCollapsedBlocks] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    surveyRef.current = survey;
+  }, [survey]);
 
   const handleBackToTop = useCallback(() => {
     canvasContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -166,11 +172,10 @@ const App: React.FC = () => {
   const handleAddQuestion = useCallback((questionType: QuestionType, targetQuestionId: string | null, targetBlockId: string) => {
     const onQuestionAdded = (newQuestionId: string) => {
         if (questionType !== QTEnum.PageBreak) {
-            // Find the full question object from the next state to select it
-            // This is tricky with reducer's async nature. We'll find it after the next render cycle.
+            // This now uses a ref to get the latest survey state post-reducer update.
             setTimeout(() => {
-                const finalSurvey = survey; // This will be the updated survey on the next render
-                const addedQuestion = finalSurvey.blocks
+                const currentSurvey = surveyRef.current;
+                const addedQuestion = currentSurvey.blocks
                     .flatMap(b => b.questions)
                     .find(q => q.id === newQuestionId);
                 if (addedQuestion) {
@@ -180,13 +185,14 @@ const App: React.FC = () => {
         }
     };
     dispatch({ type: SurveyActionType.ADD_QUESTION, payload: { questionType, targetQuestionId, targetBlockId, onQuestionAdded } });
-  }, [survey, handleSelectQuestion]);
+  }, [handleSelectQuestion]);
   
   const handleAddQuestionToBlock = useCallback((blockId: string, questionType: QuestionType) => {
     const onQuestionAdded = (newQuestionId: string) => {
         if (questionType !== QTEnum.PageBreak) {
             setTimeout(() => {
-                const addedQuestion = survey.blocks
+                const currentSurvey = surveyRef.current;
+                const addedQuestion = currentSurvey.blocks
                     .flatMap(b => b.questions)
                     .find(q => q.id === newQuestionId);
                 if (addedQuestion) {
@@ -196,7 +202,7 @@ const App: React.FC = () => {
         }
     };
     dispatch({ type: SurveyActionType.ADD_QUESTION, payload: { questionType, targetQuestionId: null, targetBlockId: blockId, onQuestionAdded } });
-  }, [survey, handleSelectQuestion]);
+  }, [handleSelectQuestion]);
 
   const handleAddQuestionFromAI = useCallback((questionType: QuestionType, text: string, choiceStrings?: string[], afterQid?: string, beforeQid?: string) => {
     dispatch({ type: SurveyActionType.ADD_QUESTION_FROM_AI, payload: { questionType, text, choiceStrings, afterQid, beforeQid } });

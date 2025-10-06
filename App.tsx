@@ -1,6 +1,10 @@
 
 
 
+
+
+
+
 import React, { useState, useRef, useCallback, useReducer, useEffect } from 'react';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
@@ -11,9 +15,9 @@ import RightSidebar from './components/RightSidebar';
 import SurveyStructureWidget from './components/SurveyStructureWidget';
 import GeminiPanel from './components/GeminiPanel';
 import { BulkEditPanel } from './components/BulkEditPanel';
-import type { Survey, Question, ToolboxItemData, QuestionType } from './types';
+import type { Survey, Question, ToolboxItemData, QuestionType, Choice } from './types';
 import { initialSurveyData, toolboxItems as initialToolboxItems } from './constants';
-import { renumberSurveyVariables } from './utils';
+import { renumberSurveyVariables, generateId } from './utils';
 import { QuestionType as QTEnum } from './types';
 import { surveyReducer, SurveyActionType } from './state/surveyReducer';
 import { PanelRightIcon } from './components/icons';
@@ -37,6 +41,22 @@ const App: React.FC = () => {
   useEffect(() => {
     surveyRef.current = survey;
   }, [survey]);
+
+  // Sync selectedQuestion with survey state to prevent stale data in the sidebar
+  useEffect(() => {
+    if (selectedQuestion) {
+      const updatedQuestion = survey.blocks
+        .flatMap(b => b.questions)
+        .find(q => q.id === selectedQuestion.id);
+      
+      if (updatedQuestion && JSON.stringify(updatedQuestion) !== JSON.stringify(selectedQuestion)) {
+        setSelectedQuestion(updatedQuestion);
+      } else if (!updatedQuestion) {
+        setSelectedQuestion(null);
+      }
+    }
+  }, [survey, selectedQuestion]);
+
 
   const handleBackToTop = useCallback(() => {
     canvasContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -143,15 +163,7 @@ const App: React.FC = () => {
 
   const handleUpdateQuestion = useCallback((questionId: string, updates: Partial<Question>) => {
     dispatch({ type: SurveyActionType.UPDATE_QUESTION, payload: { questionId, updates } });
-    
-    // If the currently selected question is the one being updated, we need to refresh its state
-    if (selectedQuestion?.id === questionId) {
-        // This is a bit tricky since reducer updates are async. A simple way is to find the updated question post-update.
-        // A better way would be to get the updated survey state back from the reducer, but that complicates the architecture.
-        // For now, let's optimistically update the selected question.
-        setSelectedQuestion(prev => prev ? { ...prev, ...updates } : null);
-    }
-  }, [selectedQuestion]);
+  }, []);
   
   const handleReorderQuestion = useCallback((draggedQuestionId: string, targetQuestionId: string | null, targetBlockId: string) => {
     dispatch({ type: SurveyActionType.REORDER_QUESTION, payload: { draggedQuestionId, targetQuestionId, targetBlockId } });
@@ -207,6 +219,36 @@ const App: React.FC = () => {
   const handleAddQuestionFromAI = useCallback((questionType: QuestionType, text: string, choiceStrings?: string[], afterQid?: string, beforeQid?: string) => {
     dispatch({ type: SurveyActionType.ADD_QUESTION_FROM_AI, payload: { questionType, text, choiceStrings, afterQid, beforeQid } });
   }, []);
+
+  const handleChangeQuestionTypeFromAI = useCallback((qid: string, newType: QuestionType) => {
+    const question = surveyRef.current.blocks.flatMap(b => b.questions).find(q => q.qid === qid);
+    if (question) {
+        handleUpdateQuestion(question.id, { type: newType });
+    } else {
+        console.warn(`[AI Action] Could not find question with QID: ${qid} to change its type.`);
+    }
+  }, [handleUpdateQuestion]);
+
+  const handleRegenerateQuestionFromAI = useCallback((qid: string, newTitle?: string, newChoices?: string[]) => {
+      const question = surveyRef.current.blocks.flatMap(b => b.questions).find(q => q.qid === qid);
+      if (question) {
+          const updates: Partial<Question> = {};
+          if (newTitle) {
+              updates.text = newTitle;
+          }
+          if (newChoices && newChoices.length > 0) {
+              updates.choices = newChoices.map((choiceText): Choice => ({
+                  id: generateId('c'),
+                  text: choiceText,
+              }));
+          }
+          if (Object.keys(updates).length > 0) {
+              handleUpdateQuestion(question.id, updates);
+          }
+      } else {
+          console.warn(`[AI Action] Could not find question with QID: ${qid} to regenerate.`);
+      }
+  }, [handleUpdateQuestion]);
 
   const handleAddBlock = useCallback((blockId: string, position: 'above' | 'below') => {
     dispatch({ type: SurveyActionType.ADD_BLOCK, payload: { blockId, position } });
@@ -425,6 +467,8 @@ const App: React.FC = () => {
                   onReorderBlock={handleReorderBlock}
                   onAddBlockFromToolbox={handleAddBlockFromToolbox}
                   onAddQuestion={handleAddQuestion}
+                  // FIX: Pass the handleAddBlock function to satisfy the SurveyCanvasProps interface.
+                  onAddBlock={handleAddBlock}
                   onAddQuestionToBlock={handleAddQuestionToBlock}
                   onToggleQuestionCheck={handleToggleQuestionCheck}
                   onSelectAllInBlock={handleSelectAllInBlock}
@@ -450,6 +494,8 @@ const App: React.FC = () => {
                     <GeminiPanel 
                       onClose={handleToggleGeminiPanel} 
                       onAddQuestion={handleAddQuestionFromAI}
+                      onChangeQuestionType={handleChangeQuestionTypeFromAI}
+                      onRegenerateQuestion={handleRegenerateQuestionFromAI}
                     />
                 ) : showBulkEditPanel ? (
                   <BulkEditPanel
@@ -467,6 +513,7 @@ const App: React.FC = () => {
                 ) : selectedQuestion ? (
                     <RightSidebar 
                       question={selectedQuestion} 
+                      survey={survey}
                       onClose={() => handleSelectQuestion(null)} 
                       activeTab={activeRightSidebarTab}
                       onTabChange={setActiveRightSidebarTab}

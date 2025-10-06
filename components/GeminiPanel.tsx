@@ -7,6 +7,8 @@ import { QuestionType as QTEnum } from '../types';
 interface GeminiPanelProps {
   onClose: () => void;
   onAddQuestion: (questionType: QuestionType, title: string, choices?: string[], afterQid?: string, beforeQid?: string) => void;
+  onChangeQuestionType: (qid: string, newType: QuestionType) => void;
+  onRegenerateQuestion: (qid: string, newTitle?: string, newChoices?: string[]) => void;
 }
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
@@ -46,12 +48,58 @@ const addQuestionFunctionDeclaration: FunctionDeclaration = {
     },
 };
 
+const changeQuestionTypeFunctionDeclaration: FunctionDeclaration = {
+    name: 'change_question_type',
+    description: "Changes the type of an existing question, for example from 'Radio Button' to 'Checkbox'.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        qid: {
+          type: Type.STRING,
+          description: "The variable name of the question to change (e.g., 'Q1', 'Q2').",
+        },
+        new_type: {
+          type: Type.STRING,
+          description: 'The new type for the question.',
+          enum: [QTEnum.Radio, QTEnum.Checkbox, QTEnum.Description, QTEnum.Text],
+        },
+      },
+      required: ['qid', 'new_type'],
+    },
+};
+
+const regenerateQuestionFunctionDeclaration: FunctionDeclaration = {
+    name: 'regenerate_question',
+    description: "Rewrites or regenerates an existing question. Can be used to improve wording, change the tone, or provide new choices.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        qid: {
+          type: Type.STRING,
+          description: "The variable name of the question to regenerate (e.g., 'Q1', 'Q2').",
+        },
+        new_title: {
+          type: Type.STRING,
+          description: 'The new text for the question.',
+        },
+        new_choices: {
+          type: Type.ARRAY,
+          description: 'A new array of strings for the choices. This will replace all existing choices.',
+          items: {
+            type: Type.STRING,
+          },
+        },
+      },
+      required: ['qid'],
+    },
+};
+
 const initialMessages: ChatMessage[] = [
     { role: 'model', text: "Hi! How can I help you build your survey today? You can ask me to add questions, suggest improvements, or check for issues." }
 ];
 
 
-const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion }) => {
+const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, onChangeQuestionType, onRegenerateQuestion }) => {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -66,7 +114,7 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion }
         parts: [{ text: msg.text }]
       })),
       config: {
-        tools: [{ functionDeclarations: [addQuestionFunctionDeclaration] }],
+        tools: [{ functionDeclarations: [addQuestionFunctionDeclaration, changeQuestionTypeFunctionDeclaration, regenerateQuestionFunctionDeclaration] }],
       },
     });
   }, []);
@@ -105,6 +153,22 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion }
               confirmationText += '.';
             }
             newModelMessages.push({ role: 'model', text: confirmationText });
+          } else if (funcCall.name === 'change_question_type') {
+            const { qid, new_type } = funcCall.args as { qid: string; new_type: QuestionType };
+            onChangeQuestionType(qid, new_type);
+            newModelMessages.push({ role: 'model', text: `OK, I've changed question ${qid} to be a "${new_type}" question.` });
+          } else if (funcCall.name === 'regenerate_question') {
+            const { qid, new_title, new_choices } = funcCall.args as { qid: string; new_title?: string; new_choices?: string[] };
+            onRegenerateQuestion(qid, new_title, new_choices);
+            let confirmationText = `I've regenerated question ${qid}.`;
+            if (new_title && new_choices) {
+                confirmationText += " I've updated both the title and the choices.";
+            } else if (new_title) {
+                confirmationText += " I've updated the title.";
+            } else if (new_choices) {
+                confirmationText += " I've provided new choices.";
+            }
+            newModelMessages.push({ role: 'model', text: confirmationText });
           }
         }
       } else if (response.text) {
@@ -124,7 +188,7 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion }
     } finally {
       setIsLoading(false);
     }
-  }, [inputValue, isLoading, onAddQuestion]);
+  }, [inputValue, isLoading, onAddQuestion, onChangeQuestionType, onRegenerateQuestion]);
 
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {

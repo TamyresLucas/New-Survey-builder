@@ -84,9 +84,18 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
         if (selectedQuestion) {
-            const target = event.target as Node;
+            const target = event.target as HTMLElement;
+
+            // Clicks that control the build panel should not deselect the question.
+            const isClickOnLeftSidebar = target.closest('nav.w-20');
+            const isClickOnBuildPanelToggle = target.closest('[aria-label="Collapse build panel"], [aria-label="Open build panel"]');
+
+            if (isClickOnLeftSidebar || isClickOnBuildPanelToggle) {
+                return;
+            }
+
             const isClickInRightPanel = rightPanelRef.current?.contains(target);
-            const isClickInQuestionCard = (event.target as HTMLElement).closest('[data-question-id]');
+            const isClickInQuestionCard = target.closest('[data-question-id]');
             
             if (!isClickInRightPanel && !isClickInQuestionCard) {
                 handleSelectQuestion(null);

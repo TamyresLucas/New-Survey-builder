@@ -54,6 +54,7 @@ export interface DisplayLogicCondition {
   questionId: string; // This is the QID, e.g., "Q1"
   operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty';
   value: string;
+  isConfirmed?: boolean;
 }
 
 export interface DisplayLogic {
@@ -64,11 +65,13 @@ export interface DisplayLogic {
 export interface SkipLogicRule {
   choiceId: string;
   skipTo: string; // 'next' | question ID (internal id) | 'end'
+  isConfirmed?: boolean;
 }
 
 export type SkipLogic = {
   type: 'simple';
   skipTo: string; // 'next' | question ID (internal id) | 'end'
+  isConfirmed?: boolean;
 } | {
   type: 'per_choice';
   rules: SkipLogicRule[];
@@ -98,6 +101,7 @@ export interface BranchingCondition {
   questionId: string; // This is the QID, e.g., "Q1"
   operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty';
   value: string;
+  isConfirmed?: boolean;
 }
 
 export interface Branch {
@@ -105,11 +109,13 @@ export interface Branch {
   operator: 'AND' | 'OR';
   conditions: BranchingCondition[];
   thenSkipTo: string; // 'next' | question ID (internal id) | 'end'
+  thenSkipToIsConfirmed?: boolean;
 }
 
 export interface BranchingLogic {
   branches: Branch[];
   otherwiseSkipTo: string; // 'next' | question ID (internal id) | 'end'
+  otherwiseIsConfirmed?: boolean;
 }
 
 
@@ -192,4 +198,13 @@ export interface NavItem {
 export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
+}
+
+// --- NEW DATA MODEL FOR LOGIC VALIDATION ---
+export interface LogicIssue {
+  questionId: string; // The question where the logic is defined
+  type: 'display' | 'skip' | 'branching'; // Which logic editor it belongs to
+  message: string; // The error message
+  sourceId?: string; // The ID of the specific condition, rule, or branch that has the error
+  field?: 'questionId' | 'value' | 'operator' | 'skipTo'; // The specific field with the issue
 }

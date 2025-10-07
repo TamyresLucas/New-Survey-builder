@@ -43,7 +43,13 @@ const formatCondition = (condition: DisplayLogicCondition | BranchingCondition, 
 
 // --- Display Logic Component ---
 export const DisplayLogicDisplay: React.FC<{ logic: DisplayLogic; survey: Survey; onClick: () => void }> = ({ logic, survey, onClick }) => {
-    const summary = logic.conditions.map(c => formatCondition(c, survey)).join(` <span class="font-bold text-primary">${logic.operator}</span> `);
+    const confirmedConditions = logic.conditions.filter(c => c.isConfirmed !== false);
+
+    if (confirmedConditions.length === 0) {
+        return null;
+    }
+
+    const summary = confirmedConditions.map(c => formatCondition(c, survey)).join(` <span class="font-bold text-primary">${logic.operator}</span> `);
 
     return (
         <div 
@@ -66,6 +72,20 @@ export const DisplayLogicDisplay: React.FC<{ logic: DisplayLogic; survey: Survey
 
 // --- Skip Logic Component ---
 export const SkipLogicDisplay: React.FC<{ logic: SkipLogic; currentQuestion: Question; survey: Survey; onClick: () => void }> = ({ logic, currentQuestion, survey, onClick }) => {
+    if (logic.type === 'simple' && logic.isConfirmed !== true) {
+        return null;
+    }
+
+    const confirmedRules = logic.type === 'per_choice' 
+        ? logic.rules.filter(r => r.isConfirmed === true)
+        : [];
+
+    if (logic.type === 'per_choice' && confirmedRules.length === 0) {
+        return null;
+    }
+    
+    if (logic.type === 'simple' && logic.isConfirmed !== true) return null;
+
     return (
         <div 
             onClick={onClick}
@@ -76,11 +96,11 @@ export const SkipLogicDisplay: React.FC<{ logic: SkipLogic; currentQuestion: Que
                 <h4 className="text-sm font-bold text-on-surface">Skip Logic</h4>
             </div>
             <div className="pl-2 space-y-1 text-sm text-on-surface-variant">
-                {logic.type === 'simple' && (
+                {logic.type === 'simple' && logic.isConfirmed && (
                     <p>If answered → skip to <span className="font-semibold text-on-surface">{formatDestination(logic.skipTo, survey)}</span>.</p>
                 )}
                 {logic.type === 'per_choice' && currentQuestion.choices?.map(choice => {
-                    const rule = logic.rules.find(r => r.choiceId === choice.id);
+                    const rule = confirmedRules.find(r => r.choiceId === choice.id);
                     if (!rule) return null;
                     const { label: choiceLabel } = parseChoice(choice.text);
                     return (
@@ -95,6 +115,14 @@ export const SkipLogicDisplay: React.FC<{ logic: SkipLogic; currentQuestion: Que
 
 // --- Branching Logic Component ---
 export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Survey; onClick: () => void }> = ({ logic, survey, onClick }) => {
+    const hasAnyConfirmedLogic = logic.branches.some(branch =>
+        (branch.thenSkipToIsConfirmed && branch.conditions.some(c => c.isConfirmed !== false))
+    ) || logic.otherwiseIsConfirmed;
+    
+    if (!hasAnyConfirmedLogic) {
+        return null;
+    }
+    
     return (
         <div
             onClick={onClick}
@@ -105,18 +133,24 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
                 <h4 className="text-sm font-bold text-on-surface">Branching Logic</h4>
             </div>
             <div className="pl-2 space-y-2 text-sm">
-                {logic.branches.map((branch) => (
-                    <div key={branch.id} className="p-2 bg-surface rounded-md">
-                        <span className="font-bold text-primary">IF </span>
-                        <span>{branch.conditions.map(c => formatCondition(c, survey)).join(` ${branch.operator} `)}</span>
-                        <span className="font-bold text-primary"> THEN </span>
-                        <span>skip to <span className="font-semibold">{formatDestination(branch.thenSkipTo, survey)}</span>.</span>
-                    </div>
-                ))}
-                 <div className="p-2 bg-surface rounded-md">
-                    <span className="font-bold text-on-surface-variant">OTHERWISE </span>
-                    <span>skip to <span className="font-semibold">{formatDestination(logic.otherwiseSkipTo, survey)}</span>.</span>
-                 </div>
+                {logic.branches.map((branch) => {
+                    const confirmedConditions = branch.conditions.filter(c => c.isConfirmed !== false);
+                    if (confirmedConditions.length === 0 || !branch.thenSkipToIsConfirmed) return null;
+                    return (
+                        <div key={branch.id} className="p-2 bg-surface rounded-md">
+                            <span className="font-bold text-primary">IF </span>
+                            <span>{confirmedConditions.map(c => formatCondition(c, survey)).join(` ${branch.operator} `)}</span>
+                            <span className="font-bold text-primary"> THEN </span>
+                            <span>skip to <span className="font-semibold">{formatDestination(branch.thenSkipTo, survey)}</span>.</span>
+                        </div>
+                    );
+                })}
+                {logic.otherwiseIsConfirmed && (
+                     <div className="p-2 bg-surface rounded-md">
+                        <span className="font-bold text-on-surface-variant">OTHERWISE </span>
+                        <span>skip to <span className="font-semibold">{formatDestination(logic.otherwiseSkipTo, survey)}</span>.</span>
+                     </div>
+                )}
             </div>
         </div>
     );

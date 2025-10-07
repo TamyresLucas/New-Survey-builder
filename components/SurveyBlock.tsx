@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, memo, useCallback } from 'react';
-import type { Block, Question, ToolboxItemData, QuestionType, Choice, Survey } from '../types';
+import type { Block, Question, ToolboxItemData, QuestionType, Choice, Survey, LogicIssue } from '../types';
 import QuestionCard from './QuestionCard';
 import { ChevronDownIcon, DotsHorizontalIcon, DragIndicatorIcon } from './icons';
 import { BlockActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
@@ -16,6 +16,7 @@ interface SurveyBlockProps {
     survey: Survey;
     selectedQuestion: Question | null;
     checkedQuestions: Set<string>;
+    logicIssues: LogicIssue[];
     onSelectQuestion: (question: Question | null, tab?: string) => void;
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
     onDeleteQuestion: (questionId: string) => void;
@@ -45,7 +46,7 @@ interface SurveyBlockProps {
 }
 
 const SurveyBlock: React.FC<SurveyBlockProps> = memo(({ 
-  block, survey, selectedQuestion, checkedQuestions, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
+  block, survey, selectedQuestion, checkedQuestions, logicIssues, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
   isBlockDragging, onBlockDragStart, onBlockDragEnd, isCollapsed, onToggleCollapse,
   onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle
 }) => {
@@ -256,6 +257,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                     <QuestionCard
                       question={question}
                       survey={survey}
+                      logicIssues={logicIssues.filter(issue => issue.questionId === question.id)}
                       id={`question-card-${question.id}`}
                       isSelected={selectedQuestion?.id === question.id}
                       isChecked={checkedQuestions.has(question.id)}

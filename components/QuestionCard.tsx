@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo, memo, useCallback } from 'react';
-import type { Question, ToolboxItemData, Choice, Survey } from '../types';
+import type { Question, ToolboxItemData, Choice, Survey, LogicIssue } from '../types';
 import { QuestionType } from '../types';
 import { 
     DotsHorizontalIcon, RadioIcon, ChevronDownIcon, 
     CheckboxOutlineIcon, XIcon, DragIndicatorIcon, PlusIcon,
-    RadioButtonUncheckedIcon
+    RadioButtonUncheckedIcon,
+    WarningIcon
 } from './icons';
 import { QuestionActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
 import { parseChoice } from '../utils';
@@ -61,6 +62,7 @@ const ChoiceDropIndicator = () => (
 const QuestionCard: React.FC<{ 
     question: Question, 
     survey: Survey,
+    logicIssues: LogicIssue[],
     isSelected: boolean,
     isChecked: boolean,
     onSelect: (question: Question, tab?: string) => void,
@@ -76,7 +78,7 @@ const QuestionCard: React.FC<{
     onAddChoice: (questionId: string) => void;
     onAddPageBreakAfterQuestion: (questionId: string) => void;
 }> = memo(({ 
-    question, survey, isSelected, isChecked, onSelect, onToggleCheck, id, 
+    question, survey, logicIssues, isSelected, isChecked, onSelect, onToggleCheck, id, 
     onUpdateQuestion, onDeleteQuestion, onCopyQuestion, toolboxItems,
     isDragging, onDragStart, onDragEnd, onAddChoice, onAddPageBreakAfterQuestion
 }) => {
@@ -225,6 +227,7 @@ const QuestionCard: React.FC<{
     }
     
     const CurrentQuestionTypeIcon = questionTypeOptions.find(o => o.type === question.type)?.icon || RadioIcon;
+    const hasLogicIssues = logicIssues.length > 0;
 
     return (
         <div
@@ -254,6 +257,18 @@ const QuestionCard: React.FC<{
             <div className="flex items-center justify-between">
                 <div className="flex items-center text-sm text-on-surface-variant">
                     <span className="font-bold text-on-surface mr-2">{question.qid}</span>
+                     {hasLogicIssues && (
+                        <div className="relative group/tooltip">
+                            <WarningIcon className="text-error" />
+                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
+                                <h4 className="font-bold mb-1">Logic Issues:</h4>
+                                <ul className="list-disc list-inside space-y-1">
+                                    {logicIssues.map((issue, index) => <li key={index}>{issue.message}</li>)}
+                                </ul>
+                                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
+                            </div>
+                        </div>
+                    )}
                 </div>
                 <div className="flex items-center gap-2">
                     <div ref={typeMenuContainerRef} className="relative">

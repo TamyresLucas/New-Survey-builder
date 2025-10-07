@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useRef, useCallback, useReducer, useEffect } from 'react';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
@@ -10,12 +12,13 @@ import RightSidebar from './components/RightSidebar';
 import SurveyStructureWidget from './components/SurveyStructureWidget';
 import GeminiPanel from './components/GeminiPanel';
 import { BulkEditPanel } from './components/BulkEditPanel';
-import type { Survey, Question, ToolboxItemData, QuestionType, Choice } from './types';
+import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssue } from './types';
 import { initialSurveyData, toolboxItems as initialToolboxItems } from './constants';
 import { renumberSurveyVariables, generateId } from './utils';
 import { QuestionType as QTEnum } from './types';
 import { surveyReducer, SurveyActionType } from './state/surveyReducer';
 import { PanelRightIcon } from './components/icons';
+import { validateSurveyLogic } from './logicValidator';
 
 const App: React.FC = () => {
   const [survey, dispatch] = useReducer(surveyReducer, initialSurveyData, renumberSurveyVariables);
@@ -28,14 +31,20 @@ const App: React.FC = () => {
   const [geminiHelpTopic, setGeminiHelpTopic] = useState<string | null>(null);
   const [activeRightSidebarTab, setActiveRightSidebarTab] = useState('Settings');
   const [isRightSidebarExpanded, setIsRightSidebarExpanded] = useState(false);
+  const [logicIssues, setLogicIssues] = useState<LogicIssue[]>([]);
 
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const surveyRef = useRef(survey);
   const [collapsedBlocks, setCollapsedBlocks] = useState<Set<string>>(new Set());
+  const prevSelectedQuestionIdRef = useRef<string | null>(null);
+
 
   useEffect(() => {
     surveyRef.current = survey;
+    // Run logic validation whenever the survey changes
+    const issues = validateSurveyLogic(survey);
+    setLogicIssues(issues);
   }, [survey]);
 
   // Sync selectedQuestion with survey state to prevent stale data in the sidebar
@@ -53,12 +62,23 @@ const App: React.FC = () => {
     }
   }, [survey, selectedQuestion]);
 
+  // When the selected question changes, clean up any unconfirmed logic from the *previous* question.
+  useEffect(() => {
+    const prevId = prevSelectedQuestionIdRef.current;
+    // If there was a previously selected question, and it's different from the new one, clean it up.
+    if (prevId && prevId !== selectedQuestion?.id) {
+        dispatch({ type: SurveyActionType.CLEANUP_UNCONFIRMED_LOGIC, payload: { questionId: prevId } });
+    }
+    // Update the ref to the current selection for the next change.
+    prevSelectedQuestionIdRef.current = selectedQuestion?.id ?? null;
+  }, [selectedQuestion]);
+
 
   const handleBackToTop = useCallback(() => {
     canvasContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  const handleSelectQuestion = useCallback((question: Question | null, tab: string = 'Settings') => {
+  const handleSelectQuestion = useCallback((question: Question | null, tab?: string) => {
     if (question === null) {
       setSelectedQuestion(null);
       setIsRightSidebarExpanded(false); // Reset on close
@@ -75,16 +95,15 @@ const App: React.FC = () => {
       setGeminiHelpTopic(null);
     }
   
-    if (selectedQuestion?.id === question.id) {
-      if (tab !== 'Settings') {
-        setActiveRightSidebarTab(tab);
-      }
-      // If the same question is clicked, keep it selected.
-    } else {
-      setSelectedQuestion(question);
+    setSelectedQuestion(question);
+
+    // If a tab was explicitly passed, set it as active.
+    // Otherwise, the active tab remains unchanged, preserving the "sticky" tab behavior.
+    if (tab) {
       setActiveRightSidebarTab(tab);
     }
-  }, [isGeminiPanelOpen, geminiHelpTopic, selectedQuestion]);
+    
+  }, [isGeminiPanelOpen, geminiHelpTopic]);
 
   // Effect to handle clicks outside of the selected question card and right panel to deselect.
   useEffect(() => {
@@ -492,6 +511,7 @@ const App: React.FC = () => {
                   survey={survey} 
                   selectedQuestion={selectedQuestion} 
                   checkedQuestions={checkedQuestions}
+                  logicIssues={logicIssues}
                   onSelectQuestion={handleSelectQuestion}
                   onUpdateQuestion={handleUpdateQuestion}
                   onDeleteQuestion={handleDeleteQuestion}
@@ -548,6 +568,7 @@ const App: React.FC = () => {
                     <RightSidebar 
                       question={selectedQuestion} 
                       survey={survey}
+                      logicIssues={logicIssues.filter(issue => issue.questionId === selectedQuestion.id)}
                       onClose={() => handleSelectQuestion(null)} 
                       activeTab={activeRightSidebarTab}
                       onTabChange={setActiveRightSidebarTab}

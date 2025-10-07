@@ -1,5 +1,5 @@
 import React, { memo, useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, Branch, BranchingCondition } from '../types';
+import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, Branch, BranchingCondition, LogicIssue } from '../types';
 import { QuestionType } from '../types';
 import { generateId, parseChoice, CHOICE_BASED_QUESTION_TYPES, truncate } from '../utils';
 import { PasteChoicesModal } from './PasteChoicesModal';
@@ -8,13 +8,15 @@ import {
     MoreVertIcon, ArrowRightAltIcon,
     SignalIcon, BatteryIcon, RadioButtonUncheckedIcon, CheckboxOutlineIcon,
     RadioIcon, CheckboxFilledIcon, ShuffleIcon,
-    InfoIcon, EyeIcon, ContentPasteIcon, CarryForwardIcon, CallSplitIcon
+    InfoIcon, EyeIcon, ContentPasteIcon, CarryForwardIcon, CallSplitIcon,
+    WarningIcon, CheckmarkIcon
 } from './icons';
 import { QuestionTypeSelectionMenuContent } from './ActionMenus';
 
 interface RightSidebarProps {
   question: Question;
   survey: Survey;
+  logicIssues: LogicIssue[];
   onClose: () => void;
   activeTab: string;
   onTabChange: (tab: string) => void;
@@ -82,7 +84,7 @@ const PasteInlineForm: React.FC<{
   };
 
   return (
-    <div className="p-3 bg-surface-container-high rounded-md border border-outline-variant">
+    <div className={`p-3 bg-surface-container-high rounded-md border ${error ? 'border-error' : 'border-outline-variant'}`}>
       <div className="text-xs text-on-surface-variant mb-2 flex items-center gap-1 flex-wrap">
         <InfoIcon className="text-sm flex-shrink-0" />
         <span>{disclosureText}</span>
@@ -96,7 +98,7 @@ const PasteInlineForm: React.FC<{
           if (error) setError(null);
         }}
         rows={4}
-        className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary font-mono"
+        className={`w-full bg-surface border rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary font-mono ${error ? 'border-error' : 'border-outline'}`}
         placeholder={placeholder}
       />
       {error && (
@@ -125,6 +127,7 @@ const CopyAndPasteButton: React.FC<{ onClick: () => void; className?: string }> 
 const RightSidebar: React.FC<RightSidebarProps> = memo(({
   question,
   survey,
+  logicIssues,
   onClose,
   activeTab,
   onTabChange,
@@ -986,6 +989,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                     <DisplayLogicEditor
                         question={question}
                         previousQuestions={logicSourceQuestions}
+                        issues={logicIssues.filter(i => i.type === 'display')}
                         onUpdate={handleUpdate}
                         onAddLogic={ensureSidebarIsExpanded}
                         onRequestGeminiHelp={onRequestGeminiHelp}
@@ -995,6 +999,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                     <SkipLogicEditor
                         question={question}
                         followingQuestions={followingQuestions}
+                        issues={logicIssues.filter(i => i.type === 'skip')}
                         onUpdate={handleUpdate}
                         isChoiceBased={isChoiceBased}
                         onAddLogic={ensureSidebarIsExpanded}
@@ -1006,6 +1011,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                         question={question}
                         previousQuestions={logicSourceQuestions}
                         followingQuestions={followingQuestions}
+                        issues={logicIssues.filter(i => i.type === 'branching')}
                         onUpdate={handleUpdate}
                         onAddLogic={ensureSidebarIsExpanded}
                         onRequestGeminiHelp={onRequestGeminiHelp}
@@ -1089,8 +1095,13 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
             ))}
           </nav>
         </div>
-        <div className="flex-1 p-6 overflow-auto" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-          {renderTabContent()}
+        <div
+          className={`flex-1 overflow-y-auto ${activeTab === 'Behavior' ? 'overflow-x-auto' : 'overflow-x-hidden'}`}
+          style={{ fontFamily: "'Open Sans', sans-serif" }}
+        >
+          <div className="p-6">
+            {renderTabContent()}
+          </div>
         </div>
       </aside>
     </>
@@ -1104,32 +1115,57 @@ interface LogicConditionRowProps<T extends DisplayLogicCondition | BranchingCond
     condition: T;
     onUpdateCondition: (field: keyof T, value: any) => void;
     onRemoveCondition: () => void;
+    onConfirm: () => void;
     previousQuestions: Question[];
+    issues: LogicIssue[];
+    invalidFields?: Set<keyof T>;
 }
 
-const LogicConditionRow = <T extends DisplayLogicCondition | BranchingCondition>({ condition, onUpdateCondition, onRemoveCondition, previousQuestions }: LogicConditionRowProps<T>) => {
+const LogicConditionRow = <T extends DisplayLogicCondition | BranchingCondition>({ condition, onUpdateCondition, onRemoveCondition, onConfirm, previousQuestions, issues, invalidFields = new Set() }: LogicConditionRowProps<T>) => {
     const referencedQuestion = useMemo(() => previousQuestions.find(q => q.qid === condition.questionId), [previousQuestions, condition.questionId]);
     const isNumericInput = referencedQuestion?.type === QuestionType.NumericAnswer;
+    const isConfirmed = condition.isConfirmed ?? false; // Default to false if undefined for new rows
+
+    const getFieldIssue = (fieldName: keyof T) => issues.find(i => i.field === fieldName);
     
+    const questionIssue = getFieldIssue('questionId' as keyof T);
+    const operatorIssue = getFieldIssue('operator' as keyof T);
+    const valueIssue = getFieldIssue('value' as keyof T);
+
+    const questionBorderClass = invalidFields.has('questionId' as keyof T) || questionIssue ? 'border-error' : 'border-outline focus:outline-primary';
+    const operatorBorderClass = invalidFields.has('operator' as keyof T) || operatorIssue ? 'border-error' : 'border-outline focus:outline-primary';
+    const valueBorderClass = invalidFields.has('value' as keyof T) || valueIssue ? 'border-error' : 'border-outline focus:outline-primary';
+
+    const Tooltip: React.FC<{ issue?: LogicIssue }> = ({ issue }) => {
+        if (!issue) return null;
+        return (
+            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max max-w-xs bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
+                {issue.message}
+                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
+            </div>
+        );
+    };
+
     return (
         <div className="flex items-center gap-2 p-2 bg-surface-container-high rounded-md min-w-max">
-            <div className="relative flex-1 min-w-[150px]">
+            <div className="relative group/tooltip w-48 flex-shrink-0">
                 <select 
                     value={condition.questionId} 
                     onChange={(e) => onUpdateCondition('questionId' as keyof T, e.target.value)} 
-                    className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none" 
+                    className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${questionBorderClass}`} 
                     aria-label="Select question"
                 >
                     <option value="">Select question...</option>
                     {previousQuestions.map(q => <option key={q.id} value={q.qid}>{q.qid}: {truncate(q.text, 50)}</option>)}
                 </select>
                 <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                <Tooltip issue={questionIssue} />
             </div>
-            <div className="relative w-32 flex-shrink-0">
+            <div className="relative group/tooltip w-32 flex-shrink-0">
                 <select 
                     value={condition.operator} 
                     onChange={(e) => onUpdateCondition('operator' as keyof T, e.target.value)} 
-                    className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none" 
+                    className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`} 
                     aria-label="Select operator"
                 >
                     <option value="equals">equals</option>
@@ -1141,32 +1177,96 @@ const LogicConditionRow = <T extends DisplayLogicCondition | BranchingCondition>
                     <option value="is_not_empty">is not empty</option>
                 </select>
                 <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                <Tooltip issue={operatorIssue} />
             </div>
             {!['is_empty', 'is_not_empty'].includes(condition.operator) && (
-                <input 
-                    type={isNumericInput ? "number" : "text"} 
-                    value={condition.value} 
-                    onChange={(e) => onUpdateCondition('value' as keyof T, e.target.value)} 
-                    placeholder="Value" 
-                    className="w-24 flex-shrink-0 bg-surface border border-outline rounded-md px-2 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary" 
-                    aria-label="Condition value" 
-                />
+                <div className="relative group/tooltip flex-1">
+                    <input 
+                        type={isNumericInput ? "number" : "text"} 
+                        value={condition.value} 
+                        onChange={(e) => onUpdateCondition('value' as keyof T, e.target.value)} 
+                        placeholder="Value" 
+                        className={`w-full bg-surface border rounded-md px-2 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 ${valueBorderClass}`}
+                        aria-label="Condition value" 
+                    />
+                     <Tooltip issue={valueIssue} />
+                </div>
             )}
             <button onClick={onRemoveCondition} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-colors flex-shrink-0" aria-label="Remove condition">
                 <XIcon className="text-lg" />
             </button>
+            {!isConfirmed && (
+                <button onClick={onConfirm} className="p-1.5 bg-primary text-on-primary rounded-full hover:opacity-90 transition-colors flex-shrink-0" aria-label="Confirm condition">
+                    <CheckmarkIcon className="text-lg" />
+                </button>
+            )}
         </div>
     );
 };
 
+const DestinationRow: React.FC<{
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  onConfirm?: () => void;
+  onRemove?: () => void;
+  isConfirmed?: boolean;
+  issue?: LogicIssue;
+  invalid?: boolean;
+  followingQuestions: Question[];
+  className?: string;
+}> = ({ label, value, onChange, onConfirm, onRemove, isConfirmed = true, issue, invalid = false, followingQuestions, className = '' }) => {
+    return (
+        <div className={`flex items-center gap-2 ${className}`}>
+            <span className="text-sm text-on-surface flex-shrink-0">{label}</span>
+            <div className="relative group/tooltip flex-1">
+                <select 
+                    value={value} 
+                    onChange={e => onChange(e.target.value)} 
+                    className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none ${(issue || invalid) ? 'border-error' : 'border-outline'}`}
+                >
+                    <option value="">Select destination...</option>
+                    <option value="next">Next Question</option>
+                    {followingQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}
+                    <option value="end">End of Survey</option>
+                </select>
+                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                {issue && (
+                    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max max-w-xs bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
+                        {issue.message}
+                        <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
+                    </div>
+                )}
+            </div>
+            {onRemove && (
+                 <button onClick={onRemove} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-colors flex-shrink-0" aria-label="Remove rule">
+                    <XIcon className="text-lg" />
+                </button>
+            )}
+            {!isConfirmed && onConfirm && (
+                <button onClick={onConfirm} className="p-1.5 bg-primary text-on-primary rounded-full hover:opacity-90 transition-colors flex-shrink-0" aria-label="Confirm skip rule">
+                    <CheckmarkIcon className="text-lg" />
+                </button>
+            )}
+        </div>
+    );
+};
 
 // =================================================================
 // BEHAVIOR TAB SUB-COMPONENTS
 // =================================================================
 
-const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Question[]; onUpdate: (updates: Partial<Question>) => void; onAddLogic: () => void; onRequestGeminiHelp: (topic: string) => void; }> = ({ question, previousQuestions, onUpdate, onAddLogic, onRequestGeminiHelp }) => {
+const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Question[]; issues: LogicIssue[]; onUpdate: (updates: Partial<Question>) => void; onAddLogic: () => void; onRequestGeminiHelp: (topic: string) => void; }> = ({ question, previousQuestions, issues, onUpdate, onAddLogic, onRequestGeminiHelp }) => {
     const [isPasting, setIsPasting] = useState(false);
+    const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof DisplayLogicCondition>>>(new Map());
     const displayLogic = question.displayLogic;
+
+    useEffect(() => {
+        // Reset paste form when switching questions
+        if (isPasting) {
+            setIsPasting(false);
+        }
+    }, [question.id]);
 
     const handleAddDisplayLogic = () => {
         const newCondition: DisplayLogicCondition = {
@@ -1174,6 +1274,7 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
             questionId: '',
             operator: 'equals',
             value: '',
+            isConfirmed: false,
         };
         onUpdate({
             displayLogic: {
@@ -1183,6 +1284,39 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         });
         onAddLogic();
     };
+    
+    const handleConfirmCondition = (conditionId: string) => {
+        if (!displayLogic) return;
+        const condition = displayLogic.conditions.find(c => c.id === conditionId);
+        if (!condition) return;
+
+        // Step 1: Check for temporary validation errors (empty fields)
+        const tempErrors = new Set<keyof DisplayLogicCondition>();
+        if (!condition.questionId) tempErrors.add('questionId');
+        
+        const requiresValue = !['is_empty', 'is_not_empty'].includes(condition.operator);
+        if (requiresValue && !condition.value.trim()) tempErrors.add('value');
+
+        if (tempErrors.size > 0) {
+            setValidationErrors(prev => new Map(prev).set(conditionId, tempErrors));
+            return; // Block confirmation
+        }
+
+        // Step 2: Check for persistent validation errors from the survey-wide validator
+        const persistentIssues = issues.filter(i => i.sourceId === conditionId);
+        if (persistentIssues.length > 0) {
+            return; // Block confirmation, UI will already show the error
+        }
+        
+        // If we get here, all checks passed.
+        const newConditions = displayLogic.conditions.map(c => c.id === conditionId ? { ...c, isConfirmed: true } : c);
+        onUpdate({ displayLogic: { ...displayLogic, conditions: newConditions } });
+        setValidationErrors(prev => {
+            const newErrors = new Map(prev);
+            newErrors.delete(conditionId);
+            return newErrors;
+        });
+    };
 
     const handlePasteLogic = (text: string): { success: boolean; error?: string } => {
         const lines = text.split('\n').filter(line => line.trim());
@@ -1190,30 +1324,47 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         const validOperators = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than', 'is_empty', 'is_not_empty'];
     
         for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            const parts = line.match(/^(Q\d+)\s+([a-z_]+)(?:\s+(.*))?$/i);
-    
-            if (!parts) {
-                return { success: false, error: `Invalid syntax on line ${i + 1}. Expected format: QID operator [value]` };
+            const line = lines[i].trim();
+            const lineNum = i + 1;
+            const lineParts = line.split(/\s+/);
+            const [qidCandidate, operator, ...valueParts] = lineParts;
+            const value = valueParts.join(' ');
+            
+            if (!qidCandidate || !operator) {
+                return { success: false, error: `Line ${lineNum}: Could not understand your logic. Please write it as "QuestionID operator value" (e.g., Q1 equals Yes).` };
             }
             
-            const [, qid, operator, value = ''] = parts;
-            const operatorCleaned = operator.toLowerCase();
+            if (!/^Q\d+$/i.test(qidCandidate)) {
+                 return { success: false, error: `Line ${lineNum}: Invalid QuestionID "${qidCandidate}". It should look like "Q1", "Q2", etc.` };
+            }
+            const qid = qidCandidate.toUpperCase();
     
             if (!previousQuestions.some(q => q.qid === qid)) {
-                return { success: false, error: `Question '${qid}' on line ${i + 1} does not exist or cannot be used for logic.` };
+                return { success: false, error: `Line ${lineNum}: Question "${qid}" doesn't exist or comes after this question.` };
             }
             
+            const operatorCleaned = operator.toLowerCase();
             if (!validOperators.includes(operatorCleaned)) {
-                return { success: false, error: `Invalid operator '${operator}' on line ${i + 1}.` };
+                let suggestion = '';
+                if (operator.toLowerCase().replace(/\s/g, '_') === 'not_equals') {
+                    suggestion = ` Did you mean "not_equals"?`;
+                } else if (operator.toLowerCase().replace(/\s/g, '_') === 'greater_than') {
+                    suggestion = ` Did you mean "greater_than"?`;
+                } else if (operator.toLowerCase().replace(/\s/g, '_') === 'less_than') {
+                    suggestion = ` Did you mean "less_than"?`;
+                }
+                return { success: false, error: `Line ${lineNum}: Operator "${operator}" is not recognized.${suggestion}` };
             }
     
             const requiresValue = !['is_empty', 'is_not_empty'].includes(operatorCleaned);
             if (requiresValue && !value.trim()) {
-                return { success: false, error: `Operator '${operator}' on line ${i + 1} requires a value.` };
+                return { success: false, error: `Line ${lineNum}: Missing a value after "${operator}". Write as '${qid} ${operator} Yes'.` };
+            }
+            if (!requiresValue && value.trim()) {
+                 return { success: false, error: `Line ${lineNum}: Operator "${operator}" does not need a value.` };
             }
     
-            newConditions.push({ id: generateId('cond'), questionId: qid, operator: operatorCleaned as DisplayLogicCondition['operator'], value: value.trim() });
+            newConditions.push({ id: generateId('cond'), questionId: qid, operator: operatorCleaned as DisplayLogicCondition['operator'], value: value.trim(), isConfirmed: true });
         }
         
         if (newConditions.length > 0) {
@@ -1232,13 +1383,36 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
     const handleUpdateCondition = (index: number, field: keyof DisplayLogicCondition, value: any) => {
         if (!displayLogic) return;
         const newConditions = [...displayLogic.conditions];
+        const conditionId = newConditions[index].id;
         newConditions[index] = { ...newConditions[index], [field]: value };
+        
+        if (validationErrors.has(conditionId)) {
+            setValidationErrors(prev => {
+                const newErrors = new Map(prev);
+                const conditionErrors = new Set(newErrors.get(conditionId));
+                conditionErrors.delete(field);
+                if (conditionErrors.size === 0) {
+                    newErrors.delete(conditionId);
+                } else {
+                    newErrors.set(conditionId, conditionErrors);
+                }
+                return newErrors;
+            });
+        }
         onUpdate({ displayLogic: { ...displayLogic, conditions: newConditions } });
     };
 
     const handleRemoveCondition = (index: number) => {
         if (!displayLogic) return;
+        const conditionId = displayLogic.conditions[index].id;
         const newConditions = displayLogic.conditions.filter((_, i) => i !== index);
+        
+        setValidationErrors(prev => {
+            const newErrors = new Map(prev);
+            newErrors.delete(conditionId);
+            return newErrors;
+        });
+
         onUpdate({ displayLogic: newConditions.length > 0 ? { ...displayLogic, conditions: newConditions } : undefined });
     };
 
@@ -1297,9 +1471,12 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
                     <LogicConditionRow
                         key={condition.id || index}
                         condition={condition}
+                        issues={issues.filter(i => i.sourceId === condition.id)}
                         onUpdateCondition={(field, value) => handleUpdateCondition(index, field, value)}
                         onRemoveCondition={() => handleRemoveCondition(index)}
+                        onConfirm={() => handleConfirmCondition(condition.id)}
                         previousQuestions={previousQuestions}
+                        invalidFields={validationErrors.get(condition.id)}
                     />
                 ))}
             </div>
@@ -1319,9 +1496,17 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
     );
 };
 
-const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Question[]; onUpdate: (updates: Partial<Question>) => void; isChoiceBased: boolean; onAddLogic: () => void; onRequestGeminiHelp: (topic: string) => void; }> = ({ question, followingQuestions, onUpdate, isChoiceBased, onAddLogic, onRequestGeminiHelp }) => {
+const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Question[]; issues: LogicIssue[]; onUpdate: (updates: Partial<Question>) => void; isChoiceBased: boolean; onAddLogic: () => void; onRequestGeminiHelp: (topic: string) => void; }> = ({ question, followingQuestions, issues, onUpdate, isChoiceBased, onAddLogic, onRequestGeminiHelp }) => {
     const [isPasting, setIsPasting] = useState(false);
+    const [tempErrors, setTempErrors] = useState<Set<string>>(new Set());
     const isEnabled = !!question.skipLogic;
+
+    useEffect(() => {
+        // Reset paste form when switching questions
+        if (isPasting) {
+            setIsPasting(false);
+        }
+    }, [question.id]);
 
     const handlePasteLogic = (text: string): { success: boolean; error?: string } => {
         const lines = text.split('\n').filter(line => line.trim());
@@ -1337,10 +1522,10 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
                 const targetQ = followingQuestions.find(q => q.qid.toLowerCase() === dest);
     
                 if (!targetQ && dest !== 'next' && dest !== 'end') {
-                    return { success: false, error: `Invalid destination '${lines[i]}' on line ${i + 1}. Must be a valid QID, 'next', or 'end'.` };
+                    return { success: false, error: `Line ${i + 1}: Destination "${lines[i]}" is not valid. Please use a question that comes after this one (like Q5), or the words "next" or "end".` };
                 }
                 const skipTo = targetQ ? targetQ.id : dest;
-                newRules.push({ choiceId: choice.id, skipTo });
+                newRules.push({ choiceId: choice.id, skipTo, isConfirmed: true });
             }
             onUpdate({ skipLogic: { type: 'per_choice', rules: newRules } });
         } else {
@@ -1351,10 +1536,10 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
             const targetQ = followingQuestions.find(q => q.qid.toLowerCase() === dest);
             
             if (!targetQ && dest !== 'next' && dest !== 'end') {
-                return { success: false, error: `Invalid destination '${lines[0]}'. Must be a valid QID, 'next', or 'end'.` };
+                return { success: false, error: `Destination "${lines[0]}" is not valid. Please use a question that comes after this one (like Q5), or the words "next" or "end".` };
             }
             const skipTo = targetQ ? targetQ.id : dest;
-            onUpdate({ skipLogic: { type: 'simple', skipTo } });
+            onUpdate({ skipLogic: { type: 'simple', skipTo, isConfirmed: true } });
         }
         
         onAddLogic();
@@ -1364,38 +1549,82 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
     const handleToggle = (enabled: boolean) => {
         if (enabled) {
             const defaultLogic = isChoiceBased
-                ? { type: 'per_choice' as const, rules: [] }
-                : { type: 'simple' as const, skipTo: 'next' };
+                ? { type: 'per_choice' as const, rules: (question.choices || []).map(c => ({ choiceId: c.id, skipTo: '', isConfirmed: false })) }
+                : { type: 'simple' as const, skipTo: '', isConfirmed: false };
             onUpdate({ skipLogic: defaultLogic });
             onAddLogic();
         } else {
             onUpdate({ skipLogic: undefined });
         }
     };
+    
+    const handleConfirm = (sourceId: string) => {
+        if (!question.skipLogic) return;
+
+        let hasTempError = false;
+        let hasPersistentError = issues.some(i => i.sourceId === sourceId && i.field === 'skipTo');
+
+        if (question.skipLogic.type === 'simple') {
+            if (!question.skipLogic.skipTo) {
+                hasTempError = true;
+                setTempErrors(prev => new Set(prev).add('simple'));
+            }
+        } else if (question.skipLogic.type === 'per_choice') {
+            const rule = question.skipLogic.rules.find(r => r.choiceId === sourceId);
+            if (!rule?.skipTo) {
+                hasTempError = true;
+                setTempErrors(prev => new Set(prev).add(sourceId));
+            }
+        }
+        
+        if (hasTempError || hasPersistentError) {
+            return; // Block confirmation
+        }
+
+        if (question.skipLogic.type === 'simple') {
+            onUpdate({ skipLogic: { ...question.skipLogic, isConfirmed: true } });
+        } else if (question.skipLogic.type === 'per_choice') {
+            const newRules = question.skipLogic.rules.map(r => 
+                r.choiceId === sourceId ? { ...r, isConfirmed: true } : r
+            );
+            onUpdate({ skipLogic: { ...question.skipLogic, rules: newRules } });
+        }
+    };
 
     const handleSimpleSkipChange = (skipTo: string) => {
-        onUpdate({ skipLogic: { type: 'simple', skipTo } });
+        if (question.skipLogic?.type === 'simple') {
+            onUpdate({ skipLogic: { ...question.skipLogic, skipTo } });
+            if (tempErrors.has('simple')) {
+                setTempErrors(prev => {
+                    const newErrors = new Set(prev);
+                    newErrors.delete('simple');
+                    return newErrors;
+                })
+            }
+        }
     };
 
     const handleChoiceSkipChange = (choiceId: string, skipTo: string) => {
-        const existingRules = isEnabled && question.skipLogic?.type === 'per_choice' ? question.skipLogic.rules : [];
-        const ruleIndex = existingRules.findIndex(r => r.choiceId === choiceId);
-        let newRules: SkipLogicRule[];
+        if(question.skipLogic?.type !== 'per_choice') return;
 
-        if (ruleIndex > -1) {
-            newRules = [...existingRules];
-            newRules[ruleIndex] = { ...newRules[ruleIndex], skipTo };
-        } else {
-            newRules = [...existingRules, { choiceId, skipTo }];
-        }
+        const newRules = question.skipLogic.rules.map(r => 
+            r.choiceId === choiceId ? { ...r, skipTo } : r
+        );
         onUpdate({ skipLogic: { type: 'per_choice', rules: newRules } });
+        if (tempErrors.has(choiceId)) {
+            setTempErrors(prev => {
+                const newErrors = new Set(prev);
+                newErrors.delete(choiceId);
+                return newErrors;
+            })
+        }
     };
 
-    const getChoiceSkipTo = (choiceId: string) => {
+    const getChoiceRule = (choiceId: string) => {
         if (isEnabled && question.skipLogic?.type === 'per_choice') {
-            return question.skipLogic.rules.find(r => r.choiceId === choiceId)?.skipTo || 'next';
+            return question.skipLogic.rules.find(r => r.choiceId === choiceId);
         }
-        return 'next';
+        return undefined;
     };
 
     const description = isChoiceBased ? "Skip to different questions based on the selected answer" : "Skip to a different question if answered";
@@ -1427,7 +1656,7 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
             </div>
         )
     }
-
+    
     return (
         <div>
             <div className="flex items-center justify-between gap-2 mb-4">
@@ -1446,34 +1675,37 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
             <div>
                 {isChoiceBased ? (
                     <div className="space-y-2">
-                        {(question.choices || []).map((choice) => (
-                            <div key={choice.id} className="flex items-center gap-2">
-                                <span className="text-sm text-on-surface w-20 flex-shrink-0 truncate" title={parseChoice(choice.text).label}>{parseChoice(choice.text).label}</span>
-                                <ArrowRightAltIcon className="text-on-surface-variant text-lg flex-shrink-0" />
-                                <div className="relative flex-1">
-                                    <select value={getChoiceSkipTo(choice.id)} onChange={(e) => handleChoiceSkipChange(choice.id, e.target.value)} className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none">
-                                        <option value="next">Next Question</option>
-                                        {followingQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}
-                                        <option value="end">End of Survey</option>
-                                    </select>
-                                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-                                </div>
-                            </div>
-                        ))}
+                        {(question.choices || []).map((choice) => {
+                            const rule = getChoiceRule(choice.id);
+                            const issue = issues.find(i => i.sourceId === choice.id && i.field === 'skipTo');
+                            return (
+                                <DestinationRow
+                                    key={choice.id}
+                                    label={`If "${truncate(parseChoice(choice.text).label, 15)}" → `}
+                                    value={rule?.skipTo || ''}
+                                    onChange={(value) => handleChoiceSkipChange(choice.id, value)}
+                                    onConfirm={() => handleConfirm(choice.id)}
+                                    isConfirmed={rule?.isConfirmed}
+                                    issue={issue}
+                                    invalid={tempErrors.has(choice.id)}
+                                    followingQuestions={followingQuestions}
+                                />
+                            );
+                        })}
                     </div>
-                ) : (
+                ) : ( question.skipLogic?.type === 'simple' &&
                     <>
-                        <div className="flex items-center gap-2 p-3 bg-surface-container-high rounded-md">
-                            <span className="text-sm text-on-surface flex-shrink-0">If answered, skip to:</span>
-                            <div className="relative flex-1">
-                                <select value={question.skipLogic?.type === 'simple' ? question.skipLogic.skipTo : 'next'} onChange={(e) => handleSimpleSkipChange(e.target.value)} className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none">
-                                    <option value="next">Next Question</option>
-                                    {followingQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}
-                                    <option value="end">End of Survey</option>
-                                </select>
-                                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-                            </div>
-                        </div>
+                         <DestinationRow
+                            label="If answered, skip to:"
+                            value={question.skipLogic.skipTo}
+                            onChange={handleSimpleSkipChange}
+                            onConfirm={() => handleConfirm('simple')}
+                            isConfirmed={question.skipLogic.isConfirmed}
+                            issue={issues.find(i => i.sourceId === 'simple' && i.field === 'skipTo')}
+                            invalid={tempErrors.has('simple')}
+                            followingQuestions={followingQuestions}
+                            className="p-3 bg-surface-container-high rounded-md"
+                        />
                         <p className="text-xs text-on-surface-variant mt-2">Note: Skip logic applies when respondent provides any answer</p>
                     </>
                 )}
@@ -1665,14 +1897,26 @@ const BranchingLogicEditor: React.FC<{
     question: Question; 
     previousQuestions: Question[]; 
     followingQuestions: Question[]; 
+    issues: LogicIssue[];
     onUpdate: (updates: Partial<Question>) => void; 
     onAddLogic: () => void;
     onRequestGeminiHelp: (topic: string) => void;
-}> = ({ question, previousQuestions, followingQuestions, onUpdate, onAddLogic, onRequestGeminiHelp }) => {
+}> = ({ question, previousQuestions, followingQuestions, issues, onUpdate, onAddLogic, onRequestGeminiHelp }) => {
     const [pastingInlineBranchId, setPastingInlineBranchId] = useState<string | null>(null);
     const [isPasting, setIsPasting] = useState(false);
     const branchingLogic = question.branchingLogic;
     const [collapsedBranches, setCollapsedBranches] = useState<Set<string>>(new Set());
+    const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof BranchingCondition | 'thenSkipTo' | 'otherwiseSkipTo'>>>(new Map());
+
+    useEffect(() => {
+        // Reset paste forms when switching questions
+        if (isPasting) {
+            setIsPasting(false);
+        }
+        if (pastingInlineBranchId) {
+            setPastingInlineBranchId(null);
+        }
+    }, [question.id]);
 
     const handleToggleBranchCollapse = (branchId: string) => {
         setCollapsedBranches(prev => {
@@ -1692,30 +1936,47 @@ const BranchingLogicEditor: React.FC<{
         const validOperators = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than', 'is_empty', 'is_not_empty'];
     
         for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            const parts = line.match(/^(Q\d+)\s+([a-z_]+)(?:\s+(.*))?$/i);
-    
-            if (!parts) {
-                return { success: false, error: `Invalid syntax on line ${i + 1}. Expected format: QID operator [value]` };
+            const line = lines[i].trim();
+            const lineNum = i + 1;
+            const lineParts = line.split(/\s+/);
+            const [qidCandidate, operator, ...valueParts] = lineParts;
+            const value = valueParts.join(' ');
+            
+            if (!qidCandidate || !operator) {
+                return { success: false, error: `Line ${lineNum}: Could not understand your logic. Please write it as "QuestionID operator value" (e.g., Q1 equals Yes).` };
             }
             
-            const [, qid, operator, value = ''] = parts;
-            const operatorCleaned = operator.toLowerCase();
+            if (!/^Q\d+$/i.test(qidCandidate)) {
+                 return { success: false, error: `Line ${lineNum}: Invalid QuestionID "${qidCandidate}". It should look like "Q1", "Q2", etc.` };
+            }
+            const qid = qidCandidate.toUpperCase();
     
             if (!previousQuestions.some(q => q.qid === qid)) {
-                return { success: false, error: `Question '${qid}' on line ${i + 1} does not exist or cannot be used for logic.` };
+                return { success: false, error: `Line ${lineNum}: Question "${qid}" doesn't exist or comes after this question.` };
             }
             
+            const operatorCleaned = operator.toLowerCase();
             if (!validOperators.includes(operatorCleaned)) {
-                return { success: false, error: `Invalid operator '${operator}' on line ${i + 1}.` };
+                let suggestion = '';
+                if (operator.toLowerCase().replace(/\s/g, '_') === 'not_equals') {
+                    suggestion = ` Did you mean "not_equals"?`;
+                } else if (operator.toLowerCase().replace(/\s/g, '_') === 'greater_than') {
+                    suggestion = ` Did you mean "greater_than"?`;
+                } else if (operator.toLowerCase().replace(/\s/g, '_') === 'less_than') {
+                    suggestion = ` Did you mean "less_than"?`;
+                }
+                return { success: false, error: `Line ${lineNum}: Operator "${operator}" is not recognized.${suggestion}` };
             }
     
             const requiresValue = !['is_empty', 'is_not_empty'].includes(operatorCleaned);
             if (requiresValue && !value.trim()) {
-                return { success: false, error: `Operator '${operator}' on line ${i + 1} requires a value.` };
+                return { success: false, error: `Line ${lineNum}: Missing a value after "${operator}". Write as '${qid} ${operator} Yes'.` };
+            }
+            if (!requiresValue && value.trim()) {
+                 return { success: false, error: `Line ${lineNum}: Operator "${operator}" does not need a value.` };
             }
     
-            newConditions.push({ id: generateId('cond'), questionId: qid, operator: operatorCleaned as BranchingCondition['operator'], value: value.trim() });
+            newConditions.push({ id: generateId('cond'), questionId: qid, operator: operatorCleaned as BranchingCondition['operator'], value: value.trim(), isConfirmed: true });
         }
         
         if (newConditions.length === 0) {
@@ -1755,12 +2016,14 @@ const BranchingLogicEditor: React.FC<{
             id: newBranchId,
             operator: 'AND',
             conditions: validationResult.conditions,
-            thenSkipTo: 'next'
+            thenSkipTo: 'next',
+            thenSkipToIsConfirmed: true,
         };
         onUpdate({
             branchingLogic: {
                 branches: [...(branchingLogic?.branches || []), newBranch],
-                otherwiseSkipTo: branchingLogic?.otherwiseSkipTo || 'next'
+                otherwiseSkipTo: branchingLogic?.otherwiseSkipTo || 'next',
+                otherwiseIsConfirmed: branchingLogic?.otherwiseIsConfirmed
             }
         });
         setCollapsedBranches(new Set());
@@ -1776,11 +2039,13 @@ const BranchingLogicEditor: React.FC<{
                     {
                         id: newBranchId,
                         operator: 'AND',
-                        conditions: [{ id: generateId('cond'), questionId: '', operator: 'equals', value: '' }],
-                        thenSkipTo: 'next'
+                        conditions: [{ id: generateId('cond'), questionId: '', operator: 'equals', value: '', isConfirmed: false }],
+                        thenSkipTo: '',
+                        thenSkipToIsConfirmed: false,
                     }
                 ],
-                otherwiseSkipTo: 'next'
+                otherwiseSkipTo: '',
+                otherwiseIsConfirmed: false,
             }
         });
         setCollapsedBranches(new Set()); // Start with the new branch expanded
@@ -1796,8 +2061,9 @@ const BranchingLogicEditor: React.FC<{
         const newBranch: Branch = {
             id: generateId('branch'),
             operator: 'AND',
-            conditions: [{ id: generateId('cond'), questionId: '', operator: 'equals', value: '' }],
-            thenSkipTo: 'next'
+            conditions: [{ id: generateId('cond'), questionId: '', operator: 'equals', value: '', isConfirmed: false }],
+            thenSkipTo: '',
+            thenSkipToIsConfirmed: false,
         };
         onUpdate({
             branchingLogic: {
@@ -1830,11 +2096,21 @@ const BranchingLogicEditor: React.FC<{
                 branches: branchingLogic.branches.map(b => b.id === branchId ? { ...b, [field]: value } : b)
             }
         });
+        if (field === 'thenSkipTo' && validationErrors.has(branchId)) {
+            setValidationErrors(prev => {
+                const newErrors = new Map(prev);
+                const branchErrors = new Set(newErrors.get(branchId));
+                branchErrors.delete('thenSkipTo');
+                if (branchErrors.size === 0) newErrors.delete(branchId);
+                else newErrors.set(branchId, branchErrors);
+                return newErrors;
+            });
+        }
     };
 
     const handleAddCondition = (branchId: string) => {
         if (!branchingLogic) return;
-        const newCondition: BranchingCondition = { id: generateId('cond'), questionId: '', operator: 'equals', value: '' };
+        const newCondition: BranchingCondition = { id: generateId('cond'), questionId: '', operator: 'equals', value: '', isConfirmed: false };
         onUpdate({
             branchingLogic: {
                 ...branchingLogic,
@@ -1845,6 +2121,76 @@ const BranchingLogicEditor: React.FC<{
         });
     };
 
+    const handleConfirmCondition = (branchId: string, conditionId: string) => {
+        if (!branchingLogic) return;
+        const branch = branchingLogic.branches.find(b => b.id === branchId);
+        const condition = branch?.conditions.find(c => c.id === conditionId);
+        if (!condition) return;
+
+        const tempErrors = new Set<keyof BranchingCondition>();
+        if (!condition.questionId) tempErrors.add('questionId');
+        const requiresValue = !['is_empty', 'is_not_empty'].includes(condition.operator);
+        if (requiresValue && !condition.value.trim()) tempErrors.add('value');
+        if (tempErrors.size > 0) {
+            setValidationErrors(prev => new Map(prev).set(conditionId, tempErrors));
+            return;
+        }
+
+        const persistentIssues = issues.filter(i => i.sourceId === conditionId);
+        if (persistentIssues.length > 0) {
+            return;
+        }
+
+        handleUpdateCondition(branchId, conditionId, 'isConfirmed', true);
+        setValidationErrors(prev => {
+            const newErrors = new Map(prev);
+            newErrors.delete(conditionId);
+            return newErrors;
+        });
+    };
+
+    const handleConfirmDestination = (branchId: string) => {
+        const branch = branchingLogic?.branches.find(b => b.id === branchId);
+        if (!branch) return;
+
+        let hasTempError = false;
+        if (!branch.thenSkipTo) {
+            hasTempError = true;
+            setValidationErrors(prev => {
+                const newErrors = new Map(prev);
+                const branchErrors = new Set(newErrors.get(branchId) || []);
+                branchErrors.add('thenSkipTo');
+                return newErrors.set(branchId, branchErrors);
+            });
+        }
+        
+        const hasPersistentError = issues.some(i => i.sourceId === branchId && i.field === 'skipTo');
+
+        if (hasTempError || hasPersistentError) return;
+
+        handleUpdateBranch(branchId, 'thenSkipToIsConfirmed', true);
+    };
+
+    const handleConfirmOtherwise = () => {
+        if (!branchingLogic) return;
+        let hasTempError = false;
+        if (!branchingLogic.otherwiseSkipTo) {
+            hasTempError = true;
+            setValidationErrors(prev => {
+                const newErrors = new Map(prev);
+                const branchErrors = new Set(newErrors.get('otherwise') || []);
+                branchErrors.add('otherwiseSkipTo');
+                return newErrors.set('otherwise', branchErrors);
+            });
+        }
+        
+        const hasPersistentError = issues.some(i => i.sourceId === 'otherwise' && i.field === 'skipTo');
+        
+        if (hasTempError || hasPersistentError) return;
+
+        onUpdate({ branchingLogic: { ...branchingLogic, otherwiseIsConfirmed: true } });
+    };
+
     const handleRemoveCondition = (branchId: string, conditionId: string) => {
         if (!branchingLogic) return;
         onUpdate({
@@ -1853,11 +2199,14 @@ const BranchingLogicEditor: React.FC<{
                 branches: branchingLogic.branches.map(b => {
                     if (b.id !== branchId) return b;
                     const newConditions = b.conditions.filter(c => c.id !== conditionId);
-                    // Prevent removing the last condition
-                    if (newConditions.length === 0) return b; 
                     return { ...b, conditions: newConditions };
                 })
             }
+        });
+        setValidationErrors(prev => {
+            const newErrors = new Map(prev);
+            newErrors.delete(conditionId);
+            return newErrors;
         });
     };
 
@@ -1873,11 +2222,31 @@ const BranchingLogicEditor: React.FC<{
                 )
             }
         });
+        if (validationErrors.has(conditionId)) {
+            setValidationErrors(prev => {
+                const newErrors = new Map(prev);
+                const conditionErrors = new Set(newErrors.get(conditionId));
+                conditionErrors.delete(field);
+                if (conditionErrors.size === 0) newErrors.delete(conditionId);
+                else newErrors.set(conditionId, conditionErrors);
+                return newErrors;
+            });
+        }
     };
 
     const handleUpdateOtherwise = (skipTo: string) => {
         if (!branchingLogic) return;
         onUpdate({ branchingLogic: { ...branchingLogic, otherwiseSkipTo: skipTo } });
+         if (validationErrors.has('otherwise')) {
+            setValidationErrors(prev => {
+                const newErrors = new Map(prev);
+                const branchErrors = new Set(newErrors.get('otherwise'));
+                branchErrors.delete('otherwiseSkipTo');
+                if (branchErrors.size === 0) newErrors.delete('otherwise');
+                else newErrors.set('otherwise', branchErrors);
+                return newErrors;
+            });
+        }
     };
 
     if (!branchingLogic) {
@@ -1907,17 +2276,6 @@ const BranchingLogicEditor: React.FC<{
             </div>
         );
     }
-
-    const DestinationSelect: React.FC<{ value: string; onChange: (value: string) => void; }> = ({ value, onChange }) => (
-        <div className="relative flex-1">
-            <select value={value} onChange={e => onChange(e.target.value)} className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none">
-                <option value="next">Next Question</option>
-                {followingQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}
-                <option value="end">End of Survey</option>
-            </select>
-            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-        </div>
-    );
     
     return (
         <div>
@@ -1936,9 +2294,9 @@ const BranchingLogicEditor: React.FC<{
                     const isCollapsed = collapsedBranches.has(branch.id);
                     return (
                         <div key={branch.id} className="p-3 border border-outline-variant rounded-md bg-surface">
-                            <button 
+                            <div 
                                 onClick={() => handleToggleBranchCollapse(branch.id)} 
-                                className="w-full flex justify-between items-center"
+                                className="w-full flex justify-between items-center cursor-pointer"
                                 aria-expanded={!isCollapsed}
                             >
                                 <div className="flex items-center">
@@ -1949,7 +2307,7 @@ const BranchingLogicEditor: React.FC<{
                                 <button onClick={(e) => { e.stopPropagation(); handleRemoveBranch(branch.id); }} className="p-1 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full text-xs">
                                     <XIcon className="text-sm" />
                                 </button>
-                            </button>
+                            </div>
                             
                             {!isCollapsed && (
                                 <div className="mt-2 pl-6">
@@ -1960,9 +2318,14 @@ const BranchingLogicEditor: React.FC<{
                                             <LogicConditionRow
                                                 key={condition.id}
                                                 condition={condition}
+                                                issues={issues.filter(i => i.sourceId === condition.id)}
                                                 onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
                                                 onRemoveCondition={() => handleRemoveCondition(branch.id, condition.id)}
+                                                onConfirm={() => handleConfirmCondition(branch.id, condition.id)}
                                                 previousQuestions={previousQuestions}
+                                                // FIX: Cast validationErrors for this condition to the specific type expected by LogicConditionRow.
+                                                // The parent state `validationErrors` has a broader type to accommodate other logic errors.
+                                                invalidFields={validationErrors.get(condition.id) as Set<keyof BranchingCondition>}
                                             />
                                         ))}
                                     </div>
@@ -1992,10 +2355,16 @@ const BranchingLogicEditor: React.FC<{
                                         </div>
                                     )}
 
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs font-medium text-on-surface">Then skip to:</span>
-                                        <DestinationSelect value={branch.thenSkipTo} onChange={(value) => handleUpdateBranch(branch.id, 'thenSkipTo', value)} />
-                                    </div>
+                                    <DestinationRow
+                                        label="Then skip to:"
+                                        value={branch.thenSkipTo}
+                                        onChange={(value) => handleUpdateBranch(branch.id, 'thenSkipTo', value)}
+                                        onConfirm={() => handleConfirmDestination(branch.id)}
+                                        isConfirmed={branch.thenSkipToIsConfirmed}
+                                        issue={issues.find(i => i.sourceId === branch.id && i.field === 'skipTo')}
+                                        invalid={validationErrors.has(branch.id) && validationErrors.get(branch.id)!.has('thenSkipTo')}
+                                        followingQuestions={followingQuestions}
+                                    />
                                 </div>
                             )}
                         </div>
@@ -2003,10 +2372,16 @@ const BranchingLogicEditor: React.FC<{
                 })}
 
                 <div className="p-3 border border-dashed border-outline-variant rounded-md">
-                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-on-surface">Otherwise, skip to:</span>
-                        <DestinationSelect value={branchingLogic.otherwiseSkipTo} onChange={handleUpdateOtherwise} />
-                    </div>
+                     <DestinationRow
+                        label="Otherwise, skip to:"
+                        value={branchingLogic.otherwiseSkipTo}
+                        onChange={handleUpdateOtherwise}
+                        onConfirm={handleConfirmOtherwise}
+                        isConfirmed={branchingLogic.otherwiseIsConfirmed}
+                        issue={issues.find(i => i.sourceId === 'otherwise' && i.field === 'skipTo')}
+                        invalid={validationErrors.has('otherwise') && validationErrors.get('otherwise')!.has('otherwiseSkipTo')}
+                        followingQuestions={followingQuestions}
+                    />
                 </div>
             </div>
 

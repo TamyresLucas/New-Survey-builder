@@ -25,6 +25,7 @@ export enum SurveyActionType {
     BULK_DUPLICATE_QUESTIONS = 'BULK_DUPLICATE_QUESTIONS',
     BULK_UPDATE_QUESTIONS = 'BULK_UPDATE_QUESTIONS',
     BULK_MOVE_TO_NEW_BLOCK = 'BULK_MOVE_TO_NEW_BLOCK',
+    CLEANUP_UNCONFIRMED_LOGIC = 'CLEANUP_UNCONFIRMED_LOGIC',
 }
 
 export interface Action {
@@ -507,6 +508,66 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
             return renumberSurveyVariables(newState);
         }
+        
+        case SurveyActionType.CLEANUP_UNCONFIRMED_LOGIC: {
+            const { questionId } = action.payload;
+            let questionToClean: Question | undefined;
+
+            for (const block of newState.blocks) {
+                questionToClean = block.questions.find((q: Question) => q.id === questionId);
+                if (questionToClean) break;
+            }
+
+            if (!questionToClean) return state; // No change if question not found
+
+            // Clean Display Logic
+            if (questionToClean.displayLogic) {
+                const confirmedConditions = questionToClean.displayLogic.conditions.filter(c => c.isConfirmed);
+                if (confirmedConditions.length > 0) {
+                    questionToClean.displayLogic.conditions = confirmedConditions;
+                } else {
+                    questionToClean.displayLogic = undefined;
+                }
+            }
+
+            // Clean Skip Logic
+            if (questionToClean.skipLogic) {
+                if (questionToClean.skipLogic.type === 'simple' && !questionToClean.skipLogic.isConfirmed) {
+                    questionToClean.skipLogic = undefined;
+                } else if (questionToClean.skipLogic.type === 'per_choice') {
+                    const confirmedRules = questionToClean.skipLogic.rules.filter(r => r.isConfirmed);
+                    if (confirmedRules.length > 0) {
+                        questionToClean.skipLogic.rules = confirmedRules;
+                    } else {
+                        questionToClean.skipLogic = undefined;
+                    }
+                }
+            }
+
+            // Clean Branching Logic
+            if (questionToClean.branchingLogic) {
+                // Filter out branches with unconfirmed destinations
+                const branchesWithConfirmedDest = questionToClean.branchingLogic.branches.filter(b => b.thenSkipToIsConfirmed);
+
+                // For the remaining branches, filter out unconfirmed conditions and then remove any branches that become empty
+                const cleanedBranches = branchesWithConfirmedDest
+                    .map(branch => ({
+                        ...branch,
+                        conditions: branch.conditions.filter(c => c.isConfirmed),
+                    }))
+                    .filter(branch => branch.conditions.length > 0); 
+
+                questionToClean.branchingLogic.branches = cleanedBranches;
+
+                // If no branches are left and 'otherwise' is not confirmed, remove the whole branching logic block
+                if (cleanedBranches.length === 0 && !questionToClean.branchingLogic.otherwiseIsConfirmed) {
+                    questionToClean.branchingLogic = undefined;
+                }
+            }
+
+            return newState;
+        }
+
 
         default:
             return state;

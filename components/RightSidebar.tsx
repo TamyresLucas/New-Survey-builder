@@ -1089,7 +1089,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
             ))}
           </nav>
         </div>
-        <div className="flex-1 p-6 overflow-y-auto" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+        <div className="flex-1 p-6 overflow-auto" style={{ fontFamily: "'Open Sans', sans-serif" }}>
           {renderTabContent()}
         </div>
       </aside>
@@ -1108,9 +1108,12 @@ interface LogicConditionRowProps<T extends DisplayLogicCondition | BranchingCond
 }
 
 const LogicConditionRow = <T extends DisplayLogicCondition | BranchingCondition>({ condition, onUpdateCondition, onRemoveCondition, previousQuestions }: LogicConditionRowProps<T>) => {
+    const referencedQuestion = useMemo(() => previousQuestions.find(q => q.qid === condition.questionId), [previousQuestions, condition.questionId]);
+    const isNumericInput = referencedQuestion?.type === QuestionType.NumericAnswer;
+    
     return (
-        <div className="flex items-center gap-2 p-2 bg-surface-container-high rounded-md">
-            <div className="relative flex-1 min-w-0">
+        <div className="flex items-center gap-2 p-2 bg-surface-container-high rounded-md min-w-max">
+            <div className="relative flex-1 min-w-[150px]">
                 <select 
                     value={condition.questionId} 
                     onChange={(e) => onUpdateCondition('questionId' as keyof T, e.target.value)} 
@@ -1141,7 +1144,7 @@ const LogicConditionRow = <T extends DisplayLogicCondition | BranchingCondition>
             </div>
             {!['is_empty', 'is_not_empty'].includes(condition.operator) && (
                 <input 
-                    type="text" 
+                    type={isNumericInput ? "number" : "text"} 
                     value={condition.value} 
                     onChange={(e) => onUpdateCondition('value' as keyof T, e.target.value)} 
                     placeholder="Value" 

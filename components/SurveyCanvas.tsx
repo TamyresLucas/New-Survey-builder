@@ -188,6 +188,7 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
           <SurveyBlock 
               key={block.id} 
               block={block} 
+              survey={survey}
               selectedQuestion={selectedQuestion} 
               checkedQuestions={checkedQuestions}
               onSelectQuestion={onSelectQuestion}

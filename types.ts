@@ -42,7 +42,6 @@ export interface Choice {
   id: string;
   text: string;
   visible?: boolean;
-  fixedPosition?: boolean;
   color?: string | null;
   allowTextEntry?: boolean;
   description?: string;
@@ -75,31 +74,42 @@ export type SkipLogic = {
   rules: SkipLogicRule[];
 };
 
-export interface ChoiceLogic {
-  id: string;
-  choiceId: string;
-  exclusive?: boolean;
-  hidden?: boolean;
-}
-
-export interface Piping {
-  id: string;
-  questionId: string; // QID
-  field: string;
-  questionText: string;
-}
-
-export interface CarryForward {
-  sourceQuestionId: string; // internal id of the source question
-  onlySelected: boolean;
-  onlyNotSelected: boolean;
-}
+export type RandomizationMethod =
+  | 'permutation'
+  | 'random_reverse'
+  | 'reverse_order'
+  | 'rotation'
+  | 'sort_by_code'
+  | 'sort_by_text'
+  | 'synchronized';
 
 export interface AnswerBehavior {
   randomizeChoices?: boolean;
-  choiceLogic?: ChoiceLogic[];
-  piping?: Piping[];
-  carryForward?: CarryForward;
+  randomizationMethod?: RandomizationMethod;
+}
+
+export interface CarryForwardLogic {
+  sourceQuestionId: string; // This is the QID, e.g., "Q1"
+  filter: 'selected' | 'not_selected' | 'displayed' | 'not_displayed' | 'all';
+}
+
+export interface BranchingCondition {
+  id: string;
+  questionId: string; // This is the QID, e.g., "Q1"
+  operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty';
+  value: string;
+}
+
+export interface Branch {
+  id: string;
+  operator: 'AND' | 'OR';
+  conditions: BranchingCondition[];
+  thenSkipTo: string; // 'next' | question ID (internal id) | 'end'
+}
+
+export interface BranchingLogic {
+  branches: Branch[];
+  otherwiseSkipTo: string; // 'next' | question ID (internal id) | 'end'
 }
 
 
@@ -151,6 +161,9 @@ export interface Question {
   displayLogic?: DisplayLogic;
   skipLogic?: SkipLogic;
   answerBehavior?: AnswerBehavior;
+  carryForwardStatements?: CarryForwardLogic;
+  carryForwardScalePoints?: CarryForwardLogic;
+  branchingLogic?: BranchingLogic;
 }
 
 export interface Block {

@@ -6,9 +6,10 @@ interface PasteChoicesModalProps {
   onClose: () => void;
   onSave: (choicesText: string) => void;
   initialChoicesText: string;
+  primaryActionLabel: string;
 }
 
-export const PasteChoicesModal: React.FC<PasteChoicesModalProps> = ({ isOpen, onClose, onSave, initialChoicesText }) => {
+export const PasteChoicesModal: React.FC<PasteChoicesModalProps> = ({ isOpen, onClose, onSave, initialChoicesText, primaryActionLabel }) => {
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -101,7 +102,7 @@ Choice 3..."
             onClick={handleSave}
             className="px-6 py-2 text-sm font-semibold text-on-primary bg-primary rounded-full hover:opacity-90"
           >
-            Add Choices
+            {primaryActionLabel}
           </button>
         </div>
       </div>

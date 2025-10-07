@@ -1,3 +1,5 @@
+
+
 import React, { useState, useRef, useCallback, useReducer, useEffect } from 'react';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
@@ -23,6 +25,7 @@ const App: React.FC = () => {
   const [activeMainTab, setActiveMainTab] = useState<string>('Build');
   const [isBuildPanelOpen, setIsBuildPanelOpen] = useState(true);
   const [isGeminiPanelOpen, setIsGeminiPanelOpen] = useState(false);
+  const [geminiHelpTopic, setGeminiHelpTopic] = useState<string | null>(null);
   const [activeRightSidebarTab, setActiveRightSidebarTab] = useState('Settings');
   const [isRightSidebarExpanded, setIsRightSidebarExpanded] = useState(false);
 
@@ -65,20 +68,23 @@ const App: React.FC = () => {
       setSelectedQuestion(null);
       return;
     }
-    if (isGeminiPanelOpen) {
-      setIsGeminiPanelOpen(false);
+
+    // If Gemini panel is open, keep it open but update the context.
+    // If user was viewing a help topic, switch back to chat.
+    if (isGeminiPanelOpen && geminiHelpTopic) {
+      setGeminiHelpTopic(null);
     }
   
     if (selectedQuestion?.id === question.id) {
       if (tab !== 'Settings') {
         setActiveRightSidebarTab(tab);
       }
-      // If the same question is clicked, keep it selected. Deselection is handled by clicking outside or closing the sidebar.
+      // If the same question is clicked, keep it selected.
     } else {
       setSelectedQuestion(question);
       setActiveRightSidebarTab(tab);
     }
-  }, [isGeminiPanelOpen, selectedQuestion]);
+  }, [isGeminiPanelOpen, geminiHelpTopic, selectedQuestion]);
 
   // Effect to handle clicks outside of the selected question card and right panel to deselect.
   useEffect(() => {
@@ -89,8 +95,11 @@ const App: React.FC = () => {
             // Clicks that control the build panel should not deselect the question.
             const isClickOnLeftSidebar = target.closest('nav.w-20');
             const isClickOnBuildPanelToggle = target.closest('[aria-label="Collapse build panel"], [aria-label="Open build panel"]');
+            
+            // Clicks on the Gemini panel toggle should not deselect the question.
+            const isClickOnGeminiToggle = target.closest('[aria-label="AI Features"]');
 
-            if (isClickOnLeftSidebar || isClickOnBuildPanelToggle) {
+            if (isClickOnLeftSidebar || isClickOnBuildPanelToggle || isClickOnGeminiToggle) {
                 return;
             }
 
@@ -149,15 +158,25 @@ const App: React.FC = () => {
 
   const handleToggleGeminiPanel = useCallback(() => {
     setIsGeminiPanelOpen(prev => {
-        const isOpen = !prev;
-        if (isOpen) {
-            setSelectedQuestion(null); 
-            setIsRightSidebarExpanded(false);
+        const willBeOpen = !prev;
+        if (willBeOpen) {
+            // If we are opening the panel, clear any bulk selection
+            if (checkedQuestions.size > 0) {
+                setCheckedQuestions(new Set());
+            }
+        } else { // When closing
+            setGeminiHelpTopic(null);
         }
-        return isOpen;
+        return willBeOpen;
     });
-  }, []);
+  }, [checkedQuestions.size]);
   
+  const handleRequestGeminiHelp = useCallback((topic: string) => {
+    setGeminiHelpTopic(topic);
+    setIsGeminiPanelOpen(true);
+    // Don't deselect the question, so we can return to it.
+  }, []);
+
   const handleToggleRightSidebarExpand = useCallback(() => {
     setIsRightSidebarExpanded(prev => !prev);
   }, []);
@@ -221,35 +240,47 @@ const App: React.FC = () => {
     dispatch({ type: SurveyActionType.ADD_QUESTION_FROM_AI, payload: { questionType, text, choiceStrings, afterQid, beforeQid } });
   }, []);
 
-  const handleChangeQuestionTypeFromAI = useCallback((qid: string, newType: QuestionType) => {
+  const handleUpdateQuestionFromAI = useCallback((args: any) => {
+    const { qid, ...updatesFromAI } = args;
+    if (!qid) {
+        console.warn('[AI Action] No QID provided for update.');
+        return;
+    }
+
     const question = surveyRef.current.blocks.flatMap(b => b.questions).find(q => q.qid === qid);
     if (question) {
-        handleUpdateQuestion(question.id, { type: newType });
+        const finalUpdates: Partial<Question> = {};
+
+        // Directly map top-level properties from AI args to Question properties
+        if (updatesFromAI.text !== undefined) finalUpdates.text = updatesFromAI.text;
+        if (updatesFromAI.type !== undefined) finalUpdates.type = updatesFromAI.type;
+        if (updatesFromAI.forceResponse !== undefined) finalUpdates.forceResponse = updatesFromAI.forceResponse;
+        if (updatesFromAI.answerFormat !== undefined) finalUpdates.answerFormat = updatesFromAI.answerFormat;
+
+        // Handle nested 'answerBehavior' for properties like randomization
+        if (updatesFromAI.randomizeChoices !== undefined) {
+            finalUpdates.answerBehavior = {
+                ...question.answerBehavior, // Preserve existing behavior settings
+                randomizeChoices: updatesFromAI.randomizeChoices,
+            };
+        }
+
+        // Handle 'choices' transformation from string array to Choice object array
+        if (updatesFromAI.choices) {
+            finalUpdates.choices = updatesFromAI.choices.map((choiceText: string): Choice => ({
+                id: generateId('c'),
+                text: choiceText,
+            }));
+        }
+
+        if (Object.keys(finalUpdates).length > 0) {
+            handleUpdateQuestion(question.id, finalUpdates);
+        }
     } else {
-        console.warn(`[AI Action] Could not find question with QID: ${qid} to change its type.`);
+        console.warn(`[AI Action] Could not find question with QID: ${qid} to update.`);
     }
   }, [handleUpdateQuestion]);
 
-  const handleRegenerateQuestionFromAI = useCallback((qid: string, newTitle?: string, newChoices?: string[]) => {
-      const question = surveyRef.current.blocks.flatMap(b => b.questions).find(q => q.qid === qid);
-      if (question) {
-          const updates: Partial<Question> = {};
-          if (newTitle) {
-              updates.text = newTitle;
-          }
-          if (newChoices && newChoices.length > 0) {
-              updates.choices = newChoices.map((choiceText): Choice => ({
-                  id: generateId('c'),
-                  text: choiceText,
-              }));
-          }
-          if (Object.keys(updates).length > 0) {
-              handleUpdateQuestion(question.id, updates);
-          }
-      } else {
-          console.warn(`[AI Action] Could not find question with QID: ${qid} to regenerate.`);
-      }
-  }, [handleUpdateQuestion]);
 
   const handleAddBlock = useCallback((blockId: string, position: 'above' | 'below') => {
     dispatch({ type: SurveyActionType.ADD_BLOCK, payload: { blockId, position } });
@@ -478,6 +509,7 @@ const App: React.FC = () => {
                   toolboxItems={toolboxItems}
                   collapsedBlocks={collapsedBlocks}
                   onToggleBlockCollapse={handleToggleBlockCollapse}
+                  // FIX: Pass the correct handler function `handleCopyBlock` instead of `onCopyBlock`.
                   onCopyBlock={handleCopyBlock}
                   onExpandAllBlocks={handleExpandAllBlocks}
                   onCollapseAllBlocks={handleCollapseAllBlocks}
@@ -495,8 +527,9 @@ const App: React.FC = () => {
                     <GeminiPanel 
                       onClose={handleToggleGeminiPanel} 
                       onAddQuestion={handleAddQuestionFromAI}
-                      onChangeQuestionType={handleChangeQuestionTypeFromAI}
-                      onRegenerateQuestion={handleRegenerateQuestionFromAI}
+                      onUpdateQuestion={handleUpdateQuestionFromAI}
+                      helpTopic={geminiHelpTopic}
+                      selectedQuestion={selectedQuestion}
                     />
                 ) : showBulkEditPanel ? (
                   <BulkEditPanel
@@ -524,6 +557,7 @@ const App: React.FC = () => {
                       isExpanded={isRightSidebarExpanded}
                       onToggleExpand={handleToggleRightSidebarExpand}
                       toolboxItems={toolboxItems}
+                      onRequestGeminiHelp={handleRequestGeminiHelp}
                     />
                 ) : (
                     <div className="pt-4 pr-4 pb-8 pl-4">

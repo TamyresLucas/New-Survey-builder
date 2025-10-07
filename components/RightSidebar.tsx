@@ -1,5 +1,5 @@
 import React, { memo, useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, ChoiceLogic, Piping, CarryForward } from '../types';
+import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, Branch, BranchingCondition } from '../types';
 import { QuestionType } from '../types';
 import { generateId, parseChoice, CHOICE_BASED_QUESTION_TYPES, truncate } from '../utils';
 import { PasteChoicesModal } from './PasteChoicesModal';
@@ -8,7 +8,7 @@ import {
     MoreVertIcon, ArrowRightAltIcon,
     SignalIcon, BatteryIcon, RadioButtonUncheckedIcon, CheckboxOutlineIcon,
     RadioIcon, CheckboxFilledIcon, ShuffleIcon,
-    InfoIcon, EyeIcon, ContentPasteIcon
+    InfoIcon, EyeIcon, ContentPasteIcon, CarryForwardIcon, CallSplitIcon
 } from './icons';
 import { QuestionTypeSelectionMenuContent } from './ActionMenus';
 
@@ -58,11 +58,6 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
 
   const followingQuestions = useMemo(() => allSurveyQuestions.slice(currentQuestionIndex + 1), [allSurveyQuestions, currentQuestionIndex]);
 
-  const previousChoiceQuestions = useMemo(() => 
-      previousQuestions.filter(q => q.choices && q.choices.length > 0), 
-    [previousQuestions]
-  );
-  
   const isChoiceBased = useMemo(() => CHOICE_BASED_QUESTION_TYPES.has(question.type), [question.type]);
 
   const availableTabs = useMemo(() => {
@@ -832,51 +827,57 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
   const renderBehaviorTab = () => {
     return (
         <div className="space-y-6">
-            {/* --- SECTION 1: LOGIC --- */}
+             {/* --- SECTION 1: ANSWER BEHAVIOR --- */}
             <div>
-                <h2 className="text-base font-bold text-on-surface mb-4">Logic</h2>
-
-                {/* --- 1.1 Display Logic --- */}
-                <DisplayLogicEditor
-                    question={question}
-                    previousQuestions={previousQuestions}
-                    onUpdate={handleUpdate}
-                />
-
-                {/* --- 1.2 Skip Logic --- */}
-                <SkipLogicEditor
-                    question={question}
-                    followingQuestions={followingQuestions}
-                    onUpdate={handleUpdate}
-                    isChoiceBased={isChoiceBased}
-                />
+                <h2 className="text-base font-bold text-on-surface mb-4">Answer Behavior</h2>
+                <div className="space-y-6">
+                    {isChoiceBased && <RandomizeChoicesEditor 
+                        question={question}
+                        onUpdate={handleUpdate}
+                    />}
+                </div>
             </div>
 
-            {/* --- SECTION 2: ANSWER BEHAVIOR --- */}
-            {isChoiceBased && (
-                <div className="border-t border-outline-variant pt-6">
-                    <h2 className="text-base font-bold text-on-surface mb-4">Answer Behavior</h2>
-                    <div className="space-y-6">
-                        <RandomizeChoicesEditor 
-                            question={question}
-                            onUpdate={handleUpdate}
-                        />
-                        <ChoiceLogicEditor
-                            question={question}
-                            onUpdate={handleUpdate}
-                        />
-                        <PipingEditor 
-                            question={question}
-                            onUpdate={handleUpdate}
-                        />
-                        <CarryForwardEditor
-                            question={question}
-                            previousChoiceQuestions={previousChoiceQuestions}
-                            onUpdate={handleUpdate}
-                        />
-                    </div>
+
+            {/* --- SECTION 2: LOGIC --- */}
+            <div className="border-t border-outline-variant pt-6">
+                <h2 className="text-base font-bold text-on-surface mb-4">Logic</h2>
+                <div className="space-y-6">
+                    <DisplayLogicEditor
+                        question={question}
+                        previousQuestions={previousQuestions}
+                        onUpdate={handleUpdate}
+                    />
+                    <SkipLogicEditor
+                        question={question}
+                        followingQuestions={followingQuestions}
+                        onUpdate={handleUpdate}
+                        isChoiceBased={isChoiceBased}
+                    />
+                    <BranchingLogicEditor
+                        question={question}
+                        previousQuestions={previousQuestions}
+                        followingQuestions={followingQuestions}
+                        onUpdate={handleUpdate}
+                    />
+                    <CarryForwardLogicEditor
+                        question={question}
+                        previousQuestions={previousQuestions}
+                        onUpdate={handleUpdate}
+                        logicKey="carryForwardStatements"
+                        label="Carry forward statements"
+                        icon={CarryForwardIcon}
+                    />
+                    <CarryForwardLogicEditor
+                        question={question}
+                        previousQuestions={previousQuestions}
+                        onUpdate={handleUpdate}
+                        logicKey="carryForwardScalePoints"
+                        label="Carry forward scale points"
+                        icon={CarryForwardIcon}
+                    />
                 </div>
-            )}
+            </div>
         </div>
     );
   };
@@ -1003,7 +1004,7 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
 
     if (!displayLogic || displayLogic.conditions.length === 0) {
         return (
-            <div className="mb-6">
+            <div>
                 <h3 className="text-sm font-medium text-on-surface mb-1">Display Logic</h3>
                 <p className="text-xs text-on-surface-variant mb-3">Control when this question is shown to respondents</p>
                 <button onClick={handleAddDisplayLogic} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
@@ -1015,7 +1016,7 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
     }
 
     return (
-        <div className="mb-6">
+        <div>
             <h3 className="text-sm font-medium text-on-surface mb-1">Display Logic</h3>
             <p className="text-xs text-on-surface-variant mb-3">Control when this question is shown to respondents</p>
             <p className="text-xs font-medium text-on-surface mb-2">Show this question if:</p>
@@ -1110,54 +1111,43 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
 
     const description = isChoiceBased ? "Skip to different questions based on the selected answer" : "Skip to a different question if answered";
 
+    if (!isEnabled) {
+        return (
+            <div>
+                 <h3 className="text-sm font-medium text-on-surface">Skip Logic</h3>
+                 <p className="text-xs text-on-surface-variant mt-0.5 mb-3">{description}</p>
+                 <button onClick={() => handleToggle(true)} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                    <PlusIcon className="text-base" />
+                    Add Skip Logic
+                </button>
+            </div>
+        )
+    }
+
     return (
         <div>
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2 mb-4">
                 <div>
                     <h3 className="text-sm font-medium text-on-surface">Skip Logic</h3>
                     <p className="text-xs text-on-surface-variant mt-0.5">{description}</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={isEnabled}
-                        onChange={(e) => handleToggle(e.target.checked)}
-                        className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                </label>
+                <button 
+                    onClick={() => handleToggle(false)} 
+                    className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50"
+                >
+                    Remove
+                </button>
             </div>
             
-            {isEnabled && (
-                <div className="mt-4">
-                    {isChoiceBased ? (
-                        <>
-                            <div className="space-y-2">
-                                {(question.choices || []).map((choice) => (
-                                    <div key={choice.id} className="flex items-center gap-2">
-                                        <span className="text-sm text-on-surface w-20 flex-shrink-0 truncate" title={parseChoice(choice.text).label}>{parseChoice(choice.text).label}</span>
-                                        <ArrowRightAltIcon className="text-on-surface-variant text-lg flex-shrink-0" />
-                                        <div className="relative flex-1">
-                                            <select value={getChoiceSkipTo(choice.id)} onChange={(e) => handleChoiceSkipChange(choice.id, e.target.value)} className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none">
-                                                <option value="next">Next Question</option>
-                                                {followingQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}
-                                                <option value="end">End of Survey</option>
-                                            </select>
-                                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="mt-3 p-3 bg-surface-container-high rounded-md">
-                                <p className="text-xs text-on-surface-variant"><strong>💡 Tip:</strong> Leave as "Next Question" if no skip is needed for that choice. Different choices can skip to different destinations.</p>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <div className="flex items-center gap-2 p-3 bg-surface-container-high rounded-md">
-                                <span className="text-sm text-on-surface flex-shrink-0">If answered, skip to:</span>
+            <div>
+                {isChoiceBased ? (
+                    <div className="space-y-2">
+                        {(question.choices || []).map((choice) => (
+                            <div key={choice.id} className="flex items-center gap-2">
+                                <span className="text-sm text-on-surface w-20 flex-shrink-0 truncate" title={parseChoice(choice.text).label}>{parseChoice(choice.text).label}</span>
+                                <ArrowRightAltIcon className="text-on-surface-variant text-lg flex-shrink-0" />
                                 <div className="relative flex-1">
-                                    <select value={question.skipLogic?.type === 'simple' ? question.skipLogic.skipTo : 'next'} onChange={(e) => handleSimpleSkipChange(e.target.value)} className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none">
+                                    <select value={getChoiceSkipTo(choice.id)} onChange={(e) => handleChoiceSkipChange(choice.id, e.target.value)} className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none">
                                         <option value="next">Next Question</option>
                                         {followingQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}
                                         <option value="end">End of Survey</option>
@@ -1165,11 +1155,25 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
                                     <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
                                 </div>
                             </div>
-                            <p className="text-xs text-on-surface-variant mt-2">Note: Skip logic applies when respondent provides any answer</p>
-                        </>
-                    )}
-                </div>
-            )}
+                        ))}
+                    </div>
+                ) : (
+                    <>
+                        <div className="flex items-center gap-2 p-3 bg-surface-container-high rounded-md">
+                            <span className="text-sm text-on-surface flex-shrink-0">If answered, skip to:</span>
+                            <div className="relative flex-1">
+                                <select value={question.skipLogic?.type === 'simple' ? question.skipLogic.skipTo : 'next'} onChange={(e) => handleSimpleSkipChange(e.target.value)} className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none">
+                                    <option value="next">Next Question</option>
+                                    {followingQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}
+                                    <option value="end">End of Survey</option>
+                                </select>
+                                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                            </div>
+                        </div>
+                        <p className="text-xs text-on-surface-variant mt-2">Note: Skip logic applies when respondent provides any answer</p>
+                    </>
+                )}
+            </div>
         </div>
     );
 };
@@ -1177,18 +1181,39 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
 
 const RandomizeChoicesEditor: React.FC<{ question: Question; onUpdate: (updates: Partial<Question>) => void; }> = ({ question, onUpdate }) => {
     const randomizeChoices = question.answerBehavior?.randomizeChoices || false;
+    const randomizationMethod = question.answerBehavior?.randomizationMethod || 'permutation';
 
     const handleToggleRandomize = (enabled: boolean) => {
-        onUpdate({ answerBehavior: { ...question.answerBehavior, randomizeChoices: enabled } });
+        onUpdate({
+            answerBehavior: {
+                ...(question.answerBehavior || {}),
+                randomizeChoices: enabled,
+                randomizationMethod: enabled ? (question.answerBehavior?.randomizationMethod || 'permutation') : question.answerBehavior?.randomizationMethod,
+            },
+        });
     };
 
-    const handleToggleFixedPosition = (choiceId: string, isFixed: boolean) => {
-        const newChoices = question.choices?.map(c => c.id === choiceId ? { ...c, fixedPosition: isFixed } : c);
-        onUpdate({ choices: newChoices });
+    const handleMethodChange = (method: RandomizationMethod) => {
+        onUpdate({
+            answerBehavior: {
+                ...(question.answerBehavior || {}),
+                randomizationMethod: method,
+            },
+        });
     };
+
+    const randomizationOptions: { value: RandomizationMethod; label: string }[] = [
+        { value: 'permutation', label: 'Permutation' },
+        { value: 'random_reverse', label: 'Random reverse' },
+        { value: 'reverse_order', label: 'Reverse order' },
+        { value: 'rotation', label: 'Rotation' },
+        { value: 'sort_by_code', label: 'Sort by code' },
+        { value: 'sort_by_text', label: 'Sort by text' },
+        { value: 'synchronized', label: 'Synchronized' },
+    ];
 
     return (
-        <div className="mb-6">
+        <div>
             <div className="flex items-center justify-between">
                 <div>
                     <label htmlFor="randomize-choices-toggle" className="text-sm font-medium text-on-surface">
@@ -1210,16 +1235,20 @@ const RandomizeChoicesEditor: React.FC<{ question: Question; onUpdate: (updates:
                 </label>
             </div>
             {randomizeChoices && (
-                <div className="mt-4 ml-4 p-3 bg-surface-container-high rounded-md">
-                    <p className="text-xs font-medium text-on-surface mb-2">Fixed Positions</p>
-                    <p className="text-xs text-on-surface-variant mb-3">Keep specific choices in fixed positions (e.g., "Other" always last)</p>
-                    <div className="space-y-2">
-                        {(question.choices || []).map((choice, index) => (
-                            <label key={choice.id || index} className="flex items-center gap-2 text-xs text-on-surface cursor-pointer">
-                                <input type="checkbox" checked={choice.fixedPosition || false} onChange={(e) => handleToggleFixedPosition(choice.id, e.target.checked)} className="w-4 h-4 accent-primary cursor-pointer" />
-                                <span>Keep "{truncate(parseChoice(choice.text).label, 30)}" at position {index + 1}</span>
-                            </label>
-                        ))}
+                <div className="mt-4">
+                    <label htmlFor="randomization-method" className="block text-sm font-medium text-on-surface-variant mb-1">Randomization Method</label>
+                    <div className="relative">
+                        <select 
+                            id="randomization-method" 
+                            value={randomizationMethod}
+                            onChange={e => handleMethodChange(e.target.value as RandomizationMethod)}
+                            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                        >
+                            {randomizationOptions.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
+                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
                     </div>
                 </div>
             )}
@@ -1227,167 +1256,304 @@ const RandomizeChoicesEditor: React.FC<{ question: Question; onUpdate: (updates:
     );
 };
 
-const ChoiceLogicEditor: React.FC<{ question: Question; onUpdate: (updates: Partial<Question>) => void; }> = ({ question, onUpdate }) => {
-    // This editor is a placeholder as per the spec. A full implementation would require a modal or more complex UI to select the choice to add logic to.
-    return (
-        <div className="mb-6">
-          <h3 className="text-sm font-medium text-on-surface mb-1">Choice Logic</h3>
-          <p className="text-xs text-on-surface-variant mb-3">
-            Configure individual choice behaviors (e.g., make "None of the above" exclusive)
-          </p>
-          <button
-            onClick={() => alert("Choice Logic UI not fully implemented.")}
-            className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors"
-          >
-            <PlusIcon className="text-base" />
-            Add choice behavior
-          </button>
-        </div>
-    );
-};
+const CarryForwardLogicEditor: React.FC<{
+    question: Question;
+    previousQuestions: Question[];
+    onUpdate: (updates: Partial<Question>) => void;
+    logicKey: 'carryForwardStatements' | 'carryForwardScalePoints';
+    label: string;
+    icon: React.FC<{className?: string}>;
+}> = ({ question, previousQuestions, onUpdate, logicKey, label, icon: Icon }) => {
+    const logic = question[logicKey];
 
-const PipingEditor: React.FC<{ question: Question; onUpdate: (updates: Partial<Question>) => void; }> = ({ question, onUpdate }) => {
-    return (
-        <div className="mb-6">
-          <h3 className="text-sm font-medium text-on-surface mb-1">Piping</h3>
-          <p className="text-xs text-on-surface-variant mb-3">
-            Insert answers from previous questions into question or choice text
-          </p>
-          <button
-            onClick={() => alert("Piping dialog not implemented.")}
-            className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors"
-          >
-            <PlusIcon className="text-base" />
-            Insert Piped Text
-          </button>
-        </div>
-    );
-};
-
-const CarryForwardEditor: React.FC<{ question: Question; previousChoiceQuestions: Question[]; onUpdate: (updates: Partial<Question>) => void; }> = ({ question, previousChoiceQuestions, onUpdate }) => {
-    const carryForward = question.answerBehavior?.carryForward;
-    const isEnabled = !!carryForward;
-
-    const handleToggle = (enabled: boolean) => {
-        if (enabled) {
-            onUpdate({
-                answerBehavior: {
-                    ...question.answerBehavior,
-                    carryForward: {
-                        sourceQuestionId: '',
-                        onlySelected: false,
-                        onlyNotSelected: false,
-                    },
-                },
-            });
-        } else {
-            const { carryForward, ...rest } = question.answerBehavior || {};
-            const newAnswerBehavior = Object.keys(rest).length > 0 ? rest : undefined;
-            onUpdate({ answerBehavior: newAnswerBehavior });
-        }
-    };
-
-    const setCarryForwardSource = (sourceQuestionId: string) => {
-        if (!isEnabled) return;
+    const handleEnable = () => {
         onUpdate({
-            answerBehavior: {
-                ...question.answerBehavior,
-                carryForward: {
-                    ...(question.answerBehavior!.carryForward!),
-                    sourceQuestionId,
-                },
-            },
+            [logicKey]: {
+                sourceQuestionId: '',
+                filter: 'all',
+            }
         });
     };
 
-    const setCarryForwardFilter = (filters: Partial<CarryForward>) => {
-        if (!isEnabled) return;
-        onUpdate({ 
-            answerBehavior: { 
-                ...question.answerBehavior, 
-                carryForward: { 
-                    ...question.answerBehavior!.carryForward!, 
-                    ...filters 
-                } 
-            } 
+    const handleDisable = () => {
+        onUpdate({ [logicKey]: undefined });
+    };
+
+    const handleUpdateLogic = (field: keyof CarryForwardLogic, value: any) => {
+        onUpdate({
+            [logicKey]: {
+                ...(logic as CarryForwardLogic),
+                [field]: value,
+            }
         });
     };
+
+    if (!logic) {
+        return (
+            <button onClick={handleEnable} className="flex items-center gap-2 text-sm font-medium text-primary hover:underline transition-colors w-full text-left">
+                <Icon className="text-xl" />
+                <span>{label}</span>
+            </button>
+        );
+    }
     
-    const getQuestionText = (questionId: string) => {
-        const sourceQuestion = previousChoiceQuestions.find(q => q.id === questionId);
-        if (!sourceQuestion) return 'Unknown Question';
-        return `${sourceQuestion.qid}: ${truncate(sourceQuestion.text, 50)}`;
+    const choiceBasedQuestions = previousQuestions.filter(q => CHOICE_BASED_QUESTION_TYPES.has(q.type));
+
+    return (
+        <div className="p-3 bg-surface-container-high rounded-md">
+            <div className="flex items-center justify-between gap-2 mb-3">
+                <h4 className="text-sm font-medium text-on-surface">{label}</h4>
+                <button onClick={handleDisable} className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50">
+                    Remove
+                </button>
+            </div>
+            <div className="space-y-3">
+                <div>
+                    <label className="block text-xs font-medium text-on-surface-variant mb-1">Source Question</label>
+                    <div className="relative">
+                        <select 
+                            value={logic.sourceQuestionId || ''} 
+                            onChange={e => handleUpdateLogic('sourceQuestionId', e.target.value)}
+                            className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                        >
+                            <option value="">Select question...</option>
+                            {choiceBasedQuestions.map(q => (
+                                <option key={q.id} value={q.qid}>{q.qid}: {truncate(q.text, 40)}</option>
+                            ))}
+                        </select>
+                         <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-xs font-medium text-on-surface-variant mb-1">Carry Forward Choices That Were...</label>
+                     <div className="relative">
+                        <select 
+                            value={logic.filter || 'all'}
+                            onChange={e => handleUpdateLogic('filter', e.target.value as CarryForwardLogic['filter'])}
+                            className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                        >
+                            <option value="all">All</option>
+                            <option value="selected">Selected</option>
+                            <option value="not_selected">Not Selected</option>
+                            <option value="displayed">Displayed</option>
+                            <option value="not_displayed">Not Displayed</option>
+                        </select>
+                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const BranchingLogicEditor: React.FC<{ 
+    question: Question; 
+    previousQuestions: Question[]; 
+    followingQuestions: Question[]; 
+    onUpdate: (updates: Partial<Question>) => void; 
+}> = ({ question, previousQuestions, followingQuestions, onUpdate }) => {
+    const branchingLogic = question.branchingLogic;
+
+    const handleEnable = () => {
+        onUpdate({
+            branchingLogic: {
+                branches: [
+                    {
+                        id: generateId('branch'),
+                        operator: 'AND',
+                        conditions: [{ id: generateId('cond'), questionId: '', operator: 'equals', value: '' }],
+                        thenSkipTo: 'next'
+                    }
+                ],
+                otherwiseSkipTo: 'next'
+            }
+        });
+    };
+
+    const handleDisable = () => {
+        onUpdate({ branchingLogic: undefined });
+    };
+
+    const handleAddBranch = () => {
+        if (!branchingLogic) return;
+        const newBranch: Branch = {
+            id: generateId('branch'),
+            operator: 'AND',
+            conditions: [{ id: generateId('cond'), questionId: '', operator: 'equals', value: '' }],
+            thenSkipTo: 'next'
+        };
+        onUpdate({
+            branchingLogic: {
+                ...branchingLogic,
+                branches: [...branchingLogic.branches, newBranch]
+            }
+        });
+    };
+
+    const handleRemoveBranch = (branchId: string) => {
+        if (!branchingLogic) return;
+        onUpdate({
+            branchingLogic: {
+                ...branchingLogic,
+                branches: branchingLogic.branches.filter(b => b.id !== branchId)
+            }
+        });
+    };
+
+    const handleUpdateBranch = (branchId: string, field: keyof Branch, value: any) => {
+        if (!branchingLogic) return;
+        onUpdate({
+            branchingLogic: {
+                ...branchingLogic,
+                branches: branchingLogic.branches.map(b => b.id === branchId ? { ...b, [field]: value } : b)
+            }
+        });
+    };
+
+    const handleAddCondition = (branchId: string) => {
+        if (!branchingLogic) return;
+        const newCondition: BranchingCondition = { id: generateId('cond'), questionId: '', operator: 'equals', value: '' };
+        onUpdate({
+            branchingLogic: {
+                ...branchingLogic,
+                branches: branchingLogic.branches.map(b => 
+                    b.id === branchId ? { ...b, conditions: [...b.conditions, newCondition] } : b
+                )
+            }
+        });
+    };
+
+    const handleRemoveCondition = (branchId: string, conditionId: string) => {
+        if (!branchingLogic) return;
+        onUpdate({
+            branchingLogic: {
+                ...branchingLogic,
+                branches: branchingLogic.branches.map(b => {
+                    if (b.id !== branchId) return b;
+                    const newConditions = b.conditions.filter(c => c.id !== conditionId);
+                    if (newConditions.length === 0) return null;
+                    return { ...b, conditions: newConditions };
+                }).filter((b): b is Branch => b !== null)
+            }
+        });
+    };
+
+    const handleUpdateCondition = (branchId: string, conditionId: string, field: keyof BranchingCondition, value: any) => {
+        if (!branchingLogic) return;
+        onUpdate({
+            branchingLogic: {
+                ...branchingLogic,
+                branches: branchingLogic.branches.map(b => 
+                    b.id === branchId 
+                        ? { ...b, conditions: b.conditions.map(c => c.id === conditionId ? { ...c, [field]: value } : c) } 
+                        : b
+                )
+            }
+        });
+    };
+
+    const handleUpdateOtherwise = (skipTo: string) => {
+        if (!branchingLogic) return;
+        onUpdate({ branchingLogic: { ...branchingLogic, otherwiseSkipTo: skipTo } });
+    };
+
+    if (!branchingLogic) {
+        return (
+             <button onClick={handleEnable} className="flex items-center gap-2 text-sm font-medium text-primary hover:underline transition-colors w-full text-left">
+                <CallSplitIcon className="text-xl" />
+                <span>Branching</span>
+            </button>
+        );
     }
 
+    const DestinationSelect: React.FC<{ value: string; onChange: (value: string) => void; }> = ({ value, onChange }) => (
+        <div className="relative flex-1">
+            <select value={value} onChange={e => onChange(e.target.value)} className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none">
+                <option value="next">Next Question</option>
+                {followingQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}
+                <option value="end">End of Survey</option>
+            </select>
+            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+        </div>
+    );
+    
     return (
-        <div>
-            <div className="flex items-center justify-between gap-2">
-                <div>
-                    <h3 className="text-sm font-medium text-on-surface">Carry Forward</h3>
-                    <p className="text-xs text-on-surface-variant mt-0.5">Reuse answer choices from a previous question</p>
+        <div className="p-3 bg-surface-container-high rounded-md">
+            <div className="flex items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2">
+                    <CallSplitIcon className="text-xl text-primary" />
+                    <h4 className="text-sm font-medium text-on-surface">Branching</h4>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={isEnabled}
-                        onChange={(e) => handleToggle(e.target.checked)}
-                        className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                </label>
+                <button onClick={handleDisable} className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50">
+                    Remove
+                </button>
             </div>
-
-            {isEnabled && (
-                <div className="mt-4 space-y-4">
-                    {!carryForward.sourceQuestionId ? (
-                        <div>
-                            <label htmlFor="carry-forward-source" className="block text-xs font-medium text-on-surface-variant mb-1">Source Question</label>
-                            <div className="relative">
-                                <select id="carry-forward-source" value={''} onChange={(e) => setCarryForwardSource(e.target.value)} className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none">
-                                    <option value="">Select a question...</option>
-                                    {previousChoiceQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}
-                                </select>
-                                <ChevronDownIcon className="material-symbols-rounded absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-                            </div>
-                            <p className="text-xs text-on-surface-variant mt-1">Only questions with answer choices can be selected</p>
+            
+            <div className="space-y-4">
+                {branchingLogic.branches.map((branch, branchIndex) => (
+                    <div key={branch.id} className="p-3 border border-outline-variant rounded-md bg-surface">
+                        <div className="flex justify-between items-center mb-2">
+                            <p className="text-xs font-bold text-on-surface uppercase">Branch {branchIndex + 1}</p>
+                            <button onClick={() => handleRemoveBranch(branch.id)} className="p-1 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full text-xs">
+                                <XIcon className="text-sm" />
+                            </button>
                         </div>
-                    ) : (
-                        <div className="p-3 bg-surface-container-high rounded-md">
-                            <div className="flex items-center justify-between mb-3">
-                                <div>
-                                    <p className="text-xs font-medium text-on-surface-variant">Carrying forward from:</p>
-                                    <p className="text-sm font-medium text-on-surface">{getQuestionText(carryForward.sourceQuestionId)}</p>
+                        
+                        <p className="text-xs font-medium text-on-surface mb-1">If:</p>
+                        
+                        <div className="space-y-2 mb-2">
+                            {branch.conditions.map((condition) => (
+                                <div key={condition.id} className="flex items-center gap-2">
+                                    <select value={condition.questionId} onChange={(e) => handleUpdateCondition(branch.id, condition.id, 'questionId', e.target.value)} className="flex-1 bg-surface-container-high border border-outline rounded-md px-2 py-1.5 text-xs text-on-surface appearance-none" aria-label="Select question">
+                                        <option value="">Select question...</option>
+                                        {previousQuestions.map(q => <option key={q.id} value={q.qid}>{q.qid}: {truncate(q.text, 30)}</option>)}
+                                    </select>
+                                    <select value={condition.operator} onChange={(e) => handleUpdateCondition(branch.id, condition.id, 'operator', e.target.value)} className="w-24 bg-surface-container-high border border-outline rounded-md px-2 py-1.5 text-xs text-on-surface appearance-none" aria-label="Select operator">
+                                        <option value="equals">equals</option>
+                                        <option value="not_equals">not equals</option>
+                                        <option value="contains">contains</option>
+                                        <option value="is_empty">is empty</option>
+                                        <option value="is_not_empty">is not empty</option>
+                                    </select>
+                                    {!['is_empty', 'is_not_empty'].includes(condition.operator) && (
+                                        <input type="text" value={condition.value} onChange={(e) => handleUpdateCondition(branch.id, condition.id, 'value', e.target.value)} placeholder="Value" className="flex-1 bg-surface-container-high border border-outline rounded-md px-2 py-1.5 text-xs text-on-surface" aria-label="Condition value" />
+                                    )}
+                                    <button onClick={() => handleRemoveCondition(branch.id, condition.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-colors flex-shrink-0" aria-label="Remove condition">
+                                        <XIcon className="text-base" />
+                                    </button>
                                 </div>
-                                <button onClick={() => setCarryForwardSource('')} className="text-xs font-medium text-primary hover:underline">Change</button>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="flex items-start gap-2 text-xs text-on-surface cursor-pointer">
-                                    <input type="checkbox" checked={carryForward.onlySelected || false} onChange={(e) => setCarryForwardFilter({ onlySelected: e.target.checked, onlyNotSelected: false })} className="w-4 h-4 mt-0.5 accent-primary cursor-pointer" />
-                                    <div>
-                                        <div className="font-medium">Only carry forward choices that were selected</div>
-                                        <div className="text-on-surface-variant">Show only the choices the respondent selected</div>
-                                    </div>
-                                </label>
-                                <label className="flex items-start gap-2 text-xs text-on-surface cursor-pointer">
-                                    <input type="checkbox" checked={carryForward.onlyNotSelected || false} onChange={(e) => setCarryForwardFilter({ onlyNotSelected: e.target.checked, onlySelected: false })} className="w-4 h-4 mt-0.5 accent-primary cursor-pointer" />
-                                    <div>
-                                        <div className="font-medium">Only carry forward choices that were NOT selected</div>
-                                        <div className="text-on-surface-variant">Show only the choices the respondent did not select</div>
-                                    </div>
-                                </label>
-                            </div>
+                            ))}
                         </div>
-                    )}
-                     <div className="p-3 bg-surface-container-high rounded-md">
-                        <p className="text-xs font-medium text-on-surface mb-1">💡 Use case:</p>
-                        <p className="text-xs text-on-surface-variant mb-1"><strong>Q1:</strong> "Which products have you used?" (Checkbox)</p>
-                        <p className="text-xs text-on-surface-variant"><strong>Q2:</strong> "Which of these would you recommend?" (Carry forward from Q1)</p>
+
+                        {branch.conditions.length > 1 && (
+                            <div className="flex items-center gap-1 mb-2">
+                                <button onClick={() => handleUpdateBranch(branch.id, 'operator', 'AND')} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${branch.operator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
+                                <button onClick={() => handleUpdateBranch(branch.id, 'operator', 'OR')} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${branch.operator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
+                            </div>
+                        )}
+                        <button onClick={() => handleAddCondition(branch.id)} className="text-xs font-medium text-primary hover:underline mb-2">+ Add condition</button>
+
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-on-surface">Then skip to:</span>
+                            <DestinationSelect value={branch.thenSkipTo} onChange={(value) => handleUpdateBranch(branch.id, 'thenSkipTo', value)} />
+                        </div>
+                    </div>
+                ))}
+
+                <div className="p-3 border border-dashed border-outline-variant rounded-md">
+                     <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-on-surface">Otherwise, skip to:</span>
+                        <DestinationSelect value={branchingLogic.otherwiseSkipTo} onChange={handleUpdateOtherwise} />
                     </div>
                 </div>
-            )}
+            </div>
+
+            <button onClick={handleAddBranch} className="mt-4 flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                <PlusIcon className="text-base" />
+                Add Branch
+            </button>
         </div>
     );
 };
-
 
 export default RightSidebar;

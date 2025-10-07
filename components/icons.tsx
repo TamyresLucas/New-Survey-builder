@@ -114,3 +114,5 @@ export const LockIcon: React.FC<IconProps> = ({ className, style }) => <Material
 export const LockOpenIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="lock_open" className={className} style={style} />;
 export const ContentPasteIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="content_paste" className={className} style={style} />;
 export const ShuffleIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="shuffle" className={className} style={style} />;
+export const CarryForwardIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="subdirectory_arrow_right" className={className} style={style} />;
+export const CallSplitIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="call_split" className={className} style={style} />;

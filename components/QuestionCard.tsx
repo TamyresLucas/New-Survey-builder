@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, memo, useCallback } from 'react';
-import type { Question, ToolboxItemData, Choice } from '../types';
+import type { Question, ToolboxItemData, Choice, Survey } from '../types';
 import { QuestionType } from '../types';
 import { 
     DotsHorizontalIcon, RadioIcon, ChevronDownIcon, 
@@ -8,6 +8,7 @@ import {
 } from './icons';
 import { QuestionActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
 import { parseChoice } from '../utils';
+import { DisplayLogicDisplay, SkipLogicDisplay, BranchingLogicDisplay } from './LogicDisplays';
 
 // Helper for inline editing with contentEditable
 const EditableText: React.FC<{
@@ -59,6 +60,7 @@ const ChoiceDropIndicator = () => (
 
 const QuestionCard: React.FC<{ 
     question: Question, 
+    survey: Survey,
     isSelected: boolean,
     isChecked: boolean,
     onSelect: (question: Question, tab?: string) => void,
@@ -74,7 +76,7 @@ const QuestionCard: React.FC<{
     onAddChoice: (questionId: string) => void;
     onAddPageBreakAfterQuestion: (questionId: string) => void;
 }> = memo(({ 
-    question, isSelected, isChecked, onSelect, onToggleCheck, id, 
+    question, survey, isSelected, isChecked, onSelect, onToggleCheck, id, 
     onUpdateQuestion, onDeleteQuestion, onCopyQuestion, toolboxItems,
     isDragging, onDragStart, onDragEnd, onAddChoice, onAddPageBreakAfterQuestion
 }) => {
@@ -232,14 +234,14 @@ const QuestionCard: React.FC<{
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
             onClick={() => onSelect(question)}
-            className={`p-4 rounded-lg border-2 transition-all cursor-grab group grid grid-cols-[auto_1fr] items-center gap-x-3 relative ${
+            className={`p-4 rounded-lg border-2 transition-all cursor-grab group grid grid-cols-[auto_1fr] items-start gap-x-3 relative ${
                 isSelected ? 'border-primary bg-surface-container-high shadow-md' : 'border-outline-variant hover:border-outline'
             } ${isDragging ? 'opacity-50' : ''} ${isAnyMenuOpen ? 'z-10' : ''}`}
         >
             {/* Grid Cell 1: Checkbox */}
             <input
                 type="checkbox"
-                className="h-4 w-4 rounded border-outline text-primary focus:ring-primary accent-primary"
+                className="h-4 w-4 rounded border-outline text-primary focus:ring-primary accent-primary mt-1"
                 checked={isChecked}
                 onChange={(e) => {
                     e.stopPropagation();
@@ -391,6 +393,29 @@ const QuestionCard: React.FC<{
                             <PlusIcon className="text-base mr-1" /> Add choice
                         </button>
                     </div>
+                )}
+                
+                {question.displayLogic && question.displayLogic.conditions.length > 0 && (
+                    <DisplayLogicDisplay
+                        logic={question.displayLogic}
+                        survey={survey}
+                        onClick={() => onSelect(question, 'Behavior')}
+                    />
+                )}
+                {question.skipLogic && (
+                    <SkipLogicDisplay
+                        logic={question.skipLogic}
+                        currentQuestion={question}
+                        survey={survey}
+                        onClick={() => onSelect(question, 'Behavior')}
+                    />
+                )}
+                {question.branchingLogic && question.branchingLogic.branches.length > 0 && (
+                     <BranchingLogicDisplay
+                        logic={question.branchingLogic}
+                        survey={survey}
+                        onClick={() => onSelect(question, 'Behavior')}
+                    />
                 )}
             </div>
         </div>

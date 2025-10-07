@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, memo, useCallback } from 'react';
-import type { Block, Question, ToolboxItemData, QuestionType, Choice } from '../types';
+import type { Block, Question, ToolboxItemData, QuestionType, Choice, Survey } from '../types';
 import QuestionCard from './QuestionCard';
 import { ChevronDownIcon, DotsHorizontalIcon, DragIndicatorIcon } from './icons';
 import { BlockActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
@@ -13,6 +13,7 @@ const DropIndicator = () => (
 
 interface SurveyBlockProps {
     block: Block;
+    survey: Survey;
     selectedQuestion: Question | null;
     checkedQuestions: Set<string>;
     onSelectQuestion: (question: Question | null, tab?: string) => void;
@@ -44,7 +45,7 @@ interface SurveyBlockProps {
 }
 
 const SurveyBlock: React.FC<SurveyBlockProps> = memo(({ 
-  block, selectedQuestion, checkedQuestions, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
+  block, survey, selectedQuestion, checkedQuestions, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
   isBlockDragging, onBlockDragStart, onBlockDragEnd, isCollapsed, onToggleCollapse,
   onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle
 }) => {
@@ -254,6 +255,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                   <div className={index > 0 ? "mt-4" : ""}>
                     <QuestionCard
                       question={question}
+                      survey={survey}
                       id={`question-card-${question.id}`}
                       isSelected={selectedQuestion?.id === question.id}
                       isChecked={checkedQuestions.has(question.id)}

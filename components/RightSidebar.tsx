@@ -95,6 +95,12 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
     onUpdateQuestion(question.id, updates);
   }, [question.id, onUpdateQuestion]);
 
+  const ensureSidebarIsExpanded = useCallback(() => {
+    if (!isExpanded) {
+        onToggleExpand();
+    }
+  }, [isExpanded, onToggleExpand]);
+
   const handleTypeSelect = useCallback((newType: QuestionType) => {
     handleUpdate({ type: newType });
     setIsTypeMenuOpen(false);
@@ -826,57 +832,62 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
   
   const renderBehaviorTab = () => {
     return (
-        <div className="space-y-6">
-             {/* --- SECTION 1: ANSWER BEHAVIOR --- */}
-            <div>
-                <h2 className="text-base font-bold text-on-surface mb-4">Answer Behavior</h2>
-                <div className="space-y-6">
-                    {isChoiceBased && <RandomizeChoicesEditor 
+        <div className="divide-y divide-outline-variant">
+            {isChoiceBased && (
+                <div className="py-6 first:pt-0 last:pb-0">
+                    <RandomizeChoicesEditor 
                         question={question}
                         onUpdate={handleUpdate}
-                    />}
+                    />
                 </div>
+            )}
+            <div className="py-6 first:pt-0 last:pb-0">
+                <DisplayLogicEditor
+                    question={question}
+                    previousQuestions={previousQuestions}
+                    onUpdate={handleUpdate}
+                    onAddLogic={ensureSidebarIsExpanded}
+                />
             </div>
-
-
-            {/* --- SECTION 2: LOGIC --- */}
-            <div className="border-t border-outline-variant pt-6">
-                <h2 className="text-base font-bold text-on-surface mb-4">Logic</h2>
-                <div className="space-y-6">
-                    <DisplayLogicEditor
-                        question={question}
-                        previousQuestions={previousQuestions}
-                        onUpdate={handleUpdate}
-                    />
-                    <SkipLogicEditor
-                        question={question}
-                        followingQuestions={followingQuestions}
-                        onUpdate={handleUpdate}
-                        isChoiceBased={isChoiceBased}
-                    />
-                    <BranchingLogicEditor
-                        question={question}
-                        previousQuestions={previousQuestions}
-                        followingQuestions={followingQuestions}
-                        onUpdate={handleUpdate}
-                    />
-                    <CarryForwardLogicEditor
-                        question={question}
-                        previousQuestions={previousQuestions}
-                        onUpdate={handleUpdate}
-                        logicKey="carryForwardStatements"
-                        label="Carry forward statements"
-                        icon={CarryForwardIcon}
-                    />
-                    <CarryForwardLogicEditor
-                        question={question}
-                        previousQuestions={previousQuestions}
-                        onUpdate={handleUpdate}
-                        logicKey="carryForwardScalePoints"
-                        label="Carry forward scale points"
-                        icon={CarryForwardIcon}
-                    />
-                </div>
+            <div className="py-6 first:pt-0 last:pb-0">
+                <SkipLogicEditor
+                    question={question}
+                    followingQuestions={followingQuestions}
+                    onUpdate={handleUpdate}
+                    isChoiceBased={isChoiceBased}
+                    onAddLogic={ensureSidebarIsExpanded}
+                />
+            </div>
+            <div className="py-6 first:pt-0 last:pb-0">
+                <BranchingLogicEditor
+                    question={question}
+                    previousQuestions={previousQuestions}
+                    followingQuestions={followingQuestions}
+                    onUpdate={handleUpdate}
+                    onAddLogic={ensureSidebarIsExpanded}
+                />
+            </div>
+            <div className="py-6 first:pt-0 last:pb-0">
+                <CarryForwardLogicEditor
+                    question={question}
+                    previousQuestions={previousQuestions}
+                    onUpdate={handleUpdate}
+                    logicKey="carryForwardStatements"
+                    label="Carry forward choices"
+                    description="Use answers from a previous question as choices in this one."
+                    onAddLogic={ensureSidebarIsExpanded}
+                />
+            </div>
+            <div className="py-6 first:pt-0 last:pb-0">
+                <CarryForwardLogicEditor
+                    question={question}
+                    previousQuestions={previousQuestions}
+                    onUpdate={handleUpdate}
+                    logicKey="carryForwardScalePoints"
+                    label="Carry forward scale points"
+                    description="Use scale points from a previous grid question as choices in this one."
+                    onAddLogic={ensureSidebarIsExpanded}
+                />
             </div>
         </div>
     );
@@ -966,7 +977,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
 // BEHAVIOR TAB SUB-COMPONENTS
 // =================================================================
 
-const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Question[]; onUpdate: (updates: Partial<Question>) => void; }> = ({ question, previousQuestions, onUpdate }) => {
+const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Question[]; onUpdate: (updates: Partial<Question>) => void; onAddLogic: () => void; }> = ({ question, previousQuestions, onUpdate, onAddLogic }) => {
     const displayLogic = question.displayLogic;
 
     const handleAddDisplayLogic = () => {
@@ -982,6 +993,7 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
                 conditions: [...(displayLogic?.conditions || []), newCondition],
             },
         });
+        onAddLogic();
     };
 
     const handleUpdateCondition = (index: number, field: keyof DisplayLogicCondition, value: any) => {
@@ -1017,8 +1029,19 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
 
     return (
         <div>
-            <h3 className="text-sm font-medium text-on-surface mb-1">Display Logic</h3>
-            <p className="text-xs text-on-surface-variant mb-3">Control when this question is shown to respondents</p>
+            <div className="flex items-center justify-between gap-2 mb-3">
+                 <div>
+                    <h3 className="text-sm font-medium text-on-surface">Display Logic</h3>
+                    <p className="text-xs text-on-surface-variant mt-0.5">Control when this question is shown to respondents</p>
+                </div>
+                <button 
+                    onClick={() => onUpdate({ displayLogic: undefined })}
+                    className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50"
+                >
+                    Remove
+                </button>
+            </div>
+            
             <p className="text-xs font-medium text-on-surface mb-2">Show this question if:</p>
             
             <div className="space-y-2 mb-3">
@@ -1058,19 +1081,11 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
             )}
             
             <button onClick={handleAddDisplayLogic} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors"><PlusIcon className="text-base" />Add Another Condition</button>
-
-            <div className="mt-3 p-3 bg-surface-container-high rounded-md">
-                <p className="text-xs text-on-surface-variant">
-                    <strong>💡 How it works:</strong> This question will only be shown to respondents if the conditions above are met.
-                    {displayLogic.operator === 'AND' && ' All conditions must be true (AND logic).'}
-                    {displayLogic.operator === 'OR' && ' At least one condition must be true (OR logic).'}
-                </p>
-            </div>
         </div>
     );
 };
 
-const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Question[]; onUpdate: (updates: Partial<Question>) => void; isChoiceBased: boolean; }> = ({ question, followingQuestions, onUpdate, isChoiceBased }) => {
+const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Question[]; onUpdate: (updates: Partial<Question>) => void; isChoiceBased: boolean; onAddLogic: () => void; }> = ({ question, followingQuestions, onUpdate, isChoiceBased, onAddLogic }) => {
     const isEnabled = !!question.skipLogic;
 
     const handleToggle = (enabled: boolean) => {
@@ -1079,6 +1094,7 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
                 ? { type: 'per_choice' as const, rules: [] }
                 : { type: 'simple' as const, skipTo: 'next' };
             onUpdate({ skipLogic: defaultLogic });
+            onAddLogic();
         } else {
             onUpdate({ skipLogic: undefined });
         }
@@ -1114,8 +1130,8 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
     if (!isEnabled) {
         return (
             <div>
-                 <h3 className="text-sm font-medium text-on-surface">Skip Logic</h3>
-                 <p className="text-xs text-on-surface-variant mt-0.5 mb-3">{description}</p>
+                 <h3 className="text-sm font-medium text-on-surface mb-1">Skip Logic</h3>
+                 <p className="text-xs text-on-surface-variant mb-3">{description}</p>
                  <button onClick={() => handleToggle(true)} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
                     <PlusIcon className="text-base" />
                     Add Skip Logic
@@ -1262,8 +1278,9 @@ const CarryForwardLogicEditor: React.FC<{
     onUpdate: (updates: Partial<Question>) => void;
     logicKey: 'carryForwardStatements' | 'carryForwardScalePoints';
     label: string;
-    icon: React.FC<{className?: string}>;
-}> = ({ question, previousQuestions, onUpdate, logicKey, label, icon: Icon }) => {
+    description: string;
+    onAddLogic: () => void;
+}> = ({ question, previousQuestions, onUpdate, logicKey, label, description, onAddLogic }) => {
     const logic = question[logicKey];
 
     const handleEnable = () => {
@@ -1273,6 +1290,7 @@ const CarryForwardLogicEditor: React.FC<{
                 filter: 'all',
             }
         });
+        onAddLogic();
     };
 
     const handleDisable = () => {
@@ -1290,19 +1308,26 @@ const CarryForwardLogicEditor: React.FC<{
 
     if (!logic) {
         return (
-            <button onClick={handleEnable} className="flex items-center gap-2 text-sm font-medium text-primary hover:underline transition-colors w-full text-left">
-                <Icon className="text-xl" />
-                <span>{label}</span>
-            </button>
+            <div>
+                <h3 className="text-sm font-medium text-on-surface mb-1">{label}</h3>
+                <p className="text-xs text-on-surface-variant mb-3">{description}</p>
+                <button onClick={handleEnable} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                    <PlusIcon className="text-base" />
+                    Add {label}
+                </button>
+            </div>
         );
     }
     
     const choiceBasedQuestions = previousQuestions.filter(q => CHOICE_BASED_QUESTION_TYPES.has(q.type));
 
     return (
-        <div className="p-3 bg-surface-container-high rounded-md">
+        <div>
             <div className="flex items-center justify-between gap-2 mb-3">
-                <h4 className="text-sm font-medium text-on-surface">{label}</h4>
+                <div>
+                    <h4 className="text-sm font-medium text-on-surface">{label}</h4>
+                    <p className="text-xs text-on-surface-variant mt-0.5">{description}</p>
+                </div>
                 <button onClick={handleDisable} className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50">
                     Remove
                 </button>
@@ -1351,7 +1376,8 @@ const BranchingLogicEditor: React.FC<{
     previousQuestions: Question[]; 
     followingQuestions: Question[]; 
     onUpdate: (updates: Partial<Question>) => void; 
-}> = ({ question, previousQuestions, followingQuestions, onUpdate }) => {
+    onAddLogic: () => void;
+}> = ({ question, previousQuestions, followingQuestions, onUpdate, onAddLogic }) => {
     const branchingLogic = question.branchingLogic;
 
     const handleEnable = () => {
@@ -1368,6 +1394,7 @@ const BranchingLogicEditor: React.FC<{
                 otherwiseSkipTo: 'next'
             }
         });
+        onAddLogic();
     };
 
     const handleDisable = () => {
@@ -1459,10 +1486,14 @@ const BranchingLogicEditor: React.FC<{
 
     if (!branchingLogic) {
         return (
-             <button onClick={handleEnable} className="flex items-center gap-2 text-sm font-medium text-primary hover:underline transition-colors w-full text-left">
-                <CallSplitIcon className="text-xl" />
-                <span>Branching</span>
-            </button>
+             <div>
+                <h3 className="text-sm font-medium text-on-surface mb-1">Branching Logic</h3>
+                <p className="text-xs text-on-surface-variant mb-3">Create complex paths through the survey based on multiple conditions.</p>
+                <button onClick={handleEnable} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                    <PlusIcon className="text-base" />
+                    Add Branching Logic
+                </button>
+            </div>
         );
     }
 
@@ -1478,11 +1509,11 @@ const BranchingLogicEditor: React.FC<{
     );
     
     return (
-        <div className="p-3 bg-surface-container-high rounded-md">
+        <div>
             <div className="flex items-center justify-between gap-2 mb-3">
-                <div className="flex items-center gap-2">
-                    <CallSplitIcon className="text-xl text-primary" />
-                    <h4 className="text-sm font-medium text-on-surface">Branching</h4>
+                <div>
+                     <h3 className="text-sm font-medium text-on-surface">Branching Logic</h3>
+                     <p className="text-xs text-on-surface-variant mt-0.5">Create complex paths through the survey based on multiple conditions.</p>
                 </div>
                 <button onClick={handleDisable} className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50">
                     Remove

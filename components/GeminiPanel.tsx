@@ -1,14 +1,16 @@
 import { GoogleGenAI, FunctionDeclaration, Type, Chat } from "@google/genai";
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { XIcon, SparkleIcon, SendIcon, LoaderIcon, AccountCircleIcon } from './icons';
-import type { ChatMessage, QuestionType } from '../types';
+import type { ChatMessage, Question, QuestionType, Choice } from '../types';
 import { QuestionType as QTEnum } from '../types';
+import { generateId } from '../utils';
 
 interface GeminiPanelProps {
   onClose: () => void;
   onAddQuestion: (questionType: QuestionType, title: string, choices?: string[], afterQid?: string, beforeQid?: string) => void;
-  onChangeQuestionType: (qid: string, newType: QuestionType) => void;
-  onRegenerateQuestion: (qid: string, newTitle?: string, newChoices?: string[]) => void;
+  onUpdateQuestion: (args: any) => void;
+  helpTopic: string | null;
+  selectedQuestion: Question | null;
 }
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
@@ -48,50 +50,48 @@ const addQuestionFunctionDeclaration: FunctionDeclaration = {
     },
 };
 
-const changeQuestionTypeFunctionDeclaration: FunctionDeclaration = {
-    name: 'change_question_type',
-    description: "Changes the type of an existing question, for example from 'Radio Button' to 'Checkbox'.",
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        qid: {
+const updateQuestionFunctionDeclaration: FunctionDeclaration = {
+  name: 'update_question',
+  description: 'Updates properties of an existing question. Use this to change text, choices, type, or other settings like making it required or randomizing choices.',
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      qid: {
+        type: Type.STRING,
+        description: "The variable name of the question to update (e.g., 'Q1'). When the user says 'this question', use the qid from the provided context.",
+      },
+      text: {
+        type: Type.STRING,
+        description: 'The new main text for the question.',
+      },
+      type: {
+        type: Type.STRING,
+        description: 'The new type for the question (e.g., "Checkbox", "Text Entry").',
+        enum: Object.values(QTEnum),
+      },
+      choices: {
+        type: Type.ARRAY,
+        description: 'A new array of strings for the choices. This will replace all existing choices.',
+        items: {
           type: Type.STRING,
-          description: "The variable name of the question to change (e.g., 'Q1', 'Q2').",
-        },
-        new_type: {
-          type: Type.STRING,
-          description: 'The new type for the question.',
-          enum: [QTEnum.Radio, QTEnum.Checkbox, QTEnum.Description, QTEnum.TextEntry],
         },
       },
-      required: ['qid', 'new_type'],
-    },
-};
-
-const regenerateQuestionFunctionDeclaration: FunctionDeclaration = {
-    name: 'regenerate_question',
-    description: "Rewrites or regenerates an existing question. Can be used to improve wording, change the tone, or provide new choices.",
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        qid: {
-          type: Type.STRING,
-          description: "The variable name of the question to regenerate (e.g., 'Q1', 'Q2').",
-        },
-        new_title: {
-          type: Type.STRING,
-          description: 'The new text for the question.',
-        },
-        new_choices: {
-          type: Type.ARRAY,
-          description: 'A new array of strings for the choices. This will replace all existing choices.',
-          items: {
-            type: Type.STRING,
-          },
-        },
+      forceResponse: {
+        type: Type.BOOLEAN,
+        description: 'Set to true to make the question required, false to make it optional.',
       },
-      required: ['qid'],
+      randomizeChoices: {
+          type: Type.BOOLEAN,
+          description: "Set to true to randomize the order of choices, false to disable randomization."
+      },
+      answerFormat: {
+          type: Type.STRING,
+          description: "For choice-based questions, sets the display format.",
+          enum: ['list', 'dropdown', 'horizontal']
+      }
     },
+    required: ['qid'],
+  },
 };
 
 const initialMessages: ChatMessage[] = [
@@ -99,7 +99,7 @@ const initialMessages: ChatMessage[] = [
 ];
 
 
-const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, onChangeQuestionType, onRegenerateQuestion }) => {
+const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, onUpdateQuestion, helpTopic, selectedQuestion }) => {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -107,6 +107,12 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, 
   const chatRef = useRef<Chat | null>(null);
 
   useEffect(() => {
+    const systemInstruction = `You are a helpful survey building assistant integrated into a UI.
+    Your primary goal is to help users build and modify surveys using available tools.
+    When the user refers to "this question" or "the selected question," you should use the context provided about the currently selected question (if any).
+    Use the update_question tool to modify existing questions based on user requests like "make this required" or "change the choices".
+    Always be concise and confirm actions taken.`;
+
     chatRef.current = ai.chats.create({
       model: 'gemini-2.5-flash',
       history: initialMessages.map(msg => ({
@@ -114,8 +120,9 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, 
         parts: [{ text: msg.text }]
       })),
       config: {
-        tools: [{ functionDeclarations: [addQuestionFunctionDeclaration, changeQuestionTypeFunctionDeclaration, regenerateQuestionFunctionDeclaration] }],
+        tools: [{ functionDeclarations: [addQuestionFunctionDeclaration, updateQuestionFunctionDeclaration] }],
       },
+      systemInstruction: { parts: [{ text: systemInstruction }] }
     });
   }, []);
 
@@ -123,6 +130,42 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    const fetchHelpTopic = async (topic: string) => {
+      setMessages([]); // Clear previous chat
+      setIsLoading(true);
+      try {
+        const prompt = `Explain the advanced syntax for ${topic} in this survey tool. 
+        - Start with a brief explanation.
+        - List the supported operators and their required structure. For example, 'Q1 equals Yes', or for skip logic 'Q5'.
+        - Provide at least one concrete example for ${topic}.
+        - Keep the explanation concise and formatted for a small panel using markdown for bolding and lists.`;
+
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+        });
+        
+        const helpText = response.text;
+        setMessages([{ role: 'model', text: helpText }]);
+
+      } catch (error) {
+        console.error('Error fetching help topic:', error);
+        setMessages([{ role: 'model', text: `Sorry, I couldn't fetch information about ${topic}. Please check your API key and network connection.` }]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (helpTopic) {
+      fetchHelpTopic(helpTopic);
+    } else {
+      if (messages.length === 0) {
+        setMessages(initialMessages);
+      }
+    }
+  }, [helpTopic]);
 
   const handleSendMessage = useCallback(async () => {
     const trimmedInput = inputValue.trim();
@@ -134,7 +177,12 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, 
     setIsLoading(true);
 
     try {
-      const response = await chatRef.current.sendMessage({ message: trimmedInput });
+      let finalInput = trimmedInput;
+      if (selectedQuestion) {
+          finalInput = `CONTEXT: The user has question ${selectedQuestion.qid} ('${selectedQuestion.text}') selected.\n\nUSER PROMPT: ${trimmedInput}`;
+      }
+
+      const response = await chatRef.current.sendMessage({ message: finalInput });
       
       const newModelMessages: ChatMessage[] = [];
 
@@ -153,22 +201,10 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, 
               confirmationText += '.';
             }
             newModelMessages.push({ role: 'model', text: confirmationText });
-          } else if (funcCall.name === 'change_question_type') {
-            const { qid, new_type } = funcCall.args as { qid: string; new_type: QuestionType };
-            onChangeQuestionType(qid, new_type);
-            newModelMessages.push({ role: 'model', text: `OK, I've changed question ${qid} to be a "${new_type}" question.` });
-          } else if (funcCall.name === 'regenerate_question') {
-            const { qid, new_title, new_choices } = funcCall.args as { qid: string; new_title?: string; new_choices?: string[] };
-            onRegenerateQuestion(qid, new_title, new_choices);
-            let confirmationText = `I've regenerated question ${qid}.`;
-            if (new_title && new_choices) {
-                confirmationText += " I've updated both the title and the choices.";
-            } else if (new_title) {
-                confirmationText += " I've updated the title.";
-            } else if (new_choices) {
-                confirmationText += " I've provided new choices.";
-            }
-            newModelMessages.push({ role: 'model', text: confirmationText });
+          } else if (funcCall.name === 'update_question') {
+            const args = funcCall.args as any;
+            onUpdateQuestion(args);
+            newModelMessages.push({ role: 'model', text: `OK, I've updated question ${args.qid}.` });
           }
         }
       } else if (response.text) {
@@ -188,7 +224,7 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, 
     } finally {
       setIsLoading(false);
     }
-  }, [inputValue, isLoading, onAddQuestion, onChangeQuestionType, onRegenerateQuestion]);
+  }, [inputValue, isLoading, onAddQuestion, onUpdateQuestion, selectedQuestion]);
 
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -198,13 +234,15 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, 
     }
   }, [handleSendMessage]);
 
+  const isHelpMode = !!helpTopic;
+
   return (
     <aside className="w-full h-full bg-surface-container border-l border-outline-variant flex flex-col">
       <div className="p-4 border-b border-outline-variant flex items-center justify-between">
         <div className="flex items-center">
             <SparkleIcon className="text-xl text-primary mr-2" />
             <h2 className="text-lg font-bold text-on-surface" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-                Gemini Assistant
+                {isHelpMode ? `About ${helpTopic}` : 'Gemini Assistant'}
             </h2>
         </div>
         <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface" aria-label="Close Gemini Assistant">
@@ -221,9 +259,7 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, 
                     </div>
                 )}
                 <div className={`rounded-lg p-3 max-w-xs ${msg.role === 'user' ? 'bg-primary text-on-primary' : 'bg-surface-container-high'}`}>
-                    <p className={`text-sm ${msg.role === 'user' ? '' : 'text-on-surface'}`}>
-                        {msg.text}
-                    </p>
+                    <p className={`text-sm ${msg.role === 'user' ? '' : 'text-on-surface'}`} dangerouslySetInnerHTML={{ __html: msg.text.replace(/\n/g, '<br />') }}/>
                 </div>
                  {msg.role === 'user' && (
                     <div className="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center flex-shrink-0">
@@ -239,7 +275,7 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, 
                 </div>
                 <div className="bg-surface-container-high rounded-lg p-3 max-w-xs">
                     <p className="text-sm text-on-surface-variant italic">
-                        Gemini is thinking...
+                        {helpTopic ? 'Fetching details...' : 'Gemini is thinking...'}
                     </p>
                 </div>
             </div>
@@ -247,7 +283,7 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, 
         <div ref={chatEndRef} />
       </div>
 
-      <div className="p-4 border-t border-outline-variant">
+      <div className={`p-4 border-t border-outline-variant ${isHelpMode ? 'hidden' : ''}`}>
         <div className="relative">
           <textarea
             rows={1}
@@ -262,11 +298,11 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, 
               target.style.height = 'auto';
               target.style.height = `${target.scrollHeight}px`;
             }}
-            disabled={isLoading}
+            disabled={isLoading || isHelpMode}
           />
           <button 
             onClick={handleSendMessage}
-            disabled={isLoading || !inputValue.trim()}
+            disabled={isLoading || !inputValue.trim() || isHelpMode}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-primary text-on-primary hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ring-offset-surface-container-high disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Send message to Gemini"
           >

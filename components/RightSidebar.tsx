@@ -113,10 +113,11 @@ const PasteInlineForm: React.FC<{
 };
 
 
-const CopyAndPasteButton: React.FC<{ onClick: () => void; className?: string }> = ({ onClick, className = 'text-sm' }) => (
+const CopyAndPasteButton: React.FC<{ onClick: () => void; className?: string; disabled?: boolean; }> = ({ onClick, className = 'text-sm', disabled = false }) => (
     <button 
         onClick={onClick} 
-        className={`flex items-center gap-1 ${className} font-medium text-primary hover:underline transition-colors`}
+        disabled={disabled}
+        className={`flex items-center gap-1 ${className} font-medium text-primary hover:underline transition-colors disabled:text-on-surface-variant disabled:no-underline disabled:cursor-not-allowed`}
     >
         <ContentPasteIcon className="text-base" />
         <span>Copy and paste</span>
@@ -1062,44 +1063,50 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                             />
                         </div>
                     )}
-                    <div className="py-6 first:pt-0">
-                        <CarryForwardLogicEditor
-                            question={question}
-                            previousQuestions={previousQuestions}
-                            onUpdate={handleUpdate}
-                            logicKey="carryForwardStatements"
-                            label="Carry forward choices"
-                            addButtonLabel="Add choices"
-                            description="Use answers from a previous question as choices in this one."
-                            onAddLogic={ensureSidebarIsExpanded}
-                        />
-                    </div>
-                    <div className="py-6 first:pt-0">
-                         <CarryForwardLogicEditor
-                            question={question}
-                            previousQuestions={previousQuestions}
-                            onUpdate={handleUpdate}
-                            logicKey="carryForwardScalePoints"
-                            label="Carry forward scale points"
-                            addButtonLabel="Add scale points"
-                            description="Use scale points from a previous grid question as choices in this one."
-                            onAddLogic={ensureSidebarIsExpanded}
-                        />
-                    </div>
+                    {previousQuestions.length > 0 && (
+                        <>
+                            <div className="py-6 first:pt-0">
+                                <CarryForwardLogicEditor
+                                    question={question}
+                                    previousQuestions={previousQuestions}
+                                    onUpdate={handleUpdate}
+                                    logicKey="carryForwardStatements"
+                                    label="Carry forward choices"
+                                    addButtonLabel="Add choices"
+                                    description="Use answers from a previous question as choices in this one."
+                                    onAddLogic={ensureSidebarIsExpanded}
+                                />
+                            </div>
+                            <div className="py-6 first:pt-0">
+                                 <CarryForwardLogicEditor
+                                    question={question}
+                                    previousQuestions={previousQuestions}
+                                    onUpdate={handleUpdate}
+                                    logicKey="carryForwardScalePoints"
+                                    label="Carry forward scale points"
+                                    addButtonLabel="Add scale points"
+                                    description="Use scale points from a previous grid question as choices in this one."
+                                    onAddLogic={ensureSidebarIsExpanded}
+                                />
+                            </div>
+                        </>
+                    )}
                 </div>
             </CollapsibleSection>
             <CollapsibleSection title="Logic" defaultExpanded={true}>
                 <div className="divide-y divide-outline-variant">
-                    <div className="py-6 first:pt-0">
-                        <DisplayLogicEditor
-                            question={question}
-                            previousQuestions={previousQuestions}
-                            issues={logicIssues.filter(i => i.type === 'display')}
-                            onUpdate={handleUpdate}
-                            onAddLogic={ensureSidebarIsExpanded}
-                            onRequestGeminiHelp={onRequestGeminiHelp}
-                        />
-                    </div>
+                    {previousQuestions.length > 0 && (
+                        <div className="py-6 first:pt-0">
+                            <DisplayLogicEditor
+                                question={question}
+                                previousQuestions={previousQuestions}
+                                issues={logicIssues.filter(i => i.type === 'display')}
+                                onUpdate={handleUpdate}
+                                onAddLogic={ensureSidebarIsExpanded}
+                                onRequestGeminiHelp={onRequestGeminiHelp}
+                            />
+                        </div>
+                    )}
                     <div className="py-6 first:pt-0">
                         <SkipLogicEditor
                             question={question}
@@ -1118,8 +1125,117 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
   };
 
   const renderAdvancedTab = () => {
+    const branchingLogic = question.draftBranchingLogic ?? question.branchingLogic;
+
+    const handleEnableBranching = () => {
+        handleUpdate({
+            branchingLogic: {
+                branches: [
+                    {
+                        id: generateId('branch'),
+                        operator: 'AND',
+                        conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
+                        thenSkipTo: '',
+                        thenSkipToIsConfirmed: false,
+                    }
+                ],
+                otherwiseSkipTo: '',
+                otherwiseIsConfirmed: false,
+            }
+        });
+        ensureSidebarIsExpanded();
+    };
+
     return (
       <div className="space-y-8">
+        {/* BRANCHING LOGIC SECTION */}
+        {previousQuestions.length > 0 && (
+            <CollapsibleSection title="Branching Logic" defaultExpanded={true}>
+                <div className="py-6 first:pt-0">
+                  {!branchingLogic ? (
+                      <div>
+                          <p className="text-xs text-on-surface-variant mb-3">Create complex paths through the survey based on multiple conditions.</p>
+                          <div className="flex items-center gap-4">
+                              <div className="relative group/tooltip inline-block">
+                                <button onClick={handleEnableBranching} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                                    <PlusIcon className="text-base" />
+                                    Add branch rule
+                                </button>
+                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
+                                    Send people down different survey paths based on multiple conditions.
+                                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
+                                </div>
+                              </div>
+                          </div>
+                      </div>
+                  ) : (
+                    <BranchingLogicEditor
+                        question={question}
+                        previousQuestions={previousQuestions}
+                        followingQuestions={followingQuestions}
+                        issues={logicIssues.filter(i => i.type === 'branching')}
+                        onUpdate={handleUpdate}
+                        onAddLogic={ensureSidebarIsExpanded}
+                        onRequestGeminiHelp={onRequestGeminiHelp}
+                    />
+                  )}
+                </div>
+            </CollapsibleSection>
+        )}
+        
+        {/* ACTIONS SECTION */}
+        <CollapsibleSection title="Actions" defaultExpanded={true}>
+            <div className="-mt-2 mb-4">
+                <p className="text-xs text-on-surface-variant">Automate tasks, and integrate with other services.</p>
+            </div>
+            <div className="divide-y divide-outline-variant">
+                {/* BEFORE SHOWING SUBSECTION */}
+                <div className="py-6 first:pt-0">
+                    <h4 className="text-sm font-medium text-on-surface">Before Showing This Question</h4>
+                    <p className="text-xs text-on-surface-variant mt-0.5 mb-3">Set rules or actions triggered before the question is displayed.</p>
+                    <div className="flex items-center gap-4">
+                        <div className="relative group/tooltip inline-block">
+                            <button onClick={() => alert('Add action functionality not implemented.')} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                                <PlusIcon className="text-base" />
+                                Add action
+                            </button>
+                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
+                                Automate custom tasks or integrations at specific survey moments.
+                                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
+                            </div>
+                        </div>
+                         <button onClick={() => alert('Copy actions functionality not implemented.')} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                            <ContentPasteIcon className="text-base" />
+                            Copy actions from
+                        </button>
+                    </div>
+                </div>
+
+                {/* AFTER ANSWERING SUBSECTION */}
+                <div className="py-6 first:pt-0">
+                    <h4 className="text-sm font-medium text-on-surface">After Answering This Question</h4>
+                    <p className="text-xs text-on-surface-variant mt-0.5 mb-3">Set rules or actions triggered after the question is answered.</p>
+                     <div className="flex items-center gap-4">
+                        <div className="relative group/tooltip inline-block">
+                            <button onClick={() => alert('Add action functionality not implemented.')} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                                <PlusIcon className="text-base" />
+                                Add action
+                            </button>
+                             <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
+                                Automate custom tasks or integrations at specific survey moments.
+                                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
+                            </div>
+                        </div>
+                         <button onClick={() => alert('Copy actions functionality not implemented.')} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                            <ContentPasteIcon className="text-base" />
+                            Copy actions from
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </CollapsibleSection>
+        
+        {/* DISPLAY & LAYOUT SECTION */}
         {(isChoiceBased || question.type === QuestionType.TextEntry) && (
             <CollapsibleSection title="Display & Layout" defaultExpanded={true}>
                 <div className="divide-y divide-outline-variant">
@@ -1132,31 +1248,6 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                 </div>
             </CollapsibleSection>
         )}
-        <CollapsibleSection title="Advanced Logic" defaultExpanded={true}>
-            <div className="divide-y divide-outline-variant">
-                <div className="py-6 first:pt-0">
-                    <BranchingLogicEditor
-                    question={question}
-                    previousQuestions={previousQuestions}
-                    followingQuestions={followingQuestions}
-                    issues={logicIssues.filter(i => i.type === 'branching')}
-                    onUpdate={handleUpdate}
-                    onAddLogic={ensureSidebarIsExpanded}
-                    onRequestGeminiHelp={onRequestGeminiHelp}
-                    />
-                </div>
-                <div className="py-6 first:pt-0">
-                    <div>
-                        <h3 className="text-sm font-medium text-on-surface mb-1">Workflow</h3>
-                        <p className="text-xs text-on-surface-variant mb-3">Automate tasks and integrate with other services.</p>
-                        <button className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors disabled:text-on-surface-variant disabled:no-underline disabled:cursor-not-allowed" disabled>
-                            <PlusIcon className="text-base" />
-                            Add Workflow (Coming Soon)
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </CollapsibleSection>
       </div>
     );
   };
@@ -2128,17 +2219,9 @@ const BranchingLogicEditor: React.FC<{
     onAddLogic: () => void;
     onRequestGeminiHelp: (topic: string) => void;
 }> = ({ question, previousQuestions, followingQuestions, issues, onUpdate, onAddLogic, onRequestGeminiHelp }) => {
-    const [isPasting, setIsPasting] = useState(false);
     const branchingLogic = question.draftBranchingLogic ?? question.branchingLogic;
     const [collapsedBranches, setCollapsedBranches] = useState<Set<string>>(new Set());
     const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof BranchingLogicCondition | 'thenSkipTo' | 'otherwiseSkipTo'>>>(new Map());
-
-    useEffect(() => {
-        // Reset paste forms when switching questions
-        if (isPasting) {
-            setIsPasting(false);
-        }
-    }, [question.id]);
 
     const handleToggleBranchCollapse = (branchId: string) => {
         setCollapsedBranches(prev => {
@@ -2150,109 +2233,6 @@ const BranchingLogicEditor: React.FC<{
             }
             return newSet;
         });
-    };
-
-    const validateAndParseConditions = (text: string): { success: boolean; error?: string; conditions?: BranchingLogicCondition[] } => {
-        const lines = text.split('\n').filter(line => line.trim());
-        const newConditions: BranchingLogicCondition[] = [];
-        const validOperators = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than', 'is_empty', 'is_not_empty'];
-    
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            const lineNum = i + 1;
-            const lineParts = line.split(/\s+/);
-            const [qidCandidate, operator, ...valueParts] = lineParts;
-            const value = valueParts.join(' ');
-            
-            if (!qidCandidate || !operator) {
-                return { success: false, error: `Line ${lineNum}: Could not understand your logic. Please write it as "QuestionID operator value" (e.g., Q1 equals Yes).` };
-            }
-            
-            if (!/^Q\d+$/i.test(qidCandidate)) {
-                 return { success: false, error: `Line ${lineNum}: Invalid QuestionID "${qidCandidate}". It should look like "Q1", "Q2", etc.` };
-            }
-            const qid = qidCandidate.toUpperCase();
-    
-            if (!previousQuestions.some(q => q.qid === qid)) {
-                return { success: false, error: `Line ${lineNum}: Question "${qid}" doesn't exist or comes after this question.` };
-            }
-            
-            const operatorCleaned = operator.toLowerCase();
-            if (!validOperators.includes(operatorCleaned)) {
-                let suggestion = '';
-                if (operator.toLowerCase().replace(/\s/g, '_') === 'not_equals') {
-                    suggestion = ` Did you mean "not_equals"?`;
-                } else if (operator.toLowerCase().replace(/\s/g, '_') === 'greater_than') {
-                    suggestion = ` Did you mean "greater_than"?`;
-                } else if (operator.toLowerCase().replace(/\s/g, '_') === 'less_than') {
-                    suggestion = ` Did you mean "less_than"?`;
-                }
-                return { success: false, error: `Line ${lineNum}: Operator "${operator}" is not recognized.${suggestion}` };
-            }
-    
-            const requiresValue = !['is_empty', 'is_not_empty'].includes(operatorCleaned);
-            if (requiresValue && !value.trim()) {
-                return { success: false, error: `Line ${lineNum}: Missing a value after "${operator}". Write as '${qid} ${operator} Yes'.` };
-            }
-            if (!requiresValue && value.trim()) {
-                 return { success: false, error: `Line ${lineNum}: Operator "${operator}" does not need a value.` };
-            }
-    
-            newConditions.push({ id: generateId('cond'), questionId: qid, operator: operatorCleaned as BranchingLogicCondition['operator'], value: value.trim(), isConfirmed: true });
-        }
-        
-        if (newConditions.length === 0) {
-            return { success: false, error: "No valid logic could be parsed." };
-        }
-        
-        return { success: true, conditions: newConditions };
-    };
-    
-    const handlePasteInitialBranch = (text: string): { success: boolean; error?: string } => {
-        const validationResult = validateAndParseConditions(text);
-        if (!validationResult.success || !validationResult.conditions) {
-            return validationResult;
-        }
-
-        const newBranchId = generateId('branch');
-        const newBranch: BranchingLogicBranch = {
-            id: newBranchId,
-            operator: 'AND',
-            conditions: validationResult.conditions,
-            thenSkipTo: 'next',
-            thenSkipToIsConfirmed: true,
-        };
-        onUpdate({
-            branchingLogic: {
-                branches: [...(branchingLogic?.branches || []), newBranch],
-                otherwiseSkipTo: branchingLogic?.otherwiseSkipTo || 'next',
-                otherwiseIsConfirmed: branchingLogic?.otherwiseIsConfirmed
-            }
-        });
-        setCollapsedBranches(new Set());
-        onAddLogic();
-        return { success: true };
-    };
-
-    const handleEnable = () => {
-        const newBranchId = generateId('branch');
-        onUpdate({
-            branchingLogic: {
-                branches: [
-                    {
-                        id: newBranchId,
-                        operator: 'AND',
-                        conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
-                        thenSkipTo: '',
-                        thenSkipToIsConfirmed: false,
-                    }
-                ],
-                otherwiseSkipTo: '',
-                otherwiseIsConfirmed: false,
-            }
-        });
-        setCollapsedBranches(new Set()); // Start with the new branch expanded
-        onAddLogic();
     };
 
     const handleDisable = () => {
@@ -2279,334 +2259,178 @@ const BranchingLogicEditor: React.FC<{
     const handleRemoveBranch = (branchId: string) => {
         if (!branchingLogic) return;
         const newBranches = branchingLogic.branches.filter(b => b.id !== branchId);
-        if (newBranches.length === 0) {
-            handleDisable();
-        } else {
-            onUpdate({
-                branchingLogic: {
-                    ...branchingLogic,
-                    branches: newBranches
-                }
-            });
-        }
-    };
-
-    const handleUpdateBranch = (branchId: string, field: keyof BranchingLogicBranch, value: any) => {
-        if (!branchingLogic) return;
-        const newBranches = branchingLogic.branches.map(b => {
-            if (b.id === branchId) {
-                const updatedBranch = { ...b, [field]: value };
-                if (field === 'thenSkipTo') {
-                    updatedBranch.thenSkipToIsConfirmed = false;
-                }
-                return updatedBranch;
-            }
-            return b;
-        });
-    
         onUpdate({
             branchingLogic: {
                 ...branchingLogic,
                 branches: newBranches
             }
         });
-        if (field === 'thenSkipTo' && validationErrors.has(branchId)) {
-            setValidationErrors(prev => {
-                const newErrors = new Map(prev);
-                const branchErrors = new Set(newErrors.get(branchId));
-                branchErrors.delete('thenSkipTo');
-                if (branchErrors.size === 0) newErrors.delete(branchId);
-                else newErrors.set(branchId, branchErrors);
-                return newErrors;
-            });
-        }
     };
-
-    const handleAddCondition = (branchId: string) => {
-        if (!branchingLogic) return;
-        const newCondition: BranchingLogicCondition = { id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false };
-        onUpdate({
-            branchingLogic: {
-                ...branchingLogic,
-                branches: branchingLogic.branches.map(b => 
-                    b.id === branchId ? { ...b, conditions: [...b.conditions, newCondition] } : b
-                )
-            }
-        });
-    };
-
-    const handleConfirmCondition = (branchId: string, conditionId: string) => {
-        if (!branchingLogic) return;
-        const branch = branchingLogic.branches.find(b => b.id === branchId);
-        const condition = branch?.conditions.find(c => c.id === conditionId);
-        if (!condition) return;
-
-        const tempErrors = new Set<keyof BranchingLogicCondition>();
-        if (!condition.questionId) tempErrors.add('questionId');
-        if (!condition.operator) tempErrors.add('operator');
-        const requiresValue = !['is_empty', 'is_not_empty'].includes(condition.operator);
-        if (requiresValue && !condition.value.trim()) tempErrors.add('value');
-        if (tempErrors.size > 0) {
-            setValidationErrors(prev => new Map(prev).set(conditionId, tempErrors));
-            return;
-        }
-
-        const persistentIssues = issues.filter(i => i.sourceId === conditionId);
-        if (persistentIssues.length > 0) {
-            return;
-        }
-        
-        const newBranches = branchingLogic.branches.map(b => {
-            if (b.id !== branchId) return b;
-            const newConditions = b.conditions.map(c => {
-                if (c.id !== conditionId) return c;
-                return { ...c, isConfirmed: true };
-            });
-            return { ...b, conditions: newConditions };
-        });
-        onUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
-
-        setValidationErrors(prev => {
-            const newErrors = new Map(prev);
-            newErrors.delete(conditionId);
-            return newErrors;
-        });
-    };
-
-    const handleConfirmDestination = (branchId: string) => {
-        const branch = branchingLogic?.branches.find(b => b.id === branchId);
-        if (!branch) return;
-
-        let hasTempError = false;
-        if (!branch.thenSkipTo) {
-            hasTempError = true;
-            setValidationErrors(prev => {
-                const newErrors = new Map(prev);
-                const branchErrors = new Set(newErrors.get(branchId) || []);
-                branchErrors.add('thenSkipTo');
-                return newErrors.set(branchId, branchErrors);
-            });
-        }
-        
-        const hasPersistentError = issues.some(i => i.sourceId === branchId && i.field === 'skipTo');
-
-        if (hasTempError || hasPersistentError) return;
-
-        handleUpdateBranch(branchId, 'thenSkipToIsConfirmed', true);
-    };
-
-    const handleConfirmOtherwise = () => {
-        if (!branchingLogic) return;
-        let hasTempError = false;
-        if (!branchingLogic.otherwiseSkipTo) {
-            hasTempError = true;
-            setValidationErrors(prev => {
-                const newErrors = new Map(prev);
-                const branchErrors = new Set(newErrors.get('otherwise') || []);
-                branchErrors.add('otherwiseSkipTo');
-                return newErrors.set('otherwise', branchErrors);
-            });
-        }
-        
-        const hasPersistentError = issues.some(i => i.sourceId === 'otherwise' && i.field === 'skipTo');
-        
-        if (hasTempError || hasPersistentError) return;
-
-        onUpdate({ branchingLogic: { ...branchingLogic, otherwiseIsConfirmed: true } });
-    };
-
-    const handleRemoveCondition = (branchId: string, conditionId: string) => {
-        if (!branchingLogic) return;
-        onUpdate({
-            branchingLogic: {
-                ...branchingLogic,
-                branches: branchingLogic.branches.map(b => {
-                    if (b.id !== branchId) return b;
-                    const newConditions = b.conditions.filter(c => c.id !== conditionId);
-                    return { ...b, conditions: newConditions };
-                })
-            }
-        });
-        setValidationErrors(prev => {
-            const newErrors = new Map(prev);
-            newErrors.delete(conditionId);
-            return newErrors;
-        });
-    };
-
-    const handleUpdateCondition = (branchId: string, conditionId: string, field: keyof BranchingLogicCondition, value: any) => {
-        if (!branchingLogic) return;
-
-        const newBranches = branchingLogic.branches.map(b => {
-            if (b.id !== branchId) return b;
-            const newConditions = b.conditions.map(c => {
-                if (c.id !== conditionId) return c;
-                const newCondition = { ...c, [field]: value, isConfirmed: false };
-                if (field === 'questionId') {
-                    newCondition.value = '';
-                    newCondition.operator = '';
-                }
-                return newCondition;
-            });
-            return { ...b, conditions: newConditions };
-        });
-
-        onUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
-
-        if (validationErrors.has(conditionId)) {
-            setValidationErrors(prev => {
-                const newErrors = new Map(prev);
-                const conditionErrors = new Set(newErrors.get(conditionId));
-                conditionErrors.delete(field);
-                if (conditionErrors.size === 0) newErrors.delete(conditionId);
-                else newErrors.set(conditionId, conditionErrors);
-                return newErrors;
-            });
-        }
-    };
-
-    const handleUpdateOtherwise = (skipTo: string) => {
-        if (!branchingLogic) return;
-        onUpdate({ branchingLogic: { ...branchingLogic, otherwiseSkipTo: skipTo, otherwiseIsConfirmed: false } });
-         if (validationErrors.has('otherwise')) {
-            setValidationErrors(prev => {
-                const newErrors = new Map(prev);
-                const branchErrors = new Set(newErrors.get('otherwise'));
-                branchErrors.delete('otherwiseSkipTo');
-                if (branchErrors.size === 0) newErrors.delete('otherwise');
-                else newErrors.set('otherwise', branchErrors);
-                return newErrors;
-            });
-        }
-    };
-
-    if (!branchingLogic) {
-        return (
-            <div>
-                <h3 className="text-sm font-medium text-on-surface mb-1">Branching Logic</h3>
-                <p className="text-xs text-on-surface-variant mb-3">Create complex paths through the survey based on multiple conditions.</p>
-                {isPasting ? (
-                     <PasteInlineForm
-                        onSave={handlePasteInitialBranch}
-                        onCancel={() => setIsPasting(false)}
-                        placeholder={"Q1 equals Yes\nQ2 not_equals 5"}
-                        primaryActionLabel="Add Branching Logic"
-                        disclosureText="Advanced logic requires specific syntax;"
-                        helpTopic="Branching Logic"
-                        onRequestGeminiHelp={onRequestGeminiHelp}
-                    />
-                ) : (
-                    <div className="flex items-center gap-4">
-                        <button onClick={handleEnable} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                            <PlusIcon className="text-base" />
-                            Add Branching Logic
-                        </button>
-                        <CopyAndPasteButton onClick={() => setIsPasting(true)} />
-                    </div>
-                )}
-            </div>
-        );
-    }
     
+    const handleUpdateBranch = (branchId: string, updates: Partial<BranchingLogicBranch>) => {
+        if (!branchingLogic) return;
+        const newBranches = branchingLogic.branches.map(b => 
+            b.id === branchId ? { ...b, ...updates, thenSkipToIsConfirmed: false } : b
+        );
+        onUpdate({
+            branchingLogic: {
+                ...branchingLogic,
+                branches: newBranches
+            }
+        });
+    };
+
+    const handleAddConditionToBranch = (branchId: string) => {
+        if (!branchingLogic) return;
+        const newBranches = branchingLogic.branches.map(b => {
+            if (b.id === branchId) {
+                const newCondition: BranchingLogicCondition = { id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false };
+                return { ...b, conditions: [...b.conditions, newCondition] };
+            }
+            return b;
+        });
+        onUpdate({
+            branchingLogic: {
+                ...branchingLogic,
+                branches: newBranches
+            }
+        });
+    };
+    
+    const handleUpdateConditionInBranch = (branchId: string, conditionId: string, updates: Partial<BranchingLogicCondition>) => {
+        if (!branchingLogic) return;
+        const newBranches = branchingLogic.branches.map(b => {
+            if (b.id === branchId) {
+                const newConditions = b.conditions.map(c => 
+                    c.id === conditionId ? { ...c, ...updates, isConfirmed: false } : c
+                );
+                 if (updates.questionId) {
+                    const updatedCondition = newConditions.find(c => c.id === conditionId);
+                    if (updatedCondition) {
+                        updatedCondition.value = '';
+                        updatedCondition.operator = '';
+                    }
+                }
+                return { ...b, conditions: newConditions, thenSkipToIsConfirmed: false };
+            }
+            return b;
+        });
+        onUpdate({
+            branchingLogic: {
+                ...branchingLogic,
+                branches: newBranches
+            }
+        });
+    };
+
+    const handleRemoveConditionFromBranch = (branchId: string, conditionId: string) => {
+        if (!branchingLogic) return;
+        const newBranches = branchingLogic.branches.map(b => {
+            if (b.id === branchId) {
+                const newConditions = b.conditions.filter(c => c.id !== conditionId);
+                return { ...b, conditions: newConditions };
+            }
+            return b;
+        }).filter(b => b.conditions.length > 0);
+        
+        onUpdate({
+            branchingLogic: {
+                ...branchingLogic,
+                branches: newBranches
+            }
+        });
+    };
+    
+    const handleConfirm = (sourceId: string, type: 'condition' | 'branch' | 'otherwise') => {
+        if (!branchingLogic) return;
+
+        let newLogic = JSON.parse(JSON.stringify(branchingLogic));
+
+        if (type === 'otherwise') {
+            newLogic.otherwiseIsConfirmed = true;
+        } else if (type === 'branch') {
+            newLogic.branches = newLogic.branches.map((b: BranchingLogicBranch) => b.id === sourceId ? { ...b, thenSkipToIsConfirmed: true } : b);
+        } else if (type === 'condition') {
+            newLogic.branches = newLogic.branches.map((b: BranchingLogicBranch) => ({
+                ...b,
+                conditions: b.conditions.map((c: BranchingLogicCondition) => c.id === sourceId ? { ...c, isConfirmed: true } : c)
+            }));
+        }
+
+        onUpdate({ branchingLogic: newLogic });
+    };
+
     return (
         <div>
             <div className="flex items-center justify-between gap-2 mb-3">
                 <div>
-                     <h3 className="text-sm font-medium text-on-surface">Branching Logic</h3>
-                     <p className="text-xs text-on-surface-variant mt-0.5">Create complex paths through the survey based on multiple conditions.</p>
+                    <h3 className="text-sm font-medium text-on-surface">Branching Logic</h3>
+                    <p className="text-xs text-on-surface-variant mt-0.5">Create complex survey paths.</p>
                 </div>
-                <button onClick={handleDisable} className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50">
+                <button 
+                    onClick={handleDisable}
+                    className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50"
+                >
                     Remove
                 </button>
             </div>
-            
-            <div className="space-y-4">
-                {branchingLogic.branches.map((branch, branchIndex) => {
-                    const isCollapsed = collapsedBranches.has(branch.id);
-                    return (
-                        <div key={branch.id} className="p-3 border border-outline-variant rounded-md bg-surface">
-                            <div 
-                                onClick={() => handleToggleBranchCollapse(branch.id)} 
-                                className="w-full flex justify-between items-center cursor-pointer"
-                                aria-expanded={!isCollapsed}
-                            >
-                                <div className="flex items-center">
-                                    <ChevronDownIcon className={`text-xl mr-2 text-on-surface-variant transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
-                                    <p className="text-xs font-bold text-on-surface uppercase">Branch {branchIndex + 1}</p>
-                                </div>
-                                {isCollapsed && <span className="text-xs text-on-surface-variant truncate max-w-[200px]">{branch.conditions.map(c => c.questionId).join(', ')}...</span>}
-                                <button onClick={(e) => { e.stopPropagation(); handleRemoveBranch(branch.id); }} className="p-1 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full text-xs">
-                                    <XIcon className="text-sm" />
-                                </button>
-                            </div>
-                            
-                            {!isCollapsed && (
-                                <div className="mt-2 pl-6">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <div className="flex items-center gap-2">
-                                            <p className="text-xs font-medium text-on-surface">If:</p>
-                                            {branch.conditions.length > 1 && (
-                                                <div className="flex items-center gap-1">
-                                                    <button onClick={() => handleUpdateBranch(branch.id, 'operator', 'AND')} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${branch.operator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
-                                                    <button onClick={() => handleUpdateBranch(branch.id, 'operator', 'OR')} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${branch.operator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <button onClick={() => handleAddCondition(branch.id)} className="flex items-center gap-1 text-xs font-medium text-primary hover:underline transition-colors">
-                                            <PlusIcon className="text-base" />
-                                            Add condition
-                                        </button>
-                                    </div>
-                                    
-                                    <div className="space-y-2 mb-2">
-                                        {branch.conditions.map((condition) => (
-                                            <LogicConditionRow
-                                                key={condition.id}
-                                                condition={condition}
-                                                issues={issues.filter(i => i.sourceId === condition.id)}
-                                                onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
-                                                onRemoveCondition={() => handleRemoveCondition(branch.id, condition.id)}
-                                                onConfirm={() => handleConfirmCondition(branch.id, condition.id)}
-                                                previousQuestions={previousQuestions}
-                                                invalidFields={validationErrors.get(condition.id) as Set<keyof BranchingLogicCondition>}
-                                            />
-                                        ))}
-                                    </div>
-                                    
-                                    <DestinationRow
-                                        label="Then skip to:"
-                                        value={branch.thenSkipTo}
-                                        onChange={(value) => handleUpdateBranch(branch.id, 'thenSkipTo', value)}
-                                        onConfirm={() => handleConfirmDestination(branch.id)}
-                                        isConfirmed={branch.thenSkipToIsConfirmed}
-                                        issue={issues.find(i => i.sourceId === branch.id && i.field === 'skipTo')}
-                                        invalid={validationErrors.has(branch.id) && validationErrors.get(branch.id)!.has('thenSkipTo')}
-                                        followingQuestions={followingQuestions}
-                                    />
+            {branchingLogic.branches.map((branch) => (
+                <div key={branch.id} className="mb-4 p-3 border border-outline-variant rounded-md">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                            <span className="font-bold text-primary">IF</span>
+                            {branch.conditions.length > 1 && (
+                                <div className="flex gap-1">
+                                    <button onClick={() => handleUpdateBranch(branch.id, { operator: 'AND' })} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${branch.operator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
+                                    <button onClick={() => handleUpdateBranch(branch.id, { operator: 'OR' })} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${branch.operator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
                                 </div>
                             )}
                         </div>
-                    );
-                })}
-
-                <div className="p-3 border border-dashed border-outline-variant rounded-md">
-                     <DestinationRow
-                        label="Otherwise, skip to:"
-                        value={branchingLogic.otherwiseSkipTo}
-                        onChange={handleUpdateOtherwise}
-                        onConfirm={handleConfirmOtherwise}
-                        isConfirmed={branchingLogic.otherwiseIsConfirmed}
-                        issue={issues.find(i => i.sourceId === 'otherwise' && i.field === 'skipTo')}
-                        invalid={validationErrors.has('otherwise') && validationErrors.get('otherwise')!.has('otherwiseSkipTo')}
+                         <button onClick={() => handleRemoveBranch(branch.id)} className="text-xs font-medium text-error hover:underline">Remove branch</button>
+                    </div>
+                    <div className="space-y-2 mb-3">
+                        {branch.conditions.map(condition => (
+                            <LogicConditionRow
+                                key={condition.id}
+                                condition={condition}
+                                issues={issues.filter(i => i.sourceId === condition.id)}
+                                onUpdateCondition={(field, value) => handleUpdateConditionInBranch(branch.id, condition.id, { [field]: value })}
+                                onRemoveCondition={() => handleRemoveConditionFromBranch(branch.id, condition.id)}
+                                onConfirm={() => handleConfirm(condition.id, 'condition')}
+                                previousQuestions={previousQuestions}
+                                invalidFields={validationErrors.get(condition.id) as any}
+                            />
+                        ))}
+                    </div>
+                     <button onClick={() => handleAddConditionToBranch(branch.id)} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors mb-3">
+                        <PlusIcon className="text-base" />
+                        Add condition
+                    </button>
+                    <DestinationRow
+                        label="THEN"
+                        value={branch.thenSkipTo}
+                        onChange={(value) => handleUpdateBranch(branch.id, { thenSkipTo: value })}
+                        onConfirm={() => handleConfirm(branch.id, 'branch')}
+                        isConfirmed={branch.thenSkipToIsConfirmed}
+                        issue={issues.find(i => i.sourceId === branch.id && i.field === 'skipTo')}
                         followingQuestions={followingQuestions}
                     />
                 </div>
-            </div>
-
-            <button onClick={handleAddBranch} className="mt-4 flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+            ))}
+             <button onClick={handleAddBranch} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors mb-3">
                 <PlusIcon className="text-base" />
-                Add Branch
+                Add branch
             </button>
+            <DestinationRow
+                label="OTHERWISE"
+                value={branchingLogic.otherwiseSkipTo}
+                onChange={(value) => onUpdate({ branchingLogic: { ...branchingLogic, otherwiseSkipTo: value, otherwiseIsConfirmed: false } })}
+                onConfirm={() => handleConfirm('otherwise', 'otherwise')}
+                isConfirmed={branchingLogic.otherwiseIsConfirmed}
+                issue={issues.find(i => i.sourceId === 'otherwise' && i.field === 'skipTo')}
+                followingQuestions={followingQuestions}
+                className="p-3 bg-surface-container-high rounded-md"
+            />
         </div>
     );
 };

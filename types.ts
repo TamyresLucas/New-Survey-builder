@@ -52,7 +52,8 @@ export interface Choice {
 export interface DisplayLogicCondition {
   id: string;
   questionId: string; // This is the QID, e.g., "Q1"
-  operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty';
+  // FIX: Allow empty string for operator to represent an unselected state. This resolves multiple TypeScript errors where new conditions are initialized with an empty operator.
+  operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty' | '';
   value: string;
   isConfirmed?: boolean;
 }
@@ -99,7 +100,8 @@ export interface CarryForwardLogic {
 export interface BranchingCondition {
   id: string;
   questionId: string; // This is the QID, e.g., "Q1"
-  operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty';
+  // FIX: Allow empty string for operator to represent an unselected state. This resolves multiple TypeScript errors where new conditions are initialized with an empty operator.
+  operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty' | '';
   value: string;
   isConfirmed?: boolean;
 }

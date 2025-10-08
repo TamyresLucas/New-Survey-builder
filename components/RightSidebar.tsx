@@ -154,24 +154,14 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
   const previousQuestions = useMemo(() => 
       allSurveyQuestions
           .slice(0, currentQuestionIndex)
-          .filter(q => q.type !== QuestionType.PageBreak && q.type !== QuestionType.Description),
+          .filter(q => q.type !== QuestionType.PageBreak && q.type !== QuestionType.Description && !q.isHidden),
       [allSurveyQuestions, currentQuestionIndex]
   );
   
-  const logicSourceQuestions = useMemo(() => 
-      allSurveyQuestions
-          .filter(q => 
-              q.id !== question.id && 
-              q.type !== QuestionType.PageBreak && 
-              q.type !== QuestionType.Description
-          ),
-      [allSurveyQuestions, question.id]
-  );
-
   const followingQuestions = useMemo(() => 
       allSurveyQuestions
           .slice(currentQuestionIndex + 1)
-          .filter(q => q.type !== QuestionType.PageBreak && q.type !== QuestionType.Description),
+          .filter(q => q.type !== QuestionType.PageBreak && q.type !== QuestionType.Description && !q.isHidden),
       [allSurveyQuestions, currentQuestionIndex]
   );
 
@@ -988,7 +978,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                 <div className="py-6 first:pt-0">
                     <DisplayLogicEditor
                         question={question}
-                        previousQuestions={logicSourceQuestions}
+                        previousQuestions={previousQuestions}
                         issues={logicIssues.filter(i => i.type === 'display')}
                         onUpdate={handleUpdate}
                         onAddLogic={ensureSidebarIsExpanded}
@@ -1009,7 +999,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                 <div className="py-6 first:pt-0">
                     <BranchingLogicEditor
                         question={question}
-                        previousQuestions={logicSourceQuestions}
+                        previousQuestions={previousQuestions}
                         followingQuestions={followingQuestions}
                         issues={logicIssues.filter(i => i.type === 'branching')}
                         onUpdate={handleUpdate}
@@ -1124,7 +1114,47 @@ interface LogicConditionRowProps<T extends DisplayLogicCondition | BranchingCond
 const LogicConditionRow = <T extends DisplayLogicCondition | BranchingCondition>({ condition, onUpdateCondition, onRemoveCondition, onConfirm, previousQuestions, issues, invalidFields = new Set() }: LogicConditionRowProps<T>) => {
     const referencedQuestion = useMemo(() => previousQuestions.find(q => q.qid === condition.questionId), [previousQuestions, condition.questionId]);
     const isNumericInput = referencedQuestion?.type === QuestionType.NumericAnswer;
-    const isConfirmed = condition.isConfirmed ?? false; // Default to false if undefined for new rows
+    const isChoiceBasedInput = referencedQuestion && CHOICE_BASED_QUESTION_TYPES.has(referencedQuestion.type);
+    const isConfirmed = condition.isConfirmed ?? false;
+
+    const availableOperators = useMemo(() => {
+        const defaultOperators = [
+            { value: 'equals', label: 'equals' }, { value: 'not_equals', label: 'not equals' },
+            { value: 'is_empty', label: 'is empty' }, { value: 'is_not_empty', label: 'is not empty' },
+        ];
+
+        if (!referencedQuestion) {
+            return [
+                ...defaultOperators,
+                { value: 'contains', label: 'contains' },
+                { value: 'greater_than', label: 'greater than' },
+                { value: 'less_than', label: 'less than' },
+            ];
+        }
+
+        switch(referencedQuestion.type) {
+            case QuestionType.Radio:
+            case QuestionType.Checkbox:
+            case QuestionType.DropDownList:
+                return [
+                    { value: 'equals', label: 'is selected' }, { value: 'not_equals', label: 'is not selected' },
+                    { value: 'is_empty', label: 'is empty' }, { value: 'is_not_empty', label: 'is not empty' },
+                ];
+            case QuestionType.NumericAnswer:
+            case QuestionType.Slider:
+            case QuestionType.StarRating:
+                 return [
+                    { value: 'equals', label: 'equals' }, { value: 'not_equals', label: 'not equals' },
+                    { value: 'greater_than', label: 'greater than' }, { value: 'less_than', label: 'less than' },
+                ];
+            case QuestionType.TextEntry:
+                return [
+                    ...defaultOperators, { value: 'contains', label: 'contains' },
+                ];
+            default:
+                 return defaultOperators;
+        }
+    }, [referencedQuestion]);
 
     const getFieldIssue = (fieldName: keyof T) => issues.find(i => i.field === fieldName);
     
@@ -1135,6 +1165,16 @@ const LogicConditionRow = <T extends DisplayLogicCondition | BranchingCondition>
     const questionBorderClass = invalidFields.has('questionId' as keyof T) || questionIssue ? 'border-error' : 'border-outline focus:outline-primary';
     const operatorBorderClass = invalidFields.has('operator' as keyof T) || operatorIssue ? 'border-error' : 'border-outline focus:outline-primary';
     const valueBorderClass = invalidFields.has('value' as keyof T) || valueIssue ? 'border-error' : 'border-outline focus:outline-primary';
+
+    const valueIsDisabled = !referencedQuestion || ['is_empty', 'is_not_empty'].includes(condition.operator);
+
+    const handleOperatorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newOperator = e.target.value;
+        onUpdateCondition('operator' as keyof T, newOperator);
+        if (['is_empty', 'is_not_empty'].includes(newOperator)) {
+            onUpdateCondition('value' as keyof T, '');
+        }
+    };
 
     const Tooltip: React.FC<{ issue?: LogicIssue }> = ({ issue }) => {
         if (!issue) return null;
@@ -1148,6 +1188,7 @@ const LogicConditionRow = <T extends DisplayLogicCondition | BranchingCondition>
 
     return (
         <div className="flex items-center gap-2 p-2 bg-surface-container-high rounded-md min-w-max">
+            {/* 1. Question */}
             <div className="relative group/tooltip w-48 flex-shrink-0">
                 <select 
                     value={condition.questionId} 
@@ -1155,43 +1196,61 @@ const LogicConditionRow = <T extends DisplayLogicCondition | BranchingCondition>
                     className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${questionBorderClass}`} 
                     aria-label="Select question"
                 >
-                    <option value="">Select question...</option>
+                    <option value="">select question</option>
                     {previousQuestions.map(q => <option key={q.id} value={q.qid}>{q.qid}: {truncate(q.text, 50)}</option>)}
                 </select>
                 <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
                 <Tooltip issue={questionIssue} />
             </div>
-            <div className="relative group/tooltip w-32 flex-shrink-0">
-                <select 
-                    value={condition.operator} 
-                    onChange={(e) => onUpdateCondition('operator' as keyof T, e.target.value)} 
-                    className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`} 
-                    aria-label="Select operator"
-                >
-                    <option value="equals">equals</option>
-                    <option value="not_equals">not equals</option>
-                    <option value="contains">contains</option>
-                    <option value="greater_than">greater than</option>
-                    <option value="less_than">less than</option>
-                    <option value="is_empty">is empty</option>
-                    <option value="is_not_empty">is not empty</option>
-                </select>
-                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-                <Tooltip issue={operatorIssue} />
-            </div>
-            {!['is_empty', 'is_not_empty'].includes(condition.operator) && (
-                <div className="relative group/tooltip flex-1">
+
+            {/* 2. Value / Answer */}
+            <div className="relative group/tooltip flex-1 min-w-[150px]">
+                {isChoiceBasedInput && referencedQuestion?.choices ? (
+                     <div className="relative">
+                        <select
+                            value={condition.value}
+                            onChange={(e) => onUpdateCondition('value' as keyof T, e.target.value)}
+                            className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                            aria-label="Condition value"
+                            disabled={valueIsDisabled}
+                        >
+                            <option value="">select answer</option>
+                            {referencedQuestion.choices.map(choice => (
+                                <option key={choice.id} value={choice.text}>{parseChoice(choice.text).label}</option>
+                            ))}
+                        </select>
+                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                     </div>
+                ) : (
                     <input 
                         type={isNumericInput ? "number" : "text"} 
                         value={condition.value} 
                         onChange={(e) => onUpdateCondition('value' as keyof T, e.target.value)} 
-                        placeholder="Value" 
-                        className={`w-full bg-surface border rounded-md px-2 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 ${valueBorderClass}`}
+                        placeholder="select answer"
+                        className={`w-full bg-surface border rounded-md px-2 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                         aria-label="Condition value" 
+                        disabled={valueIsDisabled}
                     />
-                     <Tooltip issue={valueIssue} />
-                </div>
-            )}
+                )}
+                 <Tooltip issue={valueIssue} />
+            </div>
+
+            {/* 3. Operator / Interaction */}
+            <div className="relative group/tooltip w-40 flex-shrink-0">
+                <select 
+                    value={condition.operator} 
+                    onChange={handleOperatorChange} 
+                    className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`} 
+                    aria-label="Select interaction"
+                    disabled={!referencedQuestion}
+                >
+                    <option value="">select interaction</option>
+                    {availableOperators.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+                </select>
+                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                <Tooltip issue={operatorIssue} />
+            </div>
+
             <button onClick={onRemoveCondition} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-colors flex-shrink-0" aria-label="Remove condition">
                 <XIcon className="text-lg" />
             </button>
@@ -1272,7 +1331,7 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         const newCondition: DisplayLogicCondition = {
             id: generateId('cond'),
             questionId: '',
-            operator: 'equals',
+            operator: '',
             value: '',
             isConfirmed: false,
         };
@@ -1293,6 +1352,7 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         // Step 1: Check for temporary validation errors (empty fields)
         const tempErrors = new Set<keyof DisplayLogicCondition>();
         if (!condition.questionId) tempErrors.add('questionId');
+        if (!condition.operator) tempErrors.add('operator');
         
         const requiresValue = !['is_empty', 'is_not_empty'].includes(condition.operator);
         if (requiresValue && !condition.value.trim()) tempErrors.add('value');
@@ -1386,6 +1446,11 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         const conditionId = newConditions[index].id;
         newConditions[index] = { ...newConditions[index], [field]: value };
         
+        if (field === 'questionId') {
+            newConditions[index].value = '';
+            newConditions[index].operator = '';
+        }
+
         if (validationErrors.has(conditionId)) {
             setValidationErrors(prev => {
                 const newErrors = new Map(prev);
@@ -2039,7 +2104,7 @@ const BranchingLogicEditor: React.FC<{
                     {
                         id: newBranchId,
                         operator: 'AND',
-                        conditions: [{ id: generateId('cond'), questionId: '', operator: 'equals', value: '', isConfirmed: false }],
+                        conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
                         thenSkipTo: '',
                         thenSkipToIsConfirmed: false,
                     }
@@ -2061,7 +2126,7 @@ const BranchingLogicEditor: React.FC<{
         const newBranch: Branch = {
             id: generateId('branch'),
             operator: 'AND',
-            conditions: [{ id: generateId('cond'), questionId: '', operator: 'equals', value: '', isConfirmed: false }],
+            conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
             thenSkipTo: '',
             thenSkipToIsConfirmed: false,
         };
@@ -2110,7 +2175,7 @@ const BranchingLogicEditor: React.FC<{
 
     const handleAddCondition = (branchId: string) => {
         if (!branchingLogic) return;
-        const newCondition: BranchingCondition = { id: generateId('cond'), questionId: '', operator: 'equals', value: '', isConfirmed: false };
+        const newCondition: BranchingCondition = { id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false };
         onUpdate({
             branchingLogic: {
                 ...branchingLogic,
@@ -2129,6 +2194,7 @@ const BranchingLogicEditor: React.FC<{
 
         const tempErrors = new Set<keyof BranchingCondition>();
         if (!condition.questionId) tempErrors.add('questionId');
+        if (!condition.operator) tempErrors.add('operator');
         const requiresValue = !['is_empty', 'is_not_empty'].includes(condition.operator);
         if (requiresValue && !condition.value.trim()) tempErrors.add('value');
         if (tempErrors.size > 0) {
@@ -2212,16 +2278,23 @@ const BranchingLogicEditor: React.FC<{
 
     const handleUpdateCondition = (branchId: string, conditionId: string, field: keyof BranchingCondition, value: any) => {
         if (!branchingLogic) return;
-        onUpdate({
-            branchingLogic: {
-                ...branchingLogic,
-                branches: branchingLogic.branches.map(b => 
-                    b.id === branchId 
-                        ? { ...b, conditions: b.conditions.map(c => c.id === conditionId ? { ...c, [field]: value } : c) } 
-                        : b
-                )
-            }
+
+        const newBranches = branchingLogic.branches.map(b => {
+            if (b.id !== branchId) return b;
+            const newConditions = b.conditions.map(c => {
+                if (c.id !== conditionId) return c;
+                const newCondition = { ...c, [field]: value };
+                if (field === 'questionId') {
+                    newCondition.value = '';
+                    newCondition.operator = '';
+                }
+                return newCondition;
+            });
+            return { ...b, conditions: newConditions };
         });
+
+        onUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
+
         if (validationErrors.has(conditionId)) {
             setValidationErrors(prev => {
                 const newErrors = new Map(prev);

@@ -599,7 +599,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
                 questionToClean.branchingLogic.branches = cleanedBranches;
 
-                // If no branches are left and 'otherwise' is not confirmed, remove the whole branching logic block
+                // If no branches are left and 'otherwise' is not confirmed, remove the whole advanced logic block
                 if (cleanedBranches.length === 0 && !questionToClean.branchingLogic.otherwiseIsConfirmed) {
                     questionToClean.branchingLogic = undefined;
                 }

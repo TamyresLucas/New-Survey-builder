@@ -33,7 +33,6 @@ export enum QuestionType {
   StarRating = 'Star Rating',
   TextHighlighter = 'Text Highlighter',
   Timer = 'Timer',
-  // Fix: Add missing question types to resolve compilation errors.
   ImageSelector = 'Image Selector',
   ImageChoiceGrid = 'Image Choice Grid',
 }
@@ -52,7 +51,6 @@ export interface Choice {
 export interface DisplayLogicCondition {
   id: string;
   questionId: string; // This is the QID, e.g., "Q1"
-  // FIX: Allow empty string for operator to represent an unselected state. This resolves multiple TypeScript errors where new conditions are initialized with an empty operator.
   operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty' | '';
   value: string;
   isConfirmed?: boolean;
@@ -97,25 +95,24 @@ export interface CarryForwardLogic {
   filter: 'selected' | 'not_selected' | 'displayed' | 'not_displayed' | 'all';
 }
 
-export interface BranchingCondition {
+export interface BranchingLogicCondition {
   id: string;
   questionId: string; // This is the QID, e.g., "Q1"
-  // FIX: Allow empty string for operator to represent an unselected state. This resolves multiple TypeScript errors where new conditions are initialized with an empty operator.
   operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty' | '';
   value: string;
   isConfirmed?: boolean;
 }
 
-export interface Branch {
+export interface BranchingLogicBranch {
   id: string;
   operator: 'AND' | 'OR';
-  conditions: BranchingCondition[];
+  conditions: BranchingLogicCondition[];
   thenSkipTo: string; // 'next' | question ID (internal id) | 'end'
   thenSkipToIsConfirmed?: boolean;
 }
 
 export interface BranchingLogic {
-  branches: Branch[];
+  branches: BranchingLogicBranch[];
   otherwiseSkipTo: string; // 'next' | question ID (internal id) | 'end'
   otherwiseIsConfirmed?: boolean;
 }

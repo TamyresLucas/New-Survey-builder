@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 
 // Generic props for icons
@@ -79,10 +77,8 @@ export const StarRatingIcon: React.FC<IconProps> = ({ className, style }) => <Ma
 export const TextHighlighterIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="format_ink_highlighter" className={className} style={style} />;
 export const TimerIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="timer" className={className} style={style} />;
 export const SunIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="light_mode" className={className} style={style} />;
-// Fix: Corrected corrupted export for MoonIcon.
 export const MoonIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="dark_mode" className={className} style={style} />;
 export const SparkleIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="auto_awesome" className={className} style={style} />;
-// Fix: Add missing icon definitions for GeminiPanel
 export const SendIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="send" className={className} style={style} />;
 export const LoaderIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="progress_activity" className={className} style={style} />;
 export const AccountCircleIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="account_circle" className={className} style={style} />;

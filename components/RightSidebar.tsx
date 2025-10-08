@@ -1,5 +1,5 @@
 import React, { memo, useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, Branch, BranchingCondition, LogicIssue } from '../types';
+import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue } from '../types';
 import { QuestionType } from '../types';
 import { generateId, parseChoice, CHOICE_BASED_QUESTION_TYPES, truncate } from '../utils';
 import { PasteChoicesModal } from './PasteChoicesModal';
@@ -168,7 +168,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
   const isChoiceBased = useMemo(() => CHOICE_BASED_QUESTION_TYPES.has(question.type), [question.type]);
 
   const availableTabs = useMemo(() => {
-    // The Advanced tab is always available as it now contains Branching Logic.
+    // The Advanced tab is always available as it now contains Advanced Logic.
     // Specific advanced options for question types will appear conditionally within the tab.
     return ['Settings', 'Behavior', 'Advanced', 'Preview'];
   }, []);
@@ -1007,7 +1007,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
     return (
       <div className="space-y-8">
         {(isChoiceBased || question.type === QuestionType.TextEntry) && (
-            <CollapsibleSection title="Advanced Options" defaultExpanded={true}>
+            <CollapsibleSection title="Display & Layout" defaultExpanded={true}>
                 <div className="divide-y divide-outline-variant">
                     {isChoiceBased && (
                     <div className="py-6 first:pt-0">{renderChoiceBasedAdvancedTab()}</div>
@@ -1018,7 +1018,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                 </div>
             </CollapsibleSection>
         )}
-        <CollapsibleSection title="Branching Logic" defaultExpanded={true}>
+        <CollapsibleSection title="Advanced Logic" defaultExpanded={true}>
             <div className="divide-y divide-outline-variant">
                 <div className="py-6 first:pt-0">
                     <BranchingLogicEditor
@@ -1030,6 +1030,16 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                     onAddLogic={ensureSidebarIsExpanded}
                     onRequestGeminiHelp={onRequestGeminiHelp}
                     />
+                </div>
+                <div className="py-6 first:pt-0">
+                    <div>
+                        <h3 className="text-sm font-medium text-on-surface mb-1">Workflow</h3>
+                        <p className="text-xs text-on-surface-variant mb-3">Automate tasks and integrate with other services.</p>
+                        <button className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors disabled:text-on-surface-variant disabled:no-underline disabled:cursor-not-allowed" disabled>
+                            <PlusIcon className="text-base" />
+                            Add Workflow (Coming Soon)
+                        </button>
+                    </div>
                 </div>
             </div>
         </CollapsibleSection>
@@ -1124,7 +1134,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
 // =================================================================
 // SHARED LOGIC ROW COMPONENT
 // =================================================================
-interface LogicConditionRowProps<T extends DisplayLogicCondition | BranchingCondition> {
+interface LogicConditionRowProps<T extends DisplayLogicCondition | BranchingLogicCondition> {
     condition: T;
     onUpdateCondition: (field: keyof T, value: any) => void;
     onRemoveCondition: () => void;
@@ -1134,7 +1144,7 @@ interface LogicConditionRowProps<T extends DisplayLogicCondition | BranchingCond
     invalidFields?: Set<keyof T>;
 }
 
-const LogicConditionRow = <T extends DisplayLogicCondition | BranchingCondition>({ condition, onUpdateCondition, onRemoveCondition, onConfirm, previousQuestions, issues, invalidFields = new Set() }: LogicConditionRowProps<T>) => {
+const LogicConditionRow = <T extends DisplayLogicCondition | BranchingLogicCondition>({ condition, onUpdateCondition, onRemoveCondition, onConfirm, previousQuestions, issues, invalidFields = new Set() }: LogicConditionRowProps<T>) => {
     const referencedQuestion = useMemo(() => previousQuestions.find(q => q.qid === condition.questionId), [previousQuestions, condition.questionId]);
     const isNumericInput = referencedQuestion?.type === QuestionType.NumericAnswer;
     const isChoiceBasedInput = referencedQuestion && CHOICE_BASED_QUESTION_TYPES.has(referencedQuestion.type);
@@ -1996,7 +2006,7 @@ const BranchingLogicEditor: React.FC<{
     const [isPasting, setIsPasting] = useState(false);
     const branchingLogic = question.draftBranchingLogic ?? question.branchingLogic;
     const [collapsedBranches, setCollapsedBranches] = useState<Set<string>>(new Set());
-    const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof BranchingCondition | 'thenSkipTo' | 'otherwiseSkipTo'>>>(new Map());
+    const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof BranchingLogicCondition | 'thenSkipTo' | 'otherwiseSkipTo'>>>(new Map());
 
     useEffect(() => {
         // Reset paste forms when switching questions
@@ -2017,9 +2027,9 @@ const BranchingLogicEditor: React.FC<{
         });
     };
 
-    const validateAndParseConditions = (text: string): { success: boolean; error?: string; conditions?: BranchingCondition[] } => {
+    const validateAndParseConditions = (text: string): { success: boolean; error?: string; conditions?: BranchingLogicCondition[] } => {
         const lines = text.split('\n').filter(line => line.trim());
-        const newConditions: BranchingCondition[] = [];
+        const newConditions: BranchingLogicCondition[] = [];
         const validOperators = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than', 'is_empty', 'is_not_empty'];
     
         for (let i = 0; i < lines.length; i++) {
@@ -2063,7 +2073,7 @@ const BranchingLogicEditor: React.FC<{
                  return { success: false, error: `Line ${lineNum}: Operator "${operator}" does not need a value.` };
             }
     
-            newConditions.push({ id: generateId('cond'), questionId: qid, operator: operatorCleaned as BranchingCondition['operator'], value: value.trim(), isConfirmed: true });
+            newConditions.push({ id: generateId('cond'), questionId: qid, operator: operatorCleaned as BranchingLogicCondition['operator'], value: value.trim(), isConfirmed: true });
         }
         
         if (newConditions.length === 0) {
@@ -2080,7 +2090,7 @@ const BranchingLogicEditor: React.FC<{
         }
 
         const newBranchId = generateId('branch');
-        const newBranch: Branch = {
+        const newBranch: BranchingLogicBranch = {
             id: newBranchId,
             operator: 'AND',
             conditions: validationResult.conditions,
@@ -2126,7 +2136,7 @@ const BranchingLogicEditor: React.FC<{
 
     const handleAddBranch = () => {
         if (!branchingLogic) return;
-        const newBranch: Branch = {
+        const newBranch: BranchingLogicBranch = {
             id: generateId('branch'),
             operator: 'AND',
             conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
@@ -2156,7 +2166,7 @@ const BranchingLogicEditor: React.FC<{
         }
     };
 
-    const handleUpdateBranch = (branchId: string, field: keyof Branch, value: any) => {
+    const handleUpdateBranch = (branchId: string, field: keyof BranchingLogicBranch, value: any) => {
         if (!branchingLogic) return;
         const newBranches = branchingLogic.branches.map(b => {
             if (b.id === branchId) {
@@ -2189,7 +2199,7 @@ const BranchingLogicEditor: React.FC<{
 
     const handleAddCondition = (branchId: string) => {
         if (!branchingLogic) return;
-        const newCondition: BranchingCondition = { id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false };
+        const newCondition: BranchingLogicCondition = { id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false };
         onUpdate({
             branchingLogic: {
                 ...branchingLogic,
@@ -2206,7 +2216,7 @@ const BranchingLogicEditor: React.FC<{
         const condition = branch?.conditions.find(c => c.id === conditionId);
         if (!condition) return;
 
-        const tempErrors = new Set<keyof BranchingCondition>();
+        const tempErrors = new Set<keyof BranchingLogicCondition>();
         if (!condition.questionId) tempErrors.add('questionId');
         if (!condition.operator) tempErrors.add('operator');
         const requiresValue = !['is_empty', 'is_not_empty'].includes(condition.operator);
@@ -2299,7 +2309,7 @@ const BranchingLogicEditor: React.FC<{
         });
     };
 
-    const handleUpdateCondition = (branchId: string, conditionId: string, field: keyof BranchingCondition, value: any) => {
+    const handleUpdateCondition = (branchId: string, conditionId: string, field: keyof BranchingLogicCondition, value: any) => {
         if (!branchingLogic) return;
 
         const newBranches = branchingLogic.branches.map(b => {
@@ -2355,8 +2365,8 @@ const BranchingLogicEditor: React.FC<{
                         onSave={handlePasteInitialBranch}
                         onCancel={() => setIsPasting(false)}
                         placeholder={"Q1 equals Yes\nQ2 not_equals 5"}
-                        primaryActionLabel="Add Branch Logic"
-                        disclosureText="Branching logic requires advanced syntax;"
+                        primaryActionLabel="Add Branching Logic"
+                        disclosureText="Advanced logic requires specific syntax;"
                         helpTopic="Branching Logic"
                         onRequestGeminiHelp={onRequestGeminiHelp}
                     />
@@ -2433,9 +2443,7 @@ const BranchingLogicEditor: React.FC<{
                                                 onRemoveCondition={() => handleRemoveCondition(branch.id, condition.id)}
                                                 onConfirm={() => handleConfirmCondition(branch.id, condition.id)}
                                                 previousQuestions={previousQuestions}
-                                                // FIX: Cast validationErrors for this condition to the specific type expected by LogicConditionRow.
-                                                // The parent state `validationErrors` has a broader type to accommodate other logic errors.
-                                                invalidFields={validationErrors.get(condition.id) as Set<keyof BranchingCondition>}
+                                                invalidFields={validationErrors.get(condition.id) as Set<keyof BranchingLogicCondition>}
                                             />
                                         ))}
                                     </div>

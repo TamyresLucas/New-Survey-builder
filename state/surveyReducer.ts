@@ -54,16 +54,18 @@ export function surveyReducer(state: Survey, action: Action): Survey {
         case SurveyActionType.UPDATE_QUESTION: {
             const { questionId, updates } = action.payload;
             let originalQuestion: Question | undefined;
-            
+            let questionInState: Question | undefined;
+
             for (const block of newState.blocks) {
                 const q = block.questions.find((q: Question) => q.id === questionId);
                 if (q) {
                   originalQuestion = JSON.parse(JSON.stringify(q));
+                  questionInState = q;
                   break;
                 }
             }
     
-            if (!originalQuestion) return state;
+            if (!originalQuestion || !questionInState) return state;
     
             const finalUpdates = { ...updates };
             
@@ -110,14 +112,47 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             if (updates.type && !CHOICE_BASED_QUESTION_TYPES.has(updates.type)) {
                 finalUpdates.choices = undefined;
             }
-    
-            for (const block of newState.blocks) {
-                const questionIndex = block.questions.findIndex((q: Question) => q.id === questionId);
-                if (questionIndex !== -1) {
-                    block.questions[questionIndex] = { ...block.questions[questionIndex], ...finalUpdates };
-                    break;
+            
+            // --- DRAFT LOGIC HANDLING ---
+            if (finalUpdates.displayLogic) {
+                questionInState.draftDisplayLogic = finalUpdates.displayLogic;
+                const allConfirmed = questionInState.draftDisplayLogic.conditions?.every(c => c.isConfirmed);
+                if (allConfirmed) {
+                    questionInState.displayLogic = questionInState.draftDisplayLogic;
+                    delete questionInState.draftDisplayLogic;
                 }
+                delete finalUpdates.displayLogic;
             }
+            if (finalUpdates.skipLogic) {
+                questionInState.draftSkipLogic = finalUpdates.skipLogic;
+                let allConfirmed = false;
+                if (questionInState.draftSkipLogic.type === 'simple') {
+                    allConfirmed = questionInState.draftSkipLogic.isConfirmed === true;
+                } else if (questionInState.draftSkipLogic.type === 'per_choice') {
+                    allConfirmed = questionInState.draftSkipLogic.rules?.every(r => r.isConfirmed === true);
+                }
+                if (allConfirmed) {
+                    questionInState.skipLogic = questionInState.draftSkipLogic;
+                    delete questionInState.draftSkipLogic;
+                }
+                delete finalUpdates.skipLogic;
+            }
+            if (finalUpdates.branchingLogic) {
+                questionInState.draftBranchingLogic = finalUpdates.branchingLogic;
+                const allConfirmed = questionInState.draftBranchingLogic.otherwiseIsConfirmed === true &&
+                                     questionInState.draftBranchingLogic.branches?.every(b => 
+                                        b.thenSkipToIsConfirmed === true &&
+                                        b.conditions.every(c => c.isConfirmed === true)
+                                     );
+                if (allConfirmed) {
+                    questionInState.branchingLogic = questionInState.draftBranchingLogic;
+                    delete questionInState.draftBranchingLogic;
+                }
+                delete finalUpdates.branchingLogic;
+            }
+
+
+            Object.assign(questionInState, finalUpdates);
 
             return updates.type || finalUpdates.choices ? renumberSurveyVariables(newState) : newState;
         }
@@ -518,7 +553,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 if (questionToClean) break;
             }
 
-            if (!questionToClean) return state; // No change if question not found
+            if (!questionToClean) return state;
 
             // Clean Display Logic
             if (questionToClean.displayLogic) {
@@ -529,6 +564,11 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                     questionToClean.displayLogic = undefined;
                 }
             }
+             // Clean up draft logic
+            delete questionToClean.draftDisplayLogic;
+            delete questionToClean.draftSkipLogic;
+            delete questionToClean.draftBranchingLogic;
+
 
             // Clean Skip Logic
             if (questionToClean.skipLogic) {

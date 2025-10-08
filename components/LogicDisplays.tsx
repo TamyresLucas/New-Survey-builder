@@ -43,7 +43,7 @@ const formatCondition = (condition: DisplayLogicCondition | BranchingCondition, 
 
 // --- Display Logic Component ---
 export const DisplayLogicDisplay: React.FC<{ logic: DisplayLogic; survey: Survey; onClick: () => void }> = ({ logic, survey, onClick }) => {
-    const confirmedConditions = logic.conditions.filter(c => c.isConfirmed !== false);
+    const confirmedConditions = logic.conditions.filter(c => c.isConfirmed === true);
 
     if (confirmedConditions.length === 0) {
         return null;
@@ -116,7 +116,7 @@ export const SkipLogicDisplay: React.FC<{ logic: SkipLogic; currentQuestion: Que
 // --- Branching Logic Component ---
 export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Survey; onClick: () => void }> = ({ logic, survey, onClick }) => {
     const hasAnyConfirmedLogic = logic.branches.some(branch =>
-        (branch.thenSkipToIsConfirmed && branch.conditions.some(c => c.isConfirmed !== false))
+        (branch.thenSkipToIsConfirmed && branch.conditions.some(c => c.isConfirmed === true))
     ) || logic.otherwiseIsConfirmed;
     
     if (!hasAnyConfirmedLogic) {
@@ -134,7 +134,7 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
             </div>
             <div className="pl-2 space-y-2 text-sm">
                 {logic.branches.map((branch) => {
-                    const confirmedConditions = branch.conditions.filter(c => c.isConfirmed !== false);
+                    const confirmedConditions = branch.conditions.filter(c => c.isConfirmed === true);
                     if (confirmedConditions.length === 0 || !branch.thenSkipToIsConfirmed) return null;
                     return (
                         <div key={branch.id} className="p-2 bg-surface rounded-md">

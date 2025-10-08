@@ -172,6 +172,11 @@ export interface Question {
   carryForwardStatements?: CarryForwardLogic;
   carryForwardScalePoints?: CarryForwardLogic;
   branchingLogic?: BranchingLogic;
+
+  // --- NEW DRAFT LOGIC PROPERTIES ---
+  draftDisplayLogic?: DisplayLogic;
+  draftSkipLogic?: SkipLogic;
+  draftBranchingLogic?: BranchingLogic;
 }
 
 export interface Block {

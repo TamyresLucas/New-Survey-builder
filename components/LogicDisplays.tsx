@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Survey, Question, DisplayLogic, SkipLogic, BranchingLogic, DisplayLogicCondition, BranchingCondition } from '../types';
+import type { Survey, Question, DisplayLogic, SkipLogic, BranchingLogic, DisplayLogicCondition, BranchingLogicCondition } from '../types';
 import { EyeIcon, ArrowRightAltIcon, CallSplitIcon } from './icons';
 import { truncate, parseChoice } from '../utils';
 
@@ -22,7 +22,7 @@ const formatDestination = (destination: string, survey: Survey): string => {
 };
 
 // Helper to format a single condition
-const formatCondition = (condition: DisplayLogicCondition | BranchingCondition, survey: Survey): string => {
+const formatCondition = (condition: DisplayLogicCondition | BranchingLogicCondition, survey: Survey): string => {
     const question = findQuestionByQid(survey, condition.questionId);
     const qText = question ? question.qid : 'Unknown Q';
     const operatorMap = {
@@ -130,7 +130,7 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
         >
             <div className="flex items-center gap-2 mb-2">
                 <CallSplitIcon className="text-lg text-primary" />
-                <h4 className="text-sm font-bold text-on-surface">Branching Logic</h4>
+                <h4 className="text-sm font-bold text-on-surface">Advanced Logic</h4>
             </div>
             <div className="pl-2 space-y-2 text-sm">
                 {logic.branches.map((branch) => {

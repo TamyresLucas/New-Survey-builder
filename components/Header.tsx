@@ -125,14 +125,14 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
                 onChange={(e) => setTitleValue(e.target.value)}
                 onBlur={handleTitleSave}
                 onKeyDown={handleTitleKeyDown}
-                className="text-base font-semibold bg-surface-container-highest border-b border-primary focus:outline-none ml-4"
-                style={{ fontFamily: "'Open Sans', sans-serif" }}
+                className="text-base font-medium bg-surface-container-highest border-b border-primary focus:outline-none ml-4"
+                style={{ fontFamily: "'Outfit', sans-serif" }}
             />
         ) : (
             <h1 
                 onClick={() => setIsEditingTitle(true)}
-                className="text-base font-semibold text-on-surface ml-4 cursor-pointer" 
-                style={{ fontFamily: "'Open Sans', sans-serif" }}
+                className="text-base font-medium text-on-surface ml-4 cursor-pointer" 
+                style={{ fontFamily: "'Outfit', sans-serif" }}
             >
                 {surveyName}
             </h1>

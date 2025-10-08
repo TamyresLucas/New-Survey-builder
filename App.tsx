@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, useRef, useCallback, useReducer, useEffect } from 'react';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
@@ -529,7 +525,6 @@ const App: React.FC = () => {
                   toolboxItems={toolboxItems}
                   collapsedBlocks={collapsedBlocks}
                   onToggleBlockCollapse={handleToggleBlockCollapse}
-                  // FIX: Pass the correct handler function `handleCopyBlock` instead of `onCopyBlock`.
                   onCopyBlock={handleCopyBlock}
                   onExpandAllBlocks={handleExpandAllBlocks}
                   onCollapseAllBlocks={handleCollapseAllBlocks}

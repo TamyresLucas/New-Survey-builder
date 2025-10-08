@@ -142,7 +142,7 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
                                 issues.push({
                                     questionId: question.id,
                                     type: 'branching',
-                                    message: `Branch logic cannot depend on a future question (${sourceQuestion.qid}).`,
+                                    message: `Advanced logic cannot depend on a future question (${sourceQuestion.qid}).`,
                                     sourceId: condition.id,
                                     field: 'questionId',
                                 });

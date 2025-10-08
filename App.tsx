@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useReducer, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useReducer, useEffect, useMemo } from 'react';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
 import LeftSidebar from './components/LeftSidebar';
@@ -444,7 +444,15 @@ const App: React.FC = () => {
   const handleBulkForceResponse = useCallback(() => {
     dispatch({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { forceResponse: true } } });
   }, [checkedQuestions]);
+
+  const handleBulkUnforceResponse = useCallback(() => {
+    dispatch({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { forceResponse: false } } });
+  }, [checkedQuestions]);
   
+  const handleAddToLibrary = useCallback(() => {
+    alert('Add to Library functionality not implemented.');
+  }, []);
+
   // Deselect single question when bulk selecting
   useEffect(() => {
     if (checkedQuestions.size >= 2 && selectedQuestion) {
@@ -453,6 +461,23 @@ const App: React.FC = () => {
   }, [checkedQuestions.size, selectedQuestion, handleSelectQuestion]);
 
   const showBulkEditPanel = checkedQuestions.size >= 2;
+
+  // Memoize selected question objects for performance
+  const selectedQuestionObjects = useMemo(() => {
+    if (checkedQuestions.size === 0) return [];
+    const allQuestions = survey.blocks.flatMap(b => b.questions);
+    return allQuestions.filter(q => checkedQuestions.has(q.id));
+  }, [checkedQuestions, survey.blocks]);
+
+  // Show "Make Optional" if at least one selected question is required
+  const showUnforceResponse = useMemo(() => {
+    return selectedQuestionObjects.some(q => q.forceResponse === true);
+  }, [selectedQuestionObjects]);
+
+  // Show "Force Response" if at least one selected question is optional
+  const showForceResponse = useMemo(() => {
+    return selectedQuestionObjects.some(q => !q.forceResponse);
+  }, [selectedQuestionObjects]);
 
   return (
     <div className="flex flex-col h-screen bg-surface text-on-surface">
@@ -474,10 +499,13 @@ const App: React.FC = () => {
                   onClose={() => setIsBuildPanelOpen(false)}
                   onSelectQuestion={handleSelectQuestion}
                   selectedQuestion={selectedQuestion}
+                  checkedQuestions={checkedQuestions}
+                  collapsedBlocks={collapsedBlocks}
                   toolboxItems={toolboxItems}
                   onReorderToolbox={handleReorderToolbox}
                   onReorderQuestion={handleReorderQuestion}
                   onReorderBlock={handleReorderBlock}
+                  onAddBlock={handleAddBlock}
                   onCopyBlock={handleCopyBlock}
                   onAddQuestionToBlock={handleAddQuestionToBlock}
                   onExpandAllBlocks={handleExpandAllBlocks}
@@ -534,6 +562,7 @@ const App: React.FC = () => {
                   onAddPageBreakAfterQuestion={handleAddPageBreakAfterQuestion}
                   onUpdateBlockTitle={handleUpdateBlockTitle}
                   onUpdateSurveyTitle={handleUpdateSurveyTitle}
+                  onAddFromLibrary={handleAddToLibrary}
                 />
               </div>
 
@@ -551,12 +580,15 @@ const App: React.FC = () => {
                     checkedQuestionCount={checkedQuestions.size}
                     onClose={handleClearSelection}
                     onDuplicate={handleBulkDuplicate}
-                    onAddToLibrary={() => alert('Add to Library functionality not implemented.')}
+                    onAddToLibrary={handleAddToLibrary}
                     onMoveQuestions={() => alert('Move Questions functionality not implemented.')}
                     onMoveToNewBlock={handleBulkMoveToNewBlock}
                     onHideQuestion={handleBulkHideQuestion}
                     onHideBackButton={handleBulkHideBackButton}
                     onForceResponse={handleBulkForceResponse}
+                    showForceResponse={showForceResponse}
+                    onUnforceResponse={handleBulkUnforceResponse}
+                    showUnforceResponse={showUnforceResponse}
                     onDelete={handleBulkDelete}
                   />
                 ) : selectedQuestion ? (

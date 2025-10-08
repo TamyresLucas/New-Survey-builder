@@ -52,6 +52,7 @@ export interface DisplayLogicCondition {
   id: string;
   questionId: string; // This is the QID, e.g., "Q1"
   operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty' | '';
+  // FIX: Add missing 'value' property to support logic conditions.
   value: string;
   isConfirmed?: boolean;
 }
@@ -127,6 +128,12 @@ export interface Question {
   isHidden?: boolean;
   hideBackButton?: boolean;
   forceResponse?: boolean;
+
+  // New property for choice-based validation
+  choiceValidation?: {
+    minSelections?: number | null;
+    maxSelections?: number | null;
+  };
 
   // New properties for Text Entry
   textEntrySettings?: {

@@ -124,6 +124,120 @@ const CopyAndPasteButton: React.FC<{ onClick: () => void; className?: string }> 
 );
 
 
+const ForceResponseSection: React.FC<{
+    question: Question;
+    handleUpdate: (updates: Partial<Question>) => void;
+}> = ({ question, handleUpdate }) => {
+    const { forceResponse = false } = question;
+
+    const handleUpdateChoiceValidation = (key: 'minSelections' | 'maxSelections', value: string) => {
+        const numValue = value ? parseInt(value, 10) : null;
+        handleUpdate({
+            choiceValidation: {
+                ...question.choiceValidation,
+                [key]: numValue,
+            }
+        });
+    };
+    
+    const handleTextValidationUpdate = (key: 'minLength' | 'maxLength', value: string) => {
+        const numValue = value ? parseInt(value, 10) : null;
+        handleUpdate({
+            textEntrySettings: {
+                ...question.textEntrySettings,
+                validation: {
+                    ...question.textEntrySettings?.validation,
+                    [key]: numValue,
+                }
+            }
+        });
+    };
+
+    return (
+        <div>
+            <div className="flex items-center justify-between">
+                <div className="flex-1">
+                    <label htmlFor="require-answer" className="text-sm font-medium text-on-surface block">
+                        Require Answer
+                    </label>
+                    <p className="text-xs text-on-surface-variant mt-0.5">Respondent must answer to continue</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="require-answer" checked={forceResponse} onChange={(e) => handleUpdate({ forceResponse: e.target.checked })} className="sr-only peer" />
+                    <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+            </div>
+            {forceResponse && (
+                <div className="mt-4 pl-4 border-l-2 border-outline-variant">
+                    {question.type === QuestionType.Checkbox && (
+                        <div>
+                            <label className="block text-sm font-medium text-on-surface-variant mb-2">Number of Selections</label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label htmlFor="min-selections" className="block text-xs font-medium text-on-surface-variant mb-1">Minimum</label>
+                                    <input
+                                        type="number"
+                                        id="min-selections"
+                                        min="0"
+                                        value={question.choiceValidation?.minSelections ?? ''}
+                                        onChange={(e) => handleUpdateChoiceValidation('minSelections', e.target.value)}
+                                        className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                                        placeholder="e.g., 1"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="max-selections" className="block text-xs font-medium text-on-surface-variant mb-1">Maximum</label>
+                                    <input
+                                        type="number"
+                                        id="max-selections"
+                                        min="1"
+                                        value={question.choiceValidation?.maxSelections ?? ''}
+                                        onChange={(e) => handleUpdateChoiceValidation('maxSelections', e.target.value)}
+                                        className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                                        placeholder={`e.g., ${question.choices?.length || 3}`}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {question.type === QuestionType.TextEntry && (
+                        <div>
+                            <label className="block text-sm font-medium text-on-surface-variant mb-2">Character Length</label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label htmlFor="min-length" className="block text-xs font-medium text-on-surface-variant mb-1">Minimum</label>
+                                    <input
+                                        type="number"
+                                        id="min-length"
+                                        min="0"
+                                        value={question.textEntrySettings?.validation?.minLength ?? ''}
+                                        onChange={(e) => handleTextValidationUpdate('minLength', e.target.value)}
+                                        className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                                        placeholder="0"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="max-length" className="block text-xs font-medium text-on-surface-variant mb-1">Maximum</label>
+                                    <input
+                                        type="number"
+                                        id="max-length"
+                                        min="1"
+                                        value={question.textEntrySettings?.validation?.maxLength ?? ''}
+                                        onChange={(e) => handleTextValidationUpdate('maxLength', e.target.value)}
+                                        className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                                        placeholder="5000"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
+
 const RightSidebar: React.FC<RightSidebarProps> = memo(({
   question,
   survey,
@@ -154,15 +268,25 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
   const previousQuestions = useMemo(() => 
       allSurveyQuestions
           .slice(0, currentQuestionIndex)
-          .filter(q => q.type !== QuestionType.PageBreak && q.type !== QuestionType.Description && !q.isHidden),
-      [allSurveyQuestions, currentQuestionIndex]
+          .filter(q => 
+              q.id !== question.id &&
+              q.type !== QuestionType.PageBreak && 
+              q.type !== QuestionType.Description && 
+              !q.isHidden
+          ),
+      [allSurveyQuestions, currentQuestionIndex, question.id]
   );
   
   const followingQuestions = useMemo(() => 
       allSurveyQuestions
           .slice(currentQuestionIndex + 1)
-          .filter(q => q.type !== QuestionType.PageBreak && q.type !== QuestionType.Description && !q.isHidden),
-      [allSurveyQuestions, currentQuestionIndex]
+          .filter(q => 
+              q.id !== question.id &&
+              q.type !== QuestionType.PageBreak && 
+              q.type !== QuestionType.Description && 
+              !q.isHidden
+          ),
+      [allSurveyQuestions, currentQuestionIndex, question.id]
   );
 
   const isChoiceBased = useMemo(() => CHOICE_BASED_QUESTION_TYPES.has(question.type), [question.type]);
@@ -343,24 +467,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                 <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
             </div>
     
-            <div className="flex items-center justify-between">
-                <div>
-                <label htmlFor="allow-multiple" className="text-sm font-medium text-on-surface">
-                    Allow Multiple Answers
-                </label>
-                <p className="text-xs text-on-surface-variant mt-0.5">Convert to Checkbox question type</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                    type="checkbox"
-                    id="allow-multiple"
-                    checked={question.type === QuestionType.Checkbox}
-                    onChange={(e) => handleUpdate({ type: e.target.checked ? QuestionType.Checkbox : QuestionType.Radio })}
-                    className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                </label>
-            </div>
+            <ForceResponseSection question={question} handleUpdate={handleUpdate} />
             
             <div>
                 <label htmlFor="answer-format" className="block text-sm font-medium text-on-surface-variant mb-1">Answer Format</label>
@@ -648,6 +755,9 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                 </div>
                 <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
             </div>
+            
+            <ForceResponseSection question={question} handleUpdate={handleUpdate} />
+
             <div>
                 <label htmlFor="content-type" className="block text-sm font-medium text-on-surface-variant mb-1">Content Type Validation</label>
                 <div className="relative">
@@ -721,51 +831,6 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                     className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
                     placeholder="e.g., Enter your answer here..."
                 />
-            </div>
-
-             <div>
-                <h3 className="text-sm font-medium text-on-surface mb-3">Validation</h3>
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex-1">
-                    <label htmlFor="require-answer" className="text-sm font-medium text-on-surface block">Require Answer</label>
-                    <p className="text-xs text-on-surface-variant mt-0.5">Respondent must answer to continue</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="require-answer" checked={question.forceResponse || false} onChange={(e) => handleUpdate({ forceResponse: e.target.checked })} className="sr-only peer" />
-                    <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                    </label>
-                </div>
-                {question.forceResponse && (
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-on-surface-variant mb-2">Character Length</label>
-                        <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label htmlFor="min-length" className="block text-xs font-medium text-on-surface-variant mb-1">Minimum</label>
-                            <input
-                            type="number"
-                            id="min-length"
-                            min="0"
-                            value={validation.minLength || ''}
-                            onChange={(e) => handleUpdateValidation({ minLength: e.target.value ? parseInt(e.target.value) : null })}
-                            className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-                            placeholder="0"
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="max-length" className="block text-xs font-medium text-on-surface-variant mb-1">Maximum</label>
-                            <input
-                            type="number"
-                            id="max-length"
-                            min="1"
-                            value={validation.maxLength || ''}
-                            onChange={(e) => handleUpdateValidation({ maxLength: e.target.value ? parseInt(e.target.value) : null })}
-                            className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-                            placeholder="5000"
-                            />
-                        </div>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );
@@ -932,6 +997,55 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
   }
 
   // =================================================================
+  // GENERIC SETTINGS TAB
+  // =================================================================
+  const renderGenericSettingsTab = () => (
+    <div className="space-y-6">
+      <div>
+        <label className="block text-sm font-medium text-on-surface-variant mb-1">
+          Question Type
+        </label>
+        <div className="relative" ref={typeMenuRef}>
+          <button
+            onClick={() => setIsTypeMenuOpen(prev => !prev)}
+            className="w-full flex items-center gap-2 text-left bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+            aria-haspopup="true"
+            aria-expanded={isTypeMenuOpen}
+          >
+            {CurrentQuestionTypeInfo ? <CurrentQuestionTypeInfo.icon className="text-base text-primary flex-shrink-0" /> : <div className="w-4 h-4 mr-3 flex-shrink-0" />}
+            <span className="flex-grow">{question.type}</span>
+            <ChevronDownIcon className="text-lg text-on-surface-variant flex-shrink-0" />
+          </button>
+          {isTypeMenuOpen && (
+            <div className="absolute top-full left-0 right-0 mt-1 z-10">
+              <QuestionTypeSelectionMenuContent onSelect={handleTypeSelect} toolboxItems={toolboxItems} />
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
+      </div>
+
+      <ForceResponseSection question={question} handleUpdate={handleUpdate} />
+      
+      <div>
+        <label htmlFor="question-text" className="block text-sm font-medium text-on-surface-variant mb-1">
+          Question Text
+        </label>
+        <textarea
+          id="question-text"
+          value={questionText}
+          onChange={(e) => setQuestionText(e.target.value)}
+          onBlur={handleTextBlur}
+          rows={4}
+          className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+          placeholder="Enter your question here..."
+        />
+        <p className="text-xs text-on-surface-variant mt-1">Maximum 5000 characters</p>
+      </div>
+    </div>
+  );
+
+  // =================================================================
   // NEW BEHAVIOR TAB IMPLEMENTATION
   // =================================================================
   
@@ -1057,7 +1171,10 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
         case 'Settings':
             if (isChoiceBased) return renderChoiceBasedSettingsTab();
             if (question.type === QuestionType.TextEntry) return renderTextEntrySettingsTab();
-            return null;
+            if (question.type !== QuestionType.Description && question.type !== QuestionType.PageBreak) {
+                return renderGenericSettingsTab();
+            }
+            return <p className="text-sm text-on-surface-variant text-center mt-4">This question type has no editable settings.</p>;
         case 'Behavior':
             return renderBehaviorTab();
         case 'Advanced':
@@ -1168,11 +1285,19 @@ const LogicConditionRow = <T extends DisplayLogicCondition | BranchingLogicCondi
         switch(referencedQuestion.type) {
             case QuestionType.Radio:
             case QuestionType.Checkbox:
-            case QuestionType.DropDownList:
-                return [
+            case QuestionType.DropDownList: {
+                let operators = [
                     { value: 'equals', label: 'is selected' }, { value: 'not_equals', label: 'is not selected' },
                     { value: 'is_empty', label: 'is empty' }, { value: 'is_not_empty', label: 'is not empty' },
                 ];
+                
+                // Per user request, filter out empty/not empty for required radio buttons
+                if (referencedQuestion.type === QuestionType.Radio && referencedQuestion.forceResponse) {
+                    operators = operators.filter(op => op.value !== 'is_empty' && op.value !== 'is_not_empty');
+                }
+
+                return operators;
+            }
             case QuestionType.NumericAnswer:
             case QuestionType.Slider:
             case QuestionType.StarRating:

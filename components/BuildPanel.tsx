@@ -9,10 +9,13 @@ interface BuildPanelProps {
   survey: Survey;
   onSelectQuestion: (question: Question | null) => void;
   selectedQuestion: Question | null;
+  checkedQuestions: Set<string>;
+  collapsedBlocks: Set<string>;
   toolboxItems: ToolboxItemData[];
   onReorderToolbox: (items: ToolboxItemData[]) => void;
   onReorderQuestion: (draggedQuestionId: string, targetQuestionId: string | null, targetBlockId: string) => void;
   onReorderBlock: (draggedBlockId: string, targetBlockId: string | null) => void;
+  onAddBlock: (blockId: string, position: 'above' | 'below') => void;
   onCopyBlock: (blockId: string) => void;
   onAddQuestionToBlock: (blockId: string, questionType: QuestionType) => void;
   onExpandAllBlocks: () => void;
@@ -97,8 +100,8 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
 
 
 const BuildPanel: React.FC<BuildPanelProps> = memo(({ 
-  onClose, survey, onSelectQuestion, selectedQuestion, toolboxItems, onReorderToolbox, onReorderQuestion, onReorderBlock,
-  onCopyBlock, onAddQuestionToBlock, onExpandAllBlocks, onCollapseAllBlocks, onDeleteBlock, onDeleteQuestion, onCopyQuestion,
+  onClose, survey, onSelectQuestion, selectedQuestion, checkedQuestions, collapsedBlocks, toolboxItems, onReorderToolbox, onReorderQuestion, onReorderBlock,
+  onAddBlock, onCopyBlock, onAddQuestionToBlock, onExpandAllBlocks, onCollapseAllBlocks, onDeleteBlock, onDeleteQuestion, onCopyQuestion,
   onAddPageBreakAfterQuestion, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock
 }) => {
   const [activeTab, setActiveTab] = useState('Content');
@@ -482,6 +485,16 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             {filteredSurveyBlocks.map(block => {
               const isBlockDragged = draggedBlockId === block.id;
               const showBlockDropIndicator = dropBlockTargetId === block.id;
+
+              // Contextual menu logic
+              const isCollapsed = collapsedBlocks.has(block.id);
+              const selectableQuestions = block.questions.filter(q => q.type !== QTEnum.PageBreak);
+              const selectedQuestionsInBlock = selectableQuestions.filter(q => checkedQuestions.has(q.id));
+              const canSelectAll = selectableQuestions.length > 0 && selectedQuestionsInBlock.length < selectableQuestions.length;
+              const canUnselectAll = selectedQuestionsInBlock.length > 0;
+              const canCollapse = !isCollapsed;
+              const canExpand = isCollapsed;
+
               return (
                 <React.Fragment key={block.id}>
                   {!isSearching && showBlockDropIndicator && <DropIndicator />}
@@ -512,12 +525,18 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                           {openMenuBlockId === block.id && (
                               <BlockActionsMenu
                                   onDuplicate={() => { onCopyBlock(block.id); setOpenMenuBlockId(null); }}
-                                  onAddQuestion={(questionType) => { onAddQuestionToBlock(block.id, questionType); setOpenMenuBlockId(null); }}
-                                  toolboxItems={toolboxItems}
+                                  onAddSimpleQuestion={() => { onAddQuestionToBlock(block.id, QTEnum.Checkbox); setOpenMenuBlockId(null); }}
+                                  onAddFromLibrary={() => { alert('Add from library functionality not implemented.'); setOpenMenuBlockId(null); }}
+                                  onAddBlockAbove={() => { onAddBlock(block.id, 'above'); setOpenMenuBlockId(null); }}
+                                  onAddBlockBelow={() => { onAddBlock(block.id, 'below'); setOpenMenuBlockId(null); }}
                                   onSelectAll={() => { onSelectAllInBlock(block.id); setOpenMenuBlockId(null); }}
+                                  canSelectAll={canSelectAll}
                                   onUnselectAll={() => { onUnselectAllInBlock(block.id); setOpenMenuBlockId(null); }}
+                                  canUnselectAll={canUnselectAll}
                                   onExpand={() => { onExpandBlock(block.id); setOpenMenuBlockId(null); }}
+                                  canExpand={canExpand}
                                   onCollapse={() => { onCollapseBlock(block.id); setOpenMenuBlockId(null); }}
+                                  canCollapse={canCollapse}
                                   onDelete={() => { onDeleteBlock(block.id); setOpenMenuBlockId(null); }}
                               />
                           )}

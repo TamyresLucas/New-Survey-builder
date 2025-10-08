@@ -5,7 +5,8 @@ import {
     DotsHorizontalIcon, RadioIcon, ChevronDownIcon, 
     CheckboxOutlineIcon, XIcon, DragIndicatorIcon, PlusIcon,
     RadioButtonUncheckedIcon,
-    WarningIcon
+    WarningIcon,
+    VisibilityOffIcon
 } from './icons';
 import { QuestionActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
 import { parseChoice } from '../utils';
@@ -257,8 +258,22 @@ const QuestionCard: React.FC<{
             <div className="flex items-center justify-between">
                 <div className="flex items-center text-sm text-on-surface-variant">
                     <span className="font-bold text-on-surface mr-2">{question.qid}</span>
+                    {question.forceResponse && (
+                        <span className="px-2 py-0.5 text-xs font-medium bg-primary-container text-on-primary-container rounded-full">
+                            Required
+                        </span>
+                    )}
+                    {question.isHidden && (
+                        <div className={`relative group/tooltip ${question.forceResponse ? 'ml-2' : ''}`}>
+                            <VisibilityOffIcon className="text-on-surface-variant text-lg" />
+                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
+                                This question is hidden
+                                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
+                            </div>
+                        </div>
+                    )}
                      {hasLogicIssues && (
-                        <div className="relative group/tooltip">
+                        <div className={`relative group/tooltip ${question.forceResponse || question.isHidden ? 'ml-2' : ''}`}>
                             <WarningIcon className="text-error" />
                             <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
                                 <h4 className="font-bold mb-1">Logic Issues:</h4>

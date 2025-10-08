@@ -38,21 +38,22 @@ export const QuestionTypeSelectionMenuContent: React.FC<{
 // Shared Block Actions Menu
 interface BlockActionsMenuProps {
   onDuplicate?: () => void;
-  onAddQuestion?: (questionType: QuestionType) => void;
+  onAddSimpleQuestion?: () => void;
   onAddFromLibrary?: () => void;
   onAddBlockAbove?: () => void;
   onAddBlockBelow?: () => void;
   onSelectAll?: () => void;
+  canSelectAll?: boolean;
   onUnselectAll?: () => void;
+  canUnselectAll?: boolean;
   onExpand?: () => void;
+  canExpand?: boolean;
   onCollapse?: () => void;
+  canCollapse?: boolean;
   onDelete?: () => void;
-  toolboxItems?: ToolboxItemData[];
 }
 
-export const BlockActionsMenu: React.FC<BlockActionsMenuProps> = ({ onDuplicate, onAddQuestion, onAddFromLibrary, onAddBlockAbove, onAddBlockBelow, onSelectAll, onUnselectAll, onExpand, onCollapse, onDelete, toolboxItems }) => {
-  const [isAddQuestionSubMenuOpen, setIsAddQuestionSubMenuOpen] = useState(false);
-  
+export const BlockActionsMenu: React.FC<BlockActionsMenuProps> = ({ onDuplicate, onAddSimpleQuestion, onAddFromLibrary, onAddBlockAbove, onAddBlockBelow, onSelectAll, canSelectAll = true, onUnselectAll, canUnselectAll = true, onExpand, canExpand = true, onCollapse, canCollapse = true, onDelete }) => {
   return (
     <div className="absolute top-full right-0 mt-2 w-48 bg-surface-container border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
       {onDuplicate && (
@@ -64,37 +65,31 @@ export const BlockActionsMenu: React.FC<BlockActionsMenuProps> = ({ onDuplicate,
         </>
       )}
       <div className="py-1">
-        {onAddQuestion && toolboxItems && (
-          <div className="relative" onMouseEnter={() => setIsAddQuestionSubMenuOpen(true)} onMouseLeave={() => setIsAddQuestionSubMenuOpen(false)}>
-            <button className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high flex justify-between items-center">
-                <span>Add new question</span>
-                <ChevronRightIcon className="text-base" />
-            </button>
-            {isAddQuestionSubMenuOpen && (
-                <div className="absolute top-0 left-full ml-1 w-64">
-                    <QuestionTypeSelectionMenuContent onSelect={onAddQuestion} toolboxItems={toolboxItems} />
-                </div>
-            )}
-          </div>
+        {onAddSimpleQuestion && (
+            <button onClick={onAddSimpleQuestion} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add new question</button>
         )}
+        {onAddFromLibrary && <button onClick={onAddFromLibrary} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add from library</button>}
         {onAddBlockAbove && <button onClick={onAddBlockAbove} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add block above</button>}
         {onAddBlockBelow && <button onClick={onAddBlockBelow} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add block below</button>}
-        {onAddFromLibrary && <button onClick={onAddFromLibrary} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add from library</button>}
       </div>
-      <div className="border-t border-dotted border-outline-variant mx-2" />
+      {(canSelectAll || canUnselectAll) && <div className="border-t border-dotted border-outline-variant mx-2" />}
       <div className="py-1">
-        {onSelectAll && <button onClick={onSelectAll} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Select All</button>}
-        {onUnselectAll && <button onClick={onUnselectAll} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Unselect All</button>}
+        {canSelectAll && onSelectAll && <button onClick={onSelectAll} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Select All</button>}
+        {canUnselectAll && onUnselectAll && <button onClick={onUnselectAll} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Unselect All</button>}
       </div>
-      <div className="border-t border-dotted border-outline-variant mx-2" />
+      {(canExpand || canCollapse) && <div className="border-t border-dotted border-outline-variant mx-2" />}
       <div className="py-1">
-        {onExpand && <button onClick={onExpand} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Expand block</button>}
-        {onCollapse && <button onClick={onCollapse} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Collapse block</button>}
+        {canExpand && onExpand && <button onClick={onExpand} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Expand block</button>}
+        {canCollapse && onCollapse && <button onClick={onCollapse} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Collapse block</button>}
       </div>
-      <div className="border-t border-dotted border-outline-variant mx-2" />
-      <div className="py-1">
-        {onDelete && <button onClick={onDelete} className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container">Delete</button>}
-      </div>
+      {onDelete && (
+          <>
+            <div className="border-t border-dotted border-outline-variant mx-2" />
+            <div className="py-1">
+                <button onClick={onDelete} className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container">Delete</button>
+            </div>
+          </>
+      )}
     </div>
   );
 };

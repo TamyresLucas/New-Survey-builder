@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useRef, memo, useCallback } from 'react';
+import React, { useEffect, useState, useRef, memo, useCallback, useMemo } from 'react';
 import type { Block, Question, ToolboxItemData, QuestionType, Choice, Survey, LogicIssue } from '../types';
 import QuestionCard from './QuestionCard';
 import { ChevronDownIcon, DotsHorizontalIcon, DragIndicatorIcon } from './icons';
 import { BlockActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
+import { QuestionType as QTEnum } from '../types';
 
 const DropIndicator = () => (
     <div className="relative h-px w-full bg-primary my-2">
@@ -43,12 +44,13 @@ interface SurveyBlockProps {
     onAddChoice: (questionId: string) => void;
     onAddPageBreakAfterQuestion: (questionId: string) => void;
     onUpdateBlockTitle: (blockId: string, title: string) => void;
+    onAddFromLibrary: () => void;
 }
 
 const SurveyBlock: React.FC<SurveyBlockProps> = memo(({ 
   block, survey, selectedQuestion, checkedQuestions, logicIssues, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
   isBlockDragging, onBlockDragStart, onBlockDragEnd, isCollapsed, onToggleCollapse,
-  onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle
+  onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onAddFromLibrary
 }) => {
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [isToolboxDragOver, setIsToolboxDragOver] = useState(false);
@@ -61,6 +63,29 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
   
   const [isAddQuestionMenuOpen, setIsAddQuestionMenuOpen] = useState(false);
   const addQuestionMenuRef = useRef<HTMLDivElement>(null);
+
+  const selectableQuestions = useMemo(() => 
+      block.questions.filter(q => q.type !== QTEnum.PageBreak), 
+      [block.questions]
+  );
+
+  const selectedQuestionsInBlock = useMemo(() => 
+      selectableQuestions.filter(q => checkedQuestions.has(q.id)),
+      [selectableQuestions, checkedQuestions]
+  );
+
+  const canSelectAll = useMemo(() => 
+      selectableQuestions.length > 0 && selectedQuestionsInBlock.length < selectableQuestions.length,
+      [selectableQuestions.length, selectedQuestionsInBlock.length]
+  );
+
+  const canUnselectAll = useMemo(() => 
+      selectedQuestionsInBlock.length > 0,
+      [selectedQuestionsInBlock.length]
+  );
+
+  const canCollapse = !isCollapsed;
+  const canExpand = isCollapsed;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -227,15 +252,18 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
             {isActionsMenuOpen && (
                 <BlockActionsMenu
                     onDuplicate={() => { onCopyBlock(block.id); setIsActionsMenuOpen(false); }}
-                    onAddQuestion={(questionType) => { onAddQuestionToBlock(block.id, questionType); setIsActionsMenuOpen(false); }}
-                    toolboxItems={toolboxItems}
-                    onAddFromLibrary={() => { alert('Add from library functionality not implemented.'); setIsActionsMenuOpen(false); }}
+                    onAddSimpleQuestion={() => { onAddQuestionToBlock(block.id, QTEnum.Checkbox); setIsActionsMenuOpen(false); }}
+                    onAddFromLibrary={() => { onAddFromLibrary(); setIsActionsMenuOpen(false); }}
                     onAddBlockAbove={() => { onAddBlock(block.id, 'above'); setIsActionsMenuOpen(false); }}
                     onAddBlockBelow={() => { onAddBlock(block.id, 'below'); setIsActionsMenuOpen(false); }}
                     onSelectAll={() => { onSelectAllInBlock(block.id); setIsActionsMenuOpen(false); }}
+                    canSelectAll={canSelectAll}
                     onUnselectAll={() => { onUnselectAllInBlock(block.id); setIsActionsMenuOpen(false); }}
+                    canUnselectAll={canUnselectAll}
                     onExpand={() => { onExpandBlock(block.id); setIsActionsMenuOpen(false); }}
+                    canExpand={canExpand}
                     onCollapse={() => { onCollapseBlock(block.id); setIsActionsMenuOpen(false); }}
+                    canCollapse={canCollapse}
                     onDelete={() => { onDeleteBlock(block.id); setIsActionsMenuOpen(false); }}
                 />
             )}

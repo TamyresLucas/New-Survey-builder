@@ -9,6 +9,7 @@ import {
     HideSourceIcon,
     TaskAltIcon,
     DeleteIcon,
+    ToggleOffIcon,
 } from './icons';
 
 interface BulkEditPanelProps {
@@ -21,6 +22,9 @@ interface BulkEditPanelProps {
   onHideQuestion: () => void;
   onHideBackButton: () => void;
   onForceResponse: () => void;
+  showForceResponse: boolean;
+  onUnforceResponse: () => void;
+  showUnforceResponse: boolean;
   onDelete: () => void;
 }
 
@@ -48,6 +52,9 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
   onHideQuestion,
   onHideBackButton,
   onForceResponse,
+  showForceResponse,
+  onUnforceResponse,
+  showUnforceResponse,
   onDelete
 }) => {
   return (
@@ -68,7 +75,8 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
             <ActionButton icon={CreateNewFolderIcon} label="Move to a new block" onClick={onMoveToNewBlock} />
             <ActionButton icon={VisibilityOffIcon} label="Hide question" onClick={onHideQuestion} />
             <ActionButton icon={HideSourceIcon} label="Hide back button" onClick={onHideBackButton} />
-            <ActionButton icon={TaskAltIcon} label="Force response" onClick={onForceResponse} />
+            {showForceResponse && <ActionButton icon={TaskAltIcon} label="Force response" onClick={onForceResponse} />}
+            {showUnforceResponse && <ActionButton icon={ToggleOffIcon} label="Make Optional" onClick={onUnforceResponse} />}
             <ActionButton icon={DeleteIcon} label="Delete" onClick={onDelete} isDestructive />
         </nav>
       </div>

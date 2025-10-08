@@ -92,6 +92,7 @@ export const VisibilityOffIcon: React.FC<IconProps> = ({ className, style }) => 
 export const HideSourceIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="hide_source" className={className} style={style} />;
 export const TaskAltIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="task_alt" className={className} style={style} />;
 export const DeleteIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="delete" className={className} style={style} />;
+export const ToggleOffIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="toggle_off" className={className} style={style} />;
 
 export const ChevronRightIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="chevron_right" className={className} style={style} />;
 export const MoreVertIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="more_vert" className={className} style={style} />;

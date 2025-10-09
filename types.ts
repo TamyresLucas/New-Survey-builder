@@ -137,7 +137,7 @@ export interface Question {
 
   // New properties for Text Entry
   textEntrySettings?: {
-    answerLength?: 'short' | 'paragraph' | 'essay';
+    answerLength?: 'short' | 'long';
     placeholder?: string;
     validation?: {
       contentType?: 'none' | 'email' | 'phone' | 'number' | 'url' | 'date' | 'postal_code' | 'custom_regex';

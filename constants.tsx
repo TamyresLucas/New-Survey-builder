@@ -63,7 +63,7 @@ export const initialSurveyData: Survey = {
           text: 'How often do you visit our café?',
           type: QuestionType.TextEntry,
           textEntrySettings: {
-            answerLength: 'short',
+            answerLength: 'long',
             placeholder: 'e.g., Once a week'
           }
         },

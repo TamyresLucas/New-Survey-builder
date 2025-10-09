@@ -339,7 +339,7 @@ const QuestionCard: React.FC<{
                     <div className="mt-4">
                         <textarea
                             className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface resize-y cursor-default"
-                            rows={question.textEntrySettings?.answerLength === 'paragraph' ? 4 : question.textEntrySettings?.answerLength === 'essay' ? 8 : 1}
+                            rows={question.textEntrySettings?.answerLength === 'long' ? 8 : 1}
                             placeholder={question.textEntrySettings?.placeholder || ''}
                             readOnly
                         />

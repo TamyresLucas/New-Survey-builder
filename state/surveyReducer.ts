@@ -174,6 +174,12 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 ];
             }
             
+            if (questionType === QTEnum.TextEntry) {
+                newQuestion.textEntrySettings = {
+                    answerLength: 'long',
+                };
+            }
+
             const targetBlock = newState.blocks.find((b: Block) => b.id === targetBlockId);
             if (!targetBlock) return state;
 

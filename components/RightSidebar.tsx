@@ -852,7 +852,6 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
     return (
         <div className="space-y-6">
             <div>
-                <h4 className="text-sm font-semibold text-on-surface uppercase tracking-wide mb-3">Display Options</h4>
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex-1">
                         <label htmlFor="show-char-counter" className="text-sm font-medium text-on-surface block">Show Character Counter</label>
@@ -1161,7 +1160,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                                     <PlusIcon className="text-base" />
                                     Add branch rule
                                 </button>
-                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
+                                <div className="absolute bottom-full mb-2 left-0 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
                                     Send people down different survey paths based on multiple conditions.
                                     <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
                                 </div>
@@ -1199,7 +1198,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                                 <PlusIcon className="text-base" />
                                 Add action
                             </button>
-                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
+                            <div className="absolute bottom-full mb-2 left-0 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
                                 Automate custom tasks or integrations at specific survey moments.
                                 <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
                             </div>
@@ -1221,7 +1220,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                                 <PlusIcon className="text-base" />
                                 Add action
                             </button>
-                             <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
+                             <div className="absolute bottom-full mb-2 left-0 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
                                 Automate custom tasks or integrations at specific survey moments.
                                 <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
                             </div>

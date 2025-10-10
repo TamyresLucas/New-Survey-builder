@@ -52,7 +52,6 @@ export interface DisplayLogicCondition {
   id: string;
   questionId: string; // This is the QID, e.g., "Q1"
   operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty' | '';
-  // FIX: Add missing 'value' property to support logic conditions.
   value: string;
   isConfirmed?: boolean;
 }
@@ -105,7 +104,7 @@ export interface BranchingLogicCondition {
 }
 
 export interface BranchingLogicBranch {
-  id: string;
+  id:string;
   operator: 'AND' | 'OR';
   conditions: BranchingLogicCondition[];
   thenSkipTo: string; // 'next' | question ID (internal id) | 'end'
@@ -116,6 +115,19 @@ export interface BranchingLogic {
   branches: BranchingLogicBranch[];
   otherwiseSkipTo: string; // 'next' | question ID (internal id) | 'end'
   otherwiseIsConfirmed?: boolean;
+}
+
+export interface ActionLogic {
+  id: string;
+  type: string;
+  isConfirmed?: boolean;
+  params?: {
+    [key: string]: any;
+    // For Compute Variable
+    variable?: string;
+    valueType?: 'formula' | 'value';
+    value?: string;
+  };
 }
 
 
@@ -176,11 +188,15 @@ export interface Question {
   carryForwardStatements?: CarryForwardLogic;
   carryForwardScalePoints?: CarryForwardLogic;
   branchingLogic?: BranchingLogic;
+  beforeActions?: ActionLogic[];
+  afterActions?: ActionLogic[];
 
   // --- NEW DRAFT LOGIC PROPERTIES ---
   draftDisplayLogic?: DisplayLogic;
   draftSkipLogic?: SkipLogic;
   draftBranchingLogic?: BranchingLogic;
+  draftBeforeActions?: ActionLogic[];
+  draftAfterActions?: ActionLogic[];
 }
 
 export interface Block {

@@ -1,5 +1,5 @@
 import React, { memo, useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue } from '../types';
+import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, ActionLogic } from '../types';
 import { QuestionType } from '../types';
 import { generateId, parseChoice, CHOICE_BASED_QUESTION_TYPES, truncate } from '../utils';
 import { PasteChoicesModal } from './PasteChoicesModal';
@@ -1126,6 +1126,8 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
 
   const renderAdvancedTab = () => {
     const branchingLogic = question.draftBranchingLogic ?? question.branchingLogic;
+    const beforeActions = question.draftBeforeActions ?? question.beforeActions ?? [];
+    const afterActions = question.draftAfterActions ?? question.afterActions ?? [];
 
     const handleEnableBranching = () => {
         handleUpdate({
@@ -1189,49 +1191,20 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                 <p className="text-xs text-on-surface-variant">Automate tasks, and integrate with other services.</p>
             </div>
             <div className="divide-y divide-outline-variant">
-                {/* BEFORE SHOWING SUBSECTION */}
-                <div className="py-6 first:pt-0">
-                    <h4 className="text-sm font-medium text-on-surface">Before Showing This Question</h4>
-                    <p className="text-xs text-on-surface-variant mt-0.5 mb-3">Set rules or actions triggered before the question is displayed.</p>
-                    <div className="flex items-center gap-4">
-                        <div className="relative group/tooltip inline-block">
-                            <button onClick={() => alert('Add action functionality not implemented.')} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                                <PlusIcon className="text-base" />
-                                Add action
-                            </button>
-                            <div className="absolute bottom-full mb-2 left-0 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
-                                Automate custom tasks or integrations at specific survey moments.
-                                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
-                            </div>
-                        </div>
-                         <button onClick={() => alert('Copy actions functionality not implemented.')} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                            <ContentPasteIcon className="text-base" />
-                            Copy actions from
-                        </button>
-                    </div>
-                </div>
-
-                {/* AFTER ANSWERING SUBSECTION */}
-                <div className="py-6 first:pt-0">
-                    <h4 className="text-sm font-medium text-on-surface">After Answering This Question</h4>
-                    <p className="text-xs text-on-surface-variant mt-0.5 mb-3">Set rules or actions triggered after the question is answered.</p>
-                     <div className="flex items-center gap-4">
-                        <div className="relative group/tooltip inline-block">
-                            <button onClick={() => alert('Add action functionality not implemented.')} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                                <PlusIcon className="text-base" />
-                                Add action
-                            </button>
-                             <div className="absolute bottom-full mb-2 left-0 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
-                                Automate custom tasks or integrations at specific survey moments.
-                                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
-                            </div>
-                        </div>
-                         <button onClick={() => alert('Copy actions functionality not implemented.')} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                            <ContentPasteIcon className="text-base" />
-                            Copy actions from
-                        </button>
-                    </div>
-                </div>
+                <ActionListEditor
+                    title="Before Showing This Question"
+                    description="Set rules or actions triggered before the question is displayed."
+                    actions={beforeActions}
+                    onUpdateActions={(newActions) => handleUpdate({ beforeActions: newActions })}
+                    onAddAction={ensureSidebarIsExpanded}
+                />
+                <ActionListEditor
+                    title="After Answering This Question"
+                    description="Set rules or actions triggered after the question is answered."
+                    actions={afterActions}
+                    onUpdateActions={(newActions) => handleUpdate({ afterActions: newActions })}
+                    onAddAction={ensureSidebarIsExpanded}
+                />
             </div>
         </CollapsibleSection>
         
@@ -1341,18 +1314,17 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
 // =================================================================
 // SHARED LOGIC ROW COMPONENT
 // =================================================================
-interface LogicConditionRowProps<T extends DisplayLogicCondition | BranchingLogicCondition> {
-    condition: T;
-    onUpdateCondition: (field: keyof T, value: any) => void;
+interface LogicConditionRowProps {
+    condition: DisplayLogicCondition | BranchingLogicCondition;
+    onUpdateCondition: (field: keyof (DisplayLogicCondition | BranchingLogicCondition), value: any) => void;
     onRemoveCondition?: () => void;
     onConfirm?: () => void;
     previousQuestions: Question[];
     issues: LogicIssue[];
-    invalidFields?: Set<keyof T>;
+    invalidFields?: Set<keyof (DisplayLogicCondition | BranchingLogicCondition)>;
 }
 
-// FIX: Add explicit return type `: React.ReactElement` and properly typed default value for `invalidFields` to fix multiple TS errors.
-const LogicConditionRow = <T extends DisplayLogicCondition | BranchingLogicCondition>({ condition, onUpdateCondition, onRemoveCondition, onConfirm, previousQuestions, issues, invalidFields = new Set<keyof T>() }: LogicConditionRowProps<T>): React.ReactElement => {
+const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpdateCondition, onRemoveCondition, onConfirm, previousQuestions, issues, invalidFields = new Set() }) => {
     const referencedQuestion = useMemo(() => previousQuestions.find(q => q.qid === condition.questionId), [previousQuestions, condition.questionId]);
     const isNumericInput = referencedQuestion?.type === QuestionType.NumericAnswer;
     const isChoiceBasedInput = referencedQuestion && CHOICE_BASED_QUESTION_TYPES.has(referencedQuestion.type);
@@ -1403,24 +1375,26 @@ const LogicConditionRow = <T extends DisplayLogicCondition | BranchingLogicCondi
                  return defaultOperators;
         }
     }, [referencedQuestion]);
-
-    const getFieldIssue = (fieldName: keyof T) => issues.find(i => i.field === fieldName);
     
-    const questionIssue = getFieldIssue('questionId' as keyof T);
-    const operatorIssue = getFieldIssue('operator' as keyof T);
-    const valueIssue = getFieldIssue('value' as keyof T);
+    type ConditionField = keyof (DisplayLogicCondition | BranchingLogicCondition);
 
-    const questionBorderClass = invalidFields.has('questionId' as keyof T) || questionIssue ? 'border-error' : 'border-outline focus:outline-primary';
-    const operatorBorderClass = invalidFields.has('operator' as keyof T) || operatorIssue ? 'border-error' : 'border-outline focus:outline-primary';
-    const valueBorderClass = invalidFields.has('value' as keyof T) || valueIssue ? 'border-error' : 'border-outline focus:outline-primary';
+    const getFieldIssue = (fieldName: ConditionField) => issues.find(i => i.field === fieldName);
+    
+    const questionIssue = getFieldIssue('questionId');
+    const operatorIssue = getFieldIssue('operator');
+    const valueIssue = getFieldIssue('value');
+
+    const questionBorderClass = invalidFields.has('questionId') || questionIssue ? 'border-error' : 'border-outline focus:outline-primary';
+    const operatorBorderClass = invalidFields.has('operator') || operatorIssue ? 'border-error' : 'border-outline focus:outline-primary';
+    const valueBorderClass = invalidFields.has('value') || valueIssue ? 'border-error' : 'border-outline focus:outline-primary';
 
     const valueIsDisabled = !referencedQuestion || ['is_empty', 'is_not_empty'].includes(condition.operator);
 
     const handleOperatorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newOperator = e.target.value;
-        onUpdateCondition('operator' as keyof T, newOperator);
+        onUpdateCondition('operator', newOperator);
         if (['is_empty', 'is_not_empty'].includes(newOperator)) {
-            onUpdateCondition('value' as keyof T, '');
+            onUpdateCondition('value', '');
         }
     };
 
@@ -1440,7 +1414,7 @@ const LogicConditionRow = <T extends DisplayLogicCondition | BranchingLogicCondi
             <div className="relative group/tooltip w-48 flex-shrink-0">
                 <select 
                     value={condition.questionId} 
-                    onChange={(e) => onUpdateCondition('questionId' as keyof T, e.target.value)} 
+                    onChange={(e) => onUpdateCondition('questionId', e.target.value)} 
                     className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${questionBorderClass}`} 
                     aria-label="Select question"
                 >
@@ -1457,7 +1431,7 @@ const LogicConditionRow = <T extends DisplayLogicCondition | BranchingLogicCondi
                      <div className="relative">
                         <select
                             value={condition.value}
-                            onChange={(e) => onUpdateCondition('value' as keyof T, e.target.value)}
+                            onChange={(e) => onUpdateCondition('value', e.target.value)}
                             className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                             aria-label="Condition value"
                             disabled={valueIsDisabled}
@@ -1473,7 +1447,7 @@ const LogicConditionRow = <T extends DisplayLogicCondition | BranchingLogicCondi
                     <input 
                         type={isNumericInput ? "number" : "text"} 
                         value={condition.value} 
-                        onChange={(e) => onUpdateCondition('value' as keyof T, e.target.value)} 
+                        onChange={(e) => onUpdateCondition('value', e.target.value)} 
                         placeholder="select answer"
                         className={`w-full bg-surface border rounded-md px-2 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                         aria-label="Condition value" 
@@ -1700,7 +1674,7 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         if (validationErrors.has(conditionId)) {
             setValidationErrors(prev => {
                 const newErrors = new Map(prev);
-// FIX: Handle potential undefined from `get` before creating a new Set.
+                // Fix: The new Set() constructor requires an iterable. Using an empty array [] as a fallback instead of an empty object {}.
                 const conditionErrors = new Set(newErrors.get(conditionId) || []);
                 conditionErrors.delete(field);
                 if (conditionErrors.size === 0) {
@@ -1798,7 +1772,7 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
                         key={condition.id || index}
                         condition={condition}
                         issues={issues.filter(i => i.sourceId === condition.id)}
-                        onUpdateCondition={(field: keyof DisplayLogicCondition, value) => handleUpdateCondition(index, field, value)}
+                        onUpdateCondition={(field, value) => handleUpdateCondition(index, field, value)}
                         onRemoveCondition={() => handleRemoveCondition(index)}
                         onConfirm={() => handleConfirmCondition(condition.id)}
                         previousQuestions={previousQuestions}
@@ -2335,10 +2309,10 @@ const BranchingLogicEditor: React.FC<{
                                     <LogicConditionRow
                                         key={condition.id}
                                         condition={condition}
-                                        onUpdateCondition={(field: keyof BranchingLogicCondition, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
+                                        onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
                                         previousQuestions={previousQuestions}
                                         issues={issues.filter(i => i.sourceId === condition.id)}
-                                        invalidFields={validationErrors.get(condition.id) as any}
+                                        invalidFields={validationErrors.get(condition.id)}
                                     />
                                 ))}
                             </div>
@@ -2375,6 +2349,259 @@ const BranchingLogicEditor: React.FC<{
                     invalid={validationErrors.has('otherwise')}
                     followingQuestions={followingQuestions}
                 />
+            </div>
+        </div>
+    );
+};
+
+// =================================================================
+// NEW ACTION EDITOR COMPONENTS
+// =================================================================
+
+const ActionEditor: React.FC<{
+    action: ActionLogic;
+    onUpdate: (updates: Partial<ActionLogic>) => void;
+    onRemove: () => void;
+    onConfirm: () => void;
+    errors?: Set<string>;
+}> = ({ action, onUpdate, onRemove, onConfirm, errors = new Set() }) => {
+    const actionTypes = [
+        "Compute Variable",
+        "Selection",
+        "Send Email",
+        "Set Loop Row",
+        "Create Panelist",
+        "Set Panelist Data",
+        "Panelist Reward",
+        "Set Variable Value",
+        "Resume Last Session",
+        "Set Respondent Result",
+        "Call External API (ExecUrl)",
+        "Parse Text Variable",
+    ];
+
+    const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newType = e.target.value;
+        const updates: Partial<ActionLogic> = { type: newType };
+        
+        if (newType === 'Compute Variable') {
+            updates.params = { variable: '', valueType: 'formula', value: '' };
+        } else {
+            updates.params = {}; // Reset params for other types to avoid stale data
+        }
+
+        onUpdate(updates);
+    };
+
+    const handleParamChange = (paramName: keyof NonNullable<ActionLogic['params']>, value: any) => {
+        onUpdate({
+            params: {
+                ...action.params,
+                [paramName]: value,
+            }
+        });
+    };
+
+    const renderActionParams = () => {
+        switch (action.type) {
+            case 'Compute Variable':
+                return (
+                    <div className="space-y-4 mt-4 text-sm">
+                        <div className="flex items-center gap-4">
+                            <label htmlFor={`variable-${action.id}`} className="w-24 text-on-surface-variant flex-shrink-0">Variable</label>
+                            <input
+                                id={`variable-${action.id}`}
+                                type="text"
+                                value={action.params?.variable || ''}
+                                onChange={(e) => handleParamChange('variable', e.target.value)}
+                                className={`flex-grow bg-surface border rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary ${errors.has('variable') ? 'border-error' : 'border-outline'}`}
+                            />
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <label className="w-24 text-on-surface-variant flex-shrink-0">Value Type</label>
+                            <div className="flex items-center gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name={`valueType-${action.id}`}
+                                        value="formula"
+                                        checked={action.params?.valueType === 'formula'}
+                                        onChange={(e) => handleParamChange('valueType', e.target.value)}
+                                        className="w-4 h-4 accent-primary"
+                                    />
+                                    <span>Formula</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name={`valueType-${action.id}`}
+                                        value="value"
+                                        checked={action.params?.valueType === 'value'}
+                                        onChange={(e) => handleParamChange('valueType', e.target.value)}
+                                        className="w-4 h-4 accent-primary"
+                                    />
+                                    <span>Value</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <label htmlFor={`value-${action.id}`} className="w-24 text-on-surface-variant flex-shrink-0">
+                                {action.params?.valueType === 'formula' ? 'Formula' : 'Value'}
+                            </label>
+                            <input
+                                id={`value-${action.id}`}
+                                type="text"
+                                value={action.params?.value || ''}
+                                onChange={(e) => handleParamChange('value', e.target.value)}
+                                className={`flex-grow bg-surface border rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary ${errors.has('value') ? 'border-error' : 'border-outline'}`}
+                            />
+                        </div>
+                    </div>
+                );
+            default:
+                return null;
+        }
+    };
+
+    return (
+        <div className="p-3 border border-outline-variant rounded-md bg-surface-container">
+            <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-bold text-primary">ACTION</span>
+                <div className="flex items-center gap-1">
+                    <button onClick={onRemove} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-colors" aria-label="Cancel action">
+                        <XIcon className="text-lg" />
+                    </button>
+                    {!action.isConfirmed && (
+                        <button onClick={onConfirm} className="p-1.5 bg-primary text-on-primary rounded-full hover:opacity-90 transition-colors" aria-label="Confirm action">
+                            <CheckmarkIcon className="text-lg" />
+                        </button>
+                    )}
+                </div>
+            </div>
+            
+            <div>
+                <div className="relative">
+                    <select
+                        value={action.type}
+                        onChange={handleTypeChange}
+                        className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none ${errors.has('type') ? 'border-error' : 'border-outline'}`}
+                    >
+                        <option value="">Select action...</option>
+                        {actionTypes.map(type => (
+                            <option key={type} value={type}>{type}</option>
+                        ))}
+                    </select>
+                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                </div>
+                {renderActionParams()}
+            </div>
+        </div>
+    );
+};
+
+const ActionListEditor: React.FC<{
+    actions: ActionLogic[];
+    onUpdateActions: (actions: ActionLogic[]) => void;
+    title: string;
+    description: string;
+    onAddAction: () => void;
+}> = ({ actions, onUpdateActions, title, description, onAddAction }) => {
+    const [validationErrors, setValidationErrors] = useState<Map<string, Set<string>>>(new Map());
+    
+    const handleAddAction = () => {
+        const newAction: ActionLogic = {
+            id: generateId('action'),
+            type: '',
+            isConfirmed: false,
+            params: {},
+        };
+        onUpdateActions([...actions, newAction]);
+        onAddAction();
+    };
+    
+    const handleUpdateAction = (actionId: string, updates: Partial<ActionLogic>) => {
+        if (validationErrors.has(actionId)) {
+            setValidationErrors(prev => {
+                const newErrors = new Map(prev);
+                newErrors.delete(actionId);
+                return newErrors;
+            });
+        }
+        const newActions = actions.map(a => a.id === actionId ? { ...a, ...updates, isConfirmed: false } : a);
+        onUpdateActions(newActions);
+    };
+    
+    const handleRemoveAction = (actionId: string) => {
+        const newActions = actions.filter(a => a.id !== actionId);
+        onUpdateActions(newActions);
+        if (validationErrors.has(actionId)) {
+            setValidationErrors(prev => {
+                const newErrors = new Map(prev);
+                newErrors.delete(actionId);
+                return newErrors;
+            });
+        }
+    };
+    
+    const handleConfirmAction = (actionId: string) => {
+        const actionToConfirm = actions.find(a => a.id === actionId);
+        if (!actionToConfirm) return;
+
+        const errors = new Set<string>();
+        if (!actionToConfirm.type) {
+            errors.add('type');
+        }
+
+        if (actionToConfirm.type === 'Compute Variable') {
+            if (!actionToConfirm.params?.variable?.trim()) errors.add('variable');
+            if (!actionToConfirm.params?.value?.trim()) errors.add('value');
+        }
+        
+        if (errors.size > 0) {
+            setValidationErrors(prev => new Map(prev).set(actionId, errors));
+            return;
+        }
+
+        const newActions = actions.map(a => a.id === actionId ? { ...a, isConfirmed: true } : a);
+        onUpdateActions(newActions);
+        if (validationErrors.has(actionId)) {
+            setValidationErrors(prev => {
+                const newErrors = new Map(prev);
+                newErrors.delete(actionId);
+                return newErrors;
+            });
+        }
+    };
+
+    return (
+        <div className="py-6 first:pt-0">
+            <h4 className="text-sm font-medium text-on-surface">{title}</h4>
+            <p className="text-xs text-on-surface-variant mt-0.5 mb-3">{description}</p>
+            
+            {actions.length > 0 && (
+                <div className="space-y-3 mb-3">
+                    {actions.map(action => (
+                        <ActionEditor
+                            key={action.id}
+                            action={action}
+                            onUpdate={(updates) => handleUpdateAction(action.id, updates)}
+                            onRemove={() => handleRemoveAction(action.id)}
+                            onConfirm={() => handleConfirmAction(action.id)}
+                            errors={validationErrors.get(action.id)}
+                        />
+                    ))}
+                </div>
+            )}
+            
+            <div className="flex items-center gap-4">
+                <button onClick={handleAddAction} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                    <PlusIcon className="text-base" />
+                    Add action
+                </button>
+                 <button onClick={() => alert('Copy actions functionality not implemented.')} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                    <ContentPasteIcon className="text-base" />
+                    Copy actions from
+                </button>
             </div>
         </div>
     );

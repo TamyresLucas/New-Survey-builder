@@ -150,6 +150,24 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 }
                 delete finalUpdates.branchingLogic;
             }
+            if (finalUpdates.beforeActions) {
+                questionInState.draftBeforeActions = finalUpdates.beforeActions;
+                const allConfirmed = questionInState.draftBeforeActions.every(a => a.isConfirmed);
+                if (allConfirmed) {
+                    questionInState.beforeActions = questionInState.draftBeforeActions;
+                    delete questionInState.draftBeforeActions;
+                }
+                delete finalUpdates.beforeActions;
+            }
+            if (finalUpdates.afterActions) {
+                questionInState.draftAfterActions = finalUpdates.afterActions;
+                const allConfirmed = questionInState.draftAfterActions.every(a => a.isConfirmed);
+                if (allConfirmed) {
+                    questionInState.afterActions = questionInState.draftAfterActions;
+                    delete questionInState.draftAfterActions;
+                }
+                delete finalUpdates.afterActions;
+            }
 
 
             Object.assign(questionInState, finalUpdates);
@@ -561,55 +579,13 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
             if (!questionToClean) return state;
 
-            // Clean Display Logic
-            if (questionToClean.displayLogic) {
-                const confirmedConditions = questionToClean.displayLogic.conditions.filter(c => c.isConfirmed);
-                if (confirmedConditions.length > 0) {
-                    questionToClean.displayLogic.conditions = confirmedConditions;
-                } else {
-                    questionToClean.displayLogic = undefined;
-                }
-            }
-             // Clean up draft logic
+            // When a user navigates away from a question, any unconfirmed changes
+            // stored in the draft state are discarded. The confirmed logic remains untouched.
             delete questionToClean.draftDisplayLogic;
             delete questionToClean.draftSkipLogic;
             delete questionToClean.draftBranchingLogic;
-
-
-            // Clean Skip Logic
-            if (questionToClean.skipLogic) {
-                if (questionToClean.skipLogic.type === 'simple' && !questionToClean.skipLogic.isConfirmed) {
-                    questionToClean.skipLogic = undefined;
-                } else if (questionToClean.skipLogic.type === 'per_choice') {
-                    const confirmedRules = questionToClean.skipLogic.rules.filter(r => r.isConfirmed);
-                    if (confirmedRules.length > 0) {
-                        questionToClean.skipLogic.rules = confirmedRules;
-                    } else {
-                        questionToClean.skipLogic = undefined;
-                    }
-                }
-            }
-
-            // Clean Branching Logic
-            if (questionToClean.branchingLogic) {
-                // Filter out branches with unconfirmed destinations
-                const branchesWithConfirmedDest = questionToClean.branchingLogic.branches.filter(b => b.thenSkipToIsConfirmed);
-
-                // For the remaining branches, filter out unconfirmed conditions and then remove any branches that become empty
-                const cleanedBranches = branchesWithConfirmedDest
-                    .map(branch => ({
-                        ...branch,
-                        conditions: branch.conditions.filter(c => c.isConfirmed),
-                    }))
-                    .filter(branch => branch.conditions.length > 0); 
-
-                questionToClean.branchingLogic.branches = cleanedBranches;
-
-                // If no branches are left and 'otherwise' is not confirmed, remove the whole advanced logic block
-                if (cleanedBranches.length === 0 && !questionToClean.branchingLogic.otherwiseIsConfirmed) {
-                    questionToClean.branchingLogic = undefined;
-                }
-            }
+            delete questionToClean.draftBeforeActions;
+            delete questionToClean.draftAfterActions;
 
             return newState;
         }

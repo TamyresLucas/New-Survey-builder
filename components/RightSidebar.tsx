@@ -1,5 +1,5 @@
 import React, { memo, useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, ActionLogic } from '../types';
+import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, ActionLogic, Workflow } from '../types';
 import { QuestionType } from '../types';
 import { generateId, parseChoice, CHOICE_BASED_QUESTION_TYPES, truncate } from '../utils';
 import { PasteChoicesModal } from './PasteChoicesModal';
@@ -1126,8 +1126,8 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
 
   const renderAdvancedTab = () => {
     const branchingLogic = question.draftBranchingLogic ?? question.branchingLogic;
-    const beforeActions = question.draftBeforeActions ?? question.beforeActions ?? [];
-    const afterActions = question.draftAfterActions ?? question.afterActions ?? [];
+    const beforeWorkflows = question.draftBeforeWorkflows ?? question.beforeWorkflows ?? [];
+    const afterWorkflows = question.draftAfterWorkflows ?? question.afterWorkflows ?? [];
 
     const handleEnableBranching = () => {
         handleUpdate({
@@ -1186,24 +1186,26 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
         )}
         
         {/* ACTIONS SECTION */}
-        <CollapsibleSection title="Actions" defaultExpanded={true}>
+        <CollapsibleSection title="Workflows" defaultExpanded={true}>
             <div className="-mt-2 mb-4">
                 <p className="text-xs text-on-surface-variant">Automate tasks, and integrate with other services.</p>
             </div>
             <div className="divide-y divide-outline-variant">
-                <ActionListEditor
+                <WorkflowSectionEditor
                     title="Before Showing This Question"
                     description="Set rules or actions triggered before the question is displayed."
-                    actions={beforeActions}
-                    onUpdateActions={(newActions) => handleUpdate({ beforeActions: newActions })}
-                    onAddAction={ensureSidebarIsExpanded}
+                    questionQid={question.qid}
+                    workflows={beforeWorkflows}
+                    onUpdateWorkflows={(newWorkflows) => handleUpdate({ beforeWorkflows: newWorkflows })}
+                    onAddWorkflow={ensureSidebarIsExpanded}
                 />
-                <ActionListEditor
+                <WorkflowSectionEditor
                     title="After Answering This Question"
                     description="Set rules or actions triggered after the question is answered."
-                    actions={afterActions}
-                    onUpdateActions={(newActions) => handleUpdate({ afterActions: newActions })}
-                    onAddAction={ensureSidebarIsExpanded}
+                    questionQid={question.qid}
+                    workflows={afterWorkflows}
+                    onUpdateWorkflows={(newWorkflows) => handleUpdate({ afterWorkflows: newWorkflows })}
+                    onAddWorkflow={ensureSidebarIsExpanded}
                 />
             </div>
         </CollapsibleSection>
@@ -1674,7 +1676,6 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         if (validationErrors.has(conditionId)) {
             setValidationErrors(prev => {
                 const newErrors = new Map(prev);
-                // Fix: The new Set() constructor requires an iterable. Using an empty array [] as a fallback instead of an empty object {}.
                 const conditionErrors = new Set(newErrors.get(conditionId) || []);
                 conditionErrors.delete(field);
                 if (conditionErrors.size === 0) {
@@ -2364,7 +2365,7 @@ const ActionEditor: React.FC<{
     onRemove: () => void;
     onConfirm: () => void;
     errors?: Set<string>;
-}> = ({ action, onUpdate, onRemove, onConfirm, errors = new Set() }) => {
+}> = ({ action, onUpdate, onRemove, onConfirm, errors = new Set<string>() }) => {
     const actionTypes = [
         "Compute Variable",
         "Selection",
@@ -2396,7 +2397,8 @@ const ActionEditor: React.FC<{
     const handleParamChange = (paramName: keyof NonNullable<ActionLogic['params']>, value: any) => {
         onUpdate({
             params: {
-                ...action.params,
+// FIX: Spreading `action.params` can cause a runtime error if it is undefined. Add a fallback to an empty object.
+                ...(action.params || {}),
                 [paramName]: value,
             }
         });
@@ -2464,9 +2466,9 @@ const ActionEditor: React.FC<{
     };
 
     return (
-        <div className="p-3 border border-outline-variant rounded-md bg-surface-container">
+        <div className="p-3 border border-outline-variant rounded-md bg-surface-container-high">
             <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-bold text-primary">ACTION</span>
+                <span className="text-sm font-bold text-primary">Action</span>
                 <div className="flex items-center gap-1">
                     <button onClick={onRemove} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-colors" aria-label="Cancel action">
                         <XIcon className="text-lg" />
@@ -2499,27 +2501,51 @@ const ActionEditor: React.FC<{
     );
 };
 
-const ActionListEditor: React.FC<{
-    actions: ActionLogic[];
-    onUpdateActions: (actions: ActionLogic[]) => void;
-    title: string;
-    description: string;
-    onAddAction: () => void;
-}> = ({ actions, onUpdateActions, title, description, onAddAction }) => {
+const WorkflowEditor: React.FC<{
+    workflow: Workflow;
+    onUpdate: (workflow: Workflow) => void;
+    onRemove: () => void;
+}> = ({ workflow, onUpdate, onRemove }) => {
     const [validationErrors, setValidationErrors] = useState<Map<string, Set<string>>>(new Map());
-    
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [nameValue, setNameValue] = useState(workflow.name);
+    const nameInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        setNameValue(workflow.name);
+    }, [workflow.name]);
+
+    useEffect(() => {
+        if (isEditingName && nameInputRef.current) {
+            nameInputRef.current.focus();
+            nameInputRef.current.select();
+        }
+    }, [isEditingName]);
+
+    const handleNameSave = () => {
+        if (nameValue.trim() && nameValue.trim() !== workflow.name) {
+            onUpdate({ ...workflow, name: nameValue.trim() });
+        }
+        setIsEditingName(false);
+    };
+
+    const handleNameKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleNameSave();
+        } else if (e.key === 'Escape') {
+            setNameValue(workflow.name);
+            setIsEditingName(false);
+        }
+    };
+
     const handleAddAction = () => {
-        const newAction: ActionLogic = {
-            id: generateId('action'),
-            type: '',
-            isConfirmed: false,
-            params: {},
-        };
-        onUpdateActions([...actions, newAction]);
-        onAddAction();
+        const newAction: ActionLogic = { id: generateId('action'), type: '', isConfirmed: false, params: {} };
+        onUpdate({ ...workflow, actions: [...workflow.actions, newAction] });
     };
-    
+
     const handleUpdateAction = (actionId: string, updates: Partial<ActionLogic>) => {
+        const newActions = workflow.actions.map(a => a.id === actionId ? { ...a, ...updates, isConfirmed: false } : a);
+        onUpdate({ ...workflow, actions: newActions });
         if (validationErrors.has(actionId)) {
             setValidationErrors(prev => {
                 const newErrors = new Map(prev);
@@ -2527,13 +2553,11 @@ const ActionListEditor: React.FC<{
                 return newErrors;
             });
         }
-        const newActions = actions.map(a => a.id === actionId ? { ...a, ...updates, isConfirmed: false } : a);
-        onUpdateActions(newActions);
     };
-    
+
     const handleRemoveAction = (actionId: string) => {
-        const newActions = actions.filter(a => a.id !== actionId);
-        onUpdateActions(newActions);
+        const newActions = workflow.actions.filter(a => a.id !== actionId);
+        onUpdate({ ...workflow, actions: newActions });
         if (validationErrors.has(actionId)) {
             setValidationErrors(prev => {
                 const newErrors = new Map(prev);
@@ -2542,16 +2566,15 @@ const ActionListEditor: React.FC<{
             });
         }
     };
-    
+
     const handleConfirmAction = (actionId: string) => {
-        const actionToConfirm = actions.find(a => a.id === actionId);
+        const actionToConfirm = workflow.actions.find(a => a.id === actionId);
         if (!actionToConfirm) return;
 
         const errors = new Set<string>();
         if (!actionToConfirm.type) {
             errors.add('type');
         }
-
         if (actionToConfirm.type === 'Compute Variable') {
             if (!actionToConfirm.params?.variable?.trim()) errors.add('variable');
             if (!actionToConfirm.params?.value?.trim()) errors.add('value');
@@ -2562,8 +2585,8 @@ const ActionListEditor: React.FC<{
             return;
         }
 
-        const newActions = actions.map(a => a.id === actionId ? { ...a, isConfirmed: true } : a);
-        onUpdateActions(newActions);
+        const newActions = workflow.actions.map(a => a.id === actionId ? { ...a, isConfirmed: true } : a);
+        onUpdate({ ...workflow, actions: newActions });
         if (validationErrors.has(actionId)) {
             setValidationErrors(prev => {
                 const newErrors = new Map(prev);
@@ -2574,33 +2597,100 @@ const ActionListEditor: React.FC<{
     };
 
     return (
-        <div className="py-6 first:pt-0">
-            <h4 className="text-sm font-medium text-on-surface">{title}</h4>
-            <p className="text-xs text-on-surface-variant mt-0.5 mb-3">{description}</p>
-            
-            {actions.length > 0 && (
-                <div className="space-y-3 mb-3">
-                    {actions.map(action => (
-                        <ActionEditor
-                            key={action.id}
-                            action={action}
-                            onUpdate={(updates) => handleUpdateAction(action.id, updates)}
-                            onRemove={() => handleRemoveAction(action.id)}
-                            onConfirm={() => handleConfirmAction(action.id)}
-                            errors={validationErrors.get(action.id)}
-                        />
-                    ))}
-                </div>
-            )}
-            
-            <div className="flex items-center gap-4">
-                <button onClick={handleAddAction} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                    <PlusIcon className="text-base" />
-                    Add action
+        <div className="p-3 border border-outline-variant rounded-md bg-surface-container">
+            <div className="flex items-center justify-between mb-3">
+                {isEditingName ? (
+                     <input
+                        ref={nameInputRef}
+                        type="text"
+                        value={nameValue}
+                        onChange={(e) => setNameValue(e.target.value)}
+                        onBlur={handleNameSave}
+                        onKeyDown={handleNameKeyDown}
+                        className="text-sm font-semibold text-on-surface bg-surface-container-high border-b-2 border-primary focus:outline-none -m-1 p-1"
+                    />
+                ) : (
+                    <div onClick={() => setIsEditingName(true)} className="flex items-baseline gap-2 cursor-pointer -m-1 p-1">
+                        <span className="text-sm font-semibold text-on-surface">{workflow.name}</span>
+                        <span className="text-xs font-mono text-on-surface-variant">({workflow.wid})</span>
+                    </div>
+                )}
+                <button 
+                    onClick={onRemove}
+                    className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-colors" aria-label="Remove workflow">
+                    <XIcon className="text-lg" />
                 </button>
-                 <button onClick={() => alert('Copy actions functionality not implemented.')} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                    <ContentPasteIcon className="text-base" />
-                    Copy actions from
+            </div>
+            <div className="space-y-2">
+                {workflow.actions.map(action => (
+                    <ActionEditor
+                        key={action.id}
+                        action={action}
+                        onUpdate={(updates) => handleUpdateAction(action.id, updates)}
+                        onRemove={() => handleRemoveAction(action.id)}
+                        onConfirm={() => handleConfirmAction(action.id)}
+                        errors={validationErrors.get(action.id)}
+                    />
+                ))}
+            </div>
+            <button onClick={handleAddAction} className="mt-3 flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                <PlusIcon className="text-base" />
+                Add Action
+            </button>
+        </div>
+    );
+};
+
+const WorkflowSectionEditor: React.FC<{
+    title: string;
+    description: string;
+    questionQid: string;
+    workflows: Workflow[];
+    onUpdateWorkflows: (workflows: Workflow[]) => void;
+    onAddWorkflow: () => void;
+}> = ({ title, description, questionQid, workflows, onUpdateWorkflows, onAddWorkflow }) => {
+    
+    const handleAddWorkflow = () => {
+        const workflowCount = workflows.length + 1;
+        const newAction: ActionLogic = { id: generateId('action'), type: '', isConfirmed: false, params: {} };
+        const newWorkflow: Workflow = {
+            id: generateId('workflow'),
+            wid: `${questionQid}_W${workflowCount}`,
+            name: `Workflow ${workflowCount}`,
+            actions: [newAction]
+        };
+        onUpdateWorkflows([...workflows, newWorkflow]);
+        onAddWorkflow();
+    };
+
+    const handleUpdateWorkflow = (workflowId: string, updatedWorkflow: Workflow) => {
+        const newWorkflows = workflows.map(w => w.id === workflowId ? updatedWorkflow : w);
+        onUpdateWorkflows(newWorkflows);
+    };
+
+    const handleRemoveWorkflow = (workflowId: string) => {
+        const newWorkflows = workflows.filter(w => w.id !== workflowId);
+        onUpdateWorkflows(newWorkflows);
+    };
+
+    return (
+        <div className="py-6 first:pt-0">
+            <h3 className="text-sm font-medium text-on-surface">{title}</h3>
+            <p className="text-xs text-on-surface-variant mb-3">{description}</p>
+            <div className="space-y-4">
+                {workflows.map((workflow, index) => (
+                    <WorkflowEditor
+                        key={workflow.id}
+                        workflow={workflow}
+                        onUpdate={(updatedWorkflow) => handleUpdateWorkflow(workflow.id, updatedWorkflow)}
+                        onRemove={() => handleRemoveWorkflow(workflow.id)}
+                    />
+                ))}
+            </div>
+            <div className="mt-4 flex items-center gap-4">
+                 <button onClick={handleAddWorkflow} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                    <PlusIcon className="text-base" />
+                    Add Workflow
                 </button>
             </div>
         </div>

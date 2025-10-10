@@ -150,23 +150,23 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 }
                 delete finalUpdates.branchingLogic;
             }
-            if (finalUpdates.beforeActions) {
-                questionInState.draftBeforeActions = finalUpdates.beforeActions;
-                const allConfirmed = questionInState.draftBeforeActions.every(a => a.isConfirmed);
+            if (finalUpdates.beforeWorkflows) {
+                questionInState.draftBeforeWorkflows = finalUpdates.beforeWorkflows;
+                const allConfirmed = questionInState.draftBeforeWorkflows.every((w: any) => w.actions.every((a: any) => a.isConfirmed));
                 if (allConfirmed) {
-                    questionInState.beforeActions = questionInState.draftBeforeActions;
-                    delete questionInState.draftBeforeActions;
+                    questionInState.beforeWorkflows = questionInState.draftBeforeWorkflows;
+                    delete questionInState.draftBeforeWorkflows;
                 }
-                delete finalUpdates.beforeActions;
+                delete finalUpdates.beforeWorkflows;
             }
-            if (finalUpdates.afterActions) {
-                questionInState.draftAfterActions = finalUpdates.afterActions;
-                const allConfirmed = questionInState.draftAfterActions.every(a => a.isConfirmed);
+            if (finalUpdates.afterWorkflows) {
+                questionInState.draftAfterWorkflows = finalUpdates.afterWorkflows;
+                const allConfirmed = questionInState.draftAfterWorkflows.every((w: any) => w.actions.every((a: any) => a.isConfirmed));
                 if (allConfirmed) {
-                    questionInState.afterActions = questionInState.draftAfterActions;
-                    delete questionInState.draftAfterActions;
+                    questionInState.afterWorkflows = questionInState.draftAfterWorkflows;
+                    delete questionInState.draftAfterWorkflows;
                 }
-                delete finalUpdates.afterActions;
+                delete finalUpdates.afterWorkflows;
             }
 
 
@@ -584,8 +584,8 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             delete questionToClean.draftDisplayLogic;
             delete questionToClean.draftSkipLogic;
             delete questionToClean.draftBranchingLogic;
-            delete questionToClean.draftBeforeActions;
-            delete questionToClean.draftAfterActions;
+            delete questionToClean.draftBeforeWorkflows;
+            delete questionToClean.draftAfterWorkflows;
 
             return newState;
         }

@@ -130,6 +130,13 @@ export interface ActionLogic {
   };
 }
 
+export interface Workflow {
+  id: string;
+  wid: string;
+  name: string;
+  actions: ActionLogic[];
+}
+
 
 export interface Question {
   id: string;
@@ -188,15 +195,15 @@ export interface Question {
   carryForwardStatements?: CarryForwardLogic;
   carryForwardScalePoints?: CarryForwardLogic;
   branchingLogic?: BranchingLogic;
-  beforeActions?: ActionLogic[];
-  afterActions?: ActionLogic[];
+  beforeWorkflows?: Workflow[];
+  afterWorkflows?: Workflow[];
 
   // --- NEW DRAFT LOGIC PROPERTIES ---
   draftDisplayLogic?: DisplayLogic;
   draftSkipLogic?: SkipLogic;
   draftBranchingLogic?: BranchingLogic;
-  draftBeforeActions?: ActionLogic[];
-  draftAfterActions?: ActionLogic[];
+  draftBeforeWorkflows?: Workflow[];
+  draftAfterWorkflows?: Workflow[];
 }
 
 export interface Block {

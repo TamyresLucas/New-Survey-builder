@@ -127,6 +127,17 @@ export interface ActionLogic {
     variable?: string;
     valueType?: 'formula' | 'value';
     value?: string;
+    // For Selection
+    conditions?: { id: string; variable: string; operator: string; value: string; }[];
+    row?: string;
+    assignedVariables?: { id: string; variable: string; value: string; }[];
+    selections?: { 
+      id: string; 
+      value: string; 
+      inclusionFormula: string; 
+      priority: string; 
+      scoreFormula: string; 
+    }[];
   };
 }
 

@@ -15,6 +15,7 @@ import { QuestionType as QTEnum } from './types';
 import { surveyReducer, SurveyActionType } from './state/surveyReducer';
 import { PanelRightIcon } from './components/icons';
 import { validateSurveyLogic } from './logicValidator';
+import LogicCanvas from './components/LogicCanvas';
 
 const App: React.FC = () => {
   const [survey, dispatch] = useReducer(surveyReducer, initialSurveyData, renumberSurveyVariables);
@@ -619,6 +620,8 @@ const App: React.FC = () => {
                 )}
               </div>
             </>
+          ) : activeMainTab === 'Logic' ? (
+            <LogicCanvas survey={survey} toolboxItems={toolboxItems} />
           ) : (
              <div className="flex-1 flex items-center justify-center">
                 <p className="text-2xl text-on-surface-variant">{activeMainTab} page is not implemented yet.</p>

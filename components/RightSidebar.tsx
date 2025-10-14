@@ -9,7 +9,7 @@ import {
     SignalIcon, BatteryIcon, RadioButtonUncheckedIcon, CheckboxOutlineIcon,
     RadioIcon, CheckboxFilledIcon, ShuffleIcon,
     InfoIcon, EyeIcon, ContentPasteIcon, CarryForwardIcon, CallSplitIcon,
-    WarningIcon, CheckmarkIcon
+    WarningIcon, CheckmarkIcon, ContentCopyIcon
 } from './icons';
 import { QuestionTypeSelectionMenuContent } from './ActionMenus';
 
@@ -238,6 +238,259 @@ const ForceResponseSection: React.FC<{
     );
 };
 
+const ActionEditor: React.FC<{
+    action: ActionLogic;
+    onUpdate: (updates: Partial<ActionLogic>) => void;
+    onRemove: () => void;
+    onConfirm: () => void;
+    isConfirmed: boolean;
+}> = memo(({ action, onUpdate, onRemove, onConfirm, isConfirmed }) => {
+    const [isExpanded, setIsExpanded] = useState(true);
+
+    const handleParamChange = (param: string, value: any) => {
+        onUpdate({ params: { ...action.params, [param]: value } });
+    };
+
+    const handleListChange = (listName: string, index: number, field: string, value: any) => {
+        const list = (action.params?.[listName] as any[])?.slice() || [];
+        if (list[index]) {
+            list[index] = { ...list[index], [field]: value };
+            handleParamChange(listName, list);
+        }
+    };
+
+    const addListItem = (listName: string, newItem: any) => {
+        const list = (action.params?.[listName] as any[])?.slice() || [];
+        handleParamChange(listName, [...list, newItem]);
+    };
+
+    const removeListItem = (listName: string, index: number) => {
+        const list = (action.params?.[listName] as any[])?.slice() || [];
+        list.splice(index, 1);
+        handleParamChange(listName, list);
+    };
+
+    const renderActionParams = () => {
+        switch(action.type) {
+            case 'Selection':
+                return (
+                    <div className="space-y-4">
+                        <div>
+                            <div className="flex justify-between items-center mb-2">
+                                <h4 className="text-sm font-semibold text-on-surface">Condition</h4>
+                                <div className="flex items-center gap-2">
+                                    <CopyAndPasteButton onClick={() => alert('Paste not implemented')} />
+                                    <button onClick={() => addListItem('conditions', { id: generateId('cond-sel'), variable: '', operator: '', value: ''})} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"><PlusIcon className="text-base"/> Add</button>
+                                </div>
+                            </div>
+                             <div className="grid grid-cols-[auto_1fr_1fr_1fr_auto] items-center gap-2 mb-1 px-2 text-xs text-on-surface-variant">
+                                <span></span>
+                                <span>Variable</span>
+                                <span>Operator</span>
+                                <span>Value</span>
+                                <span></span>
+                            </div>
+                            <div className="space-y-2">
+                                {(action.params?.conditions || []).map((cond: any, index: number) => (
+                                    <div key={cond.id} className="grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-2 items-center">
+                                        <span className="text-xs text-on-surface-variant">{index + 1}</span>
+                                        <select value={cond.variable} onChange={e => handleListChange('conditions', index, 'variable', e.target.value)} className="w-full bg-surface border border-outline rounded-md p-1.5 text-sm text-on-surface focus:outline-primary appearance-none"><option>Select</option></select>
+                                        <select value={cond.operator} onChange={e => handleListChange('conditions', index, 'operator', e.target.value)} className="w-full bg-surface border border-outline rounded-md p-1.5 text-sm text-on-surface focus:outline-primary appearance-none"><option>Select</option></select>
+                                        <select value={cond.value} onChange={e => handleListChange('conditions', index, 'value', e.target.value)} className="w-full bg-surface border border-outline rounded-md p-1.5 text-sm text-on-surface focus:outline-primary appearance-none"><option>Select</option></select>
+                                        <button onClick={() => removeListItem('conditions', index)} className="p-1 text-on-surface-variant hover:text-error"><XIcon/></button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-semibold text-on-surface">Row</label>
+                            <input type="text" placeholder="[$ROW]" value={action.params?.row || ''} onChange={e => handleParamChange('row', e.target.value)} className="w-full bg-surface border border-outline rounded-md p-1.5 text-sm mt-1"/>
+                        </div>
+                        
+                        <div>
+                            <div className="flex justify-between items-center mb-2">
+                                <h4 className="text-sm font-semibold text-on-surface">Assign variables</h4>
+                                <button onClick={() => addListItem('assignedVariables', { id: generateId('asgn-var'), variable: '', value: ''})} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"><PlusIcon className="text-base"/> Add</button>
+                            </div>
+                            <div className="space-y-2">
+                                {(action.params?.assignedVariables || []).map((item: any, index: number) => (
+                                    <div key={item.id} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                                        <select value={item.variable} onChange={e => handleListChange('assignedVariables', index, 'variable', e.target.value)} className="w-full bg-surface border border-outline rounded-md p-1.5 text-sm text-on-surface focus:outline-primary appearance-none"><option>Select variable</option></select>
+                                        <input type="text" placeholder="1" value={item.value} onChange={e => handleListChange('assignedVariables', index, 'value', e.target.value)} className="w-full bg-surface border border-outline rounded-md p-1.5 text-sm"/>
+                                        <button onClick={() => removeListItem('assignedVariables', index)} className="p-1 text-on-surface-variant hover:text-error"><XIcon/></button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div>
+                             <div className="flex justify-between items-center mb-2">
+                                <h4 className="text-sm font-semibold text-on-surface">Selections</h4>
+                                <div className="flex items-center gap-2">
+                                    <CopyAndPasteButton onClick={() => alert('Paste not implemented')} />
+                                    <button onClick={() => addListItem('selections', { id: generateId('sel'), value: '', inclusionFormula: '', priority: '', scoreFormula: ''})} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"><PlusIcon className="text-base"/> Add</button>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                {(action.params?.selections || []).map((item: any, index: number) => (
+                                    <div key={item.id} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 items-center text-xs">
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-on-surface-variant">Value</label>
+                                            <input type="text" value={item.value} onChange={e => handleListChange('selections', index, 'value', e.target.value)} className="w-full bg-surface border border-outline rounded-md p-1.5 text-sm"/>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-on-surface-variant">Inclusion Formula</label>
+                                            <input type="text" value={item.inclusionFormula} onChange={e => handleListChange('selections', index, 'inclusionFormula', e.target.value)} className="w-full bg-surface border border-outline rounded-md p-1.5 text-sm"/>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-on-surface-variant">Priority</label>
+                                            <input type="text" value={item.priority} onChange={e => handleListChange('selections', index, 'priority', e.target.value)} className="w-full bg-surface border border-outline rounded-md p-1.5 text-sm"/>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-on-surface-variant">Score Formula</label>
+                                            <input type="text" value={item.scoreFormula} onChange={e => handleListChange('selections', index, 'scoreFormula', e.target.value)} className="w-full bg-surface border border-outline rounded-md p-1.5 text-sm"/>
+                                        </div>
+                                        <button onClick={() => removeListItem('selections', index)} className="p-1 text-on-surface-variant hover:text-error self-end"><XIcon/></button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                );
+            case 'Compute Variable':
+                return <p className="text-sm text-on-surface-variant">Compute Variable action is not yet implemented.</p>;
+            default:
+                return <p className="text-sm text-on-surface-variant">Select an action type to configure.</p>;
+        }
+    };
+
+    return (
+        <div className="p-3 border border-outline-variant rounded-md bg-surface-container-high">
+            <div className="flex items-center gap-2 justify-between">
+                <div className="flex-1">
+                    <select value={action.type} onChange={e => onUpdate({ type: e.target.value })} className="w-full max-w-xs bg-surface border border-outline rounded-md p-1.5 text-sm text-on-surface focus:outline-primary appearance-none">
+                        <option value="">Select Action</option>
+                        <option value="Selection">Selection</option>
+                        <option value="Compute Variable">Compute Variable</option>
+                    </select>
+                </div>
+                <div className="flex items-center gap-1">
+                     <button onClick={() => setIsExpanded(p => !p)} className="p-1.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest rounded-full transition-colors" aria-label={isExpanded ? "Collapse action" : "Expand action"}>
+                        <ChevronDownIcon className={`transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
+                    </button>
+                    <button onClick={onRemove} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-colors" aria-label="Remove action">
+                        <XIcon className="text-lg" />
+                    </button>
+                    {!isConfirmed && (
+                         <button onClick={onConfirm} className="p-1.5 bg-primary text-on-primary rounded-full hover:opacity-90 transition-colors" aria-label="Confirm action">
+                            <CheckmarkIcon className="text-lg" />
+                        </button>
+                    )}
+                </div>
+            </div>
+            {isExpanded && <div className="mt-4 pt-4 border-t border-outline-variant">{renderActionParams()}</div>}
+        </div>
+    )
+});
+
+const WorkflowSectionEditor: React.FC<{
+    title: string;
+    description: string;
+    questionQid: string;
+    workflows: Workflow[];
+    onUpdateWorkflows: (workflows: Workflow[]) => void;
+    onAddWorkflow: () => void;
+}> = memo(({ title, description, questionQid, workflows, onUpdateWorkflows, onAddWorkflow }) => {
+
+    const handleAddWorkflow = () => {
+        const newWorkflow: Workflow = {
+            id: generateId('wf'),
+            wid: `${questionQid}-WF${workflows.length + 1}`,
+            name: `New Workflow ${workflows.length + 1}`,
+            actions: [],
+        };
+        onUpdateWorkflows([...workflows, newWorkflow]);
+        onAddWorkflow();
+    };
+
+    const handleUpdateWorkflow = (workflowId: string, updates: Partial<Workflow>) => {
+        onUpdateWorkflows(workflows.map(wf => wf.id === workflowId ? { ...wf, ...updates } : wf));
+    };
+
+    const handleRemoveWorkflow = (workflowId: string) => {
+        onUpdateWorkflows(workflows.filter(wf => wf.id !== workflowId));
+    };
+
+    const handleAddAction = (workflowId: string) => {
+        const workflow = workflows.find(wf => wf.id === workflowId);
+        if (!workflow) return;
+        const newAction: ActionLogic = { id: generateId('act'), type: '', isConfirmed: false, params: {} };
+        const newActions = [...workflow.actions, newAction];
+        handleUpdateWorkflow(workflowId, { actions: newActions });
+    };
+
+    const handleUpdateAction = (workflowId: string, actionId: string, updates: Partial<ActionLogic>) => {
+        const workflow = workflows.find(wf => wf.id === workflowId);
+        if (!workflow) return;
+        const newActions = workflow.actions.map(act => act.id === actionId ? { ...act, ...updates, isConfirmed: false } : act);
+        handleUpdateWorkflow(workflowId, { actions: newActions });
+    };
+
+    const handleRemoveAction = (workflowId: string, actionId: string) => {
+        const workflow = workflows.find(wf => wf.id === workflowId);
+        if (!workflow) return;
+        const newActions = workflow.actions.filter(act => act.id !== actionId);
+        handleUpdateWorkflow(workflowId, { actions: newActions });
+    };
+
+    const handleConfirmAction = (workflowId: string, actionId: string) => {
+        const workflow = workflows.find(wf => wf.id === workflowId);
+        if (!workflow) return;
+        const newActions = workflow.actions.map(act => act.id === actionId ? { ...act, isConfirmed: true } : act);
+        handleUpdateWorkflow(workflowId, { actions: newActions });
+    };
+
+    return (
+        <div className="py-6 first:pt-0">
+            <h3 className="text-sm font-medium text-on-surface">{title}</h3>
+            <p className="text-xs text-on-surface-variant mt-0.5 mb-3">{description}</p>
+            
+            <div className="space-y-4">
+                {workflows.map(workflow => (
+                    <div key={workflow.id} className="p-3 border border-outline-variant rounded-md">
+                        <div className="flex items-center justify-between mb-2">
+                             <input type="text" value={workflow.name} onChange={e => handleUpdateWorkflow(workflow.id, { name: e.target.value })} className="font-semibold text-on-surface bg-transparent border-b border-transparent focus:border-primary focus:outline-none" />
+                            <button onClick={() => handleRemoveWorkflow(workflow.id)} className="p-1 text-on-surface-variant hover:text-error"><XIcon/></button>
+                        </div>
+                        <div className="space-y-2">
+                            {workflow.actions.map(action => (
+                                <ActionEditor
+                                    key={action.id}
+                                    action={action}
+                                    onUpdate={updates => handleUpdateAction(workflow.id, action.id, updates)}
+                                    onRemove={() => handleRemoveAction(workflow.id, action.id)}
+                                    onConfirm={() => handleConfirmAction(workflow.id, action.id)}
+                                    isConfirmed={action.isConfirmed === true}
+                                />
+                            ))}
+                        </div>
+                         <button onClick={() => handleAddAction(workflow.id)} className="mt-3 flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                            <PlusIcon className="text-base" />
+                            Add action
+                        </button>
+                    </div>
+                ))}
+            </div>
+
+            <button onClick={handleAddWorkflow} className="mt-4 flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                <PlusIcon className="text-base" />
+                Add workflow
+            </button>
+        </div>
+    );
+});
+
 
 const RightSidebar: React.FC<RightSidebarProps> = memo(({
   question,
@@ -422,6 +675,8 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
     if (question.type === QuestionType.Radio) {
         setSelectedPreviewChoices(new Set([choiceId]));
     } else if (question.type === QuestionType.Checkbox) {
+        // The explicit type on `prev` was causing an issue with TypeScript's type inference.
+        // By removing it, `prev` is correctly inferred as `Set<string>` from the `useState` definition.
         setSelectedPreviewChoices(prev => {
             const newSet = new Set(prev);
             if (newSet.has(choiceId)) {
@@ -2354,347 +2609,4 @@ const BranchingLogicEditor: React.FC<{
         </div>
     );
 };
-
-// =================================================================
-// NEW ACTION EDITOR COMPONENTS
-// =================================================================
-
-const ActionEditor: React.FC<{
-    action: ActionLogic;
-    onUpdate: (updates: Partial<ActionLogic>) => void;
-    onRemove: () => void;
-    onConfirm: () => void;
-    errors?: Set<string>;
-}> = ({ action, onUpdate, onRemove, onConfirm, errors = new Set<string>() }) => {
-    const actionTypes = [
-        "Compute Variable",
-        "Selection",
-        "Send Email",
-        "Set Loop Row",
-        "Create Panelist",
-        "Set Panelist Data",
-        "Panelist Reward",
-        "Set Variable Value",
-        "Resume Last Session",
-        "Set Respondent Result",
-        "Call External API (ExecUrl)",
-        "Parse Text Variable",
-    ];
-
-    const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newType = e.target.value;
-        const updates: Partial<ActionLogic> = { type: newType };
-        
-        if (newType === 'Compute Variable') {
-            updates.params = { variable: '', valueType: 'formula', value: '' };
-        } else {
-            updates.params = {}; // Reset params for other types to avoid stale data
-        }
-
-        onUpdate(updates);
-    };
-
-    const handleParamChange = (paramName: keyof NonNullable<ActionLogic['params']>, value: any) => {
-        onUpdate({
-            params: {
-// FIX: Spreading `action.params` can cause a runtime error if it is undefined. Add a fallback to an empty object.
-                ...(action.params || {}),
-                [paramName]: value,
-            }
-        });
-    };
-
-    const renderActionParams = () => {
-        switch (action.type) {
-            case 'Compute Variable':
-                return (
-                    <div className="space-y-4 mt-4 text-sm">
-                        <div className="flex items-center gap-4">
-                            <label htmlFor={`variable-${action.id}`} className="w-24 text-on-surface-variant flex-shrink-0">Variable</label>
-                            <input
-                                id={`variable-${action.id}`}
-                                type="text"
-                                value={action.params?.variable || ''}
-                                onChange={(e) => handleParamChange('variable', e.target.value)}
-                                className={`flex-grow bg-surface border rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary ${errors.has('variable') ? 'border-error' : 'border-outline'}`}
-                            />
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <label className="w-24 text-on-surface-variant flex-shrink-0">Value Type</label>
-                            <div className="flex items-center gap-4">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name={`valueType-${action.id}`}
-                                        value="formula"
-                                        checked={action.params?.valueType === 'formula'}
-                                        onChange={(e) => handleParamChange('valueType', e.target.value)}
-                                        className="w-4 h-4 accent-primary"
-                                    />
-                                    <span>Formula</span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name={`valueType-${action.id}`}
-                                        value="value"
-                                        checked={action.params?.valueType === 'value'}
-                                        onChange={(e) => handleParamChange('valueType', e.target.value)}
-                                        className="w-4 h-4 accent-primary"
-                                    />
-                                    <span>Value</span>
-                                </label>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <label htmlFor={`value-${action.id}`} className="w-24 text-on-surface-variant flex-shrink-0">
-                                {action.params?.valueType === 'formula' ? 'Formula' : 'Value'}
-                            </label>
-                            <input
-                                id={`value-${action.id}`}
-                                type="text"
-                                value={action.params?.value || ''}
-                                onChange={(e) => handleParamChange('value', e.target.value)}
-                                className={`flex-grow bg-surface border rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary ${errors.has('value') ? 'border-error' : 'border-outline'}`}
-                            />
-                        </div>
-                    </div>
-                );
-            default:
-                return null;
-        }
-    };
-
-    return (
-        <div className="p-3 border border-outline-variant rounded-md bg-surface-container-high">
-            <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-bold text-primary">Action</span>
-                <div className="flex items-center gap-1">
-                    <button onClick={onRemove} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-colors" aria-label="Cancel action">
-                        <XIcon className="text-lg" />
-                    </button>
-                    {!action.isConfirmed && (
-                        <button onClick={onConfirm} className="p-1.5 bg-primary text-on-primary rounded-full hover:opacity-90 transition-colors" aria-label="Confirm action">
-                            <CheckmarkIcon className="text-lg" />
-                        </button>
-                    )}
-                </div>
-            </div>
-            
-            <div>
-                <div className="relative">
-                    <select
-                        value={action.type}
-                        onChange={handleTypeChange}
-                        className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none ${errors.has('type') ? 'border-error' : 'border-outline'}`}
-                    >
-                        <option value="">Select action...</option>
-                        {actionTypes.map(type => (
-                            <option key={type} value={type}>{type}</option>
-                        ))}
-                    </select>
-                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-                </div>
-                {renderActionParams()}
-            </div>
-        </div>
-    );
-};
-
-const WorkflowEditor: React.FC<{
-    workflow: Workflow;
-    onUpdate: (workflow: Workflow) => void;
-    onRemove: () => void;
-}> = ({ workflow, onUpdate, onRemove }) => {
-    const [validationErrors, setValidationErrors] = useState<Map<string, Set<string>>>(new Map());
-    const [isEditingName, setIsEditingName] = useState(false);
-    const [nameValue, setNameValue] = useState(workflow.name);
-    const nameInputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        setNameValue(workflow.name);
-    }, [workflow.name]);
-
-    useEffect(() => {
-        if (isEditingName && nameInputRef.current) {
-            nameInputRef.current.focus();
-            nameInputRef.current.select();
-        }
-    }, [isEditingName]);
-
-    const handleNameSave = () => {
-        if (nameValue.trim() && nameValue.trim() !== workflow.name) {
-            onUpdate({ ...workflow, name: nameValue.trim() });
-        }
-        setIsEditingName(false);
-    };
-
-    const handleNameKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
-            handleNameSave();
-        } else if (e.key === 'Escape') {
-            setNameValue(workflow.name);
-            setIsEditingName(false);
-        }
-    };
-
-    const handleAddAction = () => {
-        const newAction: ActionLogic = { id: generateId('action'), type: '', isConfirmed: false, params: {} };
-        onUpdate({ ...workflow, actions: [...workflow.actions, newAction] });
-    };
-
-    const handleUpdateAction = (actionId: string, updates: Partial<ActionLogic>) => {
-        const newActions = workflow.actions.map(a => a.id === actionId ? { ...a, ...updates, isConfirmed: false } : a);
-        onUpdate({ ...workflow, actions: newActions });
-        if (validationErrors.has(actionId)) {
-            setValidationErrors(prev => {
-                const newErrors = new Map(prev);
-                newErrors.delete(actionId);
-                return newErrors;
-            });
-        }
-    };
-
-    const handleRemoveAction = (actionId: string) => {
-        const newActions = workflow.actions.filter(a => a.id !== actionId);
-        onUpdate({ ...workflow, actions: newActions });
-        if (validationErrors.has(actionId)) {
-            setValidationErrors(prev => {
-                const newErrors = new Map(prev);
-                newErrors.delete(actionId);
-                return newErrors;
-            });
-        }
-    };
-
-    const handleConfirmAction = (actionId: string) => {
-        const actionToConfirm = workflow.actions.find(a => a.id === actionId);
-        if (!actionToConfirm) return;
-
-        const errors = new Set<string>();
-        if (!actionToConfirm.type) {
-            errors.add('type');
-        }
-        if (actionToConfirm.type === 'Compute Variable') {
-            if (!actionToConfirm.params?.variable?.trim()) errors.add('variable');
-            if (!actionToConfirm.params?.value?.trim()) errors.add('value');
-        }
-        
-        if (errors.size > 0) {
-            setValidationErrors(prev => new Map(prev).set(actionId, errors));
-            return;
-        }
-
-        const newActions = workflow.actions.map(a => a.id === actionId ? { ...a, isConfirmed: true } : a);
-        onUpdate({ ...workflow, actions: newActions });
-        if (validationErrors.has(actionId)) {
-            setValidationErrors(prev => {
-                const newErrors = new Map(prev);
-                newErrors.delete(actionId);
-                return newErrors;
-            });
-        }
-    };
-
-    return (
-        <div className="p-3 border border-outline-variant rounded-md bg-surface-container">
-            <div className="flex items-center justify-between mb-3">
-                {isEditingName ? (
-                     <input
-                        ref={nameInputRef}
-                        type="text"
-                        value={nameValue}
-                        onChange={(e) => setNameValue(e.target.value)}
-                        onBlur={handleNameSave}
-                        onKeyDown={handleNameKeyDown}
-                        className="text-sm font-semibold text-on-surface bg-surface-container-high border-b-2 border-primary focus:outline-none -m-1 p-1"
-                    />
-                ) : (
-                    <div onClick={() => setIsEditingName(true)} className="flex items-baseline gap-2 cursor-pointer -m-1 p-1">
-                        <span className="text-sm font-semibold text-on-surface">{workflow.name}</span>
-                        <span className="text-xs font-mono text-on-surface-variant">({workflow.wid})</span>
-                    </div>
-                )}
-                <button 
-                    onClick={onRemove}
-                    className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-colors" aria-label="Remove workflow">
-                    <XIcon className="text-lg" />
-                </button>
-            </div>
-            <div className="space-y-2">
-                {workflow.actions.map(action => (
-                    <ActionEditor
-                        key={action.id}
-                        action={action}
-                        onUpdate={(updates) => handleUpdateAction(action.id, updates)}
-                        onRemove={() => handleRemoveAction(action.id)}
-                        onConfirm={() => handleConfirmAction(action.id)}
-                        errors={validationErrors.get(action.id)}
-                    />
-                ))}
-            </div>
-            <button onClick={handleAddAction} className="mt-3 flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                <PlusIcon className="text-base" />
-                Add Action
-            </button>
-        </div>
-    );
-};
-
-const WorkflowSectionEditor: React.FC<{
-    title: string;
-    description: string;
-    questionQid: string;
-    workflows: Workflow[];
-    onUpdateWorkflows: (workflows: Workflow[]) => void;
-    onAddWorkflow: () => void;
-}> = ({ title, description, questionQid, workflows, onUpdateWorkflows, onAddWorkflow }) => {
-    
-    const handleAddWorkflow = () => {
-        const workflowCount = workflows.length + 1;
-        const newAction: ActionLogic = { id: generateId('action'), type: '', isConfirmed: false, params: {} };
-        const newWorkflow: Workflow = {
-            id: generateId('workflow'),
-            wid: `${questionQid}_W${workflowCount}`,
-            name: `Workflow ${workflowCount}`,
-            actions: [newAction]
-        };
-        onUpdateWorkflows([...workflows, newWorkflow]);
-        onAddWorkflow();
-    };
-
-    const handleUpdateWorkflow = (workflowId: string, updatedWorkflow: Workflow) => {
-        const newWorkflows = workflows.map(w => w.id === workflowId ? updatedWorkflow : w);
-        onUpdateWorkflows(newWorkflows);
-    };
-
-    const handleRemoveWorkflow = (workflowId: string) => {
-        const newWorkflows = workflows.filter(w => w.id !== workflowId);
-        onUpdateWorkflows(newWorkflows);
-    };
-
-    return (
-        <div className="py-6 first:pt-0">
-            <h3 className="text-sm font-medium text-on-surface">{title}</h3>
-            <p className="text-xs text-on-surface-variant mb-3">{description}</p>
-            <div className="space-y-4">
-                {workflows.map((workflow, index) => (
-                    <WorkflowEditor
-                        key={workflow.id}
-                        workflow={workflow}
-                        onUpdate={(updatedWorkflow) => handleUpdateWorkflow(workflow.id, updatedWorkflow)}
-                        onRemove={() => handleRemoveWorkflow(workflow.id)}
-                    />
-                ))}
-            </div>
-            <div className="mt-4 flex items-center gap-4">
-                 <button onClick={handleAddWorkflow} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                    <PlusIcon className="text-base" />
-                    Add Workflow
-                </button>
-            </div>
-        </div>
-    );
-};
-
 export default RightSidebar;

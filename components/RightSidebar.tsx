@@ -675,9 +675,8 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
     if (question.type === QuestionType.Radio) {
         setSelectedPreviewChoices(new Set([choiceId]));
     } else if (question.type === QuestionType.Checkbox) {
-        // The explicit type on `prev` was causing an issue with TypeScript's type inference.
-        // By removing it, `prev` is correctly inferred as `Set<string>` from the `useState` definition.
-        setSelectedPreviewChoices(prev => {
+        // Fix: Explicitly typing `prev` helps TypeScript's inference inside the callback.
+        setSelectedPreviewChoices((prev: Set<string>) => {
             const newSet = new Set(prev);
             if (newSet.has(choiceId)) {
                 newSet.delete(choiceId);
@@ -2111,13 +2110,25 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         if (skipLogic.type === 'simple') {
             if (!skipLogic.skipTo) {
                 hasTempError = true;
-                setTempErrors(prev => new Set(prev).add('simple'));
+// FIX START
+                setTempErrors(prev => {
+                    const newErrors = new Set(prev);
+                    newErrors.add('simple');
+                    return newErrors;
+                });
+// FIX END
             }
         } else if (skipLogic.type === 'per_choice') {
             const rule = skipLogic.rules.find(r => r.choiceId === sourceId);
             if (!rule?.skipTo) {
                 hasTempError = true;
-                setTempErrors(prev => new Set(prev).add(sourceId));
+// FIX START
+                setTempErrors(prev => {
+                    const newErrors = new Set(prev);
+                    newErrors.add(sourceId);
+                    return newErrors;
+                });
+// FIX END
             }
         }
         
@@ -2139,11 +2150,13 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         if (skipLogic?.type === 'simple') {
             onUpdate({ skipLogic: { ...skipLogic, skipTo, isConfirmed: false } });
             if (tempErrors.has('simple')) {
+// FIX START
                 setTempErrors(prev => {
                     const newErrors = new Set(prev);
                     newErrors.delete('simple');
                     return newErrors;
-                })
+                });
+// FIX END
             }
         }
     };
@@ -2156,11 +2169,13 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         );
         onUpdate({ skipLogic: { type: 'per_choice', rules: newRules } });
         if (tempErrors.has(choiceId)) {
+// FIX START
             setTempErrors(prev => {
                 const newErrors = new Set(prev);
                 newErrors.delete(choiceId);
                 return newErrors;
-            })
+            });
+// FIX END
         }
     };
 

@@ -56,6 +56,13 @@ export const initialSurveyData: Survey = {
             { id: 'q1c1', text: 'Q1_1 Yes' },
             { id: 'q1c2', text: 'Q1_2 No' },
           ],
+          skipLogic: {
+            type: 'per_choice',
+            rules: [
+              { choiceId: 'q1c1', skipTo: 'q3', isConfirmed: true },
+              { choiceId: 'q1c2', skipTo: 'next', isConfirmed: true },
+            ],
+          },
         },
         {
           id: 'q2',

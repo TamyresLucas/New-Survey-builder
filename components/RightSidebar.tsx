@@ -677,6 +677,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
     } else if (question.type === QuestionType.Checkbox) {
         // Fix: Explicitly typing `prev` helps TypeScript's inference inside the callback.
         setSelectedPreviewChoices((prev: Set<string>) => {
+            // FIX: Correctly update Set state immutably.
             const newSet = new Set(prev);
             if (newSet.has(choiceId)) {
                 newSet.delete(choiceId);
@@ -2110,25 +2111,13 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         if (skipLogic.type === 'simple') {
             if (!skipLogic.skipTo) {
                 hasTempError = true;
-// FIX START
-                setTempErrors(prev => {
-                    const newErrors = new Set(prev);
-                    newErrors.add('simple');
-                    return newErrors;
-                });
-// FIX END
+                setTempErrors(prev => new Set(prev).add('simple'));
             }
         } else if (skipLogic.type === 'per_choice') {
             const rule = skipLogic.rules.find(r => r.choiceId === sourceId);
             if (!rule?.skipTo) {
                 hasTempError = true;
-// FIX START
-                setTempErrors(prev => {
-                    const newErrors = new Set(prev);
-                    newErrors.add(sourceId);
-                    return newErrors;
-                });
-// FIX END
+                setTempErrors(prev => new Set(prev).add(sourceId));
             }
         }
         
@@ -2150,13 +2139,12 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         if (skipLogic?.type === 'simple') {
             onUpdate({ skipLogic: { ...skipLogic, skipTo, isConfirmed: false } });
             if (tempErrors.has('simple')) {
-// FIX START
+                // FIX: Correctly update Set state immutably.
                 setTempErrors(prev => {
                     const newErrors = new Set(prev);
                     newErrors.delete('simple');
                     return newErrors;
                 });
-// FIX END
             }
         }
     };
@@ -2169,13 +2157,12 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         );
         onUpdate({ skipLogic: { type: 'per_choice', rules: newRules } });
         if (tempErrors.has(choiceId)) {
-// FIX START
+            // FIX: Correctly update Set state immutably.
             setTempErrors(prev => {
                 const newErrors = new Set(prev);
                 newErrors.delete(choiceId);
                 return newErrors;
             });
-// FIX END
         }
     };
 

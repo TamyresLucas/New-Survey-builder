@@ -92,9 +92,34 @@ Several key design patterns have been established to ensure a consistent and int
 -   **Consistent Actions**: UI controls for similar actions are standardized. For example, adding a new logic condition is always labeled "+ Add condition" and is placed consistently in the UI.
 -   **Logical Grouping**: Related features are grouped. All advanced survey features, including complex branching and workflows, are consolidated under a single "Advanced Logic" section within the "Advanced" tab, creating a predictable location for power-user functionality.
 
+### 6.1 Logic Flow Visualization
+
+A key design pattern in the "Logic" tab is the clear, visual representation of the survey's flow. This is achieved through a set of specialized, read-only components that provide a high-level overview of the respondent's path.
+
+#### 6.1.1 Logic Question Card
+
+This component (`LogicQuestionCard.tsx`) is a condensed, non-interactive card that represents a single question in the survey flow. Its structure is designed for quick recognition and understanding:
+
+*   **Header**: The top of the card features a colored badge containing the question's type icon (e.g., Radio Button, Checkbox) and its unique variable name (e.g., `Q1`, `Q2`), which is automatically inherited from the survey structure defined in the "Build" tab.
+*   **Body**: Below the header, the card displays the truncated question text. If the question has choices, the first few are listed, including their own variables (e.g., `Q1_1 Yes`, `Q1_2 No`), to provide context without cluttering the view.
+*   **Survey Flow Connectors**: These are the circular points on the left and right edges of the card that act as anchors for the connection lines. Their visibility is context-dependent to clearly define the start and end of a flow:
+    *   The **first question** in the survey only has a right-side (outgoing) connector.
+    *   All **intermediate questions** have both left (incoming) and right (outgoing) connectors.
+    *   The **last question** in a sequence only has a left-side (incoming) connector.
+
+#### 6.1.2 Survey Flow Lines & Branching
+
+The path between questions is visualized using lines and branching patterns:
+
+*   **Linear Flow**: For standard sequential progress, a straight, arrow-tipped line connects the right connector of one card to the left connector of the next.
+*   **Branching Logic**: When skip logic is present, the flow visual changes to show the conditional path (`LogicBranch.tsx`).
+    *   The question being skipped is moved below the main horizontal path.
+    *   Smooth, curved lines branch off from the source question's connector, connecting down to the skipped question, and then back up to rejoin the main flow at the target question.
+    *   These curved paths are labeled with the choice that triggers them (e.g., "No"), making the conditional logic immediately apparent. The direct path is also labeled (e.g., "Yes").
+
 ## 7. MD3 Design Tokens & Components
 
-### Design Tokens
+### 7.1 Design Tokens
 
 The application uses a token-based color system inspired by MD3. Key tokens include:
 
@@ -108,12 +133,13 @@ The application uses a token-based color system inspired by MD3. Key tokens incl
 -   `outline`: For borders and dividers.
 -   `error`/`success`: For feedback states.
 
-### Component Library (based on MD3 concepts)
+### 7.2 Component Library (based on MD3 concepts)
 
 -   **Top App Bar**: Implemented as `Header.tsx` and `SubHeader.tsx`.
 -   **Navigation Rail**: Implemented as `LeftSidebar.tsx`.
 -   **Side Sheet / Panel**: Implemented as `RightSidebar.tsx`, `BuildPanel.tsx`, and `GeminiPanel.tsx`.
 -   **Cards**: The main component for questions, `QuestionCard.tsx`.
+-   **Logic View Card**: A specialized, read-only card for visualizing survey flow, `LogicQuestionCard.tsx`.
 -   **Dialogs**: Implemented as `PasteChoicesModal.tsx`.
 -   **Menus**: Dropdown menus for actions, implemented in `ActionMenus.tsx`.
 -   **Buttons, Toggles, Selects**: Standard form elements styled with Tailwind CSS according to the design system.

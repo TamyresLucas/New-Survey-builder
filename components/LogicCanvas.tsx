@@ -16,12 +16,22 @@ const LogicCanvas: React.FC<LogicCanvasProps> = memo(({ survey, toolboxItems }) 
 
   return (
     <div className="flex-1 overflow-auto bg-surface p-8">
-      <div className="flex items-start gap-6 pb-4 -m-2 p-2">
+      <div className="flex items-center h-full">
         {allQuestions.map((question, index, arr) => (
           <React.Fragment key={question.id}>
-            <LogicQuestionCard question={question} toolboxItems={toolboxItems} />
+            <LogicQuestionCard
+              question={question}
+              toolboxItems={toolboxItems}
+              isFirst={index === 0}
+              isLast={index === arr.length - 1}
+            />
             {index < arr.length - 1 && (
-              <div className="self-center h-px w-12 bg-outline-variant flex-shrink-0"></div>
+              <div className="relative w-12 flex-shrink-0 flex items-center" aria-hidden="true">
+                {/* Line */}
+                <div className="w-full h-0.5 bg-primary" />
+                {/* Arrowhead - moved right-2 to not overlap with the circle */}
+                <div className="absolute right-2 w-0 h-0 border-t-4 border-t-transparent border-b-4 border-b-transparent border-l-[6px] border-l-primary" />
+              </div>
             )}
           </React.Fragment>
         ))}

@@ -675,9 +675,9 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
     if (question.type === QuestionType.Radio) {
         setSelectedPreviewChoices(new Set([choiceId]));
     } else if (question.type === QuestionType.Checkbox) {
-        // Fix: Explicitly typing `prev` helps TypeScript's inference inside the callback.
+        // FIX: The `prev` argument in the state updater was being inferred as `unknown`.
+        // By explicitly typing `prev` as `Set<string>`, we fix the type error.
         setSelectedPreviewChoices((prev: Set<string>) => {
-            // FIX: Correctly update Set state immutably.
             const newSet = new Set(prev);
             if (newSet.has(choiceId)) {
                 newSet.delete(choiceId);
@@ -2139,8 +2139,7 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         if (skipLogic?.type === 'simple') {
             onUpdate({ skipLogic: { ...skipLogic, skipTo, isConfirmed: false } });
             if (tempErrors.has('simple')) {
-                // FIX: Correctly update Set state immutably.
-                setTempErrors(prev => {
+                setTempErrors((prev) => {
                     const newErrors = new Set(prev);
                     newErrors.delete('simple');
                     return newErrors;
@@ -2157,8 +2156,7 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         );
         onUpdate({ skipLogic: { type: 'per_choice', rules: newRules } });
         if (tempErrors.has(choiceId)) {
-            // FIX: Correctly update Set state immutably.
-            setTempErrors(prev => {
+            setTempErrors((prev) => {
                 const newErrors = new Set(prev);
                 newErrors.delete(choiceId);
                 return newErrors;

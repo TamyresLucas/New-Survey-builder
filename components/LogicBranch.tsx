@@ -9,14 +9,15 @@ interface LogicBranchProps {
   nextRule: SkipLogicRule;
   skipRule: SkipLogicRule;
   toolboxItems: ToolboxItemData[];
+  isSimpleSkip?: boolean;
 }
 
-const LogicBranch: React.FC<LogicBranchProps> = ({ fromQuestion, skippedQuestion, nextRule, skipRule, toolboxItems }) => {
-  const nextChoice = fromQuestion.choices?.find(c => c.id === nextRule.choiceId);
-  const skipChoice = fromQuestion.choices?.find(c => c.id === skipRule.choiceId);
+const LogicBranch: React.FC<LogicBranchProps> = ({ fromQuestion, skippedQuestion, nextRule, skipRule, toolboxItems, isSimpleSkip = false }) => {
+  const nextChoice = !isSimpleSkip ? fromQuestion.choices?.find(c => c.id === nextRule.choiceId) : null;
+  const skipChoice = !isSimpleSkip ? fromQuestion.choices?.find(c => c.id === skipRule.choiceId) : null;
   
-  const nextLabel = nextChoice ? parseChoice(nextChoice.text).label : 'Next';
-  const skipLabel = skipChoice ? parseChoice(skipChoice.text).label : 'Skip';
+  const nextLabel = isSimpleSkip ? 'If not answered' : (nextChoice ? parseChoice(nextChoice.text).label : 'Next');
+  const skipLabel = isSimpleSkip ? 'If answered' : (skipChoice ? parseChoice(skipChoice.text).label : 'Skip');
 
   // Coordinates for SVG paths based on component layout and connector positions
   const startX = -24;
@@ -24,7 +25,7 @@ const LogicBranch: React.FC<LogicBranchProps> = ({ fromQuestion, skippedQuestion
   const skippedLeftX = 56;
   const skippedRightX = 328;
   const mainY = 80;
-  const skippedY = 250;
+  const skippedY = 308;
   
   // Calculate control points for smooth C-curves that ensure vertical starts and horizontal ends
   const controlPointFactor = 0.6;
@@ -38,7 +39,7 @@ const LogicBranch: React.FC<LogicBranchProps> = ({ fromQuestion, skippedQuestion
   return (
     <div className="relative w-96 h-40 flex-shrink-0 mx-8">
       {/* Skipped Question Card */}
-      <div className="absolute top-[9.5rem] left-1/2 -translate-x-1/2 z-10">
+      <div className="absolute top-[13.5rem] left-1/2 -translate-x-1/2 z-10">
         <LogicQuestionCard question={skippedQuestion} toolboxItems={toolboxItems} />
       </div>
 
@@ -65,6 +66,7 @@ const LogicBranch: React.FC<LogicBranchProps> = ({ fromQuestion, skippedQuestion
             stroke="hsl(var(--color-primary))"
             strokeWidth="1.5"
             markerEnd="url(#logic-arrow)"
+            fill="none"
           />
           <text x="50%" y="70" dominantBaseline="auto" textAnchor="middle" fill="hsl(var(--color-on-surface-variant))" fontSize="12" className="font-sans">
             {skipLabel}
@@ -80,7 +82,7 @@ const LogicBranch: React.FC<LogicBranchProps> = ({ fromQuestion, skippedQuestion
             fill="none"
             markerEnd="url(#logic-arrow)"
           />
-          <text x="-10" y="170" dominantBaseline="middle" textAnchor="start" fill="hsl(var(--color-on-surface-variant))" fontSize="12" className="font-sans">
+          <text x="-10" y="194" dominantBaseline="middle" textAnchor="start" fill="hsl(var(--color-on-surface-variant))" fontSize="12" className="font-sans">
             {nextLabel}
           </text>
         </g>
@@ -91,7 +93,6 @@ const LogicBranch: React.FC<LogicBranchProps> = ({ fromQuestion, skippedQuestion
           stroke="hsl(var(--color-primary))"
           strokeWidth="1.5"
           fill="none"
-          markerEnd="url(#logic-arrow)"
         />
       </svg>
     </div>

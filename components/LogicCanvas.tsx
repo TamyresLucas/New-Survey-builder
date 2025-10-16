@@ -25,6 +25,7 @@ interface BranchInfo {
     targetQuestion: Question;
     nextRule: SkipLogicRule;
     skipRule: SkipLogicRule;
+    isSimpleSkip?: boolean;
 }
 
 const LogicCanvas: React.FC<LogicCanvasProps> = memo(({ survey, toolboxItems }) => {
@@ -39,27 +40,48 @@ const LogicCanvas: React.FC<LogicCanvasProps> = memo(({ survey, toolboxItems }) 
     const branchInfoMap = new Map<string, BranchInfo>();
     const skippedQuestionIds = new Set<string>();
 
-    for (let i = 0; i < allQuestions.length - 1; i++) {
+    // This visualization supports a specific pattern: a question skipping over the single, immediately following question.
+    // We iterate up to length - 2 because we need a source, a skipped, and a target question.
+    for (let i = 0; i < allQuestions.length - 2; i++) {
         const question = allQuestions[i];
         const nextQuestionInArray = allQuestions[i + 1];
+        const targetQuestionCandidate = allQuestions[i + 2];
         
-        const skipLogic = question.skipLogic;
+        // Use draft logic if it exists, otherwise fall back to confirmed logic.
+        // This ensures the canvas reflects what the user is currently editing in the sidebar.
+        const skipLogic = question.draftSkipLogic ?? question.skipLogic;
         
-        if (nextQuestionInArray && skipLogic?.type === 'per_choice') {
-            const confirmedRules = skipLogic.rules.filter(r => r.isConfirmed);
-            if (confirmedRules.length !== 2) continue;
+        if (!skipLogic) continue;
 
-            const nextRule = confirmedRules.find(r => r.skipTo === 'next');
-            const skipRule = confirmedRules.find(r => r.skipTo !== 'next' && r.skipTo !== 'end');
-            
-            if (nextRule && skipRule) {
-                const targetQuestion = findQuestionById(survey, skipRule.skipTo);
+        // Pattern 1: Simple skip (e.g., from a Text Entry question)
+        if (skipLogic.type === 'simple') {
+            if (skipLogic.skipTo === targetQuestionCandidate.id) {
+                branchInfoMap.set(question.id, {
+                    skippedQuestion: nextQuestionInArray,
+                    targetQuestion: targetQuestionCandidate,
+                    // These rules are for the branch component to render paths.
+                    // Confirmation status isn't relevant for visualization.
+                    nextRule: { choiceId: '', skipTo: 'next' },
+                    skipRule: { choiceId: '', skipTo: skipLogic.skipTo },
+                    isSimpleSkip: true,
+                });
+                skippedQuestionIds.add(nextQuestionInArray.id);
+                continue;
+            }
+        }
+        
+        // Pattern 2: Per-choice skip (e.g., from a Radio Button question)
+        if (skipLogic.type === 'per_choice') {
+            const rules = skipLogic.rules;
+            // We currently only visualize simple 2-way branches
+            if (rules.length === 2) {
+                const nextRule = rules.find(r => r.skipTo === 'next');
+                const skipRule = rules.find(r => r.skipTo !== 'next' && r.skipTo !== 'end');
                 
-                // This is the specific visual pattern: a question's logic skips over the immediately following question.
-                if (targetQuestion && allQuestions[i + 2]?.id === targetQuestion.id) {
+                if (nextRule && skipRule && skipRule.skipTo === targetQuestionCandidate.id) {
                     branchInfoMap.set(question.id, {
                         skippedQuestion: nextQuestionInArray,
-                        targetQuestion: targetQuestion,
+                        targetQuestion: targetQuestionCandidate,
                         nextRule: nextRule,
                         skipRule: skipRule,
                     });
@@ -71,7 +93,7 @@ const LogicCanvas: React.FC<LogicCanvasProps> = memo(({ survey, toolboxItems }) 
 
     const visibleQuestions = allQuestions.filter(q => !skippedQuestionIds.has(q.id));
     return { visibleQuestions, branchInfoMap };
-  }, [allQuestions, survey]);
+  }, [allQuestions]);
 
 
   return (
@@ -97,6 +119,7 @@ const LogicCanvas: React.FC<LogicCanvasProps> = memo(({ survey, toolboxItems }) 
                         nextRule={branchInfo.nextRule}
                         skipRule={branchInfo.skipRule}
                         toolboxItems={toolboxItems}
+                        isSimpleSkip={branchInfo.isSimpleSkip}
                     />
                 ) : !isLast ? (
                   <Connector />

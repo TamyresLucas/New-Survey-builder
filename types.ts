@@ -336,9 +336,10 @@ export type Node = StartNode | TextEntryNode | MultipleChoiceNode | LogicNode;
 export interface Edge {
   id: string;
   source: string;
-  sourceHandle: string;
+  sourceHandle?: string;
   target: string;
   targetHandle: string;
+  label?: string | React.ReactNode;
   data?: {
     condition?: string;
     logicType?: 'branch' | 'skip' | 'display';

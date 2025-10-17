@@ -24,7 +24,6 @@ import MultipleChoiceNodeComponent from './diagram/nodes/MultipleChoiceNodeCompo
 import TextEntryNodeComponent from './diagram/nodes/TextEntryNodeComponent';
 import LogicNodeComponent from './diagram/nodes/LogicNodeComponent';
 import DiagramToolbar from './diagram/DiagramToolbar';
-import PropertiesPanel from './diagram/PropertiesPanel';
 
 const nodeTypes: NodeTypes = {
   start: StartNodeComponent,
@@ -46,7 +45,6 @@ interface DiagramCanvasProps {
 const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState<DiagramNode>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<DiagramEdge>([]);
-    const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const reactFlowInstance = useReactFlow();
     
     useEffect(() => {
@@ -175,8 +173,16 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey }) => {
                         if (rule.skipTo && rule.skipTo !== 'end') {
                             const targetId = rule.skipTo === 'next' ? relevantQuestions[index + 1]?.id : rule.skipTo;
                             if (targetId && questionMap.has(targetId)) {
+                                const sourceChoice = q.choices?.find(c => c.id === rule.choiceId);
+                                const edgeLabel = sourceChoice ? parseChoice(sourceChoice.text).variable : undefined;
+                                
                                 flowEdges.push({
-                                    id: `e-${q.id}-${rule.choiceId}-${targetId}`, source: q.id, sourceHandle: rule.choiceId, target: targetId, targetHandle: 'input'
+                                    id: `e-${q.id}-${rule.choiceId}-${targetId}`,
+                                    source: q.id,
+                                    sourceHandle: rule.choiceId,
+                                    target: targetId,
+                                    targetHandle: 'input',
+                                    label: edgeLabel,
                                 });
                             }
                         }
@@ -184,11 +190,27 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey }) => {
                 }
             } else if (index < relevantQuestions.length - 1) { // Default sequential flow
                 const nextQuestion = relevantQuestions[index + 1];
-                flowEdges.push({
-                    id: `e-${q.id}-output-${nextQuestion.id}`, source: q.id, 
-                    sourceHandle: q.type === QuestionType.TextEntry ? 'output' : undefined,
-                    target: nextQuestion.id, targetHandle: 'input'
-                });
+                if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox) {
+                    q.choices?.forEach(choice => {
+                        const { variable } = parseChoice(choice.text);
+                        flowEdges.push({
+                            id: `e-${q.id}-${choice.id}-${nextQuestion.id}`,
+                            source: q.id,
+                            sourceHandle: choice.id,
+                            target: nextQuestion.id,
+                            targetHandle: 'input',
+                            label: variable,
+                        });
+                    });
+                } else { // Text Entry
+                    flowEdges.push({
+                        id: `e-${q.id}-output-${nextQuestion.id}`,
+                        source: q.id, 
+                        sourceHandle: 'output',
+                        target: nextQuestion.id,
+                        targetHandle: 'input'
+                    });
+                }
             }
         });
         
@@ -207,38 +229,15 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey }) => {
         [setEdges]
     );
 
-    const onNodeClick = useCallback((event: React.MouseEvent, node: DiagramNode) => {
-        setSelectedNodeId(node.id);
-    }, []);
-    
-    const updateNode = useCallback((nodeId: string, data: any) => {
-        // This is a view-only canvas now, so updates are disabled.
-    }, []);
-
-    const selectedNode = useMemo(() => {
-        if (!selectedNodeId) return null;
-        return nodes.find(n => n.id === selectedNodeId) || null;
-    }, [selectedNodeId, nodes]);
-
     return (
         <div className="w-full h-full">
             <DiagramToolbar onAddNode={() => {}} />
-            {selectedNode && (
-                <PropertiesPanel
-                    key={selectedNode.id}
-                    node={selectedNode}
-                    onUpdateNode={updateNode}
-                    onClose={() => setSelectedNodeId(null)}
-                />
-            )}
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
-                onNodeClick={onNodeClick}
-                onPaneClick={() => setSelectedNodeId(null)}
                 nodeTypes={nodeTypes}
                 proOptions={{ hideAttribution: true }}
                 className="bg-surface"

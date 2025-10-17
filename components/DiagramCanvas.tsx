@@ -26,19 +26,10 @@ import PropertiesPanel from './diagram/PropertiesPanel';
 
 const initialNodes: Node[] = [
   {
-    id: 'start-node',
-    variableName: 'START',
-    type: 'start',
-    position: { x: 50, y: 200 },
-    data: { label: 'Start' },
-    width: 180,
-    height: 60,
-  },
-  {
     id: 'q1-mc',
     variableName: 'Q1',
     type: 'multiple_choice',
-    position: { x: 300, y: 150 },
+    position: { x: 50, y: 150 },
     data: { 
         question: 'New Multiple Choice',
         subtype: 'radio',
@@ -54,7 +45,7 @@ const initialNodes: Node[] = [
     id: 'q2-text',
     variableName: 'Q2',
     type: 'text_entry',
-    position: { x: 700, y: 100 },
+    position: { x: 450, y: 100 },
     data: { 
         question: 'New Text Entry'
     },
@@ -65,7 +56,7 @@ const initialNodes: Node[] = [
     id: 'q3-text',
     variableName: 'Q3',
     type: 'text_entry',
-    position: { x: 700, y: 300 },
+    position: { x: 450, y: 300 },
     data: { 
         question: 'New Text Entry'
     },
@@ -75,13 +66,6 @@ const initialNodes: Node[] = [
 ];
 
 const initialEdges: Edge[] = [
-    {
-        id: 'e-start-q1',
-        source: 'start-node',
-        sourceHandle: 'output',
-        target: 'q1-mc',
-        targetHandle: 'input',
-    },
     {
         id: 'e-q1-q2',
         source: 'q1-mc',

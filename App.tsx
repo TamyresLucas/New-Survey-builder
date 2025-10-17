@@ -624,7 +624,7 @@ const App: React.FC = () => {
           ) : activeMainTab === 'Logic' ? (
             <LogicCanvas survey={survey} toolboxItems={toolboxItems} />
           ) : activeMainTab === 'Diagram' ? (
-            <DiagramCanvas />
+            <DiagramCanvas survey={survey} />
           ) : (
              <div className="flex-1 flex items-center justify-center">
                 <p className="text-2xl text-on-surface-variant">{activeMainTab} page is not implemented yet.</p>

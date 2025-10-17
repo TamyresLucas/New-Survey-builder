@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef, memo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, memo, useEffect } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -10,12 +10,14 @@ import {
   BackgroundVariant,
   Connection,
   NodeTypes,
-  EdgeTypes,
   addEdge,
 } from '@xyflow/react';
 
-import type { Node, Edge, Option } from '../types';
-import { generateId } from '../utils';
+import type { Survey, Question } from '../types';
+import type { Node as DiagramNode, Edge as DiagramEdge } from '../types';
+
+import { generateId, parseChoice } from '../utils';
+import { QuestionType } from '../types';
 
 import StartNodeComponent from './diagram/nodes/StartNodeComponent';
 import MultipleChoiceNodeComponent from './diagram/nodes/MultipleChoiceNodeComponent';
@@ -24,64 +26,6 @@ import LogicNodeComponent from './diagram/nodes/LogicNodeComponent';
 import DiagramToolbar from './diagram/DiagramToolbar';
 import PropertiesPanel from './diagram/PropertiesPanel';
 
-const initialNodes: Node[] = [
-  {
-    id: 'q1-mc',
-    variableName: 'Q1',
-    type: 'multiple_choice',
-    position: { x: 50, y: 150 },
-    data: { 
-        question: 'New Multiple Choice',
-        subtype: 'radio',
-        options: [
-            { id: 'q1-opt1', text: 'Option 1', variableName: 'Q1_1' },
-            { id: 'q1-opt2', text: 'Option 2', variableName: 'Q1_2' },
-        ]
-     },
-    width: 320,
-    height: 164,
-  },
-  {
-    id: 'q2-text',
-    variableName: 'Q2',
-    type: 'text_entry',
-    position: { x: 450, y: 100 },
-    data: { 
-        question: 'New Text Entry'
-    },
-    width: 320,
-    height: 120,
-  },
-  {
-    id: 'q3-text',
-    variableName: 'Q3',
-    type: 'text_entry',
-    position: { x: 450, y: 300 },
-    data: { 
-        question: 'New Text Entry'
-    },
-    width: 320,
-    height: 120,
-  }
-];
-
-const initialEdges: Edge[] = [
-    {
-        id: 'e-q1-q2',
-        source: 'q1-mc',
-        sourceHandle: 'q1-opt1',
-        target: 'q2-text',
-        targetHandle: 'input',
-    },
-    {
-        id: 'e-q1-q3',
-        source: 'q1-mc',
-        sourceHandle: 'q1-opt2',
-        target: 'q3-text',
-        targetHandle: 'input',
-    }
-];
-
 const nodeTypes: NodeTypes = {
   start: StartNodeComponent,
   multiple_choice: MultipleChoiceNodeComponent,
@@ -89,77 +33,187 @@ const nodeTypes: NodeTypes = {
   logic: LogicNodeComponent,
 };
 
-const DiagramCanvasContent: React.FC = () => {
-    const [nodes, setNodes, onNodesChange] = useNodesState<Node>(initialNodes);
-    const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(initialEdges);
+const NODE_WIDTH = 320;
+const NODE_HEIGHT = 180;
+const X_SPACING = 450;
+const Y_SPACING = 250;
+
+
+interface DiagramCanvasProps {
+  survey: Survey;
+}
+
+const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey }) => {
+    const [nodes, setNodes, onNodesChange] = useNodesState<DiagramNode>([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState<DiagramEdge>([]);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const reactFlowInstance = useReactFlow();
-    const questionCounter = useRef(4); // Starts after our initial questions
+    
+    useEffect(() => {
+        const relevantQuestions = survey.blocks.flatMap(b => b.questions).filter(q =>
+            q.type === QuestionType.Radio ||
+            q.type === QuestionType.Checkbox ||
+            q.type === QuestionType.TextEntry
+        );
+
+        if (relevantQuestions.length === 0) {
+            setNodes([]);
+            setEdges([]);
+            return;
+        }
+        
+        // FIX: Explicitly type questionMap to resolve a type inference issue.
+        const questionMap: Map<string, Question> = new Map(relevantQuestions.map(q => [q.id, q]));
+        
+        // --- Auto-layout calculation ---
+        const nodePositions = new Map<string, { x: number, y: number }>();
+        const columns: string[][] = [];
+        const questionToColumn = new Map<string, number>();
+
+        // Find root nodes (first question is always a root)
+        columns[0] = [relevantQuestions[0].id];
+        questionToColumn.set(relevantQuestions[0].id, 0);
+
+        // Use a queue to traverse the graph and assign columns
+        const queue: string[] = [relevantQuestions[0].id];
+        const visited = new Set<string>([relevantQuestions[0].id]);
+
+        while(queue.length > 0) {
+            const currentId = queue.shift()!;
+            const currentQuestion = questionMap.get(currentId)!;
+            const currentColumn = questionToColumn.get(currentId)!;
+            const nextColumn = currentColumn + 1;
+
+            const targets = new Set<string>();
+
+            // Find explicit targets from skip logic
+            const skipLogic = currentQuestion.draftSkipLogic ?? currentQuestion.skipLogic;
+            if (skipLogic) {
+                if (skipLogic.type === 'simple' && skipLogic.skipTo !== 'next' && skipLogic.skipTo !== 'end') {
+                    targets.add(skipLogic.skipTo);
+                } else if (skipLogic.type === 'per_choice') {
+                    skipLogic.rules.forEach(rule => {
+                        if (rule.skipTo !== 'next' && rule.skipTo !== 'end') {
+                            targets.add(rule.skipTo);
+                        }
+                    });
+                }
+            }
+            
+            // Add sequential next question if it's not already a target and there's no unconditional skip
+            const currentIdx = relevantQuestions.findIndex(q => q.id === currentId);
+            if (currentIdx + 1 < relevantQuestions.length) {
+                const nextQuestion = relevantQuestions[currentIdx + 1];
+                if (skipLogic?.type !== 'simple' || (skipLogic.type === 'simple' && skipLogic.skipTo === 'next')) {
+                     targets.add(nextQuestion.id);
+                }
+            }
+
+            // Assign columns to targets
+            if (!columns[nextColumn]) columns[nextColumn] = [];
+            targets.forEach(targetId => {
+                if (questionMap.has(targetId) && !visited.has(targetId)) {
+                    visited.add(targetId);
+                    questionToColumn.set(targetId, nextColumn);
+                    columns[nextColumn].push(targetId);
+                    queue.push(targetId);
+                }
+            });
+        }
+        
+        // Calculate final X, Y coordinates
+        columns.forEach((column, colIndex) => {
+            const yOffset = - (column.length - 1) * Y_SPACING / 2;
+            column.forEach((qId, nodeIndex) => {
+                nodePositions.set(qId, {
+                    x: colIndex * X_SPACING,
+                    y: nodeIndex * Y_SPACING + yOffset
+                });
+            });
+        });
+
+        // --- Node and Edge creation ---
+        const flowNodes: DiagramNode[] = [];
+        const flowEdges: DiagramEdge[] = [];
+
+        relevantQuestions.forEach((q, index) => {
+            const position = nodePositions.get(q.id) || { x: index * X_SPACING, y: 0 };
+            
+            // Create Node
+            if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox) {
+                flowNodes.push({
+                    id: q.id, type: 'multiple_choice', position,
+                    data: {
+                        variableName: q.qid,
+                        question: q.text, subtype: q.type === QuestionType.Radio ? 'radio' : 'checkbox',
+                        options: q.choices?.map(c => ({
+                            id: c.id, text: parseChoice(c.text).label, variableName: parseChoice(c.text).variable
+                        })) || []
+                    },
+                    width: NODE_WIDTH, height: 100 + (q.choices?.length || 0) * 32,
+                });
+            } else { // Text Entry
+                flowNodes.push({
+                    id: q.id, type: 'text_entry', position,
+                    data: { variableName: q.qid, question: q.text },
+                    width: NODE_WIDTH, height: NODE_HEIGHT
+                });
+            }
+
+            // Create Edges
+            const skipLogic = q.draftSkipLogic ?? q.skipLogic;
+            if (skipLogic) {
+                if (skipLogic.type === 'simple' && skipLogic.skipTo && skipLogic.skipTo !== 'end') {
+                    const targetId = skipLogic.skipTo === 'next' ? relevantQuestions[index + 1]?.id : skipLogic.skipTo;
+                    if (targetId && questionMap.has(targetId)) {
+                        flowEdges.push({
+                            id: `e-${q.id}-output-${targetId}`, source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input'
+                        });
+                    }
+                } else if (skipLogic.type === 'per_choice') {
+                    skipLogic.rules.forEach(rule => {
+                        if (rule.skipTo && rule.skipTo !== 'end') {
+                            const targetId = rule.skipTo === 'next' ? relevantQuestions[index + 1]?.id : rule.skipTo;
+                            if (targetId && questionMap.has(targetId)) {
+                                flowEdges.push({
+                                    id: `e-${q.id}-${rule.choiceId}-${targetId}`, source: q.id, sourceHandle: rule.choiceId, target: targetId, targetHandle: 'input'
+                                });
+                            }
+                        }
+                    });
+                }
+            } else if (index < relevantQuestions.length - 1) { // Default sequential flow
+                const nextQuestion = relevantQuestions[index + 1];
+                flowEdges.push({
+                    id: `e-${q.id}-output-${nextQuestion.id}`, source: q.id, 
+                    sourceHandle: q.type === QuestionType.TextEntry ? 'output' : undefined,
+                    target: nextQuestion.id, targetHandle: 'input'
+                });
+            }
+        });
+        
+        setNodes(flowNodes);
+        setEdges(flowEdges);
+
+        setTimeout(() => reactFlowInstance.fitView({ duration: 300 }), 0);
+
+    }, [survey, setNodes, setEdges, reactFlowInstance]);
 
     const onConnect = useCallback(
         (connection: Connection) => {
-            const newEdge = { ...connection, id: generateId('edge'), data: { label: connection.sourceHandle } } as Edge;
+            const newEdge = { ...connection, id: generateId('edge') } as DiagramEdge;
             setEdges((eds) => addEdge(newEdge, eds));
         },
         [setEdges]
     );
 
-    const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    const onNodeClick = useCallback((event: React.MouseEvent, node: DiagramNode) => {
         setSelectedNodeId(node.id);
     }, []);
-
-    const addNode = useCallback((type: 'multiple_choice' | 'text_entry' | 'logic') => {
-        const { x, y } = reactFlowInstance.screenToFlowPosition({ 
-            x: window.innerWidth / 2, 
-            y: window.innerHeight / 2 
-        });
-        
-        const qid = `Q${questionCounter.current++}`;
-        let newNode: Node;
-
-        if (type === 'multiple_choice') {
-            newNode = {
-                id: generateId('q-mc'),
-                variableName: qid,
-                type: 'multiple_choice',
-                position: { x, y },
-                data: {
-                    question: `Click to edit question ${qid}`,
-                    subtype: 'radio',
-                    options: [
-                        { id: generateId('opt'), text: 'Option 1', variableName: `${qid}_1` },
-                        { id: generateId('opt'), text: 'Option 2', variableName: `${qid}_2` },
-                    ]
-                },
-                width: 320,
-                height: 164,
-            };
-        } else { // text_entry
-            newNode = {
-                id: generateId('q-text'),
-                variableName: qid,
-                type: 'text_entry',
-                position: { x, y },
-                data: {
-                    question: `Click to edit question ${qid}`,
-                },
-                width: 320,
-                height: 120,
-            };
-        }
-        
-        setNodes((nds) => nds.concat(newNode));
-    }, [reactFlowInstance, setNodes]);
-
+    
     const updateNode = useCallback((nodeId: string, data: any) => {
-        setNodes((nds) =>
-            nds.map((node) =>
-                node.id === nodeId
-                    ? { ...node, data: { ...node.data, ...data } }
-                    : node
-            )
-        );
-    }, [setNodes]);
+        // This is a view-only canvas now, so updates are disabled.
+    }, []);
 
     const selectedNode = useMemo(() => {
         if (!selectedNodeId) return null;
@@ -168,7 +222,7 @@ const DiagramCanvasContent: React.FC = () => {
 
     return (
         <div className="w-full h-full">
-            <DiagramToolbar onAddNode={addNode} />
+            <DiagramToolbar onAddNode={() => {}} />
             {selectedNode && (
                 <PropertiesPanel
                     key={selectedNode.id}
@@ -186,7 +240,7 @@ const DiagramCanvasContent: React.FC = () => {
                 onNodeClick={onNodeClick}
                 onPaneClick={() => setSelectedNodeId(null)}
                 nodeTypes={nodeTypes}
-                fitView
+                proOptions={{ hideAttribution: true }}
                 className="bg-surface"
             >
                 <Background
@@ -202,10 +256,10 @@ const DiagramCanvasContent: React.FC = () => {
 };
 
 
-const DiagramCanvas: React.FC = memo(() => {
+const DiagramCanvas: React.FC<DiagramCanvasProps> = memo(({ survey }) => {
     return (
         <ReactFlowProvider>
-            <DiagramCanvasContent />
+            <DiagramCanvasContent survey={survey} />
         </ReactFlowProvider>
     );
 });

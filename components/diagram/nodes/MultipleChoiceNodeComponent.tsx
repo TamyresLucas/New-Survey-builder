@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { NodeProps } from '@xyflow/react';
 import type { MultipleChoiceNode } from '../../../types';
-import { CheckboxFilledIcon as CheckboxToolboxIcon } from '../../icons';
+import { CheckboxFilledIcon as CheckboxToolboxIcon, RadioIcon } from '../../icons';
 import { InputHandle } from './CustomNodeHandles';
 
 const handleStyle = {
@@ -13,23 +13,31 @@ const handleStyle = {
 };
 
 const MultipleChoiceNodeComponent: React.FC<NodeProps<MultipleChoiceNode>> = ({ data, selected }) => {
+  const Icon = data.subtype === 'radio' ? RadioIcon : CheckboxToolboxIcon;
+  
   return (
-    <div className={`w-80 bg-surface-container border-primary rounded-lg transition-all ${
-        selected ? 'border-4 shadow-xl' : 'border-2 shadow-md'
+    <div className={`w-80 bg-surface-container border-2 rounded-lg transition-all ${
+        selected ? 'border-primary shadow-xl' : 'border-outline-variant shadow-md'
     }`}>
       <InputHandle />
-      <header className="bg-primary-container p-3 rounded-t-md">
-        <div className="flex items-center gap-2">
-          <CheckboxToolboxIcon className="text-lg text-on-primary-container" />
-          <p className="text-sm font-semibold text-on-primary-container truncate">{data.question}</p>
+      <header className="bg-surface-container-highest p-3 rounded-t-lg">
+        <div className="flex items-center gap-2 min-w-0">
+            <Icon className="text-lg text-on-surface flex-shrink-0" />
+            <span className="font-bold text-sm text-on-surface flex-shrink-0 mr-1">{data.variableName}</span>
+            <p className="text-sm text-on-surface truncate">
+                {data.question}
+            </p>
         </div>
       </header>
       <main className="p-3">
         <ul className="space-y-2">
             {data.options.map((option) => (
-                <li key={option.id} className="relative bg-surface-container-high rounded p-2 text-sm text-on-surface flex items-center gap-2">
-                    <span className="w-4 h-4 rounded-sm border-2 border-outline flex-shrink-0"></span>
-                    <span>{option.text}</span>
+                <li key={option.id} className="relative bg-surface-container-high rounded p-2 text-sm text-on-surface flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <span className="w-4 h-4 rounded-sm border-2 border-outline flex-shrink-0"></span>
+                        <span className="flex-grow">{option.text}</span>
+                    </div>
+                    <span className="bg-surface text-on-surface-variant text-xs font-mono py-1 px-2 rounded">{option.variableName}</span>
                      <Handle
                         type="source"
                         position={Position.Right}

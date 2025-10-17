@@ -3,13 +3,13 @@ import { Handle, Position } from '@xyflow/react';
 import type { NodeProps } from '@xyflow/react';
 import type { MultipleChoiceNode } from '../../../types';
 import { CheckboxFilledIcon as CheckboxToolboxIcon } from '../../icons';
-import { InputHandle, OutputHandle } from './CustomNodeHandles';
+import { InputHandle } from './CustomNodeHandles';
 
-const optionHandleStyle = {
-    width: 8,
-    height: 8,
+const handleStyle = {
+    width: 10,
+    height: 10,
     background: 'hsl(var(--color-surface-container))',
-    border: '1.5px solid hsl(var(--color-outline))',
+    border: '2px solid hsl(var(--color-primary))',
 };
 
 const MultipleChoiceNodeComponent: React.FC<NodeProps<MultipleChoiceNode>> = ({ data, selected }) => {
@@ -26,20 +26,26 @@ const MultipleChoiceNodeComponent: React.FC<NodeProps<MultipleChoiceNode>> = ({ 
       </header>
       <main className="p-3">
         <ul className="space-y-2">
-            {data.options.map((option, index) => (
-                <li key={option.id} className="relative bg-surface-container-high rounded p-2 text-sm text-on-surface">
-                    {option.text}
+            {data.options.map((option) => (
+                <li key={option.id} className="relative bg-surface-container-high rounded p-2 text-sm text-on-surface flex items-center gap-2">
+                    <span className="w-4 h-4 rounded-sm border-2 border-outline flex-shrink-0"></span>
+                    <span>{option.text}</span>
                      <Handle
                         type="source"
                         position={Position.Right}
                         id={option.id}
-                        style={{ ...optionHandleStyle, top: `${(index + 1) * 32 + 62}px` }}
+                        style={{
+                            ...handleStyle,
+                            position: 'absolute',
+                            right: '-16px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                        }}
                     />
                 </li>
             ))}
         </ul>
       </main>
-      <OutputHandle id="output" />
     </div>
   );
 };

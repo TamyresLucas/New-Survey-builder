@@ -29,7 +29,7 @@ const initialNodes: Node[] = [
     id: 'start-node',
     variableName: 'START',
     type: 'start',
-    position: { x: 100, y: 200 },
+    position: { x: 50, y: 200 },
     data: { label: 'Start' },
     width: 180,
     height: 60,
@@ -38,26 +38,36 @@ const initialNodes: Node[] = [
     id: 'q1-mc',
     variableName: 'Q1',
     type: 'multiple_choice',
-    position: { x: 400, y: 150 },
+    position: { x: 300, y: 150 },
     data: { 
-        question: 'What is your favorite color?',
+        question: 'New Multiple Choice',
         subtype: 'radio',
         options: [
-            { id: 'q1-opt1', text: 'Red', variableName: 'Q1_1' },
-            { id: 'q1-opt2', text: 'Blue', variableName: 'Q1_2' },
-            { id: 'q1-opt3', text: 'Green', variableName: 'Q1_3' },
+            { id: 'q1-opt1', text: 'Option 1', variableName: 'Q1_1' },
+            { id: 'q1-opt2', text: 'Option 2', variableName: 'Q1_2' },
         ]
      },
     width: 320,
-    height: 196,
+    height: 164,
   },
   {
     id: 'q2-text',
     variableName: 'Q2',
     type: 'text_entry',
-    position: { x: 800, y: 200 },
+    position: { x: 700, y: 100 },
     data: { 
-        question: 'Why is it your favorite color?'
+        question: 'New Text Entry'
+    },
+    width: 320,
+    height: 120,
+  },
+  {
+    id: 'q3-text',
+    variableName: 'Q3',
+    type: 'text_entry',
+    position: { x: 700, y: 300 },
+    data: { 
+        question: 'New Text Entry'
     },
     width: 320,
     height: 120,
@@ -75,8 +85,15 @@ const initialEdges: Edge[] = [
     {
         id: 'e-q1-q2',
         source: 'q1-mc',
-        sourceHandle: 'output',
+        sourceHandle: 'q1-opt1',
         target: 'q2-text',
+        targetHandle: 'input',
+    },
+    {
+        id: 'e-q1-q3',
+        source: 'q1-mc',
+        sourceHandle: 'q1-opt2',
+        target: 'q3-text',
         targetHandle: 'input',
     }
 ];
@@ -93,11 +110,11 @@ const DiagramCanvasContent: React.FC = () => {
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(initialEdges);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const reactFlowInstance = useReactFlow();
-    const questionCounter = useRef(3); // Starts after our two initial questions
+    const questionCounter = useRef(4); // Starts after our initial questions
 
     const onConnect = useCallback(
         (connection: Connection) => {
-            const newEdge = { ...connection, id: generateId('edge') } as Edge;
+            const newEdge = { ...connection, id: generateId('edge'), data: { label: connection.sourceHandle } } as Edge;
             setEdges((eds) => addEdge(newEdge, eds));
         },
         [setEdges]

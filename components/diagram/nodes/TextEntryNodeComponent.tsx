@@ -6,7 +6,7 @@ import { InputHandle, OutputHandle } from './CustomNodeHandles';
 
 const TextEntryNodeComponent: React.FC<NodeProps<TextEntryNode>> = ({ data, selected }) => {
   return (
-    <div className={`w-80 bg-surface-container border-primary rounded-lg transition-all ${
+    <div className={`relative w-80 bg-surface-container border-primary rounded-lg transition-all ${
         selected ? 'border-4 shadow-xl' : 'border-2 shadow-md'
     }`}>
       <InputHandle />

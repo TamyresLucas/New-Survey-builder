@@ -779,13 +779,16 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
                             <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing" aria-label="Reorder choice">
                                 <DragIndicatorIcon className="text-lg" />
                             </span>
-                            <input
-                                type="text"
-                                value={parseChoice(choice.text).label}
-                                onChange={(e) => handleChoiceTextChange(choice.id, e.target.value)}
-                                className="flex-grow bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-                                placeholder="Enter choice text"
-                            />
+                            <div className="flex-grow flex items-stretch bg-surface border border-outline rounded-md focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-primary">
+                                <span className="px-3 text-sm font-semibold text-on-surface-variant bg-surface-container-high h-full flex items-center border-r border-outline rounded-l-md">{parseChoice(choice.text).variable}</span>
+                                <input
+                                    type="text"
+                                    value={parseChoice(choice.text).label}
+                                    onChange={(e) => handleChoiceTextChange(choice.id, e.target.value)}
+                                    className="w-full bg-transparent p-2 text-sm text-on-surface focus:outline-none"
+                                    placeholder="Enter choice text"
+                                />
+                            </div>
                             <button onClick={() => setExpandedChoiceId(expandedChoiceId === choice.id ? null : choice.id)} className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-full" aria-label="More options">
                                 <MoreVertIcon className="text-lg" />
                             </button>

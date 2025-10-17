@@ -288,7 +288,6 @@ export interface Condition {
  */
 export interface BaseNode {
   id: string;
-  variableName: string;
   type: string;
   position: Position;
   width: number;
@@ -309,7 +308,7 @@ export interface StartNode extends BaseNode {
  */
 export interface TextEntryNode extends BaseNode {
   type: 'text_entry';
-  data: { question: string; validationType?: string };
+  data: { variableName: string; question: string; validationType?: string };
 }
 
 /**
@@ -317,7 +316,7 @@ export interface TextEntryNode extends BaseNode {
  */
 export interface MultipleChoiceNode extends BaseNode {
   type: 'multiple_choice';
-  data: { question: string; subtype: 'radio' | 'checkbox'; options: Option[] };
+  data: { variableName: string; question: string; subtype: 'radio' | 'checkbox'; options: Option[] };
 }
 
 /**

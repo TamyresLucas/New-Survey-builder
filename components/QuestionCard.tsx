@@ -379,7 +379,7 @@ const QuestionCard: React.FC<{
                                         )}
                                         
                                         <div className="text-on-surface flex-grow min-h-[24px] flex items-center gap-2">
-                                            {variable && <span className="font-bold text-on-surface">{variable}</span>}
+                                            {variable && <span className="font-bold text-on-surface-variant mr-2">{variable}</span>}
                                             <EditableText
                                                 html={label}
                                                 onChange={(newLabel) => {

@@ -24,7 +24,7 @@ const MultipleChoiceOptionsEditor: React.FC<{
   };
   
   const handleAddOption = () => {
-    const qid = node.variableName;
+    const qid = node.data.variableName;
     const newOption: Option = {
       id: generateId('opt'),
       text: `Option ${node.data.options.length + 1}`,
@@ -86,6 +86,9 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ node, onUpdateNode, o
       }
     }
   };
+  
+  const variableName = isMultipleChoiceNode(node) || isTextEntryNode(node) ? node.data.variableName : '';
+
 
   const renderNodeProperties = () => {
     if (isMultipleChoiceNode(node)) {
@@ -136,7 +139,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ node, onUpdateNode, o
   return (
     <aside className="absolute top-4 right-4 z-10 w-96 max-h-[calc(100vh-2rem)] bg-surface-container border border-outline-variant rounded-lg shadow-lg flex flex-col">
       <header className="p-4 border-b border-outline-variant flex items-center justify-between">
-        <h2 className="text-lg font-bold text-on-surface">Properties: {node.variableName}</h2>
+        <h2 className="text-lg font-bold text-on-surface">Properties: {variableName}</h2>
         <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface p-1">
           <XIcon className="text-2xl" />
         </button>

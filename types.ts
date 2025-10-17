@@ -52,6 +52,7 @@ export interface DisplayLogicCondition {
   id: string;
   questionId: string; // This is the QID, e.g., "Q1"
   operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty' | '';
+  // FIX: Add missing value property to DisplayLogicCondition
   value: string;
   isConfirmed?: boolean;
 }
@@ -253,3 +254,102 @@ export interface LogicIssue {
   sourceId?: string; // The ID of the specific condition, rule, or branch that has the error
   field?: 'questionId' | 'value' | 'operator' | 'skipTo'; // The specific field with the issue
 }
+
+// --- NEW TYPES FOR DIAGRAM CANVAS ---
+
+export interface Position {
+  x: number;
+  y: number;
+}
+
+export interface ViewTransform {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+export interface Option {
+  id: string;
+  text: string;
+  variableName: string;
+}
+
+export type HandlePosition = 'top' | 'right' | 'bottom' | 'left';
+
+export interface Condition {
+  id: string;
+  variable: string;
+  operator: 'equals' | 'not_equals' | 'contains' | 'is_empty' | 'greater_than' | 'less_than';
+  value: string;
+}
+
+/**
+ * Base interface for all nodes in the diagram.
+ */
+export interface BaseNode {
+  id: string;
+  variableName: string;
+  type: string;
+  position: Position;
+  width: number;
+  height: number;
+  data: unknown;
+}
+
+/**
+ * Represents the entry point of the survey logic.
+ */
+export interface StartNode extends BaseNode {
+  type: 'start';
+  data: { label: string };
+}
+
+/**
+ * Represents an open-text question.
+ */
+export interface TextEntryNode extends BaseNode {
+  type: 'text_entry';
+  data: { question: string; validationType?: string };
+}
+
+/**
+ * Represents a multiple choice (radio or checkbox) question.
+ */
+export interface MultipleChoiceNode extends BaseNode {
+  type: 'multiple_choice';
+  data: { question: string; subtype: 'radio' | 'checkbox'; options: Option[] };
+}
+
+/**
+ * Represents a conditional branching node.
+ */
+export interface LogicNode extends BaseNode {
+  type: 'logic';
+  data: { label: string; conditions: Condition[]; logicType: 'skip' | 'display' | 'branch' };
+}
+
+/**
+ * A discriminated union of all possible node types for the diagram.
+ */
+export type Node = StartNode | TextEntryNode | MultipleChoiceNode | LogicNode;
+
+
+export interface Edge {
+  id: string;
+  source: string;
+  sourceHandle: string;
+  target: string;
+  targetHandle: string;
+  data?: {
+    condition?: string;
+    logicType?: 'branch' | 'skip' | 'display';
+  };
+}
+
+
+// --- TYPE GUARDS FOR DIAGRAM NODES ---
+
+export const isStartNode = (node: Node): node is StartNode => node.type === 'start';
+export const isLogicNode = (node: Node): node is LogicNode => node.type === 'logic';
+export const isMultipleChoiceNode = (node: Node): node is MultipleChoiceNode => node.type === 'multiple_choice';
+export const isTextEntryNode = (node: Node): node is TextEntryNode => node.type === 'text_entry';

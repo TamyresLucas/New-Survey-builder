@@ -2,7 +2,7 @@ import type { Survey, ToolboxItemData, NavItem } from './types';
 import { QuestionType } from './types';
 import { 
   // Main Nav
-  PlusIcon, ArrowSplitIcon, BrushIcon, GlobeIcon, TuneIcon, ClockIcon,
+  PlusIcon, ArrowSplitIcon, BrushIcon, GlobeIcon, TuneIcon, ClockIcon, AccountTreeIcon,
 
   // Toolbox Icons (in order of list)
   BlockIcon, 
@@ -105,6 +105,7 @@ export const initialSurveyData: Survey = {
 
 export const mainNavItems: NavItem[] = [
     { id: 'Build', label: 'Build', icon: PlusIcon },
+    { id: 'Diagram', label: 'Diagram', icon: AccountTreeIcon },
     { id: 'Logic', label: 'Logic', icon: ArrowSplitIcon },
     { id: 'Style', label: 'Style', icon: BrushIcon },
     { id: 'Language', label: 'Language', icon: GlobeIcon },
@@ -147,3 +148,16 @@ export const toolboxItems: ToolboxItemData[] = [
     { name: 'Text Highlighter', icon: TextHighlighterIcon },
     { name: 'Timer', icon: TimerIcon },
 ];
+
+// --- DIAGRAM CANVAS CONSTANTS ---
+
+export const MIN_ZOOM = 0.2;
+export const MAX_ZOOM = 4;
+export const DEFAULT_NODE_WIDTH = 320; // w-80 in tailwind
+
+// Default heights for different node types for initial placement
+export const START_NODE_HEIGHT = 60;
+export const TEXT_ENTRY_NODE_HEIGHT = 120;
+export const MULTIPLE_CHOICE_NODE_BASE_HEIGHT = 100;
+export const MULTIPLE_CHOICE_OPTION_HEIGHT = 32;
+export const LOGIC_NODE_HEIGHT = 80;

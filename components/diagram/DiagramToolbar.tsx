@@ -7,7 +7,7 @@ interface DiagramToolbarProps {
 
 const DiagramToolbar: React.FC<DiagramToolbarProps> = ({ onAddNode }) => {
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-surface-container border border-outline-variant rounded-lg shadow-md p-2 flex items-center gap-2">
+    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-surface-container border border-outline-variant rounded-lg shadow-md p-2 flex items-center gap-2 hidden">
       <button
         onClick={() => onAddNode('text_entry')}
         className="p-2 rounded-md hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors"

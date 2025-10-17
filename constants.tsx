@@ -105,7 +105,7 @@ export const initialSurveyData: Survey = {
 
 export const mainNavItems: NavItem[] = [
     { id: 'Build', label: 'Build', icon: PlusIcon },
-    { id: 'Diagram', label: 'Diagram', icon: AccountTreeIcon },
+    { id: 'Flow', label: 'Flow', icon: ArrowSplitIcon },
     { id: 'Logic', label: 'Logic', icon: ArrowSplitIcon },
     { id: 'Style', label: 'Style', icon: BrushIcon },
     { id: 'Language', label: 'Language', icon: GlobeIcon },

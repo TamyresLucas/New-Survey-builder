@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { NodeProps } from '@xyflow/react';
 import type { MultipleChoiceNode } from '../../../types';
-import { CheckboxFilledIcon as CheckboxToolboxIcon, RadioIcon } from '../../icons';
+import { CheckboxFilledIcon as CheckboxToolboxIcon, RadioIcon, RadioButtonUncheckedIcon, CheckboxOutlineIcon } from '../../icons';
 import { InputHandle } from './CustomNodeHandles';
 
 const handleStyle = {
@@ -34,7 +34,11 @@ const MultipleChoiceNodeComponent: React.FC<NodeProps<MultipleChoiceNode>> = ({ 
             {data.options.map((option) => (
                 <li key={option.id} className="relative bg-surface-container-high rounded p-2 text-sm text-on-surface flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="w-4 h-4 rounded-sm border-2 border-outline flex-shrink-0"></span>
+                        {data.subtype === 'radio' ? (
+                            <RadioButtonUncheckedIcon className="text-xl text-on-surface-variant flex-shrink-0" />
+                        ) : (
+                            <CheckboxOutlineIcon className="text-xl text-on-surface-variant flex-shrink-0" />
+                        )}
                         <span className="flex-grow">{option.text}</span>
                     </div>
                     <span className="bg-surface text-on-surface-variant text-xs font-mono py-1 px-2 rounded">{option.variableName}</span>

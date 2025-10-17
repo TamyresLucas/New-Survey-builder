@@ -344,6 +344,8 @@ export interface Edge {
     condition?: string;
     logicType?: 'branch' | 'skip' | 'display';
   };
+  // FIX: Add missing 'markerEnd' property to support react-flow edge markers.
+  markerEnd?: any;
 }
 
 

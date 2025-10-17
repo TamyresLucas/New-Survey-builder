@@ -66,7 +66,7 @@ const QuestionCard: React.FC<{
     logicIssues: LogicIssue[],
     isSelected: boolean,
     isChecked: boolean,
-    onSelect: (question: Question, tab?: string) => void,
+    onSelect: (question: Question, options?: { tab?: string; focusOn?: string }) => void,
     onToggleCheck: (questionId: string) => void;
     id: string;
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
@@ -429,7 +429,7 @@ const QuestionCard: React.FC<{
                     <DisplayLogicDisplay
                         logic={question.displayLogic}
                         survey={survey}
-                        onClick={() => onSelect(question, 'Behavior')}
+                        onClick={() => onSelect(question, { tab: 'Behavior' })}
                     />
                 )}
                 {question.skipLogic && (
@@ -437,14 +437,14 @@ const QuestionCard: React.FC<{
                         logic={question.skipLogic}
                         currentQuestion={question}
                         survey={survey}
-                        onClick={() => onSelect(question, 'Behavior')}
+                        onClick={() => onSelect(question, { tab: 'Behavior' })}
                     />
                 )}
                 {question.branchingLogic && question.branchingLogic.branches.length > 0 && (
                      <BranchingLogicDisplay
                         logic={question.branchingLogic}
                         survey={survey}
-                        onClick={() => onSelect(question, 'Advanced')}
+                        onClick={() => onSelect(question, { tab: 'Advanced' })}
                     />
                 )}
             </div>

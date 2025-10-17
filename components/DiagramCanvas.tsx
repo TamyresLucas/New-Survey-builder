@@ -24,14 +24,12 @@ import { QuestionType } from '../types';
 import StartNodeComponent from './diagram/nodes/StartNodeComponent';
 import MultipleChoiceNodeComponent from './diagram/nodes/MultipleChoiceNodeComponent';
 import TextEntryNodeComponent from './diagram/nodes/TextEntryNodeComponent';
-import LogicNodeComponent from './diagram/nodes/LogicNodeComponent';
 import DiagramToolbar from './diagram/DiagramToolbar';
 
 const nodeTypes: NodeTypes = {
   start: StartNodeComponent,
   multiple_choice: MultipleChoiceNodeComponent,
   text_entry: TextEntryNodeComponent,
-  logic: LogicNodeComponent,
 };
 
 const NODE_WIDTH = 320;
@@ -44,9 +42,10 @@ interface DiagramCanvasProps {
   survey: Survey;
   selectedQuestion: Question | null;
   onSelectQuestion: (question: Question | null, options?: { tab?: string; focusOn?: string }) => void;
+  onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
 }
 
-const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQuestion, onSelectQuestion }) => {
+const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState<DiagramNode>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<DiagramEdge>([]);
     const reactFlowInstance = useReactFlow();
@@ -259,6 +258,15 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     }, [onSelectQuestion]);
 
     const onEdgeClick = useCallback((event: React.MouseEvent, edge: XyflowEdge) => {
+        setEdges((eds) =>
+            eds.map((e) => ({
+                ...e,
+                selected: e.id === edge.id,
+            }))
+        );
+    }, [setEdges]);
+
+    const onEdgeDoubleClick = useCallback((event: React.MouseEvent, edge: XyflowEdge) => {
         event.stopPropagation();
         
         const sourceQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === edge.source);
@@ -266,15 +274,51 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             // Assume skip logic for now, as it's what edges represent.
             onSelectQuestion(sourceQuestion, { tab: 'Behavior', focusOn: edge.sourceHandle });
         }
+    }, [survey, onSelectQuestion]);
 
-        // Manually select the clicked edge and deselect others.
-        setEdges((eds) =>
-            eds.map((e) => ({
-                ...e,
-                selected: e.id === edge.id,
-            }))
-        );
-    }, [survey, onSelectQuestion, setEdges]);
+    const onEdgeUpdate = useCallback(
+        (oldEdge: DiagramEdge, newConnection: Connection) => {
+            if (!newConnection.source || !newConnection.target || !newConnection.sourceHandle) {
+                return;
+            }
+            
+            const sourceQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === newConnection.source);
+            if (!sourceQuestion) return;
+
+            const existingLogic = sourceQuestion.draftSkipLogic ?? sourceQuestion.skipLogic;
+            let newLogic: Question['skipLogic'];
+
+            if (existingLogic?.type === 'per_choice') {
+                const newRules = existingLogic.rules.map(rule => {
+                    if (rule.choiceId === newConnection.sourceHandle) {
+                        return { ...rule, skipTo: newConnection.target!, isConfirmed: false };
+                    }
+                    return rule;
+                });
+                newLogic = { type: 'per_choice', rules: newRules };
+            } else if (existingLogic?.type === 'simple') {
+                newLogic = { type: 'simple', skipTo: newConnection.target!, isConfirmed: false };
+            } else if (sourceQuestion.type === QuestionType.Radio || sourceQuestion.type === QuestionType.Checkbox) {
+                // Create new logic if none exists
+                const newRules = (sourceQuestion.choices || []).map(choice => ({
+                    choiceId: choice.id,
+                    skipTo: choice.id === newConnection.sourceHandle ? newConnection.target! : 'next',
+                    isConfirmed: false,
+                }));
+                newLogic = { type: 'per_choice', rules: newRules };
+            } else { // Text entry
+                newLogic = { type: 'simple', skipTo: newConnection.target!, isConfirmed: false };
+            }
+
+            if (newLogic) {
+                onUpdateQuestion(sourceQuestion.id, { skipLogic: newLogic });
+            }
+
+            setEdges((els) => els.filter(e => e.id !== oldEdge.id));
+        },
+        [setEdges, survey, onUpdateQuestion]
+    );
+
 
     return (
         <div className="w-full h-full">
@@ -288,6 +332,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 onNodeClick={onNodeClick}
                 onPaneClick={onPaneClick}
                 onEdgeClick={onEdgeClick}
+                onEdgeDoubleClick={onEdgeDoubleClick}
+                onEdgeUpdate={onEdgeUpdate}
                 nodeTypes={nodeTypes}
                 proOptions={{ hideAttribution: true }}
                 className="bg-surface"
@@ -305,10 +351,10 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
 };
 
 
-const DiagramCanvas: React.FC<DiagramCanvasProps> = memo(({ survey, selectedQuestion, onSelectQuestion }) => {
+const DiagramCanvas: React.FC<Omit<DiagramCanvasProps, 'onUpdateQuestion'> & { onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void }> = memo(({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion }) => {
     return (
         <ReactFlowProvider>
-            <DiagramCanvasContent survey={survey} selectedQuestion={selectedQuestion} onSelectQuestion={onSelectQuestion} />
+            <DiagramCanvasContent survey={survey} selectedQuestion={selectedQuestion} onSelectQuestion={onSelectQuestion} onUpdateQuestion={onUpdateQuestion} />
         </ReactFlowProvider>
     );
 });

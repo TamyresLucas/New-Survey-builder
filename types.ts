@@ -320,17 +320,9 @@ export interface MultipleChoiceNode extends BaseNode {
 }
 
 /**
- * Represents a conditional branching node.
- */
-export interface LogicNode extends BaseNode {
-  type: 'logic';
-  data: { label: string; conditions: Condition[]; logicType: 'skip' | 'display' | 'branch' };
-}
-
-/**
  * A discriminated union of all possible node types for the diagram.
  */
-export type Node = StartNode | TextEntryNode | MultipleChoiceNode | LogicNode;
+export type Node = StartNode | TextEntryNode | MultipleChoiceNode;
 
 
 export interface Edge {
@@ -352,6 +344,5 @@ export interface Edge {
 // --- TYPE GUARDS FOR DIAGRAM NODES ---
 
 export const isStartNode = (node: Node): node is StartNode => node.type === 'start';
-export const isLogicNode = (node: Node): node is LogicNode => node.type === 'logic';
 export const isMultipleChoiceNode = (node: Node): node is MultipleChoiceNode => node.type === 'multiple_choice';
 export const isTextEntryNode = (node: Node): node is TextEntryNode => node.type === 'text_entry';

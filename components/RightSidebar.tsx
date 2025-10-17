@@ -675,8 +675,7 @@ const RightSidebar: React.FC<RightSidebarProps> = memo(({
     if (question.type === QuestionType.Radio) {
         setSelectedPreviewChoices(new Set([choiceId]));
     } else if (question.type === QuestionType.Checkbox) {
-        // FIX: The `prev` argument in the state updater was being inferred as `unknown`.
-        // By explicitly typing `prev` as `Set<string>`, we fix the type error.
+        // FIX: Explicitly type `prev` to `Set<string>` to resolve TypeScript error where it was being inferred as `unknown`.
         setSelectedPreviewChoices((prev: Set<string>) => {
             const newSet = new Set(prev);
             if (newSet.has(choiceId)) {
@@ -1687,7 +1686,7 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
                 {isChoiceBasedInput && referencedQuestion?.choices ? (
                      <div className="relative">
                         <select
-                            value={condition.value}
+                            value={(condition as BranchingLogicCondition).value}
                             onChange={(e) => onUpdateCondition('value', e.target.value)}
                             className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                             aria-label="Condition value"
@@ -1703,7 +1702,7 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
                 ) : (
                     <input 
                         type={isNumericInput ? "number" : "text"} 
-                        value={condition.value} 
+                        value={(condition as BranchingLogicCondition).value} 
                         onChange={(e) => onUpdateCondition('value', e.target.value)} 
                         placeholder="select answer"
                         className={`w-full bg-surface border rounded-md px-2 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
@@ -1837,7 +1836,8 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         if (requiresValue && !condition.value.trim()) tempErrors.add('value');
 
         if (tempErrors.size > 0) {
-            setValidationErrors(prev => new Map(prev).set(conditionId, tempErrors));
+            // FIX: Explicitly type `prev` to avoid `unknown` type error
+            setValidationErrors((prev: Map<string, Set<keyof DisplayLogicCondition>>) => new Map(prev).set(conditionId, tempErrors));
             return;
         }
 
@@ -1848,7 +1848,8 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         
         const newConditions = displayLogic.conditions.map(c => c.id === conditionId ? { ...c, isConfirmed: true } : c);
         onUpdate({ displayLogic: { ...displayLogic, conditions: newConditions } });
-        setValidationErrors(prev => {
+        // FIX: Explicitly type `prev` to avoid `unknown` type error
+        setValidationErrors((prev: Map<string, Set<keyof DisplayLogicCondition>>) => {
             const newErrors = new Map(prev);
             newErrors.delete(conditionId);
             return newErrors;
@@ -1929,7 +1930,8 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         }
 
         if (validationErrors.has(conditionId)) {
-            setValidationErrors(prev => {
+            // FIX: Explicitly type `prev` to avoid `unknown` type error
+            setValidationErrors((prev: Map<string, Set<keyof DisplayLogicCondition>>) => {
                 const newErrors = new Map(prev);
                 const conditionErrors = new Set(newErrors.get(conditionId) || []);
                 conditionErrors.delete(field);
@@ -1949,7 +1951,8 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         const conditionId = displayLogic.conditions[index].id;
         const newConditions = displayLogic.conditions.filter((_, i) => i !== index);
         
-        setValidationErrors(prev => {
+        // FIX: Explicitly type `prev` to avoid `unknown` type error
+        setValidationErrors((prev: Map<string, Set<keyof DisplayLogicCondition>>) => {
             const newErrors = new Map(prev);
             newErrors.delete(conditionId);
             return newErrors;
@@ -2111,13 +2114,15 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         if (skipLogic.type === 'simple') {
             if (!skipLogic.skipTo) {
                 hasTempError = true;
-                setTempErrors(prev => new Set(prev).add('simple'));
+                // FIX: Explicitly type `prev` to avoid `unknown` type error
+                setTempErrors((prev: Set<string>) => new Set(prev).add('simple'));
             }
         } else if (skipLogic.type === 'per_choice') {
             const rule = skipLogic.rules.find(r => r.choiceId === sourceId);
             if (!rule?.skipTo) {
                 hasTempError = true;
-                setTempErrors(prev => new Set(prev).add(sourceId));
+                // FIX: Explicitly type `prev` to avoid `unknown` type error
+                setTempErrors((prev: Set<string>) => new Set(prev).add(sourceId));
             }
         }
         
@@ -2139,7 +2144,8 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         if (skipLogic?.type === 'simple') {
             onUpdate({ skipLogic: { ...skipLogic, skipTo, isConfirmed: false } });
             if (tempErrors.has('simple')) {
-                setTempErrors((prev) => {
+                // FIX: Explicitly type `prev` to avoid `unknown` type error
+                setTempErrors((prev: Set<string>) => {
                     const newErrors = new Set(prev);
                     newErrors.delete('simple');
                     return newErrors;
@@ -2156,7 +2162,8 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         );
         onUpdate({ skipLogic: { type: 'per_choice', rules: newRules } });
         if (tempErrors.has(choiceId)) {
-            setTempErrors((prev) => {
+            // FIX: Explicitly type `prev` to avoid `unknown` type error
+            setTempErrors((prev: Set<string>) => {
                 const newErrors = new Set(prev);
                 newErrors.delete(choiceId);
                 return newErrors;
@@ -2481,11 +2488,13 @@ const BranchingLogicEditor: React.FC<{
 
     const handleConfirmOtherwise = () => {
         if (!branchingLogic.otherwiseSkipTo) {
-            setValidationErrors(prev => new Map(prev).set('otherwise', new Set(['skipTo'])));
+            // FIX: Explicitly type `prev` to avoid `unknown` type error
+            setValidationErrors((prev: Map<string, Set<keyof BranchingLogicCondition | 'skipTo'>>) => new Map(prev).set('otherwise', new Set(['skipTo'])));
             return;
         }
         onUpdate({ branchingLogic: { ...branchingLogic, otherwiseIsConfirmed: true } });
-        setValidationErrors(prev => {
+        // FIX: Explicitly type `prev` to avoid `unknown` type error
+        setValidationErrors((prev: Map<string, Set<keyof BranchingLogicCondition | 'skipTo'>>) => {
             const newMap = new Map(prev);
             newMap.delete('otherwise');
             return newMap;

@@ -7,17 +7,17 @@ interface DiagramToolbarProps {
 
 const DiagramToolbar: React.FC<DiagramToolbarProps> = ({ onAddNode }) => {
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-surface-container border border-outline-variant rounded-lg shadow-md p-2 flex items-center gap-2 hidden">
+    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-surface-container border border-outline-variant rounded-lg shadow-md p-2 flex items-center gap-2">
       <button
         onClick={() => onAddNode('text_entry')}
-        className="p-2 rounded-md hover:bg-surface-container-lowest text-on-surface-variant hover:text-on-surface transition-colors"
+        className="p-2 rounded-md hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors"
         aria-label="Add Text Entry Node"
       >
         <TextEntryIcon className="text-xl" />
       </button>
       <button
         onClick={() => onAddNode('multiple_choice')}
-        className="p-2 rounded-md hover:bg-surface-container-lowest text-on-surface-variant hover:text-on-surface transition-colors"
+        className="p-2 rounded-md hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors"
         aria-label="Add Multiple Choice Node"
       >
         <CheckboxToolboxIcon className="text-xl" />

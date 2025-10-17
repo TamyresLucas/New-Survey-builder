@@ -13,21 +13,1012 @@ import {
 } from './icons';
 import { QuestionTypeSelectionMenuContent } from './ActionMenus';
 
-interface RightSidebarProps {
-  question: Question;
-  survey: Survey;
-  logicIssues: LogicIssue[];
-  onClose: () => void;
-  activeTab: string;
-  onTabChange: (tab: string) => void;
-  onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
-  onAddChoice: (questionId: string) => void;
-  onDeleteChoice: (questionId: string, choiceId: string) => void;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
-  toolboxItems: ToolboxItemData[];
-  onRequestGeminiHelp: (topic: string) => void;
+// ====================================================================================
+// INTERNAL EDITOR COMPONENT
+// This component contains all the logic and UI for editing a question.
+// ====================================================================================
+
+interface QuestionEditorProps {
+    question: Question;
+    survey: Survey;
+    logicIssues: LogicIssue[];
+    activeTab: string;
+    focusedLogicSource: string | null;
+    onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
+    onAddChoice: (questionId: string) => void;
+    onDeleteChoice: (questionId: string, choiceId: string) => void;
+    isExpanded: boolean;
+    toolboxItems: ToolboxItemData[];
+    onRequestGeminiHelp: (topic: string) => void;
 }
+
+const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
+    question, survey, logicIssues, activeTab, focusedLogicSource, onUpdateQuestion, onAddChoice, onDeleteChoice,
+    isExpanded, toolboxItems, onRequestGeminiHelp
+}) => {
+    const [questionText, setQuestionText] = useState(question.text);
+    const [expandedChoiceId, setExpandedChoiceId] = useState<string | null>(null);
+    const [isTypeMenuOpen, setIsTypeMenuOpen] = useState(false);
+    const typeMenuRef = useRef<HTMLDivElement>(null);
+    const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
+    const [draggedChoiceId, setDraggedChoiceId] = useState<string | null>(null);
+    const [dropTargetChoiceId, setDropTargetChoiceId] = useState<string | null>(null);
+    const [selectedPreviewChoices, setSelectedPreviewChoices] = useState<Set<string>>(new Set());
+
+    const allSurveyQuestions = useMemo(() => survey.blocks.flatMap(b => b.questions), [survey]);
+    const currentQuestionIndex = useMemo(() => allSurveyQuestions.findIndex(q => q.id === question.id), [allSurveyQuestions, question.id]);
+
+    const previousQuestions = useMemo(() =>
+        allSurveyQuestions
+            .slice(0, currentQuestionIndex)
+            .filter(q =>
+                q.id !== question.id &&
+                q.type !== QuestionType.PageBreak &&
+                q.type !== QuestionType.Description &&
+                !q.isHidden
+            ),
+        [allSurveyQuestions, currentQuestionIndex, question.id]
+    );
+
+    const followingQuestions = useMemo(() =>
+        allSurveyQuestions
+            .slice(currentQuestionIndex + 1)
+            .filter(q =>
+                q.id !== question.id &&
+                q.type !== QuestionType.PageBreak &&
+                q.type !== QuestionType.Description &&
+                !q.isHidden
+            ),
+        [allSurveyQuestions, currentQuestionIndex, question.id]
+    );
+
+    const isChoiceBased = useMemo(() => CHOICE_BASED_QUESTION_TYPES.has(question.type), [question.type]);
+
+    useEffect(() => {
+        setQuestionText(question.text);
+        setExpandedChoiceId(null);
+        setIsTypeMenuOpen(false);
+        setSelectedPreviewChoices(new Set());
+    }, [question]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (typeMenuRef.current && !typeMenuRef.current.contains(event.target as Node)) {
+                setIsTypeMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleUpdate = useCallback((updates: Partial<Question>) => {
+        onUpdateQuestion(question.id, updates);
+    }, [question.id, onUpdateQuestion]);
+    
+    const handleTypeSelect = useCallback((newType: QuestionType) => {
+        handleUpdate({ type: newType });
+        setIsTypeMenuOpen(false);
+    }, [handleUpdate]);
+
+    const handleChoiceDragStart = useCallback((e: React.DragEvent, choiceId: string) => {
+        setDraggedChoiceId(choiceId);
+        e.dataTransfer.effectAllowed = 'move';
+    }, []);
+
+    const handleChoiceDragOver = useCallback((e: React.DragEvent, choiceId: string) => {
+        e.preventDefault();
+        if (draggedChoiceId !== choiceId) {
+            setDropTargetChoiceId(choiceId);
+        }
+    }, [draggedChoiceId]);
+
+    const handleChoiceDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        
+        if (!draggedChoiceId || !question.choices) return;
+        
+        const choices = [...question.choices];
+        const draggedIndex = choices.findIndex(c => c.id === draggedChoiceId);
+        if (draggedIndex === -1) return;
+        
+        const [draggedItem] = choices.splice(draggedIndex, 1);
+        
+        if (dropTargetChoiceId === null) {
+            choices.push(draggedItem);
+        } else {
+            const dropIndex = choices.findIndex(c => c.id === dropTargetChoiceId);
+            if (dropIndex !== -1) {
+                choices.splice(dropIndex, 0, draggedItem);
+            } else {
+                choices.push(draggedItem); // Fallback
+            }
+        }
+        
+        handleUpdate({ choices });
+        setDraggedChoiceId(null);
+        setDropTargetChoiceId(null);
+    }, [draggedChoiceId, dropTargetChoiceId, question.choices, handleUpdate]);
+    
+    const handleChoiceDragEnd = useCallback((e: React.DragEvent) => {
+        setDraggedChoiceId(null);
+        setDropTargetChoiceId(null);
+    }, []);
+    
+    const handleChoicePropertyChange = (choiceId: string, property: keyof Choice, value: any) => {
+        const newChoices = (question.choices || []).map(c => 
+            c.id === choiceId ? { ...c, [property]: value } : c
+        );
+        handleUpdate({ choices: newChoices });
+    };
+    
+    const handleChoiceTextChange = (choiceId: string, newLabel: string) => {
+        const newChoices = (question.choices || []).map(c => {
+            if (c.id === choiceId) {
+                const { variable } = parseChoice(c.text);
+                const newText = variable ? `${variable} ${newLabel}` : newLabel;
+                return { ...c, text: newText };
+            }
+            return c;
+        });
+        handleUpdate({ choices: newChoices });
+    };
+
+    const handleTextBlur = () => {
+        if (questionText.trim() !== question.text) {
+        handleUpdate({ text: questionText.trim() });
+        }
+    };
+
+    const handlePasteChoices = (pastedText: string) => {
+        const lines = pastedText.split('\n').filter(line => line.trim() !== '');
+        if (lines.length === 0) return;
+
+        const newChoices: Choice[] = lines.map(line => ({
+        id: generateId('c'),
+        text: line.trim(),
+        }));
+
+        handleUpdate({ choices: newChoices });
+    };
+
+    const handlePreviewChoiceClick = useCallback((choiceId: string) => {
+        if (question.type === QuestionType.Radio) {
+            setSelectedPreviewChoices(new Set([choiceId]));
+        } else if (question.type === QuestionType.Checkbox) {
+            setSelectedPreviewChoices((prev: Set<string>) => {
+                const newSet = new Set(prev);
+                if (newSet.has(choiceId)) {
+                    newSet.delete(choiceId);
+                } else {
+                    newSet.add(choiceId);
+                }
+                return newSet;
+            });
+        }
+    }, [question.type]);
+
+    const CurrentQuestionTypeInfo = toolboxItems.find(item => item.name === question.type);
+    const initialChoicesText = (question.choices || []).map(c => parseChoice(c.text).label).join('\n');
+
+    // ... All render functions and sub-components from RightSidebar.tsx go here ...
+    const renderChoiceBasedSettingsTab = () => {
+    return (
+        <div className="space-y-6">
+            <div>
+                <label className="block text-sm font-medium text-on-surface-variant mb-1">
+                Question Type
+                </label>
+                <div className="relative" ref={typeMenuRef}>
+                <button
+                    onClick={() => setIsTypeMenuOpen(prev => !prev)}
+                    className="w-full flex items-center gap-2 text-left bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                    aria-haspopup="true"
+                    aria-expanded={isTypeMenuOpen}
+                >
+                    {CurrentQuestionTypeInfo ? <CurrentQuestionTypeInfo.icon className="text-base text-primary flex-shrink-0" /> : <div className="w-4 h-4 mr-3 flex-shrink-0" />}
+                    <span className="flex-grow">{question.type}</span>
+                    <ChevronDownIcon className="text-lg text-on-surface-variant flex-shrink-0" />
+                </button>
+                {isTypeMenuOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-1 z-10">
+                    <QuestionTypeSelectionMenuContent onSelect={handleTypeSelect} toolboxItems={toolboxItems} />
+                    </div>
+                )}
+                </div>
+                <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
+            </div>
+    
+            <ForceResponseSection question={question} handleUpdate={handleUpdate} />
+            
+            <div>
+                <label htmlFor="answer-format" className="block text-sm font-medium text-on-surface-variant mb-1">Answer Format</label>
+                <div className="relative">
+                    <select id="answer-format" value={question.answerFormat || 'list'} onChange={e => handleUpdate({ answerFormat: e.target.value as any })} className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none">
+                        <option value="list">List (Vertical)</option>
+                        <option value="dropdown">Dropdown</option>
+                        <option value="horizontal">Horizontal List</option>
+                    </select>
+                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                </div>
+            </div>
+
+            <div>
+                <label htmlFor="question-text" className="block text-sm font-medium text-on-surface-variant mb-1">
+                Question Text
+                </label>
+                <textarea
+                id="question-text"
+                value={questionText}
+                onChange={(e) => setQuestionText(e.target.value)}
+                onBlur={handleTextBlur}
+                rows={4}
+                className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                placeholder="Enter your question here..."
+                />
+                <p className="text-xs text-on-surface-variant mt-1">Maximum 5000 characters</p>
+            </div>
+    
+            <div>
+                <h3 className="text-sm font-medium text-on-surface-variant mb-2">Choices</h3>
+                <div 
+                    className="space-y-2"
+                    onDrop={handleChoiceDrop}
+                    onDragOver={(e) => {
+                        e.preventDefault();
+                        setDropTargetChoiceId(null);
+                    }}
+                >
+                {(question.choices || []).map((choice) => (
+                    <React.Fragment key={choice.id}>
+                    {dropTargetChoiceId === choice.id && <ChoiceDropIndicator />}
+                    <div 
+                        className="group"
+                        draggable
+                        onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
+                        onDragOver={(e) => {
+                            e.stopPropagation();
+                            handleChoiceDragOver(e, choice.id);
+                        }}
+                        onDragEnd={handleChoiceDragEnd}
+                    >
+                        <div className={`flex items-center gap-2 transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}>
+                            <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing" aria-label="Reorder choice">
+                                <DragIndicatorIcon className="text-lg" />
+                            </span>
+                            <div className="flex-grow flex items-stretch bg-surface border border-outline rounded-md focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-primary">
+                                <input
+                                    type="text"
+                                    value={parseChoice(choice.text).label}
+                                    onChange={(e) => handleChoiceTextChange(choice.id, e.target.value)}
+                                    className="w-full bg-transparent p-2 text-sm text-on-surface focus:outline-none"
+                                    placeholder="Enter choice text"
+                                />
+                            </div>
+                            <button onClick={() => setExpandedChoiceId(expandedChoiceId === choice.id ? null : choice.id)} className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-full" aria-label="More options">
+                                <MoreVertIcon className="text-lg" />
+                            </button>
+                            <button onClick={() => onDeleteChoice(question.id, choice.id)} className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Delete choice">
+                                <XIcon className="text-lg" />
+                            </button>
+                        </div>
+                        {expandedChoiceId === choice.id && (
+                        <div className="ml-8 mt-2 p-3 bg-surface-container-high rounded-md space-y-3">
+                            <div className="flex items-center justify-between">
+                            <label className="text-xs font-medium text-on-surface-variant">Visible</label>
+                            <input type="checkbox" checked={choice.visible ?? true} onChange={e => handleChoicePropertyChange(choice.id, 'visible', e.target.checked)} className="accent-primary" />
+                            </div>
+                            <div className="flex items-center justify-between">
+                            <label className="text-xs font-medium text-on-surface-variant">Allow Text Entry</label>
+                            <div className="flex items-center justify-end">
+                                <input type="checkbox" checked={choice.allowTextEntry ?? false} onChange={e => handleChoicePropertyChange(choice.id, 'allowTextEntry', e.target.checked)} className="accent-primary" />
+                            </div>
+                            </div>
+                        </div>
+                        )}
+                    </div>
+                    </React.Fragment>
+                ))}
+                {dropTargetChoiceId === null && draggedChoiceId && <ChoiceDropIndicator />}
+                </div>
+                <div className="mt-3 flex items-center gap-4">
+                    <button onClick={() => onAddChoice(question.id)} className="flex items-center text-sm font-medium text-primary hover:underline"><PlusIcon className="text-base mr-1" /> Choice</button>
+                    <CopyAndPasteButton onClick={() => setIsPasteModalOpen(true)} />
+                </div>
+            </div>
+        </div>
+    );
+  };
+  
+  const renderChoiceBasedAdvancedTab = () => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-medium text-on-surface mb-2">Display & Layout</h3>
+        <p className="text-xs text-on-surface-variant mb-4">Fine-tune the appearance of choices.</p>
+        
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="choice-orientation" className="block text-sm font-medium text-on-surface-variant mb-1">Choice Orientation</label>
+            <div className="relative">
+                <select 
+                  id="choice-orientation" 
+                  value={question.advancedSettings?.choiceOrientation || 'vertical'} 
+                  onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, choiceOrientation: e.target.value as any } })} 
+                  className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                >
+                    <option value="vertical">Vertical</option>
+                    <option value="horizontal">Horizontal</option>
+                    <option value="grid">Grid</option>
+                </select>
+                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+            </div>
+          </div>
+
+          {question.advancedSettings?.choiceOrientation === 'grid' && (
+            <div>
+              <label htmlFor="num-columns" className="block text-sm font-medium text-on-surface-variant mb-1">Number of Columns</label>
+              <input
+                type="number"
+                id="num-columns"
+                min="2"
+                max="10"
+                value={question.advancedSettings?.numColumns || 2}
+                onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, numColumns: parseInt(e.target.value, 10) } })}
+                className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+              />
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="choice-width" className="block text-sm font-medium text-on-surface-variant mb-1">Choice Width</label>
+            <div className="relative">
+                <select 
+                  id="choice-width" 
+                  value={question.advancedSettings?.choiceWidth || 'auto'} 
+                  onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, choiceWidth: e.target.value as any } })} 
+                  className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                >
+                    <option value="auto">Auto</option>
+                    <option value="full">Full Width</option>
+                    <option value="fixed">Fixed</option>
+                </select>
+                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderChoiceBasedPreviewTab = () => {
+    return (
+        <div>
+          {!isExpanded ? (
+            <div className="flex justify-center pt-4">
+                <div className="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[600px] w-[300px] shadow-xl">
+                    <div className="w-[140px] h-[18px] bg-gray-800 top-0 rounded-b-[1rem] left-1/2 -translate-x-1/2 absolute"></div>
+                    <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[124px] rounded-l-lg"></div>
+                    <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[178px] rounded-l-lg"></div>
+                    <div className="h-[64px] w-[3px] bg-gray-800 absolute -right-[17px] top-[142px] rounded-r-lg"></div>
+                    <div className="rounded-[2rem] overflow-hidden w-full h-full bg-surface">
+                        <div className="px-4 py-2 flex justify-between items-center text-xs text-on-surface-variant font-sans font-bold">
+                            <span>12:29</span>
+                            <div className="flex items-center gap-1">
+                                <SignalIcon className="text-base" />
+                                <BatteryIcon className="text-base" />
+                            </div>
+                        </div>
+                        <div className="p-4 overflow-y-auto h-[calc(100%-32px)]">
+                            <header className="mb-4">
+                                <h1 className="text-sm font-semibold text-on-surface text-left">{survey.title}</h1>
+                            </header>
+                            <div className="border-t border-outline-variant my-4"></div>
+                            <p className="text-lg text-on-surface mb-6" dangerouslySetInnerHTML={{ __html: questionText || 'Question text will appear here' }}/>
+                            <div className="divide-y divide-outline-variant rounded-lg border border-outline-variant overflow-hidden">
+                                {(question.choices || []).filter(c => c.visible !== false).map(choice => {
+                                    const isSelected = selectedPreviewChoices.has(choice.id);
+                                    return (
+                                        <div 
+                                            key={choice.id} 
+                                            className={`flex items-center gap-4 p-3 cursor-pointer transition-colors ${isSelected ? 'bg-primary-container' : 'bg-surface-container-high'}`}
+                                            onClick={() => handlePreviewChoiceClick(choice.id)}
+                                        >
+                                            {question.type === QuestionType.Radio ? (
+                                                isSelected ? 
+                                                    <RadioIcon className="text-2xl text-primary flex-shrink-0" /> : 
+                                                    <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
+                                            ) : (
+                                                isSelected ?
+                                                    <CheckboxFilledIcon className="text-2xl text-primary flex-shrink-0" /> :
+                                                    <CheckboxOutlineIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
+                                            )}
+                                            <span className={`text-sm ${isSelected ? 'text-on-primary-container font-medium' : 'text-on-surface'}`} dangerouslySetInnerHTML={{ __html: parseChoice(choice.text).label }} />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          ) : (
+            <div>
+              <header className="mb-8">
+                  <h1 className="text-xl font-bold text-on-surface text-left">{survey.title}</h1>
+              </header>
+              <div className="space-y-4">
+                <p className="text-xl font-medium text-on-surface" dangerouslySetInnerHTML={{ __html: questionText || 'Question text will appear here' }} />
+                <div className={`space-y-3 ${question.answerFormat === 'horizontal' ? 'flex flex-wrap gap-4' : 'flex flex-col'}`}>
+                  {(question.choices || []).filter(c => c.visible !== false).map(choice => {
+                    const isSelected = selectedPreviewChoices.has(choice.id);
+                    return (
+                        <div
+                            key={choice.id}
+                            onClick={() => handlePreviewChoiceClick(choice.id)}
+                            className={`flex items-center gap-3 p-3 rounded-md cursor-pointer border transition-colors ${isSelected ? 'bg-primary-container border-primary shadow-sm' : 'hover:bg-surface-container-high border-outline-variant'}`}
+                        >
+                          {question.type === QuestionType.Radio ? (
+                              isSelected ?
+                                <RadioIcon className="text-2xl text-primary flex-shrink-0" /> :
+                                <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
+                          ) : (
+                              isSelected ?
+                                <CheckboxFilledIcon className="text-2xl text-primary flex-shrink-0" /> :
+                                <CheckboxOutlineIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
+                          )}
+                          <span className={`text-base ${isSelected ? 'text-on-primary-container font-medium' : 'text-on-surface'}`} dangerouslySetInnerHTML={{ __html: parseChoice(choice.text).label }} />
+                        </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+    );
+  }
+
+  const renderTextEntrySettingsTab = () => {
+    const textEntrySettings = question.textEntrySettings || {};
+    const validation = textEntrySettings.validation || {};
+    
+    const handleUpdateSettings = (updates: Partial<typeof textEntrySettings>) => {
+        handleUpdate({ textEntrySettings: { ...textEntrySettings, ...updates }});
+    };
+    
+    const handleUpdateValidation = (updates: Partial<typeof validation>) => {
+        handleUpdateSettings({ validation: { ...validation, ...updates }});
+    };
+
+    return (
+        <div className="space-y-6">
+            <div>
+                <label className="block text-sm font-medium text-on-surface-variant mb-1">
+                Question Type
+                </label>
+                <div className="relative" ref={typeMenuRef}>
+                <button
+                    onClick={() => setIsTypeMenuOpen(prev => !prev)}
+                    className="w-full flex items-center gap-2 text-left bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                    aria-haspopup="true"
+                    aria-expanded={isTypeMenuOpen}
+                >
+                    {CurrentQuestionTypeInfo ? <CurrentQuestionTypeInfo.icon className="text-base text-primary flex-shrink-0" /> : <div className="w-4 h-4 mr-3 flex-shrink-0" />}
+                    <span className="flex-grow">{question.type}</span>
+                    <ChevronDownIcon className="text-lg text-on-surface-variant flex-shrink-0" />
+                </button>
+                {isTypeMenuOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-1 z-10">
+                    <QuestionTypeSelectionMenuContent onSelect={handleTypeSelect} toolboxItems={toolboxItems} />
+                    </div>
+                )}
+                </div>
+                <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
+            </div>
+            
+            <ForceResponseSection question={question} handleUpdate={handleUpdate} />
+
+            <div>
+                <label htmlFor="content-type" className="block text-sm font-medium text-on-surface-variant mb-1">Content Type Validation</label>
+                <div className="relative">
+                <select
+                    id="content-type"
+                    value={validation.contentType || 'none'}
+                    onChange={e => handleUpdateValidation({ contentType: e.target.value as any })}
+                    className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                >
+                    <option value="none">None (any text)</option>
+                    <option value="email">Email Address</option>
+                    <option value="phone">Phone Number</option>
+                    <option value="number">Number Only</option>
+                    <option value="url">URL/Website</option>
+                    <option value="date">Date (YYYY-MM-DD)</option>
+                    <option value="postal_code">Postal/Zip Code</option>
+                    <option value="custom_regex">Custom Pattern (Regex)</option>
+                </select>
+                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                </div>
+                {validation.contentType === 'custom_regex' && (
+                    <div className="mt-2 ml-4 p-3 bg-surface-container-high rounded-md">
+                        <label htmlFor="custom-regex" className="block text-sm font-medium text-on-surface-variant mb-1">Custom Regex Pattern</label>
+                        <input
+                            type="text"
+                            id="custom-regex"
+                            value={validation.customRegex || ''}
+                            onChange={(e) => handleUpdateValidation({ customRegex: e.target.value })}
+                            className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary font-mono"
+                            placeholder="^[A-Z]{2}[0-9]{4}$"
+                        />
+                    </div>
+                )}
+            </div>
+            <div>
+                <label htmlFor="question-text" className="block text-sm font-medium text-on-surface-variant mb-1">Question Text</label>
+                <textarea
+                id="question-text"
+                value={questionText}
+                onChange={(e) => setQuestionText(e.target.value)}
+                onBlur={handleTextBlur}
+                rows={4}
+                className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary resize-y"
+                placeholder="Enter your question here..."
+                />
+                <p className="text-xs text-on-surface-variant mt-1">Maximum 5000 characters</p>
+            </div>
+            {(validation.contentType === 'none' || !validation.contentType) && (
+                <div>
+                    <label htmlFor="answer-length" className="block text-sm font-medium text-on-surface-variant mb-1">Answer Length</label>
+                    <div className="relative">
+                    <select
+                        id="answer-length"
+                        value={textEntrySettings.answerLength || 'long'}
+                        onChange={e => handleUpdateSettings({ answerLength: e.target.value as any })}
+                        className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                    >
+                        <option value="short">Short Answer</option>
+                        <option value="long">Long Answer (8+ lines)</option>
+                    </select>
+                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                    </div>
+                </div>
+            )}
+            <div>
+                <label htmlFor="placeholder" className="block text-sm font-medium text-on-surface-variant mb-1">Placeholder Text</label>
+                <input
+                    type="text"
+                    id="placeholder"
+                    value={textEntrySettings.placeholder || ''}
+                    onChange={(e) => handleUpdateSettings({ placeholder: e.target.value })}
+                    className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                    placeholder="e.g., Enter your answer here..."
+                />
+            </div>
+        </div>
+    );
+  };
+
+  const renderTextEntryAdvancedTab = () => {
+    const textEntrySettings = question.textEntrySettings || {};
+    const advanced = textEntrySettings.advanced || {};
+
+    const handleUpdateSettings = (updates: Partial<typeof textEntrySettings>) => {
+        handleUpdate({ textEntrySettings: { ...textEntrySettings, ...updates }});
+    };
+
+    const handleUpdateAdvanced = (updates: Partial<typeof advanced>) => {
+        handleUpdateSettings({ advanced: { ...advanced, ...updates }});
+    };
+
+    return (
+        <div className="space-y-6">
+            <div>
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex-1">
+                        <label htmlFor="show-char-counter" className="text-sm font-medium text-on-surface block">Show Character Counter</label>
+                        <p className="text-xs text-on-surface-variant mt-0.5">Display character count below text box</p>
+                    </div>
+                    <input type="checkbox" id="show-char-counter" checked={advanced.showCharCounter || false} onChange={(e) => handleUpdateAdvanced({ showCharCounter: e.target.checked })} className="w-5 h-5 accent-primary cursor-pointer" />
+                </div>
+                {advanced.showCharCounter && (
+                <div className="ml-4 mb-4 p-3 bg-surface-container-high rounded-md">
+                    <label htmlFor="counter-type" className="block text-sm font-medium text-on-surface-variant mb-1">Counter Display</label>
+                    <div className="relative">
+                        <select
+                            id="counter-type"
+                            value={advanced.counterType || 'remaining'}
+                            onChange={(e) => handleUpdateAdvanced({ counterType: e.target.value as any })}
+                            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                        >
+                            <option value="remaining">Characters Remaining</option>
+                            <option value="used">Characters Used</option>
+                            <option value="both">Both (Used / Maximum)</option>
+                        </select>
+                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                    </div>
+                </div>
+                )}
+                {textEntrySettings.answerLength === 'long' && (
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex-1">
+                    <label htmlFor="auto-resize" className="text-sm font-medium text-on-surface block">Auto-resize Text Box</label>
+                    <p className="text-xs text-on-surface-variant mt-0.5">Expand text box as respondent types</p>
+                    </div>
+                    <input type="checkbox" id="auto-resize" checked={advanced.autoResize || false} onChange={(e) => handleUpdateAdvanced({ autoResize: e.target.checked })} className="w-5 h-5 accent-primary cursor-pointer" />
+                </div>
+                )}
+                <div className="mb-4">
+                    <label htmlFor="text-box-width" className="block text-sm font-medium text-on-surface-variant mb-1">Text Box Width</label>
+                    <div className="relative">
+                        <select
+                        id="text-box-width"
+                        value={advanced.textBoxWidth || 'full'}
+                        onChange={(e) => handleUpdateAdvanced({ textBoxWidth: e.target.value as any })}
+                        className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                        >
+                        <option value="full">Full Width (100%)</option>
+                        <option value="large">Large (75%)</option>
+                        <option value="medium">Medium (50%)</option>
+                        <option value="small">Small (25%)</option>
+                        </select>
+                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                    </div>
+                    <p className="text-xs text-on-surface-variant mt-1">Narrower boxes can signal expected answer length</p>
+                </div>
+            </div>
+        </div>
+    );
+  };
+
+  const renderTextEntryPreviewTab = () => {
+    const { textEntrySettings = {} } = question;
+    const { answerLength = 'short', placeholder = '', validation = {}, advanced = {} } = textEntrySettings;
+    const { contentType = 'none', maxLength = null } = validation;
+    const { showCharCounter = false, counterType = 'remaining', textBoxWidth = 'full' } = advanced;
+
+    const widthClass = { full: 'w-full', large: 'w-3/4', medium: 'w-1/2', small: 'w-1/4'}[textBoxWidth];
+
+    const previewContent = (
+      <div className="p-4">
+        <header className="mb-4">
+            <h1 className="text-sm font-semibold text-on-surface text-left">{survey.title}</h1>
+        </header>
+        <div className="border-t border-outline-variant my-4"></div>
+        <div className="space-y-4">
+            <div>
+                <p className="text-base font-medium text-on-surface" dangerouslySetInnerHTML={{ __html: question.text || 'Question text will appear here' }} />
+                {question.forceResponse && <span className="text-xs text-error ml-1">*</span>}
+            </div>
+            <div className={`${widthClass}`}>
+                {answerLength === 'short' ? (
+                <input type="text" placeholder={placeholder || 'Enter your answer...'} className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface" disabled />
+                ) : (
+                <textarea placeholder={placeholder || 'Enter your answer...'} rows={8} className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface resize-none" disabled />
+                )}
+                {showCharCounter && maxLength && (
+                <p className="text-xs text-on-surface-variant mt-1">
+                    {counterType === 'remaining' && `${maxLength} characters remaining`}
+                    {counterType === 'used' && `0 / ${maxLength} characters`}
+                    {counterType === 'both' && `0 / ${maxLength} characters`}
+                </p>
+                )}
+            </div>
+            {contentType !== 'none' && (
+                <div className="flex items-start gap-2 p-3 bg-surface-container-high rounded-md">
+                    <InfoIcon className="text-primary text-base" />
+                    <p className="text-xs text-on-surface-variant">
+                        {contentType === 'email' && 'Validates email format (e.g., name@domain.com)'}
+                        {contentType === 'phone' && 'Validates phone number format'}
+                        {contentType === 'number' && 'Only numeric input allowed'}
+                        {contentType === 'url' && 'Validates URL format (e.g., https://...)'}
+                        {contentType === 'date' && 'Validates date format (YYYY-MM-DD)'}
+                        {contentType === 'postal_code' && 'Validates postal/zip code format'}
+                        {contentType === 'custom_regex' && 'Custom format validation applied'}
+                    </p>
+                </div>
+            )}
+        </div>
+      </div>
+    );
+  
+    return (
+      <div>
+        {!isExpanded ? (
+          <div className="flex justify-center pt-4">
+              <div className="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[600px] w-[300px] shadow-xl">
+                  <div className="w-[140px] h-[18px] bg-gray-800 top-0 rounded-b-[1rem] left-1/2 -translate-x-1/2 absolute"></div>
+                  <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[124px] rounded-l-lg"></div>
+                  <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[178px] rounded-l-lg"></div>
+                  <div className="h-[64px] w-[3px] bg-gray-800 absolute -right-[17px] top-[142px] rounded-r-lg"></div>
+                  <div className="rounded-[2rem] overflow-hidden w-full h-full bg-surface">
+                      <div className="px-4 py-2 flex justify-between items-center text-xs text-on-surface-variant font-sans font-bold">
+                          <span>12:29</span>
+                          <div className="flex items-center gap-1">
+                              <SignalIcon className="text-base" />
+                              <BatteryIcon className="text-base" />
+                          </div>
+                      </div>
+                      <div className="overflow-y-auto h-[calc(100%-32px)]">
+                          {previewContent}
+                      </div>
+                  </div>
+              </div>
+          </div>
+        ) : (
+          <div>
+            {previewContent}
+          </div>
+        )}
+        <div className="flex items-center justify-center gap-2 text-xs text-on-surface-variant mt-4">
+            <EyeIcon className="text-base" />
+            <p>Preview updates in real-time as you change settings</p>
+        </div>
+      </div>
+    );
+  }
+
+  const renderGenericSettingsTab = () => (
+    <div className="space-y-6">
+      <div>
+        <label className="block text-sm font-medium text-on-surface-variant mb-1">
+          Question Type
+        </label>
+        <div className="relative" ref={typeMenuRef}>
+          <button
+            onClick={() => setIsTypeMenuOpen(prev => !prev)}
+            className="w-full flex items-center gap-2 text-left bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+            aria-haspopup="true"
+            aria-expanded={isTypeMenuOpen}
+          >
+            {CurrentQuestionTypeInfo ? <CurrentQuestionTypeInfo.icon className="text-base text-primary flex-shrink-0" /> : <div className="w-4 h-4 mr-3 flex-shrink-0" />}
+            <span className="flex-grow">{question.type}</span>
+            <ChevronDownIcon className="text-lg text-on-surface-variant flex-shrink-0" />
+          </button>
+          {isTypeMenuOpen && (
+            <div className="absolute top-full left-0 right-0 mt-1 z-10">
+              <QuestionTypeSelectionMenuContent onSelect={handleTypeSelect} toolboxItems={toolboxItems} />
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
+      </div>
+
+      <ForceResponseSection question={question} handleUpdate={handleUpdate} />
+      
+      <div>
+        <label htmlFor="question-text" className="block text-sm font-medium text-on-surface-variant mb-1">
+          Question Text
+        </label>
+        <textarea
+          id="question-text"
+          value={questionText}
+          onChange={(e) => setQuestionText(e.target.value)}
+          onBlur={handleTextBlur}
+          rows={4}
+          className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+          placeholder="Enter your question here..."
+        />
+        <p className="text-xs text-on-surface-variant mt-1">Maximum 5000 characters</p>
+      </div>
+    </div>
+  );
+
+  const renderBehaviorTab = () => {
+    // This is a placeholder for the actual implementation, which is quite large
+    // All behavior-related components (DisplayLogicEditor, etc.) should be here
+    return (
+        <div className="space-y-8">
+            <CollapsibleSection title="Choices" defaultExpanded={true}>
+                <div className="divide-y divide-outline-variant">
+                    {isChoiceBased && (
+                        <div className="py-6 first:pt-0">
+                            <RandomizeChoicesEditor 
+                                question={question}
+                                onUpdate={handleUpdate}
+                            />
+                        </div>
+                    )}
+                    {previousQuestions.length > 0 && (
+                        <>
+                            <div className="py-6 first:pt-0">
+                                <CarryForwardLogicEditor
+                                    question={question}
+                                    previousQuestions={previousQuestions}
+                                    onUpdate={handleUpdate}
+                                    logicKey="carryForwardStatements"
+                                    label="Carry forward choices"
+                                    addButtonLabel="Add choices"
+                                    description="Use answers from a previous question as choices in this one."
+                                    onAddLogic={() => {}}
+                                />
+                            </div>
+                            <div className="py-6 first:pt-0">
+                                 <CarryForwardLogicEditor
+                                    question={question}
+                                    previousQuestions={previousQuestions}
+                                    onUpdate={handleUpdate}
+                                    logicKey="carryForwardScalePoints"
+                                    label="Carry forward scale points"
+                                    addButtonLabel="Add scale points"
+                                    description="Use scale points from a previous grid question as choices in this one."
+                                    onAddLogic={() => {}}
+                                />
+                            </div>
+                        </>
+                    )}
+                </div>
+            </CollapsibleSection>
+            <CollapsibleSection title="Logic" defaultExpanded={true}>
+                <div className="divide-y divide-outline-variant">
+                    {previousQuestions.length > 0 && (
+                        <div className="py-6 first:pt-0">
+                            <DisplayLogicEditor
+                                question={question}
+                                previousQuestions={previousQuestions}
+                                issues={logicIssues.filter(i => i.type === 'display')}
+                                onUpdate={handleUpdate}
+                                onAddLogic={() => {}}
+                                onRequestGeminiHelp={onRequestGeminiHelp}
+                            />
+                        </div>
+                    )}
+                    <div className="py-6 first:pt-0">
+                        <SkipLogicEditor
+                            question={question}
+                            followingQuestions={followingQuestions}
+                            issues={logicIssues.filter(i => i.type === 'skip')}
+                            onUpdate={handleUpdate}
+                            isChoiceBased={isChoiceBased}
+                            onAddLogic={() => {}}
+                            onRequestGeminiHelp={onRequestGeminiHelp}
+                            focusedLogicSource={focusedLogicSource}
+                        />
+                    </div>
+                </div>
+            </CollapsibleSection>
+        </div>
+    );
+  };
+
+  const renderAdvancedTab = () => {
+    const branchingLogic = question.draftBranchingLogic ?? question.branchingLogic;
+    const beforeWorkflows = question.draftBeforeWorkflows ?? question.beforeWorkflows ?? [];
+    const afterWorkflows = question.draftAfterWorkflows ?? question.afterWorkflows ?? [];
+
+    const handleEnableBranching = () => {
+        handleUpdate({
+            branchingLogic: {
+                branches: [
+                    {
+                        id: generateId('branch'),
+                        operator: 'AND',
+                        conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
+                        thenSkipTo: '',
+                        thenSkipToIsConfirmed: false,
+                    }
+                ],
+                otherwiseSkipTo: 'next',
+                otherwiseIsConfirmed: true,
+            }
+        });
+    };
+
+    return (
+      <div className="space-y-8">
+        {previousQuestions.length > 0 && (
+            <CollapsibleSection title="Branching Logic" defaultExpanded={true}>
+                <div className="py-6 first:pt-0">
+                  {!branchingLogic ? (
+                      <div>
+                          <p className="text-xs text-on-surface-variant mb-3">Create complex paths through the survey based on multiple conditions.</p>
+                          <div className="flex items-center gap-4">
+                              <div className="relative group/tooltip inline-block">
+                                <button onClick={handleEnableBranching} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                                    <PlusIcon className="text-base" />
+                                    Add branch rule
+                                </button>
+                                <div className="absolute bottom-full mb-2 left-0 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
+                                    Send people down different survey paths based on multiple conditions.
+                                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
+                                </div>
+                              </div>
+                          </div>
+                      </div>
+                  ) : (
+                    <BranchingLogicEditor
+                        question={question}
+                        previousQuestions={previousQuestions}
+                        followingQuestions={followingQuestions}
+                        issues={logicIssues.filter(i => i.type === 'branching')}
+                        onUpdate={handleUpdate}
+                        onAddLogic={() => {}}
+                        onRequestGeminiHelp={onRequestGeminiHelp}
+                    />
+                  )}
+                </div>
+            </CollapsibleSection>
+        )}
+        
+        <CollapsibleSection title="Workflows" defaultExpanded={true}>
+            <div className="-mt-2 mb-4">
+                <p className="text-xs text-on-surface-variant">Automate tasks, and integrate with other services.</p>
+            </div>
+            <div className="divide-y divide-outline-variant">
+                <WorkflowSectionEditor
+                    title="Before Showing This Question"
+                    description="Set rules or actions triggered before the question is displayed."
+                    questionQid={question.qid}
+                    workflows={beforeWorkflows}
+                    onUpdateWorkflows={(newWorkflows) => handleUpdate({ beforeWorkflows: newWorkflows })}
+                    onAddWorkflow={() => {}}
+                />
+                <WorkflowSectionEditor
+                    title="After Answering This Question"
+                    description="Set rules or actions triggered after the question is answered."
+                    questionQid={question.qid}
+                    workflows={afterWorkflows}
+                    onUpdateWorkflows={(newWorkflows) => handleUpdate({ afterWorkflows: newWorkflows })}
+                    onAddWorkflow={() => {}}
+                />
+            </div>
+        </CollapsibleSection>
+        
+        {isChoiceBased && (
+            <CollapsibleSection title="Display & Layout" defaultExpanded={true}>
+                <div className="py-6 first:pt-0">{renderChoiceBasedAdvancedTab()}</div>
+            </CollapsibleSection>
+        )}
+        {question.type === QuestionType.TextEntry && (
+             <CollapsibleSection title="Text Box Options" defaultExpanded={true}>
+                <div className="py-6 first:pt-0">
+                    {renderTextEntryAdvancedTab()}
+                </div>
+             </CollapsibleSection>
+        )}
+      </div>
+    );
+  };
+    
+    const renderTabContent = () => {
+        switch(activeTab) {
+            case 'Settings':
+                if (isChoiceBased) return renderChoiceBasedSettingsTab();
+                if (question.type === QuestionType.TextEntry) return renderTextEntrySettingsTab();
+                if (question.type !== QuestionType.Description && question.type !== QuestionType.PageBreak) {
+                    return renderGenericSettingsTab();
+                }
+                return <p className="text-sm text-on-surface-variant text-center mt-4">This question type has no editable settings.</p>;
+            case 'Behavior':
+                return renderBehaviorTab();
+            case 'Advanced':
+                return renderAdvancedTab();
+            case 'Preview':
+                if (isChoiceBased) return renderChoiceBasedPreviewTab();
+                if (question.type === QuestionType.TextEntry) return renderTextEntryPreviewTab();
+                return null;
+            default: return <p>Content not available</p>;
+        }
+    }
+
+    return (
+        <>
+            <PasteChoicesModal
+                isOpen={isPasteModalOpen}
+                onClose={() => setIsPasteModalOpen(false)}
+                onSave={handlePasteChoices}
+                initialChoicesText={initialChoicesText}
+                primaryActionLabel="Add Choices"
+            />
+            <div className="p-6">
+                {renderTabContent()}
+            </div>
+        </>
+    );
+});
+
+
+// ====================================================================================
+// SHARED SUB-COMPONENTS & HELPERS
+// These are used by the QuestionEditor component above.
+// ====================================================================================
 
 const ChoiceDropIndicator = () => <div className="h-px bg-primary w-full my-1" />;
 
@@ -77,7 +1068,7 @@ const PasteInlineForm: React.FC<{
     }
     const result = onSave(text.trim());
     if (result.success) {
-      onCancel(); // Close form after saving
+      onCancel(); 
     } else {
       setError(result.error || 'Invalid syntax.');
     }
@@ -491,1088 +1482,6 @@ const WorkflowSectionEditor: React.FC<{
     );
 });
 
-
-const RightSidebar: React.FC<RightSidebarProps> = memo(({
-  question,
-  survey,
-  logicIssues,
-  onClose,
-  activeTab,
-  onTabChange,
-  onUpdateQuestion,
-  onAddChoice,
-  onDeleteChoice,
-  isExpanded,
-  onToggleExpand,
-  toolboxItems,
-  onRequestGeminiHelp,
-}) => {
-  const [questionText, setQuestionText] = useState(question.text);
-  const [expandedChoiceId, setExpandedChoiceId] = useState<string | null>(null);
-  const [isTypeMenuOpen, setIsTypeMenuOpen] = useState(false);
-  const typeMenuRef = useRef<HTMLDivElement>(null);
-  const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
-  const [draggedChoiceId, setDraggedChoiceId] = useState<string | null>(null);
-  const [dropTargetChoiceId, setDropTargetChoiceId] = useState<string | null>(null);
-  const [selectedPreviewChoices, setSelectedPreviewChoices] = useState<Set<string>>(new Set());
-  
-  const allSurveyQuestions = useMemo(() => survey.blocks.flatMap(b => b.questions), [survey]);
-  const currentQuestionIndex = useMemo(() => allSurveyQuestions.findIndex(q => q.id === question.id), [allSurveyQuestions, question.id]);
-  
-  const previousQuestions = useMemo(() => 
-      allSurveyQuestions
-          .slice(0, currentQuestionIndex)
-          .filter(q => 
-              q.id !== question.id &&
-              q.type !== QuestionType.PageBreak && 
-              q.type !== QuestionType.Description && 
-              !q.isHidden
-          ),
-      [allSurveyQuestions, currentQuestionIndex, question.id]
-  );
-  
-  const followingQuestions = useMemo(() => 
-      allSurveyQuestions
-          .slice(currentQuestionIndex + 1)
-          .filter(q => 
-              q.id !== question.id &&
-              q.type !== QuestionType.PageBreak && 
-              q.type !== QuestionType.Description && 
-              !q.isHidden
-          ),
-      [allSurveyQuestions, currentQuestionIndex, question.id]
-  );
-
-  const isChoiceBased = useMemo(() => CHOICE_BASED_QUESTION_TYPES.has(question.type), [question.type]);
-
-  const availableTabs = useMemo(() => {
-    // The Advanced tab is always available as it now contains Advanced Logic.
-    // Specific advanced options for question types will appear conditionally within the tab.
-    return ['Settings', 'Behavior', 'Advanced', 'Preview'];
-  }, []);
-  
-  useEffect(() => {
-    if (!availableTabs.includes(activeTab)) {
-      onTabChange('Settings');
-    }
-  }, [availableTabs, activeTab, onTabChange]);
-
-  useEffect(() => {
-    setQuestionText(question.text);
-    setExpandedChoiceId(null);
-    setIsTypeMenuOpen(false);
-    setSelectedPreviewChoices(new Set());
-  }, [question]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-        if (typeMenuRef.current && !typeMenuRef.current.contains(event.target as Node)) {
-            setIsTypeMenuOpen(false);
-        }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleUpdate = useCallback((updates: Partial<Question>) => {
-    onUpdateQuestion(question.id, updates);
-  }, [question.id, onUpdateQuestion]);
-
-  const ensureSidebarIsExpanded = useCallback(() => {
-    if (!isExpanded) {
-        onToggleExpand();
-    }
-  }, [isExpanded, onToggleExpand]);
-
-  const handleTypeSelect = useCallback((newType: QuestionType) => {
-    handleUpdate({ type: newType });
-    setIsTypeMenuOpen(false);
-  }, [handleUpdate]);
-
-  const handleChoiceDragStart = useCallback((e: React.DragEvent, choiceId: string) => {
-    setDraggedChoiceId(choiceId);
-    e.dataTransfer.effectAllowed = 'move';
-  }, []);
-
-  const handleChoiceDragOver = useCallback((e: React.DragEvent, choiceId: string) => {
-      e.preventDefault();
-      if (draggedChoiceId !== choiceId) {
-          setDropTargetChoiceId(choiceId);
-      }
-  }, [draggedChoiceId]);
-
-  const handleChoiceDrop = useCallback((e: React.DragEvent) => {
-      e.preventDefault();
-      
-      if (!draggedChoiceId || !question.choices) return;
-      
-      const choices = [...question.choices];
-      const draggedIndex = choices.findIndex(c => c.id === draggedChoiceId);
-      if (draggedIndex === -1) return;
-      
-      const [draggedItem] = choices.splice(draggedIndex, 1);
-      
-      if (dropTargetChoiceId === null) {
-          choices.push(draggedItem);
-      } else {
-          const dropIndex = choices.findIndex(c => c.id === dropTargetChoiceId);
-          if (dropIndex !== -1) {
-              choices.splice(dropIndex, 0, draggedItem);
-          } else {
-              choices.push(draggedItem); // Fallback
-          }
-      }
-      
-      handleUpdate({ choices });
-      setDraggedChoiceId(null);
-      setDropTargetChoiceId(null);
-  }, [draggedChoiceId, dropTargetChoiceId, question.choices, handleUpdate]);
-  
-  const handleChoiceDragEnd = useCallback((e: React.DragEvent) => {
-      setDraggedChoiceId(null);
-      setDropTargetChoiceId(null);
-  }, []);
-  
-  const handleChoicePropertyChange = (choiceId: string, property: keyof Choice, value: any) => {
-    const newChoices = (question.choices || []).map(c => 
-        c.id === choiceId ? { ...c, [property]: value } : c
-    );
-    handleUpdate({ choices: newChoices });
-  };
-  
-  const handleChoiceTextChange = (choiceId: string, newLabel: string) => {
-    const newChoices = (question.choices || []).map(c => {
-        if (c.id === choiceId) {
-            const { variable } = parseChoice(c.text);
-            const newText = variable ? `${variable} ${newLabel}` : newLabel;
-            return { ...c, text: newText };
-        }
-        return c;
-    });
-    handleUpdate({ choices: newChoices });
-  };
-
-  const handleTextBlur = () => {
-    if (questionText.trim() !== question.text) {
-      handleUpdate({ text: questionText.trim() });
-    }
-  };
-
-  const handlePasteChoices = (pastedText: string) => {
-    const lines = pastedText.split('\n').filter(line => line.trim() !== '');
-    if (lines.length === 0) return;
-
-    // The renumbering logic will handle adding variables automatically
-    const newChoices: Choice[] = lines.map(line => ({
-      id: generateId('c'),
-      text: line.trim(),
-    }));
-
-    handleUpdate({ choices: newChoices });
-  };
-
-  const handlePreviewChoiceClick = useCallback((choiceId: string) => {
-    if (question.type === QuestionType.Radio) {
-        setSelectedPreviewChoices(new Set([choiceId]));
-    } else if (question.type === QuestionType.Checkbox) {
-        // FIX: Explicitly type `prev` to `Set<string>` to resolve TypeScript error where it was being inferred as `unknown`.
-        setSelectedPreviewChoices((prev: Set<string>) => {
-            const newSet = new Set(prev);
-            if (newSet.has(choiceId)) {
-                newSet.delete(choiceId);
-            } else {
-                newSet.add(choiceId);
-            }
-            return newSet;
-        });
-    }
-  }, [question.type]);
-
-  const CurrentQuestionTypeInfo = toolboxItems.find(item => item.name === question.type);
-  const initialChoicesText = (question.choices || []).map(c => parseChoice(c.text).label).join('\n');
-
-  // =================================================================
-  // CHOICE-BASED QUESTION RENDER FUNCTIONS
-  // =================================================================
-
-  const renderChoiceBasedSettingsTab = () => {
-    return (
-        <div className="space-y-6">
-            <div>
-                <label className="block text-sm font-medium text-on-surface-variant mb-1">
-                Question Type
-                </label>
-                <div className="relative" ref={typeMenuRef}>
-                <button
-                    onClick={() => setIsTypeMenuOpen(prev => !prev)}
-                    className="w-full flex items-center gap-2 text-left bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-                    aria-haspopup="true"
-                    aria-expanded={isTypeMenuOpen}
-                >
-                    {CurrentQuestionTypeInfo ? <CurrentQuestionTypeInfo.icon className="text-base text-primary flex-shrink-0" /> : <div className="w-4 h-4 mr-3 flex-shrink-0" />}
-                    <span className="flex-grow">{question.type}</span>
-                    <ChevronDownIcon className="text-lg text-on-surface-variant flex-shrink-0" />
-                </button>
-                {isTypeMenuOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-1 z-10">
-                    <QuestionTypeSelectionMenuContent onSelect={handleTypeSelect} toolboxItems={toolboxItems} />
-                    </div>
-                )}
-                </div>
-                <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
-            </div>
-    
-            <ForceResponseSection question={question} handleUpdate={handleUpdate} />
-            
-            <div>
-                <label htmlFor="answer-format" className="block text-sm font-medium text-on-surface-variant mb-1">Answer Format</label>
-                <div className="relative">
-                    <select id="answer-format" value={question.answerFormat || 'list'} onChange={e => handleUpdate({ answerFormat: e.target.value as any })} className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none">
-                        <option value="list">List (Vertical)</option>
-                        <option value="dropdown">Dropdown</option>
-                        <option value="horizontal">Horizontal List</option>
-                    </select>
-                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-                </div>
-            </div>
-
-            <div>
-                <label htmlFor="question-text" className="block text-sm font-medium text-on-surface-variant mb-1">
-                Question Text
-                </label>
-                <textarea
-                id="question-text"
-                value={questionText}
-                onChange={(e) => setQuestionText(e.target.value)}
-                onBlur={handleTextBlur}
-                rows={4}
-                className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-                placeholder="Enter your question here..."
-                />
-                <p className="text-xs text-on-surface-variant mt-1">Maximum 5000 characters</p>
-            </div>
-    
-            <div>
-                <h3 className="text-sm font-medium text-on-surface-variant mb-2">Choices</h3>
-                <div 
-                    className="space-y-2"
-                    onDrop={handleChoiceDrop}
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        setDropTargetChoiceId(null);
-                    }}
-                >
-                {(question.choices || []).map((choice) => (
-                    <React.Fragment key={choice.id}>
-                    {dropTargetChoiceId === choice.id && <ChoiceDropIndicator />}
-                    <div 
-                        className="group"
-                        draggable
-                        onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
-                        onDragOver={(e) => {
-                            e.stopPropagation();
-                            handleChoiceDragOver(e, choice.id);
-                        }}
-                        onDragEnd={handleChoiceDragEnd}
-                    >
-                        <div className={`flex items-center gap-2 transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}>
-                            <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing" aria-label="Reorder choice">
-                                <DragIndicatorIcon className="text-lg" />
-                            </span>
-                            <div className="flex-grow flex items-stretch bg-surface border border-outline rounded-md focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-primary">
-                                <span className="px-3 text-sm font-semibold text-on-surface-variant bg-surface-container-high h-full flex items-center border-r border-outline rounded-l-md">{parseChoice(choice.text).variable}</span>
-                                <input
-                                    type="text"
-                                    value={parseChoice(choice.text).label}
-                                    onChange={(e) => handleChoiceTextChange(choice.id, e.target.value)}
-                                    className="w-full bg-transparent p-2 text-sm text-on-surface focus:outline-none"
-                                    placeholder="Enter choice text"
-                                />
-                            </div>
-                            <button onClick={() => setExpandedChoiceId(expandedChoiceId === choice.id ? null : choice.id)} className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-full" aria-label="More options">
-                                <MoreVertIcon className="text-lg" />
-                            </button>
-                            <button onClick={() => onDeleteChoice(question.id, choice.id)} className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Delete choice">
-                                <XIcon className="text-lg" />
-                            </button>
-                        </div>
-                        {expandedChoiceId === choice.id && (
-                        <div className="ml-8 mt-2 p-3 bg-surface-container-high rounded-md space-y-3">
-                            <div className="flex items-center justify-between">
-                            <label className="text-xs font-medium text-on-surface-variant">Visible</label>
-                            <input type="checkbox" checked={choice.visible ?? true} onChange={e => handleChoicePropertyChange(choice.id, 'visible', e.target.checked)} className="accent-primary" />
-                            </div>
-                            <div className="flex items-center justify-between">
-                            <label className="text-xs font-medium text-on-surface-variant">Allow Text Entry</label>
-                            <div className="flex items-center justify-end">
-                                <input type="checkbox" checked={choice.allowTextEntry ?? false} onChange={e => handleChoicePropertyChange(choice.id, 'allowTextEntry', e.target.checked)} className="accent-primary" />
-                            </div>
-                            </div>
-                        </div>
-                        )}
-                    </div>
-                    </React.Fragment>
-                ))}
-                {dropTargetChoiceId === null && draggedChoiceId && <ChoiceDropIndicator />}
-                </div>
-                <div className="mt-3 flex items-center gap-4">
-                    <button onClick={() => onAddChoice(question.id)} className="flex items-center text-sm font-medium text-primary hover:underline"><PlusIcon className="text-base mr-1" /> Choice</button>
-                    <CopyAndPasteButton onClick={() => setIsPasteModalOpen(true)} />
-                </div>
-            </div>
-        </div>
-    );
-  };
-  
-  const renderChoiceBasedAdvancedTab = () => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-sm font-medium text-on-surface mb-2">Display & Layout</h3>
-        <p className="text-xs text-on-surface-variant mb-4">Fine-tune the appearance of choices.</p>
-        
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="choice-orientation" className="block text-sm font-medium text-on-surface-variant mb-1">Choice Orientation</label>
-            <div className="relative">
-                <select 
-                  id="choice-orientation" 
-                  value={question.advancedSettings?.choiceOrientation || 'vertical'} 
-                  onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, choiceOrientation: e.target.value as any } })} 
-                  className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                >
-                    <option value="vertical">Vertical</option>
-                    <option value="horizontal">Horizontal</option>
-                    <option value="grid">Grid</option>
-                </select>
-                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-            </div>
-          </div>
-
-          {question.advancedSettings?.choiceOrientation === 'grid' && (
-            <div>
-              <label htmlFor="num-columns" className="block text-sm font-medium text-on-surface-variant mb-1">Number of Columns</label>
-              <input
-                type="number"
-                id="num-columns"
-                min="2"
-                max="10"
-                value={question.advancedSettings?.numColumns || 2}
-                onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, numColumns: parseInt(e.target.value, 10) } })}
-                className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-              />
-            </div>
-          )}
-
-          <div>
-            <label htmlFor="choice-width" className="block text-sm font-medium text-on-surface-variant mb-1">Choice Width</label>
-            <div className="relative">
-                <select 
-                  id="choice-width" 
-                  value={question.advancedSettings?.choiceWidth || 'auto'} 
-                  onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, choiceWidth: e.target.value as any } })} 
-                  className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                >
-                    <option value="auto">Auto</option>
-                    <option value="full">Full Width</option>
-                    <option value="fixed">Fixed</option>
-                </select>
-                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderChoiceBasedPreviewTab = () => {
-    return (
-        <div>
-          {!isExpanded ? (
-            <div className="flex justify-center pt-4">
-                <div className="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[600px] w-[300px] shadow-xl">
-                    <div className="w-[140px] h-[18px] bg-gray-800 top-0 rounded-b-[1rem] left-1/2 -translate-x-1/2 absolute"></div>
-                    <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[124px] rounded-l-lg"></div>
-                    <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[178px] rounded-l-lg"></div>
-                    <div className="h-[64px] w-[3px] bg-gray-800 absolute -right-[17px] top-[142px] rounded-r-lg"></div>
-                    <div className="rounded-[2rem] overflow-hidden w-full h-full bg-surface">
-                        <div className="px-4 py-2 flex justify-between items-center text-xs text-on-surface-variant font-sans font-bold">
-                            <span>12:29</span>
-                            <div className="flex items-center gap-1">
-                                <SignalIcon className="text-base" />
-                                <BatteryIcon className="text-base" />
-                            </div>
-                        </div>
-                        <div className="p-4 overflow-y-auto h-[calc(100%-32px)]">
-                            <header className="mb-4">
-                                <h1 className="text-sm font-semibold text-on-surface text-left">{survey.title}</h1>
-                            </header>
-                            <div className="border-t border-outline-variant my-4"></div>
-                            <p className="text-lg text-on-surface mb-6" dangerouslySetInnerHTML={{ __html: questionText || 'Question text will appear here' }}/>
-                            <div className="divide-y divide-outline-variant rounded-lg border border-outline-variant overflow-hidden">
-                                {(question.choices || []).filter(c => c.visible !== false).map(choice => {
-                                    const isSelected = selectedPreviewChoices.has(choice.id);
-                                    return (
-                                        <div 
-                                            key={choice.id} 
-                                            className={`flex items-center gap-4 p-3 cursor-pointer transition-colors ${isSelected ? 'bg-primary-container' : 'bg-surface-container-high'}`}
-                                            onClick={() => handlePreviewChoiceClick(choice.id)}
-                                        >
-                                            {question.type === QuestionType.Radio ? (
-                                                isSelected ? 
-                                                    <RadioIcon className="text-2xl text-primary flex-shrink-0" /> : 
-                                                    <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
-                                            ) : (
-                                                isSelected ?
-                                                    <CheckboxFilledIcon className="text-2xl text-primary flex-shrink-0" /> :
-                                                    <CheckboxOutlineIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
-                                            )}
-                                            <span className={`text-sm ${isSelected ? 'text-on-primary-container font-medium' : 'text-on-surface'}`} dangerouslySetInnerHTML={{ __html: parseChoice(choice.text).label }} />
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-          ) : (
-            <div>
-              <header className="mb-8">
-                  <h1 className="text-xl font-bold text-on-surface text-left">{survey.title}</h1>
-              </header>
-              <div className="space-y-4">
-                <p className="text-xl font-medium text-on-surface" dangerouslySetInnerHTML={{ __html: questionText || 'Question text will appear here' }} />
-                <div className={`space-y-3 ${question.answerFormat === 'horizontal' ? 'flex flex-wrap gap-4' : 'flex flex-col'}`}>
-                  {(question.choices || []).filter(c => c.visible !== false).map(choice => {
-                    const isSelected = selectedPreviewChoices.has(choice.id);
-                    return (
-                        <div
-                            key={choice.id}
-                            onClick={() => handlePreviewChoiceClick(choice.id)}
-                            className={`flex items-center gap-3 p-3 rounded-md cursor-pointer border transition-colors ${isSelected ? 'bg-primary-container border-primary shadow-sm' : 'hover:bg-surface-container-high border-outline-variant'}`}
-                        >
-                          {question.type === QuestionType.Radio ? (
-                              isSelected ?
-                                <RadioIcon className="text-2xl text-primary flex-shrink-0" /> :
-                                <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
-                          ) : (
-                              isSelected ?
-                                <CheckboxFilledIcon className="text-2xl text-primary flex-shrink-0" /> :
-                                <CheckboxOutlineIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
-                          )}
-                          <span className={`text-base ${isSelected ? 'text-on-primary-container font-medium' : 'text-on-surface'}`} dangerouslySetInnerHTML={{ __html: parseChoice(choice.text).label }} />
-                        </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-    );
-  }
-
-  // =================================================================
-  // TEXT ENTRY QUESTION RENDER FUNCTIONS
-  // =================================================================
-
-  const renderTextEntrySettingsTab = () => {
-    const textEntrySettings = question.textEntrySettings || {};
-    const validation = textEntrySettings.validation || {};
-    
-    const handleUpdateSettings = (updates: Partial<typeof textEntrySettings>) => {
-        handleUpdate({ textEntrySettings: { ...textEntrySettings, ...updates }});
-    };
-    
-    const handleUpdateValidation = (updates: Partial<typeof validation>) => {
-        handleUpdateSettings({ validation: { ...validation, ...updates }});
-    };
-
-    return (
-        <div className="space-y-6">
-            <div>
-                <label className="block text-sm font-medium text-on-surface-variant mb-1">
-                Question Type
-                </label>
-                <div className="relative" ref={typeMenuRef}>
-                <button
-                    onClick={() => setIsTypeMenuOpen(prev => !prev)}
-                    className="w-full flex items-center gap-2 text-left bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-                    aria-haspopup="true"
-                    aria-expanded={isTypeMenuOpen}
-                >
-                    {CurrentQuestionTypeInfo ? <CurrentQuestionTypeInfo.icon className="text-base text-primary flex-shrink-0" /> : <div className="w-4 h-4 mr-3 flex-shrink-0" />}
-                    <span className="flex-grow">{question.type}</span>
-                    <ChevronDownIcon className="text-lg text-on-surface-variant flex-shrink-0" />
-                </button>
-                {isTypeMenuOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-1 z-10">
-                    <QuestionTypeSelectionMenuContent onSelect={handleTypeSelect} toolboxItems={toolboxItems} />
-                    </div>
-                )}
-                </div>
-                <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
-            </div>
-            
-            <ForceResponseSection question={question} handleUpdate={handleUpdate} />
-
-            <div>
-                <label htmlFor="content-type" className="block text-sm font-medium text-on-surface-variant mb-1">Content Type Validation</label>
-                <div className="relative">
-                <select
-                    id="content-type"
-                    value={validation.contentType || 'none'}
-                    onChange={e => handleUpdateValidation({ contentType: e.target.value as any })}
-                    className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                >
-                    <option value="none">None (any text)</option>
-                    <option value="email">Email Address</option>
-                    <option value="phone">Phone Number</option>
-                    <option value="number">Number Only</option>
-                    <option value="url">URL/Website</option>
-                    <option value="date">Date (YYYY-MM-DD)</option>
-                    <option value="postal_code">Postal/Zip Code</option>
-                    <option value="custom_regex">Custom Pattern (Regex)</option>
-                </select>
-                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-                </div>
-                {validation.contentType === 'custom_regex' && (
-                    <div className="mt-2 ml-4 p-3 bg-surface-container-high rounded-md">
-                        <label htmlFor="custom-regex" className="block text-sm font-medium text-on-surface-variant mb-1">Custom Regex Pattern</label>
-                        <input
-                            type="text"
-                            id="custom-regex"
-                            value={validation.customRegex || ''}
-                            onChange={(e) => handleUpdateValidation({ customRegex: e.target.value })}
-                            className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary font-mono"
-                            placeholder="^[A-Z]{2}[0-9]{4}$"
-                        />
-                    </div>
-                )}
-            </div>
-            <div>
-                <label htmlFor="question-text" className="block text-sm font-medium text-on-surface-variant mb-1">Question Text</label>
-                <textarea
-                id="question-text"
-                value={questionText}
-                onChange={(e) => setQuestionText(e.target.value)}
-                onBlur={handleTextBlur}
-                rows={4}
-                className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary resize-y"
-                placeholder="Enter your question here..."
-                />
-                <p className="text-xs text-on-surface-variant mt-1">Maximum 5000 characters</p>
-            </div>
-            {(validation.contentType === 'none' || !validation.contentType) && (
-                <div>
-                    <label htmlFor="answer-length" className="block text-sm font-medium text-on-surface-variant mb-1">Answer Length</label>
-                    <div className="relative">
-                    <select
-                        id="answer-length"
-                        value={textEntrySettings.answerLength || 'long'}
-                        onChange={e => handleUpdateSettings({ answerLength: e.target.value as any })}
-                        className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                    >
-                        <option value="short">Short Answer</option>
-                        <option value="long">Long Answer (8+ lines)</option>
-                    </select>
-                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-                    </div>
-                </div>
-            )}
-            <div>
-                <label htmlFor="placeholder" className="block text-sm font-medium text-on-surface-variant mb-1">Placeholder Text</label>
-                <input
-                    type="text"
-                    id="placeholder"
-                    value={textEntrySettings.placeholder || ''}
-                    onChange={(e) => handleUpdateSettings({ placeholder: e.target.value })}
-                    className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-                    placeholder="e.g., Enter your answer here..."
-                />
-            </div>
-        </div>
-    );
-  };
-
-  const renderTextEntryAdvancedTab = () => {
-    const textEntrySettings = question.textEntrySettings || {};
-    const advanced = textEntrySettings.advanced || {};
-
-    const handleUpdateSettings = (updates: Partial<typeof textEntrySettings>) => {
-        handleUpdate({ textEntrySettings: { ...textEntrySettings, ...updates }});
-    };
-
-    const handleUpdateAdvanced = (updates: Partial<typeof advanced>) => {
-        handleUpdateSettings({ advanced: { ...advanced, ...updates }});
-    };
-
-    return (
-        <div className="space-y-6">
-            <div>
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex-1">
-                        <label htmlFor="show-char-counter" className="text-sm font-medium text-on-surface block">Show Character Counter</label>
-                        <p className="text-xs text-on-surface-variant mt-0.5">Display character count below text box</p>
-                    </div>
-                    <input type="checkbox" id="show-char-counter" checked={advanced.showCharCounter || false} onChange={(e) => handleUpdateAdvanced({ showCharCounter: e.target.checked })} className="w-5 h-5 accent-primary cursor-pointer" />
-                </div>
-                {advanced.showCharCounter && (
-                <div className="ml-4 mb-4 p-3 bg-surface-container-high rounded-md">
-                    <label htmlFor="counter-type" className="block text-sm font-medium text-on-surface-variant mb-1">Counter Display</label>
-                    <div className="relative">
-                        <select
-                            id="counter-type"
-                            value={advanced.counterType || 'remaining'}
-                            onChange={(e) => handleUpdateAdvanced({ counterType: e.target.value as any })}
-                            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                        >
-                            <option value="remaining">Characters Remaining</option>
-                            <option value="used">Characters Used</option>
-                            <option value="both">Both (Used / Maximum)</option>
-                        </select>
-                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-                    </div>
-                </div>
-                )}
-                {textEntrySettings.answerLength === 'long' && (
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex-1">
-                    <label htmlFor="auto-resize" className="text-sm font-medium text-on-surface block">Auto-resize Text Box</label>
-                    <p className="text-xs text-on-surface-variant mt-0.5">Expand text box as respondent types</p>
-                    </div>
-                    <input type="checkbox" id="auto-resize" checked={advanced.autoResize || false} onChange={(e) => handleUpdateAdvanced({ autoResize: e.target.checked })} className="w-5 h-5 accent-primary cursor-pointer" />
-                </div>
-                )}
-                <div className="mb-4">
-                    <label htmlFor="text-box-width" className="block text-sm font-medium text-on-surface-variant mb-1">Text Box Width</label>
-                    <div className="relative">
-                        <select
-                        id="text-box-width"
-                        value={advanced.textBoxWidth || 'full'}
-                        onChange={(e) => handleUpdateAdvanced({ textBoxWidth: e.target.value as any })}
-                        className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                        >
-                        <option value="full">Full Width (100%)</option>
-                        <option value="large">Large (75%)</option>
-                        <option value="medium">Medium (50%)</option>
-                        <option value="small">Small (25%)</option>
-                        </select>
-                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-                    </div>
-                    <p className="text-xs text-on-surface-variant mt-1">Narrower boxes can signal expected answer length</p>
-                </div>
-            </div>
-        </div>
-    );
-  };
-
-  const renderTextEntryPreviewTab = () => {
-    const { textEntrySettings = {} } = question;
-    const { answerLength = 'short', placeholder = '', validation = {}, advanced = {} } = textEntrySettings;
-    const { contentType = 'none', maxLength = null } = validation;
-    const { showCharCounter = false, counterType = 'remaining', textBoxWidth = 'full' } = advanced;
-
-    const widthClass = { full: 'w-full', large: 'w-3/4', medium: 'w-1/2', small: 'w-1/4'}[textBoxWidth];
-
-    const previewContent = (
-      <div className="p-4">
-        <header className="mb-4">
-            <h1 className="text-sm font-semibold text-on-surface text-left">{survey.title}</h1>
-        </header>
-        <div className="border-t border-outline-variant my-4"></div>
-        <div className="space-y-4">
-            <div>
-                <p className="text-base font-medium text-on-surface" dangerouslySetInnerHTML={{ __html: question.text || 'Question text will appear here' }} />
-                {question.forceResponse && <span className="text-xs text-error ml-1">*</span>}
-            </div>
-            <div className={`${widthClass}`}>
-                {answerLength === 'short' ? (
-                <input type="text" placeholder={placeholder || 'Enter your answer...'} className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface" disabled />
-                ) : (
-                <textarea placeholder={placeholder || 'Enter your answer...'} rows={8} className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface resize-none" disabled />
-                )}
-                {showCharCounter && maxLength && (
-                <p className="text-xs text-on-surface-variant mt-1">
-                    {counterType === 'remaining' && `${maxLength} characters remaining`}
-                    {counterType === 'used' && `0 / ${maxLength} characters`}
-                    {counterType === 'both' && `0 / ${maxLength} characters`}
-                </p>
-                )}
-            </div>
-            {contentType !== 'none' && (
-                <div className="flex items-start gap-2 p-3 bg-surface-container-high rounded-md">
-                    <InfoIcon className="text-primary text-base" />
-                    <p className="text-xs text-on-surface-variant">
-                        {contentType === 'email' && 'Validates email format (e.g., name@domain.com)'}
-                        {contentType === 'phone' && 'Validates phone number format'}
-                        {contentType === 'number' && 'Only numeric input allowed'}
-                        {contentType === 'url' && 'Validates URL format (e.g., https://...)'}
-                        {contentType === 'date' && 'Validates date format (YYYY-MM-DD)'}
-                        {contentType === 'postal_code' && 'Validates postal/zip code format'}
-                        {contentType === 'custom_regex' && 'Custom format validation applied'}
-                    </p>
-                </div>
-            )}
-        </div>
-      </div>
-    );
-  
-    return (
-      <div>
-        {!isExpanded ? (
-          <div className="flex justify-center pt-4">
-              <div className="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[600px] w-[300px] shadow-xl">
-                  <div className="w-[140px] h-[18px] bg-gray-800 top-0 rounded-b-[1rem] left-1/2 -translate-x-1/2 absolute"></div>
-                  <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[124px] rounded-l-lg"></div>
-                  <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[178px] rounded-l-lg"></div>
-                  <div className="h-[64px] w-[3px] bg-gray-800 absolute -right-[17px] top-[142px] rounded-r-lg"></div>
-                  <div className="rounded-[2rem] overflow-hidden w-full h-full bg-surface">
-                      <div className="px-4 py-2 flex justify-between items-center text-xs text-on-surface-variant font-sans font-bold">
-                          <span>12:29</span>
-                          <div className="flex items-center gap-1">
-                              <SignalIcon className="text-base" />
-                              <BatteryIcon className="text-base" />
-                          </div>
-                      </div>
-                      <div className="overflow-y-auto h-[calc(100%-32px)]">
-                          {previewContent}
-                      </div>
-                  </div>
-              </div>
-          </div>
-        ) : (
-          <div>
-            {previewContent}
-          </div>
-        )}
-        <div className="flex items-center justify-center gap-2 text-xs text-on-surface-variant mt-4">
-            <EyeIcon className="text-base" />
-            <p>Preview updates in real-time as you change settings</p>
-        </div>
-      </div>
-    );
-  }
-
-  // =================================================================
-  // GENERIC SETTINGS TAB
-  // =================================================================
-  const renderGenericSettingsTab = () => (
-    <div className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-on-surface-variant mb-1">
-          Question Type
-        </label>
-        <div className="relative" ref={typeMenuRef}>
-          <button
-            onClick={() => setIsTypeMenuOpen(prev => !prev)}
-            className="w-full flex items-center gap-2 text-left bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-            aria-haspopup="true"
-            aria-expanded={isTypeMenuOpen}
-          >
-            {CurrentQuestionTypeInfo ? <CurrentQuestionTypeInfo.icon className="text-base text-primary flex-shrink-0" /> : <div className="w-4 h-4 mr-3 flex-shrink-0" />}
-            <span className="flex-grow">{question.type}</span>
-            <ChevronDownIcon className="text-lg text-on-surface-variant flex-shrink-0" />
-          </button>
-          {isTypeMenuOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1 z-10">
-              <QuestionTypeSelectionMenuContent onSelect={handleTypeSelect} toolboxItems={toolboxItems} />
-            </div>
-          )}
-        </div>
-        <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
-      </div>
-
-      <ForceResponseSection question={question} handleUpdate={handleUpdate} />
-      
-      <div>
-        <label htmlFor="question-text" className="block text-sm font-medium text-on-surface-variant mb-1">
-          Question Text
-        </label>
-        <textarea
-          id="question-text"
-          value={questionText}
-          onChange={(e) => setQuestionText(e.target.value)}
-          onBlur={handleTextBlur}
-          rows={4}
-          className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-          placeholder="Enter your question here..."
-        />
-        <p className="text-xs text-on-surface-variant mt-1">Maximum 5000 characters</p>
-      </div>
-    </div>
-  );
-
-  // =================================================================
-  // NEW BEHAVIOR TAB IMPLEMENTATION
-  // =================================================================
-  
-  const renderBehaviorTab = () => {
-    return (
-        <div className="space-y-8">
-            <CollapsibleSection title="Choices" defaultExpanded={true}>
-                <div className="divide-y divide-outline-variant">
-                    {isChoiceBased && (
-                        <div className="py-6 first:pt-0">
-                            <RandomizeChoicesEditor 
-                                question={question}
-                                onUpdate={handleUpdate}
-                            />
-                        </div>
-                    )}
-                    {previousQuestions.length > 0 && (
-                        <>
-                            <div className="py-6 first:pt-0">
-                                <CarryForwardLogicEditor
-                                    question={question}
-                                    previousQuestions={previousQuestions}
-                                    onUpdate={handleUpdate}
-                                    logicKey="carryForwardStatements"
-                                    label="Carry forward choices"
-                                    addButtonLabel="Add choices"
-                                    description="Use answers from a previous question as choices in this one."
-                                    onAddLogic={ensureSidebarIsExpanded}
-                                />
-                            </div>
-                            <div className="py-6 first:pt-0">
-                                 <CarryForwardLogicEditor
-                                    question={question}
-                                    previousQuestions={previousQuestions}
-                                    onUpdate={handleUpdate}
-                                    logicKey="carryForwardScalePoints"
-                                    label="Carry forward scale points"
-                                    addButtonLabel="Add scale points"
-                                    description="Use scale points from a previous grid question as choices in this one."
-                                    onAddLogic={ensureSidebarIsExpanded}
-                                />
-                            </div>
-                        </>
-                    )}
-                </div>
-            </CollapsibleSection>
-            <CollapsibleSection title="Logic" defaultExpanded={true}>
-                <div className="divide-y divide-outline-variant">
-                    {previousQuestions.length > 0 && (
-                        <div className="py-6 first:pt-0">
-                            <DisplayLogicEditor
-                                question={question}
-                                previousQuestions={previousQuestions}
-                                issues={logicIssues.filter(i => i.type === 'display')}
-                                onUpdate={handleUpdate}
-                                onAddLogic={ensureSidebarIsExpanded}
-                                onRequestGeminiHelp={onRequestGeminiHelp}
-                            />
-                        </div>
-                    )}
-                    <div className="py-6 first:pt-0">
-                        <SkipLogicEditor
-                            question={question}
-                            followingQuestions={followingQuestions}
-                            issues={logicIssues.filter(i => i.type === 'skip')}
-                            onUpdate={handleUpdate}
-                            isChoiceBased={isChoiceBased}
-                            onAddLogic={ensureSidebarIsExpanded}
-                            onRequestGeminiHelp={onRequestGeminiHelp}
-                        />
-                    </div>
-                </div>
-            </CollapsibleSection>
-        </div>
-    );
-  };
-
-  const renderAdvancedTab = () => {
-    const branchingLogic = question.draftBranchingLogic ?? question.branchingLogic;
-    const beforeWorkflows = question.draftBeforeWorkflows ?? question.beforeWorkflows ?? [];
-    const afterWorkflows = question.draftAfterWorkflows ?? question.afterWorkflows ?? [];
-
-    const handleEnableBranching = () => {
-        handleUpdate({
-            branchingLogic: {
-                branches: [
-                    {
-                        id: generateId('branch'),
-                        operator: 'AND',
-                        conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
-                        thenSkipTo: '',
-                        thenSkipToIsConfirmed: false,
-                    }
-                ],
-                otherwiseSkipTo: 'next',
-                otherwiseIsConfirmed: true,
-            }
-        });
-        ensureSidebarIsExpanded();
-    };
-
-    return (
-      <div className="space-y-8">
-        {/* BRANCHING LOGIC SECTION */}
-        {previousQuestions.length > 0 && (
-            <CollapsibleSection title="Branching Logic" defaultExpanded={true}>
-                <div className="py-6 first:pt-0">
-                  {!branchingLogic ? (
-                      <div>
-                          <p className="text-xs text-on-surface-variant mb-3">Create complex paths through the survey based on multiple conditions.</p>
-                          <div className="flex items-center gap-4">
-                              <div className="relative group/tooltip inline-block">
-                                <button onClick={handleEnableBranching} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                                    <PlusIcon className="text-base" />
-                                    Add branch rule
-                                </button>
-                                <div className="absolute bottom-full mb-2 left-0 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
-                                    Send people down different survey paths based on multiple conditions.
-                                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
-                                </div>
-                              </div>
-                          </div>
-                      </div>
-                  ) : (
-                    <BranchingLogicEditor
-                        question={question}
-                        previousQuestions={previousQuestions}
-                        followingQuestions={followingQuestions}
-                        issues={logicIssues.filter(i => i.type === 'branching')}
-                        onUpdate={handleUpdate}
-                        onAddLogic={ensureSidebarIsExpanded}
-                        onRequestGeminiHelp={onRequestGeminiHelp}
-                    />
-                  )}
-                </div>
-            </CollapsibleSection>
-        )}
-        
-        {/* ACTIONS SECTION */}
-        <CollapsibleSection title="Workflows" defaultExpanded={true}>
-            <div className="-mt-2 mb-4">
-                <p className="text-xs text-on-surface-variant">Automate tasks, and integrate with other services.</p>
-            </div>
-            <div className="divide-y divide-outline-variant">
-                <WorkflowSectionEditor
-                    title="Before Showing This Question"
-                    description="Set rules or actions triggered before the question is displayed."
-                    questionQid={question.qid}
-                    workflows={beforeWorkflows}
-                    onUpdateWorkflows={(newWorkflows) => handleUpdate({ beforeWorkflows: newWorkflows })}
-                    onAddWorkflow={ensureSidebarIsExpanded}
-                />
-                <WorkflowSectionEditor
-                    title="After Answering This Question"
-                    description="Set rules or actions triggered after the question is answered."
-                    questionQid={question.qid}
-                    workflows={afterWorkflows}
-                    onUpdateWorkflows={(newWorkflows) => handleUpdate({ afterWorkflows: newWorkflows })}
-                    onAddWorkflow={ensureSidebarIsExpanded}
-                />
-            </div>
-        </CollapsibleSection>
-        
-        {isChoiceBased && (
-            <CollapsibleSection title="Display & Layout" defaultExpanded={true}>
-                <div className="py-6 first:pt-0">{renderChoiceBasedAdvancedTab()}</div>
-            </CollapsibleSection>
-        )}
-        {question.type === QuestionType.TextEntry && (
-             <CollapsibleSection title="Text Box Options" defaultExpanded={true}>
-                <div className="py-6 first:pt-0">
-                    {renderTextEntryAdvancedTab()}
-                </div>
-             </CollapsibleSection>
-        )}
-      </div>
-    );
-  };
-
-
-  // =================================================================
-  // MAIN RENDER LOGIC
-  // =================================================================
-
-  const renderTabContent = () => {
-    switch(activeTab) {
-        case 'Settings':
-            if (isChoiceBased) return renderChoiceBasedSettingsTab();
-            if (question.type === QuestionType.TextEntry) return renderTextEntrySettingsTab();
-            if (question.type !== QuestionType.Description && question.type !== QuestionType.PageBreak) {
-                return renderGenericSettingsTab();
-            }
-            return <p className="text-sm text-on-surface-variant text-center mt-4">This question type has no editable settings.</p>;
-        case 'Behavior':
-            return renderBehaviorTab();
-        case 'Advanced':
-            return renderAdvancedTab();
-        case 'Preview':
-            if (isChoiceBased) return renderChoiceBasedPreviewTab();
-            if (question.type === QuestionType.TextEntry) return renderTextEntryPreviewTab();
-            return null;
-        default: return <p>Content not available</p>;
-    }
-  }
-
-  return (
-    <>
-      <PasteChoicesModal
-        isOpen={isPasteModalOpen}
-        onClose={() => setIsPasteModalOpen(false)}
-        onSave={handlePasteChoices}
-        initialChoicesText={initialChoicesText}
-        primaryActionLabel="Add Choices"
-      />
-      <aside className="w-full h-full bg-surface-container border-l border-outline-variant flex-shrink-0 flex flex-col">
-        <div className="p-4 border-b border-outline-variant flex items-center justify-between">
-            <div className="flex items-center gap-2">
-                {CurrentQuestionTypeInfo && <CurrentQuestionTypeInfo.icon className="text-primary text-2xl" />}
-                <h2 className="text-lg font-bold text-on-surface" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-                    Edit question
-                </h2>
-            </div>
-          <div className="flex items-center">
-              <button 
-                  onClick={onToggleExpand} 
-                  className="text-on-surface-variant hover:text-on-surface p-1 mr-1"
-                  aria-label={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-              >
-                  {isExpanded ? <CollapseIcon className="text-2xl" /> : <ExpandIcon className="text-2xl" />}
-              </button>
-              <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface p-1">
-                  <XIcon className="text-2xl" />
-              </button>
-          </div>
-        </div>
-        <div className="border-b border-outline-variant">
-          <nav className="-mb-px flex space-x-2 px-4">
-            {availableTabs.map(tab => (
-              <button
-                key={tab}
-                onClick={() => onTabChange(tab)}
-                className={`py-3 px-3 border-b-2 font-medium text-sm transition-colors rounded-t-lg ${
-                  activeTab === tab 
-                  ? 'border-primary text-primary' 
-                  : 'border-transparent text-on-surface-variant hover:bg-surface-container-high'
-                }`}
-                style={{ fontFamily: "'Open Sans', sans-serif" }}
-              >
-                {tab}
-              </button>
-            ))}
-          </nav>
-        </div>
-        <div
-          className={`flex-1 overflow-y-auto ${activeTab === 'Behavior' ? 'overflow-x-auto' : 'overflow-x-hidden'}`}
-          style={{ fontFamily: "'Open Sans', sans-serif" }}
-        >
-          <div className="p-6">
-            {renderTabContent()}
-          </div>
-        </div>
-      </aside>
-    </>
-  );
-});
-
-// =================================================================
-// SHARED LOGIC ROW COMPONENT
-// =================================================================
 interface LogicConditionRowProps {
     condition: DisplayLogicCondition | BranchingLogicCondition;
     onUpdateCondition: (field: keyof (DisplayLogicCondition | BranchingLogicCondition), value: any) => void;
@@ -1757,9 +1666,10 @@ const DestinationRow: React.FC<{
   invalid?: boolean;
   followingQuestions: Question[];
   className?: string;
-}> = ({ label, value, onChange, onConfirm, onRemove, isConfirmed = true, issue, invalid = false, followingQuestions, className = '' }) => {
+  [key: string]: any; // Allow other props
+}> = ({ label, value, onChange, onConfirm, onRemove, isConfirmed = true, issue, invalid = false, followingQuestions, className = '', ...rest }) => {
     return (
-        <div className={`flex items-center gap-2 ${className}`}>
+        <div className={`flex items-center gap-2 ${className}`} {...rest}>
             <span className="text-sm text-on-surface flex-shrink-0">{label}</span>
             <div className="relative group/tooltip flex-1">
                 <select 
@@ -1793,10 +1703,6 @@ const DestinationRow: React.FC<{
         </div>
     );
 };
-
-// =================================================================
-// BEHAVIOR TAB SUB-COMPONENTS
-// =================================================================
 
 const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Question[]; issues: LogicIssue[]; onUpdate: (updates: Partial<Question>) => void; onAddLogic: () => void; onRequestGeminiHelp: (topic: string) => void; }> = ({ question, previousQuestions, issues, onUpdate, onAddLogic, onRequestGeminiHelp }) => {
     const [isPasting, setIsPasting] = useState(false);
@@ -1839,7 +1745,6 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         if (requiresValue && !condition.value.trim()) tempErrors.add('value');
 
         if (tempErrors.size > 0) {
-            // FIX: Explicitly type `prev` to avoid `unknown` type error
             setValidationErrors((prev: Map<string, Set<keyof DisplayLogicCondition>>) => new Map(prev).set(conditionId, tempErrors));
             return;
         }
@@ -1851,7 +1756,6 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         
         const newConditions = displayLogic.conditions.map(c => c.id === conditionId ? { ...c, isConfirmed: true } : c);
         onUpdate({ displayLogic: { ...displayLogic, conditions: newConditions } });
-        // FIX: Explicitly type `prev` to avoid `unknown` type error
         setValidationErrors((prev: Map<string, Set<keyof DisplayLogicCondition>>) => {
             const newErrors = new Map(prev);
             newErrors.delete(conditionId);
@@ -1933,7 +1837,6 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         }
 
         if (validationErrors.has(conditionId)) {
-            // FIX: Explicitly type `prev` to avoid `unknown` type error
             setValidationErrors((prev: Map<string, Set<keyof DisplayLogicCondition>>) => {
                 const newErrors = new Map(prev);
                 const conditionErrors = new Set(newErrors.get(conditionId) || []);
@@ -1954,7 +1857,6 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         const conditionId = displayLogic.conditions[index].id;
         const newConditions = displayLogic.conditions.filter((_, i) => i !== index);
         
-        // FIX: Explicitly type `prev` to avoid `unknown` type error
         setValidationErrors((prev: Map<string, Set<keyof DisplayLogicCondition>>) => {
             const newErrors = new Map(prev);
             newErrors.delete(conditionId);
@@ -1974,7 +1876,7 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
             <div>
                 <h3 className="text-sm font-medium text-on-surface mb-1">Display Logic</h3>
                 <p className="text-xs text-on-surface-variant mb-3">Control when this question is shown to respondents</p>
-                {isPasting ? (
+                 {isPasting ? (
                     <PasteInlineForm
                         onSave={handlePasteLogic}
                         onCancel={() => setIsPasting(false)}
@@ -2046,11 +1948,26 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
     );
 };
 
-const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Question[]; issues: LogicIssue[]; onUpdate: (updates: Partial<Question>) => void; isChoiceBased: boolean; onAddLogic: () => void; onRequestGeminiHelp: (topic: string) => void; }> = ({ question, followingQuestions, issues, onUpdate, isChoiceBased, onAddLogic, onRequestGeminiHelp }) => {
+const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Question[]; issues: LogicIssue[]; onUpdate: (updates: Partial<Question>) => void; isChoiceBased: boolean; onAddLogic: () => void; onRequestGeminiHelp: (topic: string) => void; focusedLogicSource: string | null; }> = ({ question, followingQuestions, issues, onUpdate, isChoiceBased, onAddLogic, onRequestGeminiHelp, focusedLogicSource }) => {
     const [isPasting, setIsPasting] = useState(false);
     const [tempErrors, setTempErrors] = useState<Set<string>>(new Set());
     const skipLogic = question.draftSkipLogic ?? question.skipLogic;
     const isEnabled = !!skipLogic;
+    const editorRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (focusedLogicSource && editorRef.current) {
+            const element = editorRef.current.querySelector(`[data-logic-source-id="${focusedLogicSource}"]`);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                element.classList.add('logic-highlight');
+                const timer = setTimeout(() => {
+                    element.classList.remove('logic-highlight');
+                }, 2500);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [focusedLogicSource]);
 
     useEffect(() => {
         if (isPasting) {
@@ -2117,14 +2034,12 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         if (skipLogic.type === 'simple') {
             if (!skipLogic.skipTo) {
                 hasTempError = true;
-                // FIX: Explicitly type `prev` to avoid `unknown` type error
                 setTempErrors((prev: Set<string>) => new Set(prev).add('simple'));
             }
         } else if (skipLogic.type === 'per_choice') {
             const rule = skipLogic.rules.find(r => r.choiceId === sourceId);
             if (!rule?.skipTo) {
                 hasTempError = true;
-                // FIX: Explicitly type `prev` to avoid `unknown` type error
                 setTempErrors((prev: Set<string>) => new Set(prev).add(sourceId));
             }
         }
@@ -2147,7 +2062,6 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         if (skipLogic?.type === 'simple') {
             onUpdate({ skipLogic: { ...skipLogic, skipTo, isConfirmed: false } });
             if (tempErrors.has('simple')) {
-                // FIX: Explicitly type `prev` to avoid `unknown` type error
                 setTempErrors((prev: Set<string>) => {
                     const newErrors = new Set(prev);
                     newErrors.delete('simple');
@@ -2165,7 +2079,6 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         );
         onUpdate({ skipLogic: { type: 'per_choice', rules: newRules } });
         if (tempErrors.has(choiceId)) {
-            // FIX: Explicitly type `prev` to avoid `unknown` type error
             setTempErrors((prev: Set<string>) => {
                 const newErrors = new Set(prev);
                 newErrors.delete(choiceId);
@@ -2212,7 +2125,7 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
     }
     
     return (
-        <div>
+        <div ref={editorRef}>
             <div className="flex items-center justify-between gap-2 mb-4">
                 <div>
                     <h3 className="text-sm font-medium text-on-surface">Skip Logic</h3>
@@ -2235,6 +2148,7 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
                             return (
                                 <DestinationRow
                                     key={choice.id}
+                                    data-logic-source-id={choice.id}
                                     label={truncate(parseChoice(choice.text).label, 20)}
                                     value={rule?.skipTo || ''}
                                     onChange={(value) => handleChoiceSkipChange(choice.id, value)}
@@ -2249,6 +2163,7 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
                     </div>
                 ) : (
                     <DestinationRow
+                        data-logic-source-id="output"
                         label="If answered, then"
                         value={skipLogic?.type === 'simple' ? skipLogic.skipTo : ''}
                         onChange={handleSimpleSkipChange}
@@ -2453,11 +2368,9 @@ const BranchingLogicEditor: React.FC<{
         const newValidationErrors = new Map(validationErrors);
         let isBranchValid = true;
 
-        // Clear previous errors for this branch's conditions
         branch.conditions.forEach(c => newValidationErrors.delete(c.id));
-        newValidationErrors.delete(branch.id); // Clear previous destination errors for this branch
+        newValidationErrors.delete(branch.id);
 
-        // Validate conditions
         for (const condition of branch.conditions) {
             const conditionErrors = new Set<keyof BranchingLogicCondition>();
             if (!condition.questionId) conditionErrors.add('questionId');
@@ -2472,7 +2385,6 @@ const BranchingLogicEditor: React.FC<{
             }
         }
 
-        // Validate destination
         if (!branch.thenSkipTo) {
             newValidationErrors.set(branch.id, new Set(['skipTo']));
             isBranchValid = false;
@@ -2491,12 +2403,10 @@ const BranchingLogicEditor: React.FC<{
 
     const handleConfirmOtherwise = () => {
         if (!branchingLogic.otherwiseSkipTo) {
-            // FIX: Explicitly type `prev` to avoid `unknown` type error
             setValidationErrors((prev: Map<string, Set<keyof BranchingLogicCondition | 'skipTo'>>) => new Map(prev).set('otherwise', new Set(['skipTo'])));
             return;
         }
         onUpdate({ branchingLogic: { ...branchingLogic, otherwiseIsConfirmed: true } });
-        // FIX: Explicitly type `prev` to avoid `unknown` type error
         setValidationErrors((prev: Map<string, Set<keyof BranchingLogicCondition | 'skipTo'>>) => {
             const newMap = new Map(prev);
             newMap.delete('otherwise');
@@ -2621,4 +2531,108 @@ const BranchingLogicEditor: React.FC<{
         </div>
     );
 };
+
+// ====================================================================================
+// MAIN SIDEBAR CONTAINER COMPONENT
+// This is the exported component. It acts as a frame for the editor.
+// ====================================================================================
+
+interface RightSidebarProps {
+  question: Question;
+  survey: Survey;
+  logicIssues: LogicIssue[];
+  focusedLogicSource: string | null;
+  onClose: () => void;
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+  onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
+  onAddChoice: (questionId: string) => void;
+  onDeleteChoice: (questionId: string, choiceId: string) => void;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  toolboxItems: ToolboxItemData[];
+  onRequestGeminiHelp: (topic: string) => void;
+}
+
+const RightSidebar: React.FC<RightSidebarProps> = memo(({
+    question, survey, logicIssues, focusedLogicSource, onClose, activeTab, onTabChange, onUpdateQuestion,
+    onAddChoice, onDeleteChoice, isExpanded, onToggleExpand, toolboxItems, onRequestGeminiHelp
+}) => {
+  const isChoiceBased = useMemo(() => CHOICE_BASED_QUESTION_TYPES.has(question.type), [question.type]);
+  const CurrentQuestionTypeInfo = toolboxItems.find(item => item.name === question.type);
+
+  const availableTabs = useMemo(() => {
+    return ['Settings', 'Behavior', 'Advanced', 'Preview'];
+  }, []);
+  
+  useEffect(() => {
+    if (!availableTabs.includes(activeTab)) {
+      onTabChange('Settings');
+    }
+  }, [availableTabs, activeTab, onTabChange]);
+
+
+  return (
+      <aside className="w-full h-full bg-surface-container border-l border-outline-variant flex-shrink-0 flex flex-col">
+        <div className="p-4 border-b border-outline-variant flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                {CurrentQuestionTypeInfo && <CurrentQuestionTypeInfo.icon className="text-primary text-2xl" />}
+                <h2 className="text-lg font-bold text-on-surface" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+                    Edit question
+                </h2>
+            </div>
+          <div className="flex items-center">
+              <button 
+                  onClick={onToggleExpand} 
+                  className="text-on-surface-variant hover:text-on-surface p-1 mr-1"
+                  aria-label={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+              >
+                  {isExpanded ? <CollapseIcon className="text-2xl" /> : <ExpandIcon className="text-2xl" />}
+              </button>
+              <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface p-1">
+                  <XIcon className="text-2xl" />
+              </button>
+          </div>
+        </div>
+        <div className="border-b border-outline-variant">
+          <nav className="-mb-px flex space-x-2 px-4">
+            {availableTabs.map(tab => (
+              <button
+                key={tab}
+                onClick={() => onTabChange(tab)}
+                className={`py-3 px-3 border-b-2 font-medium text-sm transition-colors rounded-t-lg ${
+                  activeTab === tab 
+                  ? 'border-primary text-primary' 
+                  : 'border-transparent text-on-surface-variant hover:bg-surface-container-high'
+                }`}
+                style={{ fontFamily: "'Open Sans', sans-serif" }}
+              >
+                {tab}
+              </button>
+            ))}
+          </nav>
+        </div>
+        <div
+          className={`flex-1 overflow-y-auto ${activeTab === 'Behavior' ? 'overflow-x-auto' : 'overflow-x-hidden'}`}
+          style={{ fontFamily: "'Open Sans', sans-serif" }}
+        >
+          {/* The QuestionEditor component is rendered here with all necessary props */}
+          <QuestionEditor 
+            question={question}
+            survey={survey}
+            logicIssues={logicIssues}
+            activeTab={activeTab}
+            focusedLogicSource={focusedLogicSource}
+            onUpdateQuestion={onUpdateQuestion}
+            onAddChoice={onAddChoice}
+            onDeleteChoice={onDeleteChoice}
+            isExpanded={isExpanded}
+            toolboxItems={toolboxItems}
+            onRequestGeminiHelp={onRequestGeminiHelp}
+          />
+        </div>
+      </aside>
+  );
+});
+
 export default RightSidebar;

@@ -119,6 +119,54 @@
         /* As per user request, fill all icons */
         font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
       }
+
+      /* Custom React Flow Styles */
+      .react-flow__edge-path {
+          stroke: hsl(var(--color-outline));
+          stroke-width: 2px;
+      }
+      .react-flow__edge.selected .react-flow__edge-path,
+      .react-flow__edge:focus .react-flow__edge-path,
+      .react-flow__edge:focus-visible .react-flow__edge-path {
+          stroke: hsl(var(--color-primary));
+          stroke-width: 3px;
+      }
+
+      .react-flow__edge-text {
+          color: hsl(var(--color-on-surface-variant));
+          font-size: 12px;
+          background-color: hsl(var(--color-surface));
+          padding: 2px 4px;
+          border-radius: 4px;
+      }
+      .react-flow__edge.selected .react-flow__edge-text {
+          color: hsl(var(--color-primary));
+          font-weight: 600;
+      }
+
+      .react-flow__marker-end path {
+          fill: hsl(var(--color-outline));
+      }
+      .react-flow__edge.selected .react-flow__marker-end path {
+          fill: hsl(var(--color-primary));
+      }
+
+      /* Logic Rule Highlight Animation */
+      @keyframes logic-highlight-anim {
+        from {
+          background-color: hsl(var(--color-primary-container) / 0.7);
+          outline: 2px solid hsl(var(--color-primary));
+        }
+        to {
+          background-color: transparent;
+          outline: 2px solid transparent;
+        }
+      }
+      .logic-highlight {
+        animation: logic-highlight-anim 2.5s ease-out forwards;
+        outline-offset: 2px;
+        border-radius: 6px;
+      }
     </style>
   <script type="importmap">
 {

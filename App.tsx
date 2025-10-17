@@ -30,12 +30,19 @@ const App: React.FC = () => {
   const [activeRightSidebarTab, setActiveRightSidebarTab] = useState('Settings');
   const [isRightSidebarExpanded, setIsRightSidebarExpanded] = useState(false);
   const [logicIssues, setLogicIssues] = useState<LogicIssue[]>([]);
+  const [focusedLogicSource, setFocusedLogicSource] = useState<string | null>(null);
+
+  // FIX: Hoisted showBulkEditPanel declaration before its use on line 41.
+  const showBulkEditPanel = checkedQuestions.size >= 2;
 
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const surveyRef = useRef(survey);
   const [collapsedBlocks, setCollapsedBlocks] = useState<Set<string>>(new Set());
   const prevSelectedQuestionIdRef = useRef<string | null>(null);
+
+  const isDiagramView = activeMainTab === 'Flow';
+  const isAnyRightPanelOpen = isGeminiPanelOpen || showBulkEditPanel || !!selectedQuestion;
 
 
   useEffect(() => {
@@ -76,10 +83,11 @@ const App: React.FC = () => {
     canvasContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  const handleSelectQuestion = useCallback((question: Question | null, tab?: string) => {
+  const handleSelectQuestion = useCallback((question: Question | null, options?: { tab?: string; focusOn?: string }) => {
     if (question === null) {
       setSelectedQuestion(null);
       setIsRightSidebarExpanded(false); // Reset on close
+      setFocusedLogicSource(null);
       return;
     }
     if (question.type === QTEnum.PageBreak) {
@@ -97,9 +105,11 @@ const App: React.FC = () => {
 
     // If a tab was explicitly passed, set it as active.
     // Otherwise, the active tab remains unchanged, preserving the "sticky" tab behavior.
-    if (tab) {
-      setActiveRightSidebarTab(tab);
+    if (options?.tab) {
+      setActiveRightSidebarTab(options.tab);
     }
+    
+    setFocusedLogicSource(options?.focusOn ?? null);
     
   }, [isGeminiPanelOpen, geminiHelpTopic]);
 
@@ -122,8 +132,10 @@ const App: React.FC = () => {
 
             const isClickInRightPanel = rightPanelRef.current?.contains(target);
             const isClickInQuestionCard = target.closest('[data-question-id]');
+            const isClickInDiagramNode = target.closest('.react-flow__node');
+            const isClickInDiagramEdge = target.closest('.react-flow__edge');
             
-            if (!isClickInRightPanel && !isClickInQuestionCard) {
+            if (!isClickInRightPanel && !isClickInQuestionCard && !isClickInDiagramNode && !isClickInDiagramEdge) {
                 handleSelectQuestion(null);
             }
         }
@@ -462,8 +474,6 @@ const App: React.FC = () => {
     }
   }, [checkedQuestions.size, selectedQuestion, handleSelectQuestion]);
 
-  const showBulkEditPanel = checkedQuestions.size >= 2;
-
   // Memoize selected question objects for performance
   const selectedQuestionObjects = useMemo(() => {
     if (checkedQuestions.size === 0) return [];
@@ -481,6 +491,106 @@ const App: React.FC = () => {
     return selectedQuestionObjects.some(q => !q.forceResponse);
   }, [selectedQuestionObjects]);
 
+  const mainContent = useMemo(() => {
+    switch (activeMainTab) {
+      case 'Build':
+        return (
+          <>
+            {isBuildPanelOpen && (
+              <BuildPanel
+                survey={survey}
+                onClose={() => setIsBuildPanelOpen(false)}
+                onSelectQuestion={handleSelectQuestion}
+                selectedQuestion={selectedQuestion}
+                checkedQuestions={checkedQuestions}
+                collapsedBlocks={collapsedBlocks}
+                toolboxItems={toolboxItems}
+                onReorderToolbox={handleReorderToolbox}
+                onReorderQuestion={handleReorderQuestion}
+                onReorderBlock={handleReorderBlock}
+                onAddBlock={handleAddBlock}
+                onCopyBlock={handleCopyBlock}
+                onAddQuestionToBlock={handleAddQuestionToBlock}
+                onExpandAllBlocks={handleExpandAllBlocks}
+                onCollapseAllBlocks={handleCollapseAllBlocks}
+                onDeleteBlock={handleDeleteBlock}
+                onDeleteQuestion={handleDeleteQuestion}
+                onCopyQuestion={handleCopyQuestion}
+                onAddPageBreakAfterQuestion={handleAddPageBreakAfterQuestion}
+                onExpandBlock={handleExpandBlock}
+                onCollapseBlock={handleCollapseBlock}
+                onSelectAllInBlock={handleSelectAllInBlock}
+                onUnselectAllInBlock={handleUnselectAllInBlock}
+              />
+            )}
+            
+            <div ref={canvasContainerRef} className={`relative flex-1 overflow-y-auto py-4 px-4 transition-all duration-300 ${selectedQuestion || isGeminiPanelOpen || showBulkEditPanel ? 'pr-0' : ''}`}>
+              {!isBuildPanelOpen && (
+                <button
+                  onClick={() => setIsBuildPanelOpen(true)}
+                  className="absolute top-4 left-0 z-10 p-2 rounded-r-md text-on-surface-variant hover:bg-surface-container-high"
+                  aria-label="Open build panel"
+                >
+                  <PanelRightIcon className="text-xl" />
+                </button>
+              )}
+              <SurveyCanvas 
+                survey={survey} 
+                selectedQuestion={selectedQuestion} 
+                checkedQuestions={checkedQuestions}
+                logicIssues={logicIssues}
+                onSelectQuestion={handleSelectQuestion}
+                onUpdateQuestion={handleUpdateQuestion}
+                onDeleteQuestion={handleDeleteQuestion}
+                onCopyQuestion={handleCopyQuestion}
+                onDeleteBlock={handleDeleteBlock}
+                onReorderQuestion={handleReorderQuestion}
+                onReorderBlock={handleReorderBlock}
+                onAddBlockFromToolbox={handleAddBlockFromToolbox}
+                onAddQuestion={handleAddQuestion}
+                onAddBlock={handleAddBlock}
+                onAddQuestionToBlock={handleAddQuestionToBlock}
+                onToggleQuestionCheck={handleToggleQuestionCheck}
+                onSelectAllInBlock={handleSelectAllInBlock}
+                onUnselectAllInBlock={handleUnselectAllInBlock}
+                toolboxItems={toolboxItems}
+                collapsedBlocks={collapsedBlocks}
+                onToggleBlockCollapse={handleToggleBlockCollapse}
+                onCopyBlock={handleCopyBlock}
+                onExpandAllBlocks={handleExpandAllBlocks}
+                onCollapseAllBlocks={handleCollapseAllBlocks}
+                onExpandBlock={handleExpandBlock}
+                onCollapseBlock={handleCollapseBlock}
+                onAddChoice={handleAddChoice}
+                onAddPageBreakAfterQuestion={handleAddPageBreakAfterQuestion}
+                onUpdateBlockTitle={handleUpdateBlockTitle}
+                onUpdateSurveyTitle={handleUpdateSurveyTitle}
+                onAddFromLibrary={handleAddToLibrary}
+              />
+            </div>
+          </>
+        );
+      case 'Logic':
+        return <LogicCanvas survey={survey} toolboxItems={toolboxItems} />;
+      case 'Flow':
+        return <DiagramCanvas survey={survey} selectedQuestion={selectedQuestion} onSelectQuestion={handleSelectQuestion} />;
+      default:
+        return (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-2xl text-on-surface-variant">{activeMainTab} page is not implemented yet.</p>
+          </div>
+        );
+    }
+  }, [
+    activeMainTab, isBuildPanelOpen, survey, selectedQuestion, checkedQuestions, collapsedBlocks, toolboxItems, logicIssues,
+    handleSelectQuestion, handleReorderToolbox, handleReorderQuestion, handleReorderBlock, handleAddBlock,
+    handleCopyBlock, handleAddQuestionToBlock, handleExpandAllBlocks, handleCollapseAllBlocks, handleDeleteBlock,
+    handleDeleteQuestion, handleCopyQuestion, handleAddPageBreakAfterQuestion, handleExpandBlock, handleCollapseBlock,
+    handleSelectAllInBlock, handleUnselectAllInBlock, handleUpdateQuestion, handleAddBlockFromToolbox, handleAddQuestion,
+    handleToggleQuestionCheck, handleToggleBlockCollapse, handleAddChoice, handleUpdateBlockTitle, handleUpdateSurveyTitle,
+    handleAddToLibrary, isGeminiPanelOpen, showBulkEditPanel
+  ]);
+  
   return (
     <div className="flex flex-col h-screen bg-surface text-on-surface">
       <Header 
@@ -492,144 +602,70 @@ const App: React.FC = () => {
       <SubHeader />
       <div className="flex flex-1 overflow-hidden">
         <LeftSidebar activeTab={activeMainTab} onTabSelect={handleTabSelect} />
-        <main className="flex flex-1 bg-surface overflow-hidden">
-          {activeMainTab === 'Build' ? (
-            <>
-              {isBuildPanelOpen && (
-                <BuildPanel
-                  survey={survey}
-                  onClose={() => setIsBuildPanelOpen(false)}
-                  onSelectQuestion={handleSelectQuestion}
+        <main className={`flex flex-1 bg-surface overflow-hidden ${isDiagramView ? 'relative' : ''}`}>
+          {mainContent}
+          <div
+            ref={rightPanelRef}
+            className={
+              isDiagramView
+                ? `absolute top-0 right-0 h-full shadow-lg transform transition-transform duration-300 ease-in-out
+                  ${isAnyRightPanelOpen ? 'translate-x-0' : 'translate-x-full'}
+                  ${isRightSidebarExpanded && selectedQuestion ? 'w-1/2' : 'w-96'}`
+                : `flex-shrink-0 transition-all duration-300 ease-in-out ${isRightSidebarExpanded && selectedQuestion ? 'w-[50%]' : 'w-96'}`
+            }
+          >
+            {isGeminiPanelOpen ? (
+                <GeminiPanel 
+                  onClose={handleToggleGeminiPanel} 
+                  onAddQuestion={handleAddQuestionFromAI}
+                  onUpdateQuestion={handleUpdateQuestionFromAI}
+                  helpTopic={geminiHelpTopic}
                   selectedQuestion={selectedQuestion}
-                  checkedQuestions={checkedQuestions}
-                  collapsedBlocks={collapsedBlocks}
-                  toolboxItems={toolboxItems}
-                  onReorderToolbox={handleReorderToolbox}
-                  onReorderQuestion={handleReorderQuestion}
-                  onReorderBlock={handleReorderBlock}
-                  onAddBlock={handleAddBlock}
-                  onCopyBlock={handleCopyBlock}
-                  onAddQuestionToBlock={handleAddQuestionToBlock}
-                  onExpandAllBlocks={handleExpandAllBlocks}
-                  onCollapseAllBlocks={handleCollapseAllBlocks}
-                  onDeleteBlock={handleDeleteBlock}
-                  onDeleteQuestion={handleDeleteQuestion}
-                  onCopyQuestion={handleCopyQuestion}
-                  onAddPageBreakAfterQuestion={handleAddPageBreakAfterQuestion}
-                  onExpandBlock={handleExpandBlock}
-                  onCollapseBlock={handleCollapseBlock}
-                  onSelectAllInBlock={handleSelectAllInBlock}
-                  onUnselectAllInBlock={handleUnselectAllInBlock}
                 />
-              )}
-              
-              <div ref={canvasContainerRef} className={`relative flex-1 overflow-y-auto py-4 px-4 transition-all duration-300 ${selectedQuestion || isGeminiPanelOpen || showBulkEditPanel ? 'pr-0' : ''}`}>
-                {!isBuildPanelOpen && (
-                  <button
-                    onClick={() => setIsBuildPanelOpen(true)}
-                    className="absolute top-4 left-0 z-10 p-2 rounded-r-md text-on-surface-variant hover:bg-surface-container-high"
-                    aria-label="Open build panel"
-                  >
-                    <PanelRightIcon className="text-xl" />
-                  </button>
-                )}
-                <SurveyCanvas 
-                  survey={survey} 
-                  selectedQuestion={selectedQuestion} 
-                  checkedQuestions={checkedQuestions}
-                  logicIssues={logicIssues}
-                  onSelectQuestion={handleSelectQuestion}
+            ) : showBulkEditPanel ? (
+              <BulkEditPanel
+                checkedQuestionCount={checkedQuestions.size}
+                onClose={handleClearSelection}
+                onDuplicate={handleBulkDuplicate}
+                onAddToLibrary={handleAddToLibrary}
+                onMoveQuestions={() => alert('Move Questions functionality not implemented.')}
+                onMoveToNewBlock={handleBulkMoveToNewBlock}
+                onHideQuestion={handleBulkHideQuestion}
+                onHideBackButton={handleBulkHideBackButton}
+                onForceResponse={handleBulkForceResponse}
+                showForceResponse={showForceResponse}
+                onUnforceResponse={handleBulkUnforceResponse}
+                showUnforceResponse={showUnforceResponse}
+                onDelete={handleBulkDelete}
+              />
+            ) : selectedQuestion ? (
+                <RightSidebar 
+                  question={selectedQuestion} 
+                  survey={survey}
+                  logicIssues={logicIssues.filter(issue => issue.questionId === selectedQuestion.id)}
+                  focusedLogicSource={focusedLogicSource}
+                  onClose={() => handleSelectQuestion(null)} 
+                  activeTab={activeRightSidebarTab}
+                  onTabChange={setActiveRightSidebarTab}
                   onUpdateQuestion={handleUpdateQuestion}
-                  onDeleteQuestion={handleDeleteQuestion}
-                  onCopyQuestion={handleCopyQuestion}
-                  onDeleteBlock={handleDeleteBlock}
-                  onReorderQuestion={handleReorderQuestion}
-                  onReorderBlock={handleReorderBlock}
-                  onAddBlockFromToolbox={handleAddBlockFromToolbox}
-                  onAddQuestion={handleAddQuestion}
-                  onAddBlock={handleAddBlock}
-                  onAddQuestionToBlock={handleAddQuestionToBlock}
-                  onToggleQuestionCheck={handleToggleQuestionCheck}
-                  onSelectAllInBlock={handleSelectAllInBlock}
-                  onUnselectAllInBlock={handleUnselectAllInBlock}
-                  toolboxItems={toolboxItems}
-                  collapsedBlocks={collapsedBlocks}
-                  onToggleBlockCollapse={handleToggleBlockCollapse}
-                  onCopyBlock={handleCopyBlock}
-                  onExpandAllBlocks={handleExpandAllBlocks}
-                  onCollapseAllBlocks={handleCollapseAllBlocks}
-                  onExpandBlock={handleExpandBlock}
-                  onCollapseBlock={handleCollapseBlock}
                   onAddChoice={handleAddChoice}
-                  onAddPageBreakAfterQuestion={handleAddPageBreakAfterQuestion}
-                  onUpdateBlockTitle={handleUpdateBlockTitle}
-                  onUpdateSurveyTitle={handleUpdateSurveyTitle}
-                  onAddFromLibrary={handleAddToLibrary}
+                  onDeleteChoice={handleDeleteChoice}
+                  isExpanded={isRightSidebarExpanded}
+                  onToggleExpand={handleToggleRightSidebarExpand}
+                  toolboxItems={toolboxItems}
+                  onRequestGeminiHelp={handleRequestGeminiHelp}
                 />
-              </div>
-
-              <div ref={rightPanelRef} className={`flex-shrink-0 transition-all duration-300 ease-in-out ${isRightSidebarExpanded && selectedQuestion ? 'w-[50%]' : 'w-96'}`}>
-                {isGeminiPanelOpen ? (
-                    <GeminiPanel 
-                      onClose={handleToggleGeminiPanel} 
-                      onAddQuestion={handleAddQuestionFromAI}
-                      onUpdateQuestion={handleUpdateQuestionFromAI}
-                      helpTopic={geminiHelpTopic}
-                      selectedQuestion={selectedQuestion}
+            ) : (activeMainTab === 'Build' && (
+                <div className="pt-4 pr-4 pb-8 pl-4">
+                    <SurveyStructureWidget 
+                        survey={survey} 
+                        onBackToTop={handleBackToTop}
+                        onToggleCollapseAll={handleToggleCollapseAll}
+                        allBlocksCollapsed={allBlocksCollapsed}
                     />
-                ) : showBulkEditPanel ? (
-                  <BulkEditPanel
-                    checkedQuestionCount={checkedQuestions.size}
-                    onClose={handleClearSelection}
-                    onDuplicate={handleBulkDuplicate}
-                    onAddToLibrary={handleAddToLibrary}
-                    onMoveQuestions={() => alert('Move Questions functionality not implemented.')}
-                    onMoveToNewBlock={handleBulkMoveToNewBlock}
-                    onHideQuestion={handleBulkHideQuestion}
-                    onHideBackButton={handleBulkHideBackButton}
-                    onForceResponse={handleBulkForceResponse}
-                    showForceResponse={showForceResponse}
-                    onUnforceResponse={handleBulkUnforceResponse}
-                    showUnforceResponse={showUnforceResponse}
-                    onDelete={handleBulkDelete}
-                  />
-                ) : selectedQuestion ? (
-                    <RightSidebar 
-                      question={selectedQuestion} 
-                      survey={survey}
-                      logicIssues={logicIssues.filter(issue => issue.questionId === selectedQuestion.id)}
-                      onClose={() => handleSelectQuestion(null)} 
-                      activeTab={activeRightSidebarTab}
-                      onTabChange={setActiveRightSidebarTab}
-                      onUpdateQuestion={handleUpdateQuestion}
-                      onAddChoice={handleAddChoice}
-                      onDeleteChoice={handleDeleteChoice}
-                      isExpanded={isRightSidebarExpanded}
-                      onToggleExpand={handleToggleRightSidebarExpand}
-                      toolboxItems={toolboxItems}
-                      onRequestGeminiHelp={handleRequestGeminiHelp}
-                    />
-                ) : (
-                    <div className="pt-4 pr-4 pb-8 pl-4">
-                        <SurveyStructureWidget 
-                            survey={survey} 
-                            onBackToTop={handleBackToTop}
-                            onToggleCollapseAll={handleToggleCollapseAll}
-                            allBlocksCollapsed={allBlocksCollapsed}
-                        />
-                    </div>
-                )}
-              </div>
-            </>
-          ) : activeMainTab === 'Logic' ? (
-            <LogicCanvas survey={survey} toolboxItems={toolboxItems} />
-          ) : activeMainTab === 'Diagram' ? (
-            <DiagramCanvas survey={survey} />
-          ) : (
-             <div className="flex-1 flex items-center justify-center">
-                <p className="text-2xl text-on-surface-variant">{activeMainTab} page is not implemented yet.</p>
-             </div>
-          )}
+                </div>
+            ))}
+          </div>
         </main>
       </div>
     </div>

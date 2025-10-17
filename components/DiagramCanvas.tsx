@@ -11,6 +11,8 @@ import {
   Connection,
   NodeTypes,
   addEdge,
+  MarkerType,
+  Edge as XyflowEdge,
 } from '@xyflow/react';
 
 import type { Survey, Question } from '../types';
@@ -40,9 +42,11 @@ const Y_SPACING = 250;
 
 interface DiagramCanvasProps {
   survey: Survey;
+  selectedQuestion: Question | null;
+  onSelectQuestion: (question: Question | null, options?: { tab?: string; focusOn?: string }) => void;
 }
 
-const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey }) => {
+const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQuestion, onSelectQuestion }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState<DiagramNode>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<DiagramEdge>([]);
     const reactFlowInstance = useReactFlow();
@@ -85,6 +89,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey }) => {
             const targets = new Set<string>();
 
             // Find explicit targets from skip logic
+            // FIX: Check for draftSkipLogic first to show unconfirmed changes
             const skipLogic = currentQuestion.draftSkipLogic ?? currentQuestion.skipLogic;
             if (skipLogic) {
                 if (skipLogic.type === 'simple' && skipLogic.skipTo !== 'next' && skipLogic.skipTo !== 'end') {
@@ -165,7 +170,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey }) => {
                     const targetId = skipLogic.skipTo === 'next' ? relevantQuestions[index + 1]?.id : skipLogic.skipTo;
                     if (targetId && questionMap.has(targetId)) {
                         flowEdges.push({
-                            id: `e-${q.id}-output-${targetId}`, source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input'
+                            id: `e-${q.id}-output-${targetId}`, source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
+                            markerEnd: { type: MarkerType.ArrowClosed },
                         });
                     }
                 } else if (skipLogic.type === 'per_choice') {
@@ -183,6 +189,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey }) => {
                                     target: targetId,
                                     targetHandle: 'input',
                                     label: edgeLabel,
+                                    markerEnd: { type: MarkerType.ArrowClosed },
                                 });
                             }
                         }
@@ -200,6 +207,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey }) => {
                             target: nextQuestion.id,
                             targetHandle: 'input',
                             label: variable,
+                            markerEnd: { type: MarkerType.ArrowClosed },
                         });
                     });
                 } else { // Text Entry
@@ -208,7 +216,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey }) => {
                         source: q.id, 
                         sourceHandle: 'output',
                         target: nextQuestion.id,
-                        targetHandle: 'input'
+                        targetHandle: 'input',
+                        markerEnd: { type: MarkerType.ArrowClosed },
                     });
                 }
             }
@@ -221,6 +230,15 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey }) => {
 
     }, [survey, setNodes, setEdges, reactFlowInstance]);
 
+    useEffect(() => {
+        setNodes((nds) =>
+            nds.map((node) => ({
+                ...node,
+                selected: node.id === selectedQuestion?.id,
+            }))
+        );
+    }, [selectedQuestion, setNodes]);
+
     const onConnect = useCallback(
         (connection: Connection) => {
             const newEdge = { ...connection, id: generateId('edge') } as DiagramEdge;
@@ -228,6 +246,35 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey }) => {
         },
         [setEdges]
     );
+
+    const onNodeClick = useCallback((_event: React.MouseEvent, node: DiagramNode) => {
+        const fullQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === node.id);
+        if (fullQuestion) {
+            onSelectQuestion(fullQuestion);
+        }
+    }, [survey, onSelectQuestion]);
+
+    const onPaneClick = useCallback(() => {
+        onSelectQuestion(null);
+    }, [onSelectQuestion]);
+
+    const onEdgeClick = useCallback((event: React.MouseEvent, edge: XyflowEdge) => {
+        event.stopPropagation();
+        
+        const sourceQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === edge.source);
+        if (sourceQuestion) {
+            // Assume skip logic for now, as it's what edges represent.
+            onSelectQuestion(sourceQuestion, { tab: 'Behavior', focusOn: edge.sourceHandle });
+        }
+
+        // Manually select the clicked edge and deselect others.
+        setEdges((eds) =>
+            eds.map((e) => ({
+                ...e,
+                selected: e.id === edge.id,
+            }))
+        );
+    }, [survey, onSelectQuestion, setEdges]);
 
     return (
         <div className="w-full h-full">
@@ -238,6 +285,9 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey }) => {
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
+                onNodeClick={onNodeClick}
+                onPaneClick={onPaneClick}
+                onEdgeClick={onEdgeClick}
                 nodeTypes={nodeTypes}
                 proOptions={{ hideAttribution: true }}
                 className="bg-surface"
@@ -255,10 +305,10 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey }) => {
 };
 
 
-const DiagramCanvas: React.FC<DiagramCanvasProps> = memo(({ survey }) => {
+const DiagramCanvas: React.FC<DiagramCanvasProps> = memo(({ survey, selectedQuestion, onSelectQuestion }) => {
     return (
         <ReactFlowProvider>
-            <DiagramCanvasContent survey={survey} />
+            <DiagramCanvasContent survey={survey} selectedQuestion={selectedQuestion} onSelectQuestion={onSelectQuestion} />
         </ReactFlowProvider>
     );
 });

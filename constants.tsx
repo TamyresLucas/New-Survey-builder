@@ -2,7 +2,7 @@ import type { Survey, ToolboxItemData, NavItem } from './types';
 import { QuestionType } from './types';
 import { 
   // Main Nav
-  PlusIcon, ArrowSplitIcon, BrushIcon, GlobeIcon, TuneIcon, ClockIcon, AccountTreeIcon,
+  PlusIcon, ArrowSplitIcon, BrushIcon, GlobeIcon, TuneIcon, ClockIcon,
 
   // Toolbox Icons (in order of list)
   BlockIcon, 
@@ -106,7 +106,6 @@ export const initialSurveyData: Survey = {
 export const mainNavItems: NavItem[] = [
     { id: 'Build', label: 'Build', icon: PlusIcon },
     { id: 'Flow', label: 'Flow', icon: ArrowSplitIcon },
-    { id: 'Logic', label: 'Logic', icon: ArrowSplitIcon },
     { id: 'Style', label: 'Style', icon: BrushIcon },
     { id: 'Language', label: 'Language', icon: GlobeIcon },
     { id: 'Settings', label: 'Settings', icon: TuneIcon },

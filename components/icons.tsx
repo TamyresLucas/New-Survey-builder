@@ -82,7 +82,6 @@ export const SparkleIcon: React.FC<IconProps> = ({ className, style }) => <Mater
 export const SendIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="send" className={className} style={style} />;
 export const LoaderIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="progress_activity" className={className} style={style} />;
 export const AccountCircleIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="account_circle" className={className} style={style} />;
-export const AccountTreeIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="account_tree" className={className} style={style} />;
 
 // Icons for Bulk Edit Panel
 export const ContentCopyIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="content_copy" className={className} style={style} />;

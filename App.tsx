@@ -15,7 +15,6 @@ import { QuestionType as QTEnum } from './types';
 import { surveyReducer, SurveyActionType } from './state/surveyReducer';
 import { PanelRightIcon } from './components/icons';
 import { validateSurveyLogic } from './logicValidator';
-import LogicCanvas from './components/LogicCanvas';
 import DiagramCanvas from './components/DiagramCanvas';
 
 const App: React.FC = () => {
@@ -570,10 +569,8 @@ const App: React.FC = () => {
             </div>
           </>
         );
-      case 'Logic':
-        return <LogicCanvas survey={survey} toolboxItems={toolboxItems} />;
       case 'Flow':
-        return <DiagramCanvas survey={survey} selectedQuestion={selectedQuestion} onSelectQuestion={handleSelectQuestion} />;
+        return <DiagramCanvas survey={survey} selectedQuestion={selectedQuestion} onSelectQuestion={handleSelectQuestion} onUpdateQuestion={handleUpdateQuestion} />;
       default:
         return (
           <div className="flex-1 flex items-center justify-center">

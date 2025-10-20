@@ -132,6 +132,14 @@
           stroke-width: 3px;
       }
 
+      .react-flow__edge.draft .react-flow__edge-path {
+        stroke-dasharray: 6 6;
+        stroke: hsl(var(--color-primary) / 0.7);
+      }
+      .react-flow__edge.draft .react-flow__marker-end path {
+          fill: hsl(var(--color-primary) / 0.7);
+      }
+
       .react-flow__edge-text {
           color: hsl(var(--color-on-surface-variant));
           font-size: 12px;
@@ -149,6 +157,23 @@
       }
       .react-flow__edge.selected .react-flow__marker-end path {
           fill: hsl(var(--color-primary));
+      }
+
+      /* React Flow Controls Dark Mode Overrides */
+      .dark .react-flow__controls {
+        background-color: hsl(var(--color-surface-container));
+        border: 1px solid hsl(var(--color-outline-variant));
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+      }
+      .dark .react-flow__controls button {
+        background-color: transparent;
+        border-bottom-color: hsl(var(--color-outline-variant));
+      }
+      .dark .react-flow__controls button:hover {
+        background-color: hsl(var(--color-surface-container-high));
+      }
+      .dark .react-flow__controls button svg {
+        fill: hsl(var(--color-on-surface));
       }
 
       /* Logic Rule Highlight Animation */

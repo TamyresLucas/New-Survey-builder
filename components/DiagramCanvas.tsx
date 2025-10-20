@@ -15,7 +15,7 @@ import {
   Edge as XyflowEdge,
 } from '@xyflow/react';
 
-import type { Survey, Question } from '../types';
+import type { Survey, Question, SkipLogicRule, SkipLogic } from '../types';
 import type { Node as DiagramNode, Edge as DiagramEdge } from '../types';
 
 import { generateId, parseChoice } from '../utils';
@@ -52,7 +52,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     const reactFlowInstance = useReactFlow();
     const prevActiveTabRef = useRef<string>();
     
-    // Memoize the expensive layout calculation so it only runs when the survey structure changes, not on every selection.
     const { layoutNodes, layoutEdges } = useMemo(() => {
         const relevantQuestions = survey.blocks.flatMap(b => b.questions).filter(q =>
             q.type === QuestionType.Radio ||
@@ -66,28 +65,24 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         
         const questionMap: Map<string, Question> = new Map(relevantQuestions.map(q => [q.id, q]));
 
-        // Calculate node heights before layout to handle variable sizes
         const nodeHeights = new Map<string, number>();
         relevantQuestions.forEach(q => {
-            let height = NODE_HEIGHT; // Default for text_entry
+            let height = NODE_HEIGHT;
             if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox) {
-                height = 100 + (q.choices?.length || 0) * 32; // Base height + height per option
+                height = 100 + (q.choices?.length || 0) * 32;
             }
             nodeHeights.set(q.id, height);
         });
         
-        // --- Auto-layout calculation ---
         const nodePositions = new Map<string, { x: number, y: number }>();
         const columns: string[][] = [];
         const questionToColumn = new Map<string, number>();
 
-        // Find root nodes (first question is always a root)
         if (relevantQuestions[0]) {
             columns[0] = [relevantQuestions[0].id];
             questionToColumn.set(relevantQuestions[0].id, 0);
         }
 
-        // Use a queue to traverse the graph and assign columns
         const queue: string[] = relevantQuestions[0] ? [relevantQuestions[0].id] : [];
         const visited = new Set<string>(queue);
 
@@ -98,8 +93,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             const nextColumn = currentColumn + 1;
 
             const targets = new Set<string>();
-
-            // Find explicit targets from skip logic
             const skipLogic = currentQuestion.draftSkipLogic ?? currentQuestion.skipLogic;
             if (skipLogic) {
                 if (skipLogic.type === 'simple' && skipLogic.skipTo !== 'next' && skipLogic.skipTo !== 'end') {
@@ -113,7 +106,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 }
             }
             
-            // Add sequential next question if it's not already a target and there's no unconditional skip
             const currentIdx = relevantQuestions.findIndex(q => q.id === currentId);
             if (currentIdx + 1 < relevantQuestions.length) {
                 const nextQuestion = relevantQuestions[currentIdx + 1];
@@ -122,7 +114,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 }
             }
 
-            // Assign columns to targets
             if (!columns[nextColumn]) columns[nextColumn] = [];
             targets.forEach(targetId => {
                 if (questionMap.has(targetId) && !visited.has(targetId)) {
@@ -134,9 +125,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             });
         }
         
-        // Calculate final X, Y coordinates using dynamic heights
         columns.forEach((column, colIndex) => {
-            // Calculate total height of the column for centering
             const totalColumnHeight = column.reduce((sum, qId) => sum + (nodeHeights.get(qId) || NODE_HEIGHT), 0) + Math.max(0, column.length - 1) * VERTICAL_GAP;
             let currentY = -totalColumnHeight / 2;
             column.forEach((qId) => {
@@ -149,14 +138,12 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             });
         });
 
-        // --- Node and Edge creation ---
         const flowNodes: DiagramNode[] = [];
         const flowEdges: DiagramEdge[] = [];
 
         relevantQuestions.forEach((q, index) => {
             const position = nodePositions.get(q.id) || { x: index * X_SPACING, y: 0 };
             
-            // Create Node
             if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox) {
                 flowNodes.push({
                     id: q.id, type: 'multiple_choice', position,
@@ -169,7 +156,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     },
                     width: NODE_WIDTH, height: nodeHeights.get(q.id) || NODE_HEIGHT,
                 });
-            } else { // Text Entry
+            } else {
                 flowNodes.push({
                     id: q.id, type: 'text_entry', position,
                     data: { variableName: q.qid, question: q.text },
@@ -177,84 +164,72 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 });
             }
 
-            // Create Edges
-            const skipLogic = q.draftSkipLogic ?? q.skipLogic;
-            if (skipLogic) {
-                if (skipLogic.type === 'simple' && skipLogic.skipTo && skipLogic.skipTo !== 'end') {
-                    const targetId = skipLogic.skipTo === 'next' ? relevantQuestions[index + 1]?.id : skipLogic.skipTo;
-                    if (targetId && questionMap.has(targetId)) {
-                        flowEdges.push({
-                            id: `e-${q.id}-output-${targetId}`, source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
-                            markerEnd: { type: MarkerType.ArrowClosed },
-                        });
-                    }
-                } else if (skipLogic.type === 'per_choice') {
-                    skipLogic.rules.forEach(rule => {
-                        if (rule.skipTo && rule.skipTo !== 'end') {
-                            const targetId = rule.skipTo === 'next' ? relevantQuestions[index + 1]?.id : rule.skipTo;
-                            if (targetId && questionMap.has(targetId)) {
-                                const sourceChoice = q.choices?.find(c => c.id === rule.choiceId);
-                                const edgeLabel = sourceChoice ? parseChoice(sourceChoice.text).variable : undefined;
-                                
-                                flowEdges.push({
-                                    id: `e-${q.id}-${rule.choiceId}-${targetId}`,
-                                    source: q.id,
-                                    sourceHandle: rule.choiceId,
-                                    target: targetId,
-                                    targetHandle: 'input',
-                                    label: edgeLabel,
-                                    markerEnd: { type: MarkerType.ArrowClosed },
-                                });
-                            }
+            const sourceHandles: { id: string; choice?: any }[] =
+                (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox)
+                    ? (q.choices || []).map(c => ({ id: c.id, choice: c }))
+                    : [{ id: 'output' }];
+
+            sourceHandles.forEach(handle => {
+                let targetId: string | null = null;
+                let isDraft = false;
+
+                if (q.draftSkipLogic) {
+                    if (q.draftSkipLogic.type === 'simple' && handle.id === 'output') {
+                        targetId = q.draftSkipLogic.skipTo === 'next' ? relevantQuestions[index + 1]?.id : q.draftSkipLogic.skipTo;
+                        isDraft = true;
+                    } else if (q.draftSkipLogic.type === 'per_choice') {
+                        const rule = q.draftSkipLogic.rules.find(r => r.choiceId === handle.id);
+                        if (rule && rule.skipTo) {
+                            targetId = rule.skipTo === 'next' ? relevantQuestions[index + 1]?.id : rule.skipTo;
+                            isDraft = true;
                         }
-                    });
+                    }
                 }
-            } else if (index < relevantQuestions.length - 1) { // Default sequential flow
-                const nextQuestion = relevantQuestions[index + 1];
-                if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox) {
-                    q.choices?.forEach(choice => {
-                        const { variable } = parseChoice(choice.text);
-                        flowEdges.push({
-                            id: `e-${q.id}-${choice.id}-${nextQuestion.id}`,
-                            source: q.id,
-                            sourceHandle: choice.id,
-                            target: nextQuestion.id,
-                            targetHandle: 'input',
-                            label: variable,
-                            markerEnd: { type: MarkerType.ArrowClosed },
-                        });
-                    });
-                } else { // Text Entry
+                
+                if (!targetId && q.skipLogic) {
+                    if (q.skipLogic.type === 'simple' && handle.id === 'output') {
+                        targetId = q.skipLogic.skipTo === 'next' ? relevantQuestions[index + 1]?.id : q.skipLogic.skipTo;
+                    } else if (q.skipLogic.type === 'per_choice') {
+                        const rule = q.skipLogic.rules.find(r => r.choiceId === handle.id);
+                        if (rule && rule.skipTo) {
+                            targetId = rule.skipTo === 'next' ? relevantQuestions[index + 1]?.id : rule.skipTo;
+                        }
+                    }
+                }
+                
+                if (!targetId && index < relevantQuestions.length - 1) {
+                    targetId = relevantQuestions[index + 1].id;
+                }
+
+                if (targetId && targetId !== 'end' && questionMap.has(targetId)) {
+                    const edgeLabel = handle.choice ? parseChoice(handle.choice.text).variable : undefined;
                     flowEdges.push({
-                        id: `e-${q.id}-output-${nextQuestion.id}`,
-                        source: q.id, 
-                        sourceHandle: 'output',
-                        target: nextQuestion.id,
+                        id: `e-${q.id}-${handle.id}-${targetId}`,
+                        source: q.id,
+                        sourceHandle: handle.id,
+                        target: targetId,
                         targetHandle: 'input',
+                        label: edgeLabel,
                         markerEnd: { type: MarkerType.ArrowClosed },
+                        className: isDraft ? 'draft' : undefined,
                     });
                 }
-            }
+            });
         });
         
         return { layoutNodes: flowNodes, layoutEdges: flowEdges };
     }, [survey]);
     
-    // This effect runs whenever the layout or the selection changes.
-    // It applies selection highlights and handles auto-centering the view.
     useEffect(() => {
         const selectedId = selectedQuestion?.id;
         
-        // Apply selection state to the memoized layout nodes and edges
         setNodes(layoutNodes.map(n => ({ ...n, selected: n.id === selectedId })));
         setEdges(layoutEdges.map(e => ({ ...e, selected: e.source === selectedId })));
         
         const justSwitchedToFlow = prevActiveTabRef.current !== 'Flow' && activeMainTab === 'Flow';
         
-        // A small timeout allows the graph to render before fitting the view.
         const timer = setTimeout(() => {
             if (selectedId) {
-                // When a question is selected, frame it and all its immediate children.
                 const outgoingEdges = layoutEdges.filter(e => e.source === selectedId);
                 const targetNodeIds = outgoingEdges.map(e => e.target);
                 const nodesToFit = [...new Set([selectedId, ...targetNodeIds])];
@@ -262,10 +237,9 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 reactFlowInstance.fitView({
                     nodes: nodesToFit.map(id => ({ id })),
                     duration: 600,
-                    padding: 0.25, // Add padding to ensure nodes aren't at the very edge.
+                    padding: 0.25,
                 });
             } else if (justSwitchedToFlow) {
-                // If no question is selected AND we just switched to the Flow tab, show the whole diagram.
                 reactFlowInstance.fitView({ duration: 600, padding: 0.1 });
             }
         }, 100);
@@ -274,17 +248,54 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
 
     }, [layoutNodes, layoutEdges, selectedQuestion, activeMainTab, reactFlowInstance, setNodes, setEdges]);
     
-    // This effect updates the previous tab ref *after* the main effect has run.
     useEffect(() => {
         prevActiveTabRef.current = activeMainTab;
     });
 
     const onConnect = useCallback(
         (connection: Connection) => {
-            const newEdge = { ...connection, id: generateId('edge') } as DiagramEdge;
-            setEdges((eds) => addEdge(newEdge, eds));
+            if (!connection.source || !connection.target || !connection.sourceHandle) {
+                return;
+            }
+    
+            const sourceQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === connection.source);
+            if (!sourceQuestion) return;
+            
+            const existingLogic = sourceQuestion.draftSkipLogic ?? sourceQuestion.skipLogic;
+            let newLogic: Question['skipLogic'];
+    
+            if (sourceQuestion.type === QuestionType.Radio || sourceQuestion.type === QuestionType.Checkbox) {
+                let newRules: SkipLogicRule[];
+                if (existingLogic?.type === 'per_choice') {
+                    newRules = [...existingLogic.rules];
+                    const ruleIndex = newRules.findIndex(r => r.choiceId === connection.sourceHandle);
+                    if (ruleIndex !== -1) {
+                        newRules[ruleIndex] = { ...newRules[ruleIndex], skipTo: connection.target!, isConfirmed: false };
+                    } else {
+                        newRules.push({
+                            choiceId: connection.sourceHandle,
+                            skipTo: connection.target!,
+                            isConfirmed: false
+                        });
+                    }
+                } else {
+                    newRules = (sourceQuestion.choices || []).map(choice => ({
+                        choiceId: choice.id,
+                        skipTo: choice.id === connection.sourceHandle ? connection.target! : 'next',
+                        isConfirmed: false,
+                    }));
+                }
+                newLogic = { type: 'per_choice', rules: newRules };
+            } else if (sourceQuestion.type === QuestionType.TextEntry) {
+                newLogic = { type: 'simple', skipTo: connection.target!, isConfirmed: false };
+            }
+    
+            if (newLogic) {
+                onUpdateQuestion(sourceQuestion.id, { skipLogic: newLogic });
+                onSelectQuestion(sourceQuestion, { tab: 'Behavior', focusOn: connection.sourceHandle });
+            }
         },
-        [setEdges]
+        [survey, onUpdateQuestion, onSelectQuestion]
     );
 
     const onNodeClick = useCallback((_event: React.MouseEvent, node: DiagramNode) => {
@@ -314,39 +325,44 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             
             const sourceQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === newConnection.source);
             if (!sourceQuestion) return;
-
+    
             const existingLogic = sourceQuestion.draftSkipLogic ?? sourceQuestion.skipLogic;
             let newLogic: Question['skipLogic'];
-
-            if (existingLogic?.type === 'per_choice') {
-                const newRules = existingLogic.rules.map(rule => {
-                    if (rule.choiceId === newConnection.sourceHandle) {
-                        return { ...rule, skipTo: newConnection.target!, isConfirmed: false };
+    
+            if (sourceQuestion.type === QuestionType.Radio || sourceQuestion.type === QuestionType.Checkbox) {
+                let newRules: SkipLogicRule[];
+                if (existingLogic?.type === 'per_choice') {
+                    newRules = [...existingLogic.rules];
+                    const ruleIndex = newRules.findIndex(r => r.choiceId === newConnection.sourceHandle);
+                    if (ruleIndex !== -1) {
+                        newRules[ruleIndex] = { ...newRules[ruleIndex], skipTo: newConnection.target!, isConfirmed: false };
+                    } else {
+                        newRules.push({
+                            choiceId: newConnection.sourceHandle,
+                            skipTo: newConnection.target!,
+                            isConfirmed: false,
+                        });
                     }
-                    return rule;
-                });
+                } else {
+                    newRules = (sourceQuestion.choices || []).map(choice => ({
+                        choiceId: choice.id,
+                        skipTo: choice.id === newConnection.sourceHandle ? newConnection.target! : 'next',
+                        isConfirmed: false,
+                    }));
+                }
                 newLogic = { type: 'per_choice', rules: newRules };
-            } else if (existingLogic?.type === 'simple') {
-                newLogic = { type: 'simple', skipTo: newConnection.target!, isConfirmed: false };
-            } else if (sourceQuestion.type === QuestionType.Radio || sourceQuestion.type === QuestionType.Checkbox) {
-                // Create new logic if none exists
-                const newRules = (sourceQuestion.choices || []).map(choice => ({
-                    choiceId: choice.id,
-                    skipTo: choice.id === newConnection.sourceHandle ? newConnection.target! : 'next',
-                    isConfirmed: false,
-                }));
-                newLogic = { type: 'per_choice', rules: newRules };
-            } else { // Text entry
+            } else {
                 newLogic = { type: 'simple', skipTo: newConnection.target!, isConfirmed: false };
             }
-
+    
             if (newLogic) {
                 onUpdateQuestion(sourceQuestion.id, { skipLogic: newLogic });
+                onSelectQuestion(sourceQuestion, { tab: 'Behavior', focusOn: newConnection.sourceHandle });
             }
-
+            
             setEdges((els) => els.filter(e => e.id !== oldEdge.id));
         },
-        [setEdges, survey, onUpdateQuestion]
+        [setEdges, survey, onUpdateQuestion, onSelectQuestion]
     );
 
 
@@ -374,7 +390,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     size={1}
                     className="bg-surface"
                 />
-                <Controls className="bg-surface-container rounded-lg shadow-md border border-outline-variant" />
+                <Controls />
             </ReactFlow>
         </div>
     );

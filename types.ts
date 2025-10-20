@@ -340,6 +340,7 @@ export interface Edge {
   // FIX: Add missing 'markerEnd' property to support react-flow edge markers.
   markerEnd?: any;
   selected?: boolean;
+  className?: string;
 }
 
 

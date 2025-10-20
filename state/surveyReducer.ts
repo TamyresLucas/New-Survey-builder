@@ -570,6 +570,8 @@ export function surveyReducer(state: Survey, action: Action): Survey {
         
         case SurveyActionType.CLEANUP_UNCONFIRMED_LOGIC: {
             const { questionId } = action.payload;
+            if (!questionId) return state;
+
             let questionToClean: Question | undefined;
 
             for (const block of newState.blocks) {

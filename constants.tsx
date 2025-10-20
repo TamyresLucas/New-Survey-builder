@@ -89,13 +89,21 @@ export const initialSurveyData: Survey = {
         },
         {
             id: 'q4',
-            qid: 'Q3', // Note: This is intentional to match the image having two Q3s
-            text: 'Click to write the question text',
-            type: QuestionType.Checkbox,
+            qid: 'Q4',
+            text: 'Please rate your satisfaction with the following aspects of our service:',
+            type: QuestionType.ChoiceGrid,
+            answerFormat: 'grid',
             choices: [
-              { id: 'q4c1', text: 'Click to write choice 1' },
-              { id: 'q4c2', text: 'Click to write choice 2' },
-              { id: 'q4c3', text: 'Click to write choice 3' },
+              { id: 'q4c1', text: 'Quality of coffee' },
+              { id: 'q4c2', text: 'Speed of service' },
+              { id: 'q4c3', text: 'Friendliness of staff' },
+            ],
+            scalePoints: [
+              { id: 'q4s1', text: 'Very Dissatisfied' },
+              { id: 'q4s2', text: 'Dissatisfied' },
+              { id: 'q4s3', text: 'Neutral' },
+              { id: 'q4s4', text: 'Satisfied' },
+              { id: 'q4s5', text: 'Very Satisfied' },
             ],
           },
       ],

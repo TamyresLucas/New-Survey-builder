@@ -89,6 +89,11 @@ export type RandomizationMethod =
 export interface AnswerBehavior {
   randomizeChoices?: boolean;
   randomizationMethod?: RandomizationMethod;
+  // New properties for Choice Grid
+  randomizeRows?: boolean;
+  rowRandomizationMethod?: RandomizationMethod;
+  randomizeColumns?: boolean;
+  columnRandomizationMethod?: RandomizationMethod;
 }
 
 export interface CarryForwardLogic {
@@ -156,6 +161,7 @@ export interface Question {
   text: string;
   type: QuestionType;
   choices?: Choice[];
+  scalePoints?: Choice[];
   isHidden?: boolean;
   hideBackButton?: boolean;
   forceResponse?: boolean;
@@ -187,7 +193,7 @@ export interface Question {
   };
 
   // New properties for detailed editing
-  answerFormat?: 'list' | 'dropdown' | 'horizontal';
+  answerFormat?: 'list' | 'dropdown' | 'horizontal' | 'grid';
   advancedSettings?: {
     choiceOrientation?: 'vertical' | 'horizontal' | 'grid';
     numColumns?: number;

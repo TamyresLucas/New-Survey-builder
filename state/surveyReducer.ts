@@ -112,6 +112,16 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             if (updates.type && !CHOICE_BASED_QUESTION_TYPES.has(updates.type)) {
                 finalUpdates.choices = undefined;
             }
+
+            if (updates.type === QTEnum.ChoiceGrid && !originalQuestion.scalePoints?.length) {
+                finalUpdates.scalePoints = [
+                    { id: generateId('s'), text: 'Column 1' },
+                    { id: generateId('s'), text: 'Column 2' },
+                    { id: generateId('s'), text: 'Column 3' },
+                ];
+            } else if (updates.type && updates.type !== QTEnum.ChoiceGrid) {
+                finalUpdates.scalePoints = undefined;
+            }
             
             // --- DRAFT LOGIC HANDLING ---
             if (finalUpdates.displayLogic) {
@@ -172,7 +182,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
             Object.assign(questionInState, finalUpdates);
 
-            return updates.type || finalUpdates.choices ? renumberSurveyVariables(newState) : newState;
+            return updates.type || finalUpdates.choices || finalUpdates.scalePoints ? renumberSurveyVariables(newState) : newState;
         }
 
         case SurveyActionType.ADD_QUESTION: {
@@ -185,11 +195,25 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             };
 
             if (CHOICE_BASED_QUESTION_TYPES.has(questionType)) {
-                newQuestion.choices = [
-                    { id: generateId('c'), text: 'Click to write choice 1' },
-                    { id: generateId('c'), text: 'Click to write choice 2' },
-                    { id: generateId('c'), text: 'Click to write choice 3' },
-                ];
+                if (questionType === QTEnum.ChoiceGrid) {
+                    newQuestion.choices = [
+                        { id: generateId('c'), text: 'Row 1' },
+                        { id: generateId('c'), text: 'Row 2' },
+                        { id: generateId('c'), text: 'Row 3' },
+                    ];
+                    newQuestion.scalePoints = [
+                        { id: generateId('s'), text: 'Column 1' },
+                        { id: generateId('s'), text: 'Column 2' },
+                        { id: generateId('s'), text: 'Column 3' },
+                    ];
+                    newQuestion.answerFormat = 'grid';
+                } else {
+                    newQuestion.choices = [
+                        { id: generateId('c'), text: 'Click to write choice 1' },
+                        { id: generateId('c'), text: 'Click to write choice 2' },
+                        { id: generateId('c'), text: 'Click to write choice 3' },
+                    ];
+                }
             }
             
             if (questionType === QTEnum.TextEntry) {
@@ -353,9 +377,14 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             if (targetQuestion) {
                 if (!targetQuestion.choices) targetQuestion.choices = [];
                 const choiceNum = targetQuestion.choices.length + 1;
+                
+                const defaultText = targetQuestion.type === QTEnum.ChoiceGrid 
+                    ? `Row ${choiceNum}` 
+                    : `Click to write choice ${choiceNum}`;
+
                 const newChoice: Choice = {
                     id: generateId('c'),
-                    text: `Click to write choice ${choiceNum}`,
+                    text: defaultText,
                 };
                 targetQuestion.choices.push(newChoice);
             }

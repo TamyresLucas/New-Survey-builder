@@ -346,7 +346,44 @@ const QuestionCard: React.FC<{
                     </div>
                 )}
                 
-                {question.choices && (
+                {question.type === QuestionType.ChoiceGrid && (
+                    <div className="mt-4 overflow-x-auto">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr className="border-b border-outline-variant">
+                                    <th className="p-2 text-left w-1/3"></th>
+                                    {(question.scalePoints || []).map(sp => (
+                                        <th key={sp.id} className="p-2 text-center text-xs font-normal text-on-surface-variant">
+                                            {sp.text}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(question.choices || []).map(choice => {
+                                    const { variable, label } = parseChoice(choice.text);
+                                    return (
+                                        <tr key={choice.id} className="border-b border-outline-variant last:border-b-0">
+                                            <td className="p-2 text-sm text-on-surface pr-4">
+                                                <div className="flex items-center gap-2">
+                                                    {variable && <span className="font-bold text-on-surface-variant">{variable}</span>}
+                                                    <span>{label}</span>
+                                                </div>
+                                            </td>
+                                            {(question.scalePoints || []).map(sp => (
+                                                <td key={sp.id} className="p-2 text-center">
+                                                    <RadioButtonUncheckedIcon className="text-xl text-outline" />
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {question.choices && question.type !== QuestionType.ChoiceGrid && (
                     <div 
                         className="mt-4 space-y-2"
                         onDrop={handleChoiceDrop}

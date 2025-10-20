@@ -62,7 +62,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         const relevantQuestions = survey.blocks.flatMap(b => b.questions).filter(q =>
             q.type === QuestionType.Radio ||
             q.type === QuestionType.Checkbox ||
-            q.type === QuestionType.TextEntry
+            q.type === QuestionType.TextEntry ||
+            q.type === QuestionType.ChoiceGrid
         );
 
         if (relevantQuestions.length === 0) {
@@ -74,7 +75,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         const nodeHeights = new Map<string, number>();
         relevantQuestions.forEach(q => {
             let height = NODE_HEIGHT;
-            if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox) {
+            if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid) {
                 height = 100 + (q.choices?.length || 0) * 32;
             }
             nodeHeights.set(q.id, height);
@@ -161,12 +162,13 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             const position = nodePositions.get(q.id) || { x: 0, y: 0 };
             const index = allQuestions.findIndex(aq => aq.id === q.id);
             
-            if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox) {
+            if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid) {
                 flowNodes.push({
                     id: q.id, type: 'multiple_choice', position,
                     data: {
                         variableName: q.qid,
-                        question: q.text, subtype: q.type === QuestionType.Radio ? 'radio' : 'checkbox',
+                        question: q.text,
+                        subtype: q.type === QuestionType.Checkbox ? 'checkbox' : 'radio',
                         options: q.choices?.map(c => ({
                             id: c.id, text: parseChoice(c.text).label, variableName: parseChoice(c.text).variable
                         })) || []
@@ -182,7 +184,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             }
 
             const sourceHandles: { id: string; choice?: any }[] =
-                (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox)
+                (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid)
                     ? (q.choices || []).map(c => ({ id: c.id, choice: c }))
                     : [{ id: 'output' }];
 

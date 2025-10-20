@@ -41,8 +41,11 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
     const [isTypeMenuOpen, setIsTypeMenuOpen] = useState(false);
     const typeMenuRef = useRef<HTMLDivElement>(null);
     const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
+    const [isPasteColumnsModalOpen, setIsPasteColumnsModalOpen] = useState(false);
     const [draggedChoiceId, setDraggedChoiceId] = useState<string | null>(null);
     const [dropTargetChoiceId, setDropTargetChoiceId] = useState<string | null>(null);
+    const [draggedScalePointId, setDraggedScalePointId] = useState<string | null>(null);
+    const [dropTargetScalePointId, setDropTargetScalePointId] = useState<string | null>(null);
     const [selectedPreviewChoices, setSelectedPreviewChoices] = useState<Set<string>>(new Set());
 
     const allSurveyQuestions = useMemo(() => survey.blocks.flatMap(b => b.questions), [survey]);
@@ -92,8 +95,16 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
     }, []);
 
     const handleUpdate = useCallback((updates: Partial<Question>) => {
-        onUpdateQuestion(question.id, updates);
-    }, [question.id, onUpdateQuestion]);
+        const finalUpdates = { ...updates };
+
+        if (updates.answerFormat === 'grid' && (question.type === QuestionType.Radio || question.type === QuestionType.Checkbox)) {
+            finalUpdates.type = QuestionType.ChoiceGrid;
+        } else if (updates.answerFormat && updates.answerFormat !== 'grid' && question.type === QuestionType.ChoiceGrid) {
+            finalUpdates.type = QuestionType.Radio; // Default to Radio
+        }
+        
+        onUpdateQuestion(question.id, finalUpdates);
+    }, [question.id, question.type, onUpdateQuestion]);
     
     const handleTypeSelect = useCallback((newType: QuestionType) => {
         handleUpdate({ type: newType });
@@ -180,9 +191,86 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
 
         handleUpdate({ choices: newChoices });
     };
+    
+    // --- Scale Point (Column) Handlers ---
+    
+    const handleAddScalePoint = useCallback(() => {
+        const currentScalePoints = question.scalePoints || [];
+        const newScalePoint: Choice = {
+            id: generateId('s'),
+            text: `Column ${currentScalePoints.length + 1}`
+        };
+        handleUpdate({ scalePoints: [...currentScalePoints, newScalePoint] });
+    }, [question.scalePoints, handleUpdate]);
+    
+    const handleDeleteScalePoint = useCallback((scalePointId: string) => {
+        const newScalePoints = (question.scalePoints || []).filter(sp => sp.id !== scalePointId);
+        handleUpdate({ scalePoints: newScalePoints });
+    }, [question.scalePoints, handleUpdate]);
+    
+    const handleScalePointTextChange = (scalePointId: string, newText: string) => {
+        const newScalePoints = (question.scalePoints || []).map(sp =>
+            sp.id === scalePointId ? { ...sp, text: newText } : sp
+        );
+        handleUpdate({ scalePoints: newScalePoints });
+    };
+    
+    const handlePasteScalePoints = (pastedText: string) => {
+        const lines = pastedText.split('\n').filter(line => line.trim() !== '');
+        if (lines.length === 0) return;
+        const newScalePoints: Choice[] = lines.map(line => ({
+            id: generateId('s'),
+            text: line.trim(),
+        }));
+        handleUpdate({ scalePoints: newScalePoints });
+    };
+
+    const handleScalePointDragStart = useCallback((e: React.DragEvent, scalePointId: string) => {
+        setDraggedScalePointId(scalePointId);
+        e.dataTransfer.effectAllowed = 'move';
+    }, []);
+
+    const handleScalePointDragOver = useCallback((e: React.DragEvent, scalePointId: string) => {
+        e.preventDefault();
+        if (draggedScalePointId !== scalePointId) {
+            setDropTargetScalePointId(scalePointId);
+        }
+    }, [draggedScalePointId]);
+
+    const handleScalePointDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        if (!draggedScalePointId || !question.scalePoints) return;
+        
+        const scalePoints = [...question.scalePoints];
+        const draggedIndex = scalePoints.findIndex(c => c.id === draggedScalePointId);
+        if (draggedIndex === -1) return;
+        
+        const [draggedItem] = scalePoints.splice(draggedIndex, 1);
+        
+        if (dropTargetScalePointId === null) {
+            scalePoints.push(draggedItem);
+        } else {
+            const dropIndex = scalePoints.findIndex(c => c.id === dropTargetScalePointId);
+            if (dropIndex !== -1) {
+                scalePoints.splice(dropIndex, 0, draggedItem);
+            } else {
+                scalePoints.push(draggedItem);
+            }
+        }
+        
+        handleUpdate({ scalePoints });
+        setDraggedScalePointId(null);
+        setDropTargetScalePointId(null);
+    }, [draggedScalePointId, dropTargetScalePointId, question.scalePoints, handleUpdate]);
+    
+    const handleScalePointDragEnd = useCallback(() => {
+        setDraggedScalePointId(null);
+        setDropTargetScalePointId(null);
+    }, []);
+
 
     const handlePreviewChoiceClick = useCallback((choiceId: string) => {
-        if (question.type === QuestionType.Radio) {
+        if (question.type === QuestionType.Radio || question.type === QuestionType.ChoiceGrid) {
             setSelectedPreviewChoices(new Set([choiceId]));
         } else if (question.type === QuestionType.Checkbox) {
             setSelectedPreviewChoices((prev: Set<string>) => {
@@ -237,6 +325,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                         <option value="list">List (Vertical)</option>
                         <option value="dropdown">Dropdown</option>
                         <option value="horizontal">Horizontal List</option>
+                        <option value="grid">Grid</option>
                     </select>
                     <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
                 </div>
@@ -259,7 +348,9 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
             </div>
     
             <div>
-                <h3 className="text-sm font-medium text-on-surface-variant mb-2">Choices</h3>
+                <h3 className="text-sm font-medium text-on-surface-variant mb-2">
+                    {question.type === QuestionType.ChoiceGrid ? 'Rows' : 'Choices'}
+                </h3>
                 <div 
                     className="space-y-2"
                     onDrop={handleChoiceDrop}
@@ -321,10 +412,64 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                 {dropTargetChoiceId === null && draggedChoiceId && <ChoiceDropIndicator />}
                 </div>
                 <div className="mt-3 flex items-center gap-4">
-                    <button onClick={() => onAddChoice(question.id)} className="flex items-center text-sm font-medium text-primary hover:underline"><PlusIcon className="text-base mr-1" /> Choice</button>
+                    <button onClick={() => onAddChoice(question.id)} className="flex items-center text-sm font-medium text-primary hover:underline"><PlusIcon className="text-base mr-1" /> {question.type === QuestionType.ChoiceGrid ? 'Row' : 'Choice'}</button>
                     <CopyAndPasteButton onClick={() => setIsPasteModalOpen(true)} />
                 </div>
             </div>
+            {question.type === QuestionType.ChoiceGrid && (
+                <div>
+                    <h3 className="text-sm font-medium text-on-surface-variant mb-2">Columns</h3>
+                    <div 
+                        className="space-y-2"
+                        onDrop={handleScalePointDrop}
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            setDropTargetScalePointId(null);
+                        }}
+                    >
+                    {(question.scalePoints || []).map((scalePoint) => (
+                        <React.Fragment key={scalePoint.id}>
+                        {dropTargetScalePointId === scalePoint.id && <ChoiceDropIndicator />}
+                        <div 
+                            className="group"
+                            draggable
+                            onDragStart={(e) => handleScalePointDragStart(e, scalePoint.id)}
+                            onDragOver={(e) => {
+                                e.stopPropagation();
+                                handleScalePointDragOver(e, scalePoint.id);
+                            }}
+                            onDragEnd={handleScalePointDragEnd}
+                        >
+                            <div className={`flex items-center gap-2 transition-opacity ${draggedScalePointId === scalePoint.id ? 'opacity-30' : ''}`}>
+                                <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing" aria-label="Reorder column">
+                                    <DragIndicatorIcon className="text-lg" />
+                                </span>
+                                <div className="flex-grow flex items-stretch bg-surface border border-outline rounded-md focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-primary">
+                                    <input
+                                        type="text"
+                                        value={scalePoint.text}
+                                        onChange={(e) => handleScalePointTextChange(scalePoint.id, e.target.value)}
+                                        className="w-full bg-transparent p-2 text-sm text-on-surface focus:outline-none"
+                                        placeholder="Enter column text"
+                                    />
+                                </div>
+                                {/* Per screenshot, no "more" icon for columns */}
+                                <div className="w-10 h-10"></div>
+                                <button onClick={() => handleDeleteScalePoint(scalePoint.id)} className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Delete column">
+                                    <XIcon className="text-lg" />
+                                </button>
+                            </div>
+                        </div>
+                        </React.Fragment>
+                    ))}
+                    {dropTargetScalePointId === null && draggedScalePointId && <ChoiceDropIndicator />}
+                    </div>
+                    <div className="mt-3 flex items-center gap-4">
+                        <button onClick={handleAddScalePoint} className="flex items-center text-sm font-medium text-primary hover:underline"><PlusIcon className="text-base mr-1" /> Column</button>
+                        <CopyAndPasteButton onClick={() => setIsPasteColumnsModalOpen(true)} />
+                    </div>
+                </div>
+            )}
         </div>
     );
   };
@@ -1006,6 +1151,13 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                 onSave={handlePasteChoices}
                 initialChoicesText={initialChoicesText}
                 primaryActionLabel="Add Choices"
+            />
+            <PasteChoicesModal
+                isOpen={isPasteColumnsModalOpen}
+                onClose={() => setIsPasteColumnsModalOpen(false)}
+                onSave={handlePasteScalePoints}
+                initialChoicesText={(question.scalePoints || []).map(c => c.text).join('\n')}
+                primaryActionLabel="Add Columns"
             />
             <div className="p-6">
                 {renderTabContent()}
@@ -2180,62 +2332,111 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
 };
 
 const RandomizeChoicesEditor: React.FC<{ question: Question; onUpdate: (updates: Partial<Question>) => void; }> = ({ question, onUpdate }) => {
-    const isRandomized = question.answerBehavior?.randomizeChoices ?? false;
-    
-    const handleToggle = (enabled: boolean) => {
+    const answerBehavior = question.answerBehavior || {};
+
+    const handleToggle = (
+        key: 'randomizeChoices' | 'randomizeRows' | 'randomizeColumns',
+        methodKey: 'randomizationMethod' | 'rowRandomizationMethod' | 'columnRandomizationMethod',
+        enabled: boolean
+    ) => {
         onUpdate({
             answerBehavior: {
-                ...question.answerBehavior,
-                randomizeChoices: enabled,
-                randomizationMethod: enabled ? 'permutation' : undefined,
+                ...answerBehavior,
+                [key]: enabled,
+                [methodKey]: enabled ? 'permutation' : undefined,
             }
         });
     };
 
-    const handleMethodChange = (method: RandomizationMethod) => {
+    const handleMethodChange = (
+        methodKey: 'randomizationMethod' | 'rowRandomizationMethod' | 'columnRandomizationMethod',
+        method: RandomizationMethod
+    ) => {
         onUpdate({
             answerBehavior: {
-                ...question.answerBehavior,
-                randomizationMethod: method,
+                ...answerBehavior,
+                [methodKey]: method,
             }
         });
     };
 
-    return (
-        <div>
-            <div className="flex items-center justify-between">
-                <div className="flex-1">
-                    <label htmlFor="randomize-choices" className="text-sm font-medium text-on-surface block flex items-center gap-2">
-                        <ShuffleIcon className="text-base" />
-                        Randomize Choices
-                    </label>
-                    <p className="text-xs text-on-surface-variant mt-0.5">Present choices in a random order</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="randomize-choices" checked={isRandomized} onChange={(e) => handleToggle(e.target.checked)} className="sr-only peer" />
-                    <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                </label>
-            </div>
-            {isRandomized && (
-                <div className="mt-4 pl-4 border-l-2 border-outline-variant">
-                    <label htmlFor="randomization-method" className="block text-sm font-medium text-on-surface-variant mb-1">Randomization Method</label>
-                    <div className="relative">
-                        <select
-                            id="randomization-method"
-                            value={question.answerBehavior?.randomizationMethod || 'permutation'}
-                            onChange={e => handleMethodChange(e.target.value as RandomizationMethod)}
-                            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                        >
-                            <option value="permutation">Permutation (Shuffle)</option>
-                            <option value="random_reverse">Random Reverse</option>
-                            <option value="reverse_order">Reverse Order</option>
-                            <option value="rotation">Rotation</option>
-                        </select>
-                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+    const renderControl = (
+        label: string,
+        description: string,
+        isRandomized: boolean,
+        randomizationMethod: RandomizationMethod | undefined,
+        toggleHandler: (enabled: boolean) => void,
+        methodHandler: (method: RandomizationMethod) => void
+    ) => {
+        const idSuffix = label.replace(/\s+/g, '-').toLowerCase();
+        return (
+            <div>
+                <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                        <label htmlFor={`randomize-${idSuffix}`} className="text-sm font-medium text-on-surface block flex items-center gap-2">
+                            <ShuffleIcon className="text-base" />
+                            {label}
+                        </label>
+                        <p className="text-xs text-on-surface-variant mt-0.5">{description}</p>
                     </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id={`randomize-${idSuffix}`} checked={isRandomized} onChange={(e) => toggleHandler(e.target.checked)} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
                 </div>
-            )}
-        </div>
+                {isRandomized && (
+                    <div className="mt-4 pl-4 border-l-2 border-outline-variant">
+                        <label htmlFor={`randomization-method-${idSuffix}`} className="block text-sm font-medium text-on-surface-variant mb-1">Randomization Method</label>
+                        <div className="relative">
+                            <select
+                                id={`randomization-method-${idSuffix}`}
+                                value={randomizationMethod || 'permutation'}
+                                onChange={e => methodHandler(e.target.value as RandomizationMethod)}
+                                className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                            >
+                                <option value="permutation">Permutation (Shuffle)</option>
+                                <option value="random_reverse">Random Reverse</option>
+                                <option value="reverse_order">Reverse Order</option>
+                                <option value="rotation">Rotation</option>
+                            </select>
+                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    if (question.type === QuestionType.ChoiceGrid) {
+        return (
+            <div className="space-y-6">
+                {renderControl(
+                    'Randomize Rows',
+                    'Present rows in a random order',
+                    answerBehavior.randomizeRows ?? false,
+                    answerBehavior.rowRandomizationMethod,
+                    (enabled) => handleToggle('randomizeRows', 'rowRandomizationMethod', enabled),
+                    (method) => handleMethodChange('rowRandomizationMethod', method)
+                )}
+                {renderControl(
+                    'Randomize Columns',
+                    'Present columns in a random order',
+                    answerBehavior.randomizeColumns ?? false,
+                    answerBehavior.columnRandomizationMethod,
+                    (enabled) => handleToggle('randomizeColumns', 'columnRandomizationMethod', enabled),
+                    (method) => handleMethodChange('columnRandomizationMethod', method)
+                )}
+            </div>
+        );
+    }
+
+    return renderControl(
+        'Randomize Choices',
+        'Present choices in a random order',
+        answerBehavior.randomizeChoices ?? false,
+        answerBehavior.randomizationMethod,
+        (enabled) => handleToggle('randomizeChoices', 'randomizationMethod', enabled),
+        (method) => handleMethodChange('randomizationMethod', method)
     );
 };
 

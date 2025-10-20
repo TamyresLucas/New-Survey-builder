@@ -27,6 +27,7 @@ export const CHOICE_BASED_QUESTION_TYPES = new Set<QuestionType>([
   QuestionType.Checkbox,
   QuestionType.DropDownList,
   QuestionType.ImageSelector,
+  QuestionType.ChoiceGrid,
 ]);
 
 export const NON_CHOICE_BASED_QUESTION_TYPES_WITH_TEXT = new Set<QuestionType>([

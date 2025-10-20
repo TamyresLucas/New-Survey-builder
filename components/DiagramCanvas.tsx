@@ -51,6 +51,12 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     const [edges, setEdges, onEdgesChange] = useEdgesState<DiagramEdge>([]);
     const reactFlowInstance = useReactFlow();
     const prevActiveTabRef = useRef<string>();
+
+    // Memoize the flat list of all questions and a map of their indices for efficient validation.
+    const questionIndexMap = useMemo(() => {
+        const allQuestions = survey.blocks.flatMap(b => b.questions);
+        return new Map(allQuestions.map((q, i) => [q.id, i]));
+    }, [survey]);
     
     const { layoutNodes, layoutEdges } = useMemo(() => {
         const relevantQuestions = survey.blocks.flatMap(b => b.questions).filter(q =>
@@ -86,6 +92,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         const queue: string[] = relevantQuestions[0] ? [relevantQuestions[0].id] : [];
         const visited = new Set<string>(queue);
 
+        const allQuestions = survey.blocks.flatMap(b => b.questions);
+
         while(queue.length > 0) {
             const currentId = queue.shift()!;
             const currentQuestion = questionMap.get(currentId)!;
@@ -106,13 +114,21 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 }
             }
             
-            const currentIdx = relevantQuestions.findIndex(q => q.id === currentId);
-            if (currentIdx + 1 < relevantQuestions.length) {
-                const nextQuestion = relevantQuestions[currentIdx + 1];
-                if (skipLogic?.type !== 'simple' || (skipLogic.type === 'simple' && skipLogic.skipTo === 'next')) {
-                     targets.add(nextQuestion.id);
-                }
+            const currentIdxInAll = allQuestions.findIndex(q => q.id === currentId);
+            const nextQuestionInSurvey = allQuestions[currentIdxInAll + 1];
+
+            // Default "next" logic
+            let hasExplicitTerminalLogic = false; // Check if logic explicitly goes to 'end' or if all paths are defined
+            if (skipLogic?.type === 'simple' && skipLogic.skipTo !== 'next') {
+                hasExplicitTerminalLogic = true;
+            } else if (skipLogic?.type === 'per_choice' && skipLogic.rules.every(r => r.skipTo && r.skipTo !== 'next')) {
+                hasExplicitTerminalLogic = true;
             }
+
+            if (nextQuestionInSurvey && !hasExplicitTerminalLogic) {
+                targets.add(nextQuestionInSurvey.id);
+            }
+
 
             if (!columns[nextColumn]) columns[nextColumn] = [];
             targets.forEach(targetId => {
@@ -141,8 +157,9 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         const flowNodes: DiagramNode[] = [];
         const flowEdges: DiagramEdge[] = [];
 
-        relevantQuestions.forEach((q, index) => {
-            const position = nodePositions.get(q.id) || { x: index * X_SPACING, y: 0 };
+        relevantQuestions.forEach((q) => {
+            const position = nodePositions.get(q.id) || { x: 0, y: 0 };
+            const index = allQuestions.findIndex(aq => aq.id === q.id);
             
             if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox) {
                 flowNodes.push({
@@ -173,32 +190,31 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 let targetId: string | null = null;
                 let isDraft = false;
 
-                if (q.draftSkipLogic) {
-                    if (q.draftSkipLogic.type === 'simple' && handle.id === 'output') {
-                        targetId = q.draftSkipLogic.skipTo === 'next' ? relevantQuestions[index + 1]?.id : q.draftSkipLogic.skipTo;
-                        isDraft = true;
-                    } else if (q.draftSkipLogic.type === 'per_choice') {
-                        const rule = q.draftSkipLogic.rules.find(r => r.choiceId === handle.id);
+                const logicToUse = q.draftSkipLogic ?? q.skipLogic;
+
+                if (logicToUse) {
+                    if (logicToUse.type === 'simple' && handle.id === 'output') {
+                        targetId = logicToUse.skipTo === 'next' ? allQuestions[index + 1]?.id : logicToUse.skipTo;
+                    } else if (logicToUse.type === 'per_choice') {
+                        const rule = logicToUse.rules.find(r => r.choiceId === handle.id);
                         if (rule && rule.skipTo) {
-                            targetId = rule.skipTo === 'next' ? relevantQuestions[index + 1]?.id : rule.skipTo;
-                            isDraft = true;
+                           targetId = rule.skipTo === 'next' ? allQuestions[index + 1]?.id : rule.skipTo;
                         }
                     }
                 }
                 
-                if (!targetId && q.skipLogic) {
-                    if (q.skipLogic.type === 'simple' && handle.id === 'output') {
-                        targetId = q.skipLogic.skipTo === 'next' ? relevantQuestions[index + 1]?.id : q.skipLogic.skipTo;
-                    } else if (q.skipLogic.type === 'per_choice') {
-                        const rule = q.skipLogic.rules.find(r => r.choiceId === handle.id);
-                        if (rule && rule.skipTo) {
-                            targetId = rule.skipTo === 'next' ? relevantQuestions[index + 1]?.id : rule.skipTo;
-                        }
+                isDraft = !!q.draftSkipLogic;
+
+                // Default logic if no skip logic is defined for this handle
+                if (!targetId && index < allQuestions.length - 1) {
+                    // Check if *any* other rule on this question is terminal. If so, don't draw a default.
+                    let isImplicitlyTerminal = false;
+                    if (logicToUse?.type === 'simple') {
+                        isImplicitlyTerminal = logicToUse.skipTo !== 'next';
                     }
-                }
-                
-                if (!targetId && index < relevantQuestions.length - 1) {
-                    targetId = relevantQuestions[index + 1].id;
+                    if (!isImplicitlyTerminal) {
+                        targetId = allQuestions[index + 1].id;
+                    }
                 }
 
                 if (targetId && targetId !== 'end' && questionMap.has(targetId)) {
@@ -251,6 +267,27 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     useEffect(() => {
         prevActiveTabRef.current = activeMainTab;
     });
+
+    const isValidConnection = useCallback((connection: Connection) => {
+        if (!connection.source || !connection.target) {
+            return false;
+        }
+
+        // Prevent self-connections
+        if (connection.source === connection.target) {
+            return false;
+        }
+
+        const sourceIndex = questionIndexMap.get(connection.source);
+        const targetIndex = questionIndexMap.get(connection.target);
+
+        if (sourceIndex === undefined || targetIndex === undefined) {
+            return false; // Should not happen with valid nodes
+        }
+        
+        // A connection is valid only if the target question comes after the source question.
+        return targetIndex > sourceIndex;
+    }, [questionIndexMap]);
 
     const onConnect = useCallback(
         (connection: Connection) => {
@@ -375,6 +412,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
+                isValidConnection={isValidConnection}
                 onNodeClick={onNodeClick}
                 onPaneClick={onPaneClick}
                 onEdgeClick={onEdgeClick}

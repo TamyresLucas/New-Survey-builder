@@ -35,6 +35,7 @@ const nodeTypes: NodeTypes = {
 const NODE_WIDTH = 320;
 const NODE_HEIGHT = 180;
 const X_SPACING = 450;
+const VERTICAL_GAP = 80;
 
 
 interface DiagramCanvasProps {
@@ -51,7 +52,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     const reactFlowInstance = useReactFlow();
     const prevActiveTabRef = useRef<string>();
     
-    useEffect(() => {
+    // Memoize the expensive layout calculation so it only runs when the survey structure changes, not on every selection.
+    const { layoutNodes, layoutEdges } = useMemo(() => {
         const relevantQuestions = survey.blocks.flatMap(b => b.questions).filter(q =>
             q.type === QuestionType.Radio ||
             q.type === QuestionType.Checkbox ||
@@ -59,12 +61,9 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         );
 
         if (relevantQuestions.length === 0) {
-            setNodes([]);
-            setEdges([]);
-            return;
+            return { layoutNodes: [], layoutEdges: [] };
         }
         
-        // FIX: Explicitly type questionMap to resolve a type inference issue.
         const questionMap: Map<string, Question> = new Map(relevantQuestions.map(q => [q.id, q]));
 
         // Calculate node heights before layout to handle variable sizes
@@ -83,12 +82,14 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         const questionToColumn = new Map<string, number>();
 
         // Find root nodes (first question is always a root)
-        columns[0] = [relevantQuestions[0].id];
-        questionToColumn.set(relevantQuestions[0].id, 0);
+        if (relevantQuestions[0]) {
+            columns[0] = [relevantQuestions[0].id];
+            questionToColumn.set(relevantQuestions[0].id, 0);
+        }
 
         // Use a queue to traverse the graph and assign columns
-        const queue: string[] = [relevantQuestions[0].id];
-        const visited = new Set<string>([relevantQuestions[0].id]);
+        const queue: string[] = relevantQuestions[0] ? [relevantQuestions[0].id] : [];
+        const visited = new Set<string>(queue);
 
         while(queue.length > 0) {
             const currentId = queue.shift()!;
@@ -99,7 +100,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             const targets = new Set<string>();
 
             // Find explicit targets from skip logic
-            // FIX: Check for draftSkipLogic first to show unconfirmed changes
             const skipLogic = currentQuestion.draftSkipLogic ?? currentQuestion.skipLogic;
             if (skipLogic) {
                 if (skipLogic.type === 'simple' && skipLogic.skipTo !== 'next' && skipLogic.skipTo !== 'end') {
@@ -135,23 +135,16 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         }
         
         // Calculate final X, Y coordinates using dynamic heights
-        const VERTICAL_GAP = 80;
         columns.forEach((column, colIndex) => {
             // Calculate total height of the column for centering
             const totalColumnHeight = column.reduce((sum, qId) => sum + (nodeHeights.get(qId) || NODE_HEIGHT), 0) + Math.max(0, column.length - 1) * VERTICAL_GAP;
-            
             let currentY = -totalColumnHeight / 2;
-
             column.forEach((qId) => {
                 const nodeHeight = nodeHeights.get(qId) || NODE_HEIGHT;
-                
-                // Position is the top-left corner
                 nodePositions.set(qId, {
                     x: colIndex * X_SPACING,
                     y: currentY
                 });
-                
-                // Update Y for the next node
                 currentY += nodeHeight + VERTICAL_GAP;
             });
         });
@@ -162,12 +155,11 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
 
         relevantQuestions.forEach((q, index) => {
             const position = nodePositions.get(q.id) || { x: index * X_SPACING, y: 0 };
-            const isSelected = q.id === selectedQuestion?.id;
             
             // Create Node
             if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox) {
                 flowNodes.push({
-                    id: q.id, type: 'multiple_choice', position, selected: isSelected,
+                    id: q.id, type: 'multiple_choice', position,
                     data: {
                         variableName: q.qid,
                         question: q.text, subtype: q.type === QuestionType.Radio ? 'radio' : 'checkbox',
@@ -179,7 +171,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 });
             } else { // Text Entry
                 flowNodes.push({
-                    id: q.id, type: 'text_entry', position, selected: isSelected,
+                    id: q.id, type: 'text_entry', position,
                     data: { variableName: q.qid, question: q.text },
                     width: NODE_WIDTH, height: nodeHeights.get(q.id) || NODE_HEIGHT,
                 });
@@ -245,31 +237,47 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             }
         });
         
-        setNodes(flowNodes);
-        setEdges(flowEdges);
-
-    }, [survey, selectedQuestion, setNodes, setEdges]);
+        return { layoutNodes: flowNodes, layoutEdges: flowEdges };
+    }, [survey]);
     
-    // Effect to auto-center the view on the selected node when switching to the Flow tab.
+    // This effect runs whenever the layout or the selection changes.
+    // It applies selection highlights and handles auto-centering the view.
     useEffect(() => {
-        const prevTab = prevActiveTabRef.current;
-        const justSwitchedToFlow = prevTab !== 'Flow' && activeMainTab === 'Flow';
-
-        if (justSwitchedToFlow && selectedQuestion?.id) {
-            // A small timeout allows the graph layout to settle before fitting the view.
-            const timer = setTimeout(() => {
-                reactFlowInstance.fitView({
-                    nodes: [{ id: selectedQuestion.id }],
-                    duration: 600,
-                    minZoom: 1, // Zoom in a bit closer than the default fitView.
-                });
-            }, 100);
-            return () => clearTimeout(timer);
-        }
+        const selectedId = selectedQuestion?.id;
         
-        // Update the ref for the next render cycle.
+        // Apply selection state to the memoized layout nodes and edges
+        setNodes(layoutNodes.map(n => ({ ...n, selected: n.id === selectedId })));
+        setEdges(layoutEdges.map(e => ({ ...e, selected: e.source === selectedId })));
+        
+        const justSwitchedToFlow = prevActiveTabRef.current !== 'Flow' && activeMainTab === 'Flow';
+        
+        // A small timeout allows the graph to render before fitting the view.
+        const timer = setTimeout(() => {
+            if (selectedId) {
+                // When a question is selected, frame it and all its immediate children.
+                const outgoingEdges = layoutEdges.filter(e => e.source === selectedId);
+                const targetNodeIds = outgoingEdges.map(e => e.target);
+                const nodesToFit = [...new Set([selectedId, ...targetNodeIds])];
+
+                reactFlowInstance.fitView({
+                    nodes: nodesToFit.map(id => ({ id })),
+                    duration: 600,
+                    padding: 0.25, // Add padding to ensure nodes aren't at the very edge.
+                });
+            } else if (justSwitchedToFlow) {
+                // If no question is selected AND we just switched to the Flow tab, show the whole diagram.
+                reactFlowInstance.fitView({ duration: 600, padding: 0.1 });
+            }
+        }, 100);
+        
+        return () => clearTimeout(timer);
+
+    }, [layoutNodes, layoutEdges, selectedQuestion, activeMainTab, reactFlowInstance, setNodes, setEdges]);
+    
+    // This effect updates the previous tab ref *after* the main effect has run.
+    useEffect(() => {
         prevActiveTabRef.current = activeMainTab;
-    }, [activeMainTab, selectedQuestion, reactFlowInstance]);
+    });
 
     const onConnect = useCallback(
         (connection: Connection) => {
@@ -291,20 +299,9 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     }, [onSelectQuestion]);
 
     const onEdgeClick = useCallback((event: React.MouseEvent, edge: XyflowEdge) => {
-        setEdges((eds) =>
-            eds.map((e) => ({
-                ...e,
-                selected: e.id === edge.id,
-            }))
-        );
-    }, [setEdges]);
-
-    const onEdgeDoubleClick = useCallback((event: React.MouseEvent, edge: XyflowEdge) => {
         event.stopPropagation();
-        
         const sourceQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === edge.source);
         if (sourceQuestion) {
-            // Assume skip logic for now, as it's what edges represent.
             onSelectQuestion(sourceQuestion, { tab: 'Behavior', focusOn: edge.sourceHandle });
         }
     }, [survey, onSelectQuestion]);
@@ -365,11 +362,11 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 onNodeClick={onNodeClick}
                 onPaneClick={onPaneClick}
                 onEdgeClick={onEdgeClick}
-                onEdgeDoubleClick={onEdgeDoubleClick}
                 onEdgeUpdate={onEdgeUpdate}
                 nodeTypes={nodeTypes}
                 proOptions={{ hideAttribution: true }}
                 className="bg-surface"
+                fitView
             >
                 <Background
                     variant={BackgroundVariant.Dots}

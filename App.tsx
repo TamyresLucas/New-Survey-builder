@@ -4,7 +4,8 @@ import SubHeader from './components/SubHeader';
 import LeftSidebar from './components/LeftSidebar';
 import BuildPanel from './components/BuildPanel';
 import SurveyCanvas from './components/SurveyCanvas';
-import RightSidebar from './components/RightSidebar';
+// FIX: Changed import to a named import since RightSidebar is not a default export.
+import { RightSidebar } from './components/RightSidebar';
 import SurveyStructureWidget from './components/SurveyStructureWidget';
 import GeminiPanel from './components/GeminiPanel';
 import { BulkEditPanel } from './components/BulkEditPanel';
@@ -570,7 +571,7 @@ const App: React.FC = () => {
           </>
         );
       case 'Flow':
-        return <DiagramCanvas survey={survey} selectedQuestion={selectedQuestion} onSelectQuestion={handleSelectQuestion} onUpdateQuestion={handleUpdateQuestion} />;
+        return <DiagramCanvas survey={survey} selectedQuestion={selectedQuestion} onSelectQuestion={handleSelectQuestion} onUpdateQuestion={handleUpdateQuestion} activeMainTab={activeMainTab} />;
       default:
         return (
           <div className="flex-1 flex items-center justify-center">

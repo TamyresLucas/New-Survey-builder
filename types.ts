@@ -293,6 +293,7 @@ export interface BaseNode {
   width: number;
   height: number;
   data: unknown;
+  selected?: boolean; // Add selected property for React Flow
 }
 
 /**
@@ -338,6 +339,7 @@ export interface Edge {
   };
   // FIX: Add missing 'markerEnd' property to support react-flow edge markers.
   markerEnd?: any;
+  selected?: boolean;
 }
 
 

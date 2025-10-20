@@ -1656,7 +1656,7 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
 };
 
 const DestinationRow: React.FC<{
-  label: string;
+  label: string | React.ReactNode;
   value: string;
   onChange: (value: string) => void;
   onConfirm?: () => void;
@@ -2447,78 +2447,80 @@ const BranchingLogicEditor: React.FC<{
 
     return (
         <div>
-            <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center justify-between gap-2 mb-4">
                 <div>
-                    <h3 className="text-sm font-medium text-on-surface">Branching Logic</h3>
-                    <p className="text-xs text-on-surface-variant mt-0.5">Create complex survey paths</p>
+                    <h3 className="text-sm font-medium text-on-surface flex items-center gap-2">
+                        <CallSplitIcon className="text-base" />
+                        Branching Logic
+                    </h3>
+                    <p className="text-xs text-on-surface-variant mt-0.5">Create complex paths based on multiple conditions.</p>
                 </div>
-                <button onClick={handleRemoveLogic} className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50">
+                <button 
+                    onClick={handleRemoveLogic} 
+                    className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50"
+                >
                     Remove
                 </button>
             </div>
+            
             <div className="space-y-4">
-                {branchingLogic.branches.map((branch) => {
-                    const isBranchConfirmed = branch.thenSkipToIsConfirmed === true && branch.conditions.every(c => c.isConfirmed === true);
-                    return (
-                        <div key={branch.id} className="p-3 border border-outline-variant rounded-md">
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm font-bold text-primary">IF</span>
-                                    {branch.conditions.length > 1 && (
-                                        <div className="flex gap-1">
-                                            <button onClick={() => handleUpdateBranch(branch.id, { operator: 'AND' })} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${branch.operator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
-                                            <button onClick={() => handleUpdateBranch(branch.id, { operator: 'OR' })} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${branch.operator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <button onClick={() => handleRemoveBranch(branch.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-colors flex-shrink-0" aria-label="Remove branch rule">
-                                        <XIcon className="text-lg" />
-                                    </button>
-                                    {!isBranchConfirmed && (
-                                        <button onClick={() => handleConfirmBranch(branch.id)} className="p-1.5 bg-primary text-on-primary rounded-full hover:opacity-90 transition-colors flex-shrink-0" aria-label="Confirm branch rule">
-                                            <CheckmarkIcon className="text-lg" />
-                                        </button>
-                                    )}
-                                </div>
+                {branchingLogic.branches.map((branch, branchIndex) => (
+                    <div key={branch.id} className="p-3 border border-outline-variant rounded-md bg-surface-container">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-bold text-primary">IF</span>
+                                {branch.conditions.length > 1 && (
+                                    <div className="flex gap-1">
+                                        <button onClick={() => handleUpdateBranch(branch.id, { operator: 'AND' })} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${branch.operator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
+                                        <button onClick={() => handleUpdateBranch(branch.id, { operator: 'OR' })} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${branch.operator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
+                                    </div>
+                                )}
                             </div>
-                            <div className="space-y-2 mb-2">
-                                {branch.conditions.map(condition => (
-                                    <LogicConditionRow
-                                        key={condition.id}
-                                        condition={condition}
-                                        onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
-                                        previousQuestions={previousQuestions}
-                                        issues={issues.filter(i => i.sourceId === condition.id)}
-                                        invalidFields={validationErrors.get(condition.id)}
-                                    />
-                                ))}
-                            </div>
-                            <button onClick={() => handleAddCondition(branch.id)} className="text-xs font-medium text-primary hover:underline ml-2 mb-3">Add condition</button>
-
-                            <DestinationRow
-                                label="THEN"
-                                value={branch.thenSkipTo}
-                                onChange={(value) => handleUpdateBranch(branch.id, { thenSkipTo: value, thenSkipToIsConfirmed: false })}
-                                isConfirmed={branch.thenSkipToIsConfirmed}
-                                issue={issues.find(i => i.sourceId === branch.id && i.field === 'skipTo')}
-                                invalid={validationErrors.has(branch.id) && validationErrors.get(branch.id)!.has('skipTo')}
-                                followingQuestions={followingQuestions}
-                                className="p-2 bg-surface-container-high rounded-md"
-                            />
+                            <button onClick={() => handleRemoveBranch(branch.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Remove branch"><XIcon className="text-lg"/></button>
                         </div>
-                    );
-                })}
-                
-                <button onClick={handleAddBranch} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                    <PlusIcon className="text-base" />
-                    Add branch rule
-                </button>
-                
-                <hr className="border-outline-variant my-4"/>
 
+                        <div className="space-y-2 mb-3">
+                            {branch.conditions.map((condition, condIndex) => (
+                                <LogicConditionRow
+                                    key={condition.id}
+                                    condition={condition}
+                                    onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
+                                    onRemoveCondition={branch.conditions.length > 1 ? () => {
+                                        const newConditions = branch.conditions.filter(c => c.id !== condition.id);
+                                        handleUpdateBranch(branch.id, { conditions: newConditions, thenSkipToIsConfirmed: false });
+                                    } : undefined}
+                                    previousQuestions={previousQuestions}
+                                    issues={issues.filter(i => i.sourceId === condition.id)}
+                                    invalidFields={validationErrors.get(condition.id)}
+                                />
+                            ))}
+                        </div>
+
+                        <button onClick={() => handleAddCondition(branch.id)} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline mb-3">
+                            <PlusIcon className="text-base" /> Add condition
+                        </button>
+
+                        <DestinationRow
+                            label={<span className="font-bold text-primary">THEN</span>}
+                            value={branch.thenSkipTo}
+                            onChange={(value) => handleUpdateBranch(branch.id, { thenSkipTo: value, thenSkipToIsConfirmed: false })}
+                            onConfirm={() => handleConfirmBranch(branch.id)}
+                            isConfirmed={branch.thenSkipToIsConfirmed}
+                            issue={issues.find(i => i.sourceId === branch.id && i.field === 'skipTo')}
+                            invalid={validationErrors.has(branch.id)}
+                            followingQuestions={followingQuestions}
+                        />
+                    </div>
+                ))}
+            </div>
+
+            <button onClick={handleAddBranch} className="mt-4 flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                <PlusIcon className="text-base" /> Add branch
+            </button>
+
+            <div className="mt-4 pt-4 border-t border-outline-variant">
                 <DestinationRow
-                    label="OTHERWISE"
+                    label="Otherwise"
                     value={branchingLogic.otherwiseSkipTo}
                     onChange={handleUpdateOtherwise}
                     onConfirm={handleConfirmOtherwise}
@@ -2533,18 +2535,17 @@ const BranchingLogicEditor: React.FC<{
 };
 
 // ====================================================================================
-// MAIN SIDEBAR CONTAINER COMPONENT
-// This is the exported component. It acts as a frame for the editor.
+// MAIN SIDEBAR COMPONENT
+// This is the main exported component that wraps the editor and tabs.
 // ====================================================================================
-
-interface RightSidebarProps {
+export const RightSidebar: React.FC<{
   question: Question;
   survey: Survey;
   logicIssues: LogicIssue[];
   focusedLogicSource: string | null;
   onClose: () => void;
   activeTab: string;
-  onTabChange: (tab: string) => void;
+  onTabChange: (tabId: string) => void;
   onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
   onAddChoice: (questionId: string) => void;
   onDeleteChoice: (questionId: string, choiceId: string) => void;
@@ -2552,87 +2553,78 @@ interface RightSidebarProps {
   onToggleExpand: () => void;
   toolboxItems: ToolboxItemData[];
   onRequestGeminiHelp: (topic: string) => void;
-}
-
-const RightSidebar: React.FC<RightSidebarProps> = memo(({
-    question, survey, logicIssues, focusedLogicSource, onClose, activeTab, onTabChange, onUpdateQuestion,
-    onAddChoice, onDeleteChoice, isExpanded, onToggleExpand, toolboxItems, onRequestGeminiHelp
+}> = memo(({
+    question,
+    survey,
+    logicIssues,
+    focusedLogicSource,
+    onClose,
+    activeTab,
+    onTabChange,
+    onUpdateQuestion,
+    onAddChoice,
+    onDeleteChoice,
+    isExpanded,
+    onToggleExpand,
+    toolboxItems,
+    onRequestGeminiHelp,
 }) => {
-  const isChoiceBased = useMemo(() => CHOICE_BASED_QUESTION_TYPES.has(question.type), [question.type]);
-  const CurrentQuestionTypeInfo = toolboxItems.find(item => item.name === question.type);
-
-  const availableTabs = useMemo(() => {
-    return ['Settings', 'Behavior', 'Advanced', 'Preview'];
-  }, []);
-  
-  useEffect(() => {
-    if (!availableTabs.includes(activeTab)) {
-      onTabChange('Settings');
+    const isChoiceBased = useMemo(() => CHOICE_BASED_QUESTION_TYPES.has(question.type), [question.type]);
+    const tabs = ['Settings', 'Behavior', 'Advanced'];
+    const showPreviewTab = isChoiceBased || question.type === QuestionType.TextEntry;
+    if (showPreviewTab) {
+        tabs.push('Preview');
     }
-  }, [availableTabs, activeTab, onTabChange]);
 
-
-  return (
-      <aside className="w-full h-full bg-surface-container border-l border-outline-variant flex-shrink-0 flex flex-col">
-        <div className="p-4 border-b border-outline-variant flex items-center justify-between">
-            <div className="flex items-center gap-2">
-                {CurrentQuestionTypeInfo && <CurrentQuestionTypeInfo.icon className="text-primary text-2xl" />}
+    return (
+        <aside className="w-full h-full bg-surface-container border-l border-outline-variant flex flex-col">
+            <header className="p-4 border-b border-outline-variant flex items-center justify-between flex-shrink-0">
                 <h2 className="text-lg font-bold text-on-surface" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-                    Edit question
+                    Edit {question.qid}
                 </h2>
-            </div>
-          <div className="flex items-center">
-              <button 
-                  onClick={onToggleExpand} 
-                  className="text-on-surface-variant hover:text-on-surface p-1 mr-1"
-                  aria-label={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-              >
-                  {isExpanded ? <CollapseIcon className="text-2xl" /> : <ExpandIcon className="text-2xl" />}
-              </button>
-              <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface p-1">
-                  <XIcon className="text-2xl" />
-              </button>
-          </div>
-        </div>
-        <div className="border-b border-outline-variant">
-          <nav className="-mb-px flex space-x-2 px-4">
-            {availableTabs.map(tab => (
-              <button
-                key={tab}
-                onClick={() => onTabChange(tab)}
-                className={`py-3 px-3 border-b-2 font-medium text-sm transition-colors rounded-t-lg ${
-                  activeTab === tab 
-                  ? 'border-primary text-primary' 
-                  : 'border-transparent text-on-surface-variant hover:bg-surface-container-high'
-                }`}
-                style={{ fontFamily: "'Open Sans', sans-serif" }}
-              >
-                {tab}
-              </button>
-            ))}
-          </nav>
-        </div>
-        <div
-          className={`flex-1 overflow-y-auto ${activeTab === 'Behavior' ? 'overflow-x-auto' : 'overflow-x-hidden'}`}
-          style={{ fontFamily: "'Open Sans', sans-serif" }}
-        >
-          {/* The QuestionEditor component is rendered here with all necessary props */}
-          <QuestionEditor 
-            question={question}
-            survey={survey}
-            logicIssues={logicIssues}
-            activeTab={activeTab}
-            focusedLogicSource={focusedLogicSource}
-            onUpdateQuestion={onUpdateQuestion}
-            onAddChoice={onAddChoice}
-            onDeleteChoice={onDeleteChoice}
-            isExpanded={isExpanded}
-            toolboxItems={toolboxItems}
-            onRequestGeminiHelp={onRequestGeminiHelp}
-          />
-        </div>
-      </aside>
-  );
-});
+                <div className="flex items-center gap-2">
+                    <button onClick={onToggleExpand} className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high" aria-label={isExpanded ? 'Collapse panel' : 'Expand panel'}>
+                        {isExpanded ? <CollapseIcon className="text-xl" /> : <ExpandIcon className="text-xl" />}
+                    </button>
+                    <button onClick={onClose} className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high" aria-label="Close panel">
+                        <XIcon className="text-xl" />
+                    </button>
+                </div>
+            </header>
 
-export default RightSidebar;
+            <div className="border-b border-outline-variant px-4">
+                <nav className="-mb-px flex space-x-4">
+                    {tabs.map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => onTabChange(tab)}
+                            className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                                activeTab === tab
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-on-surface-variant hover:text-on-surface'
+                            }`}
+                        >
+                            {tab}
+                        </button>
+                    ))}
+                </nav>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto">
+                <QuestionEditor 
+                    question={question}
+                    survey={survey}
+                    logicIssues={logicIssues}
+                    activeTab={activeTab}
+                    focusedLogicSource={focusedLogicSource}
+                    onUpdateQuestion={onUpdateQuestion}
+                    onAddChoice={onAddChoice}
+                    onDeleteChoice={onDeleteChoice}
+                    isExpanded={isExpanded}
+                    toolboxItems={toolboxItems}
+                    onRequestGeminiHelp={onRequestGeminiHelp}
+                />
+            </div>
+        </aside>
+    );
+});

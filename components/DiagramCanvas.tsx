@@ -35,7 +35,6 @@ const nodeTypes: NodeTypes = {
 const NODE_WIDTH = 320;
 const NODE_HEIGHT = 180;
 const X_SPACING = 450;
-const Y_SPACING = 250;
 
 
 interface DiagramCanvasProps {
@@ -43,12 +42,14 @@ interface DiagramCanvasProps {
   selectedQuestion: Question | null;
   onSelectQuestion: (question: Question | null, options?: { tab?: string; focusOn?: string }) => void;
   onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
+  activeMainTab: string;
 }
 
-const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion }) => {
+const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState<DiagramNode>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<DiagramEdge>([]);
     const reactFlowInstance = useReactFlow();
+    const prevActiveTabRef = useRef<string>();
     
     useEffect(() => {
         const relevantQuestions = survey.blocks.flatMap(b => b.questions).filter(q =>
@@ -65,6 +66,16 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         
         // FIX: Explicitly type questionMap to resolve a type inference issue.
         const questionMap: Map<string, Question> = new Map(relevantQuestions.map(q => [q.id, q]));
+
+        // Calculate node heights before layout to handle variable sizes
+        const nodeHeights = new Map<string, number>();
+        relevantQuestions.forEach(q => {
+            let height = NODE_HEIGHT; // Default for text_entry
+            if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox) {
+                height = 100 + (q.choices?.length || 0) * 32; // Base height + height per option
+            }
+            nodeHeights.set(q.id, height);
+        });
         
         // --- Auto-layout calculation ---
         const nodePositions = new Map<string, { x: number, y: number }>();
@@ -123,14 +134,25 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             });
         }
         
-        // Calculate final X, Y coordinates
+        // Calculate final X, Y coordinates using dynamic heights
+        const VERTICAL_GAP = 80;
         columns.forEach((column, colIndex) => {
-            const yOffset = - (column.length - 1) * Y_SPACING / 2;
-            column.forEach((qId, nodeIndex) => {
+            // Calculate total height of the column for centering
+            const totalColumnHeight = column.reduce((sum, qId) => sum + (nodeHeights.get(qId) || NODE_HEIGHT), 0) + Math.max(0, column.length - 1) * VERTICAL_GAP;
+            
+            let currentY = -totalColumnHeight / 2;
+
+            column.forEach((qId) => {
+                const nodeHeight = nodeHeights.get(qId) || NODE_HEIGHT;
+                
+                // Position is the top-left corner
                 nodePositions.set(qId, {
                     x: colIndex * X_SPACING,
-                    y: nodeIndex * Y_SPACING + yOffset
+                    y: currentY
                 });
+                
+                // Update Y for the next node
+                currentY += nodeHeight + VERTICAL_GAP;
             });
         });
 
@@ -140,11 +162,12 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
 
         relevantQuestions.forEach((q, index) => {
             const position = nodePositions.get(q.id) || { x: index * X_SPACING, y: 0 };
+            const isSelected = q.id === selectedQuestion?.id;
             
             // Create Node
             if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox) {
                 flowNodes.push({
-                    id: q.id, type: 'multiple_choice', position,
+                    id: q.id, type: 'multiple_choice', position, selected: isSelected,
                     data: {
                         variableName: q.qid,
                         question: q.text, subtype: q.type === QuestionType.Radio ? 'radio' : 'checkbox',
@@ -152,13 +175,13 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                             id: c.id, text: parseChoice(c.text).label, variableName: parseChoice(c.text).variable
                         })) || []
                     },
-                    width: NODE_WIDTH, height: 100 + (q.choices?.length || 0) * 32,
+                    width: NODE_WIDTH, height: nodeHeights.get(q.id) || NODE_HEIGHT,
                 });
             } else { // Text Entry
                 flowNodes.push({
-                    id: q.id, type: 'text_entry', position,
+                    id: q.id, type: 'text_entry', position, selected: isSelected,
                     data: { variableName: q.qid, question: q.text },
-                    width: NODE_WIDTH, height: NODE_HEIGHT
+                    width: NODE_WIDTH, height: nodeHeights.get(q.id) || NODE_HEIGHT,
                 });
             }
 
@@ -225,18 +248,28 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         setNodes(flowNodes);
         setEdges(flowEdges);
 
-        setTimeout(() => reactFlowInstance.fitView({ duration: 300 }), 0);
-
-    }, [survey, setNodes, setEdges, reactFlowInstance]);
-
+    }, [survey, selectedQuestion, setNodes, setEdges]);
+    
+    // Effect to auto-center the view on the selected node when switching to the Flow tab.
     useEffect(() => {
-        setNodes((nds) =>
-            nds.map((node) => ({
-                ...node,
-                selected: node.id === selectedQuestion?.id,
-            }))
-        );
-    }, [selectedQuestion, setNodes]);
+        const prevTab = prevActiveTabRef.current;
+        const justSwitchedToFlow = prevTab !== 'Flow' && activeMainTab === 'Flow';
+
+        if (justSwitchedToFlow && selectedQuestion?.id) {
+            // A small timeout allows the graph layout to settle before fitting the view.
+            const timer = setTimeout(() => {
+                reactFlowInstance.fitView({
+                    nodes: [{ id: selectedQuestion.id }],
+                    duration: 600,
+                    minZoom: 1, // Zoom in a bit closer than the default fitView.
+                });
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+        
+        // Update the ref for the next render cycle.
+        prevActiveTabRef.current = activeMainTab;
+    }, [activeMainTab, selectedQuestion, reactFlowInstance]);
 
     const onConnect = useCallback(
         (connection: Connection) => {
@@ -351,10 +384,16 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
 };
 
 
-const DiagramCanvas: React.FC<Omit<DiagramCanvasProps, 'onUpdateQuestion'> & { onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void }> = memo(({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion }) => {
+const DiagramCanvas: React.FC<DiagramCanvasProps> = memo(({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab }) => {
     return (
         <ReactFlowProvider>
-            <DiagramCanvasContent survey={survey} selectedQuestion={selectedQuestion} onSelectQuestion={onSelectQuestion} onUpdateQuestion={onUpdateQuestion} />
+            <DiagramCanvasContent 
+                survey={survey} 
+                selectedQuestion={selectedQuestion} 
+                onSelectQuestion={onSelectQuestion} 
+                onUpdateQuestion={onUpdateQuestion}
+                activeMainTab={activeMainTab}
+            />
         </ReactFlowProvider>
     );
 });

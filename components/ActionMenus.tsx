@@ -6,26 +6,35 @@ export const QuestionTypeSelectionMenuContent: React.FC<{
   onSelect: (type: QuestionType) => void;
   toolboxItems: ToolboxItemData[];
 }> = ({ onSelect, toolboxItems }) => {
+    const enabledTypes = new Set(['Page Break', 'Description', 'Checkbox', 'Radio Button', 'Text Entry', 'Choice Grid']);
+
     const questionTypeOptions = toolboxItems
-      .filter(item => item.name !== 'Block' && item.name !== 'Page Break')
+      .filter(item => item.name !== 'Block')
       .map(item => ({
         type: item.name as QuestionType,
         label: item.name,
         icon: item.icon,
+        isEnabled: enabledTypes.has(item.name),
       }));
 
     return (
       <ul className="w-full max-h-80 overflow-y-auto bg-surface-container border border-outline-variant rounded-md shadow-lg z-20 py-1" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-        {questionTypeOptions.map(({ type, label, icon: Icon }) => (
+        {questionTypeOptions.map(({ type, label, icon: Icon, isEnabled }) => (
           <li key={type}>
             <button
               onClick={(e) => {
+                if (!isEnabled) return;
                 e.stopPropagation();
                 onSelect(type);
               }}
-              className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high flex items-center"
+              disabled={!isEnabled}
+              className={`w-full text-left px-4 py-2 text-sm flex items-center ${
+                  isEnabled 
+                  ? 'text-on-surface hover:bg-surface-container-high' 
+                  : 'text-on-surface-variant opacity-70 cursor-not-allowed'
+              }`}
             >
-              <Icon className="text-base mr-3 text-primary flex-shrink-0" />
+              <Icon className={`text-base mr-3 flex-shrink-0 ${isEnabled ? 'text-primary' : 'text-on-surface-variant'}`} />
               <span className="truncate">{label}</span>
             </button>
           </li>

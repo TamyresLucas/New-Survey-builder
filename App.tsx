@@ -18,6 +18,7 @@ import { PanelRightIcon } from './components/icons';
 import { validateSurveyLogic } from './logicValidator';
 import DiagramCanvas from './components/DiagramCanvas';
 import { SurveyPreview } from './components/SurveyPreview';
+import CanvasTabs from './components/CanvasTabs';
 
 const App: React.FC = () => {
   const [survey, dispatch] = useReducer(surveyReducer, initialSurveyData, renumberSurveyVariables);
@@ -25,6 +26,7 @@ const App: React.FC = () => {
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
   const [checkedQuestions, setCheckedQuestions] = useState<Set<string>>(new Set());
   const [activeMainTab, setActiveMainTab] = useState<string>('Build');
+  const [activeCanvasTab, setActiveCanvasTab] = useState<'Online' | 'Phone'>('Online');
   const [isBuildPanelOpen, setIsBuildPanelOpen] = useState(true);
   const [isGeminiPanelOpen, setIsGeminiPanelOpen] = useState(false);
   const [geminiHelpTopic, setGeminiHelpTopic] = useState<string | null>(null);
@@ -545,55 +547,71 @@ const App: React.FC = () => {
               />
             )}
             
-            <div ref={canvasContainerRef} className={`relative flex-1 overflow-y-auto py-4 px-4 transition-all duration-300 ${selectedQuestion || isGeminiPanelOpen || showBulkEditPanel ? 'pr-0' : ''}`}>
-              {!isBuildPanelOpen && (
-                <button
-                  onClick={() => setIsBuildPanelOpen(true)}
-                  className="absolute top-4 left-0 z-10 p-2 rounded-r-md text-on-surface-variant hover:bg-surface-container-high"
-                  aria-label="Open build panel"
-                >
-                  <PanelRightIcon className="text-xl" />
-                </button>
-              )}
-              <SurveyCanvas 
-                survey={survey} 
-                selectedQuestion={selectedQuestion} 
-                checkedQuestions={checkedQuestions}
-                logicIssues={logicIssues}
-                onSelectQuestion={handleSelectQuestion}
-                onUpdateQuestion={handleUpdateQuestion}
-                onDeleteQuestion={handleDeleteQuestion}
-                onCopyQuestion={handleCopyQuestion}
-                onDeleteBlock={handleDeleteBlock}
-                onReorderQuestion={handleReorderQuestion}
-                onReorderBlock={handleReorderBlock}
-                onAddBlockFromToolbox={handleAddBlockFromToolbox}
-                onAddQuestion={handleAddQuestion}
-                onAddBlock={handleAddBlock}
-                onAddQuestionToBlock={handleAddQuestionToBlock}
-                onToggleQuestionCheck={handleToggleQuestionCheck}
-                onSelectAllInBlock={handleSelectAllInBlock}
-                onUnselectAllInBlock={handleUnselectAllInBlock}
-                toolboxItems={toolboxItems}
-                collapsedBlocks={collapsedBlocks}
-                onToggleBlockCollapse={handleToggleBlockCollapse}
-                // FIX: `onCopyBlock` was not defined. It should be `handleCopyBlock`.
-                onCopyBlock={handleCopyBlock}
-                onExpandAllBlocks={handleExpandAllBlocks}
-                onCollapseAllBlocks={handleCollapseAllBlocks}
-                onExpandBlock={handleExpandBlock}
-                onCollapseBlock={handleCollapseBlock}
-                onAddChoice={handleAddChoice}
-                onAddPageBreakAfterQuestion={handleAddPageBreakAfterQuestion}
-                onUpdateBlockTitle={handleUpdateBlockTitle}
-                onUpdateSurveyTitle={handleUpdateSurveyTitle}
-                onAddFromLibrary={handleAddToLibrary}
+            <div className="relative flex-1 flex flex-col min-w-0">
+              <div ref={canvasContainerRef} className={`relative flex-1 overflow-y-auto pt-16 px-4 pb-4 transition-all duration-300 ${selectedQuestion || isGeminiPanelOpen || showBulkEditPanel ? 'pr-0' : ''}`}>
+                {!isBuildPanelOpen && (
+                  <button
+                    onClick={() => setIsBuildPanelOpen(true)}
+                    className="absolute top-4 left-0 z-10 p-2 rounded-r-md text-on-surface-variant hover:bg-surface-container-high"
+                    aria-label="Open build panel"
+                  >
+                    <PanelRightIcon className="text-xl" />
+                  </button>
+                )}
+                <SurveyCanvas 
+                  survey={survey} 
+                  selectedQuestion={selectedQuestion} 
+                  checkedQuestions={checkedQuestions}
+                  logicIssues={logicIssues}
+                  onSelectQuestion={handleSelectQuestion}
+                  onUpdateQuestion={handleUpdateQuestion}
+                  onDeleteQuestion={handleDeleteQuestion}
+                  onCopyQuestion={handleCopyQuestion}
+                  onDeleteBlock={handleDeleteBlock}
+                  onReorderQuestion={handleReorderQuestion}
+                  onReorderBlock={handleReorderBlock}
+                  onAddBlockFromToolbox={handleAddBlockFromToolbox}
+                  onAddQuestion={handleAddQuestion}
+                  onAddBlock={handleAddBlock}
+                  onAddQuestionToBlock={handleAddQuestionToBlock}
+                  onToggleQuestionCheck={handleToggleQuestionCheck}
+                  onSelectAllInBlock={handleSelectAllInBlock}
+                  onUnselectAllInBlock={handleUnselectAllInBlock}
+                  toolboxItems={toolboxItems}
+                  collapsedBlocks={collapsedBlocks}
+                  onToggleBlockCollapse={handleToggleBlockCollapse}
+                  // FIX: `onCopyBlock` was not defined. It should be `handleCopyBlock`.
+                  onCopyBlock={handleCopyBlock}
+                  onExpandAllBlocks={handleExpandAllBlocks}
+                  onCollapseAllBlocks={handleCollapseAllBlocks}
+                  onExpandBlock={handleExpandBlock}
+                  onCollapseBlock={handleCollapseBlock}
+                  onAddChoice={handleAddChoice}
+                  onAddPageBreakAfterQuestion={handleAddPageBreakAfterQuestion}
+                  onUpdateBlockTitle={handleUpdateBlockTitle}
+                  onUpdateSurveyTitle={handleUpdateSurveyTitle}
+                  onAddFromLibrary={handleAddToLibrary}
+                />
+              </div>
+              <CanvasTabs 
+                  variant="floating"
+                  activeTab={activeCanvasTab}
+                  onTabChange={setActiveCanvasTab}
               />
             </div>
           </>
         );
       case 'Flow':
-        return <DiagramCanvas survey={survey} selectedQuestion={selectedQuestion} onSelectQuestion={handleSelectQuestion} onUpdateQuestion={handleUpdateQuestion} activeMainTab={activeMainTab} />;
+        return (
+          <>
+            <DiagramCanvas survey={survey} selectedQuestion={selectedQuestion} onSelectQuestion={handleSelectQuestion} onUpdateQuestion={handleUpdateQuestion} activeMainTab={activeMainTab} />
+            <CanvasTabs 
+              variant="floating"
+              activeTab={activeCanvasTab}
+              onTabChange={setActiveCanvasTab}
+            />
+          </>
+        );
       default:
         return (
           <div className="flex-1 flex items-center justify-center">
@@ -608,7 +626,7 @@ const App: React.FC = () => {
     handleDeleteQuestion, handleCopyQuestion, handleAddPageBreakAfterQuestion, handleExpandBlock, handleCollapseBlock,
     handleSelectAllInBlock, handleUnselectAllInBlock, handleUpdateQuestion, handleAddBlockFromToolbox, handleAddQuestion,
     handleToggleQuestionCheck, handleToggleBlockCollapse, handleAddChoice, handleUpdateBlockTitle, handleUpdateSurveyTitle,
-    handleAddToLibrary, isGeminiPanelOpen, showBulkEditPanel
+    handleAddToLibrary, isGeminiPanelOpen, showBulkEditPanel, activeCanvasTab
   ]);
   
   return (

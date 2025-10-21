@@ -30,6 +30,8 @@ interface BuildPanelProps {
   onUnselectAllInBlock: (blockId: string) => void;
 }
 
+const enabledToolboxItems = new Set(['Block', 'Page Break', 'Description', 'Checkbox', 'Radio Button', 'Text Entry', 'Choice Grid']);
+
 const DropIndicator = ({ small = false }: { small?: boolean }) => (
     <div className={`px-4 ${small ? 'my-0' : 'my-1'}`}>
         <div className="relative h-px w-full bg-primary">
@@ -455,22 +457,26 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             onDragLeave={!isTextSearching ? () => setDropToolboxTargetIndex(null) : undefined}
             onDrop={!isTextSearching ? handleToolboxDrop : undefined}
           >
-            {filteredToolboxItems.map((item, index) => (
+            {filteredToolboxItems.map((item, index) => {
+              const isEnabled = enabledToolboxItems.has(item.name);
+              return (
               <React.Fragment key={item.name}>
                 {!isTextSearching && dropToolboxTargetIndex === index && <DropIndicator />}
                 <li
-                  draggable={true}
-                  onDragStart={!isTextSearching ? (e) => handleToolboxDragStart(e, index, item) : undefined}
-                  onDragEnd={!isTextSearching ? handleToolboxDragEnd : undefined}
-                  className={`flex items-center px-4 py-3 border-b border-outline-variant/50 hover:bg-surface-container-high transition-opacity cursor-grab ${draggedToolboxIndex === index ? 'opacity-30' : ''}`}
+                  draggable={isEnabled && !isTextSearching}
+                  onDragStart={isEnabled && !isTextSearching ? (e) => handleToolboxDragStart(e, index, item) : undefined}
+                  onDragEnd={isEnabled && !isTextSearching ? handleToolboxDragEnd : undefined}
+                  className={`flex items-center px-4 py-3 border-b border-outline-variant/50 transition-all ${
+                    isEnabled ? 'hover:bg-surface-container-high cursor-grab' : 'opacity-50 cursor-not-allowed'
+                  } ${draggedToolboxIndex === index ? 'opacity-30' : ''}`}
                 >
                   <div className="flex items-center">
-                    <item.icon className="text-xl mr-3 text-primary" />
-                    <span className="text-sm text-on-surface" style={{ fontFamily: "'Open Sans', sans-serif" }}>{item.name}</span>
+                    <item.icon className={`text-xl mr-3 ${isEnabled ? 'text-primary' : 'text-on-surface-variant'}`} />
+                    <span className={`text-sm ${isEnabled ? 'text-on-surface' : 'text-on-surface-variant'}`} style={{ fontFamily: "'Open Sans', sans-serif" }}>{item.name}</span>
                   </div>
                 </li>
               </React.Fragment>
-            ))}
+            )})}
             {!isTextSearching && dropToolboxTargetIndex === filteredToolboxItems.length && <DropIndicator />}
           </ul>
         )}

@@ -38,6 +38,7 @@ import {
   TextHighlighterIcon,
   TimerIcon,
 } from './components/icons';
+import { generateId } from './utils';
 
 
 export const initialSurveyData: Survey = {
@@ -113,6 +114,18 @@ export const initialSurveyData: Survey = {
             answerFormat: 'grid',
             advancedSettings: {
               enableMobileLayout: true,
+            },
+            displayLogic: {
+                operator: 'AND',
+                conditions: [
+                    {
+                        id: generateId('dlc'),
+                        questionId: 'Q1',
+                        operator: 'equals',
+                        value: 'Q1_1 Yes',
+                        isConfirmed: true,
+                    }
+                ]
             },
             choices: [
               { id: 'q4c1', text: 'Quality of coffee' },

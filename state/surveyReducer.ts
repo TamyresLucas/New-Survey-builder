@@ -113,12 +113,22 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 finalUpdates.choices = undefined;
             }
 
-            if (updates.type === QTEnum.ChoiceGrid && !originalQuestion.scalePoints?.length) {
-                finalUpdates.scalePoints = [
-                    { id: generateId('s'), text: 'Column 1' },
-                    { id: generateId('s'), text: 'Column 2' },
-                    { id: generateId('s'), text: 'Column 3' },
-                ];
+            if (updates.type === QTEnum.ChoiceGrid) {
+                // When switching TO Choice Grid, enable mobile layout by default
+                if (originalQuestion.type !== QTEnum.ChoiceGrid) {
+                    finalUpdates.advancedSettings = {
+                        ...originalQuestion.advancedSettings,
+                        enableMobileLayout: true,
+                    };
+                }
+                // And if it doesn't have scale points, add them
+                if (!originalQuestion.scalePoints?.length) {
+                    finalUpdates.scalePoints = [
+                        { id: generateId('s'), text: 'Column 1' },
+                        { id: generateId('s'), text: 'Column 2' },
+                        { id: generateId('s'), text: 'Column 3' },
+                    ];
+                }
             } else if (updates.type && updates.type !== QTEnum.ChoiceGrid) {
                 finalUpdates.scalePoints = undefined;
             }
@@ -207,6 +217,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                         { id: generateId('s'), text: 'Column 3' },
                     ];
                     newQuestion.answerFormat = 'grid';
+                    newQuestion.advancedSettings = { enableMobileLayout: true };
                 } else {
                     newQuestion.choices = [
                         { id: generateId('c'), text: 'Click to write choice 1' },

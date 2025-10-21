@@ -111,6 +111,9 @@ export const initialSurveyData: Survey = {
             text: 'Please rate your satisfaction with the following aspects of our service:',
             type: QuestionType.ChoiceGrid,
             answerFormat: 'grid',
+            advancedSettings: {
+              enableMobileLayout: true,
+            },
             choices: [
               { id: 'q4c1', text: 'Quality of coffee' },
               { id: 'q4c2', text: 'Speed of service' },

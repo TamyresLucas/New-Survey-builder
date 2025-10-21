@@ -79,10 +79,22 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
     const orientation = settings?.choiceOrientation || 'vertical';
     const numColumns = settings?.numColumns || 2;
     
+    const gridLayoutClasses: { [key: number]: string } = {
+        2: 'grid-cols-2',
+        3: 'grid-cols-3',
+        4: 'grid-cols-4',
+        5: 'grid-cols-5',
+        6: 'grid-cols-6',
+        7: 'grid-cols-7',
+        8: 'grid-cols-8',
+        9: 'grid-cols-9',
+        10: 'grid-cols-10',
+    };
+
     const layoutClasses = {
         vertical: 'flex flex-col space-y-3',
-        horizontal: 'flex items-center space-x-4',
-        grid: `grid gap-3 grid-cols-${numColumns}`
+        horizontal: 'flex flex-wrap items-center gap-4',
+        grid: `grid gap-3 ${gridLayoutClasses[numColumns] || 'grid-cols-2'}`
     }[orientation];
 
     const radioSelection = value as string | null;

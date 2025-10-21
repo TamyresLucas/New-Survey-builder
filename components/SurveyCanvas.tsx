@@ -49,40 +49,6 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
   const [dropTargetBlockId, setDropTargetBlockId] = useState<string | null>(null);
   const [isDraggingNewBlock, setIsDraggingNewBlock] = useState(false);
 
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [titleValue, setTitleValue] = useState(survey.title);
-  const titleInputRef = useRef<HTMLTextAreaElement>(null);
-  
-  useEffect(() => {
-    setTitleValue(survey.title);
-  }, [survey.title]);
-
-  useEffect(() => {
-    if (isEditingTitle && titleInputRef.current) {
-        const textarea = titleInputRef.current;
-        textarea.focus();
-        textarea.style.height = 'auto';
-        textarea.style.height = `${textarea.scrollHeight}px`;
-    }
-  }, [isEditingTitle]);
-
-  const handleTitleSave = () => {
-    if (titleValue.trim() && titleValue.trim() !== survey.title) {
-        onUpdateSurveyTitle(titleValue.trim());
-    }
-    setIsEditingTitle(false);
-  };
-
-  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleTitleSave();
-    } else if (e.key === 'Escape') {
-        setTitleValue(survey.title);
-        setIsEditingTitle(false);
-    }
-  };
-
   useEffect(() => {
     if (selectedQuestion) {
       const element = document.getElementById(`question-card-${selectedQuestion.id}`);
@@ -158,32 +124,6 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
       onDragLeave={handleBlockLeave}
       className="max-w-4xl mx-auto"
     >
-      <div className="mb-4 px-4">
-            {isEditingTitle ? (
-                <textarea
-                    ref={titleInputRef}
-                    value={titleValue}
-                    onChange={(e) => setTitleValue(e.target.value)}
-                    onBlur={handleTitleSave}
-                    onKeyDown={handleTitleKeyDown}
-                    className="text-lg font-medium bg-transparent border-b-2 border-primary focus:outline-none w-full text-on-surface resize-none overflow-hidden block"
-                    style={{ fontFamily: "'Outfit', sans-serif" }}
-                    onInput={(e) => {
-                        const target = e.target as HTMLTextAreaElement;
-                        target.style.height = 'auto';
-                        target.style.height = `${target.scrollHeight}px`;
-                    }}
-                />
-            ) : (
-                <h1 
-                    onClick={() => setIsEditingTitle(true)}
-                    className="text-lg font-medium text-on-surface cursor-pointer break-words"
-                    style={{ fontFamily: "'Outfit', sans-serif" }}
-                >
-                    {survey.title}
-                </h1>
-            )}
-        </div>
       {survey.blocks.map(block => (
         <React.Fragment key={block.id}>
           {dropTargetBlockId === block.id && <DropIndicator />}

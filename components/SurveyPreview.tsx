@@ -278,9 +278,9 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
             </div>
         </div>
         {/* Mobile Pane */}
-        <div className="flex-shrink-0 flex justify-center items-center p-4 sm:p-8 bg-surface-container-high w-[450px]">
+        <div className="flex-shrink-0 flex justify-center items-center p-4 sm:p-8 bg-surface-container-high w-[400px]">
             <div
-              className="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[calc(100vh-240px)] min-h-[500px] max-h-[700px] w-[340px] shadow-2xl"
+              className="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[calc(100vh-240px)] min-h-[500px] max-h-[700px] w-[300px] shadow-2xl"
             >
               <div className="w-[140px] h-[18px] bg-gray-800 top-0 rounded-b-[1rem] left-1/2 -translate-x-1/2 absolute"></div>
               <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[124px] rounded-l-lg"></div>

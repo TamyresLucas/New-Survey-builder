@@ -284,7 +284,22 @@ const App: React.FC = () => {
         if (updatesFromAI.text !== undefined) finalUpdates.text = updatesFromAI.text;
         if (updatesFromAI.type !== undefined) finalUpdates.type = updatesFromAI.type;
         if (updatesFromAI.forceResponse !== undefined) finalUpdates.forceResponse = updatesFromAI.forceResponse;
-        if (updatesFromAI.answerFormat !== undefined) finalUpdates.answerFormat = updatesFromAI.answerFormat;
+        
+        if (updatesFromAI.answerFormat !== undefined) {
+             finalUpdates.answerFormat = updatesFromAI.answerFormat;
+             if (updatesFromAI.answerFormat === 'grid' && question.type !== QTEnum.ChoiceGrid) {
+                finalUpdates.type = QTEnum.ChoiceGrid;
+             } else if (updatesFromAI.answerFormat === 'list' && question.type === QTEnum.ChoiceGrid) {
+                finalUpdates.type = QTEnum.Radio;
+             }
+        }
+
+        // Handle 'multipleSelection' to toggle between Radio and Checkbox
+        if (updatesFromAI.multipleSelection !== undefined) {
+            if (question.type === QTEnum.Radio || question.type === QTEnum.Checkbox) {
+                finalUpdates.type = updatesFromAI.multipleSelection ? QTEnum.Checkbox : QTEnum.Radio;
+            }
+        }
 
         // Handle nested 'answerBehavior' for properties like randomization
         if (updatesFromAI.randomizeChoices !== undefined) {
@@ -556,6 +571,7 @@ const App: React.FC = () => {
                 toolboxItems={toolboxItems}
                 collapsedBlocks={collapsedBlocks}
                 onToggleBlockCollapse={handleToggleBlockCollapse}
+                // FIX: `onCopyBlock` was not defined. It should be `handleCopyBlock`.
                 onCopyBlock={handleCopyBlock}
                 onExpandAllBlocks={handleExpandAllBlocks}
                 onCollapseAllBlocks={handleCollapseAllBlocks}

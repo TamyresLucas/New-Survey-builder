@@ -348,13 +348,34 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
     
             <ForceResponseSection question={question} handleUpdate={handleUpdate} />
             
+            {(question.type === QuestionType.Radio || question.type === QuestionType.Checkbox) && (
+                <div>
+                    <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                            <label htmlFor="multiple-selection" className="text-sm font-medium text-on-surface block">
+                                Multiple selection
+                            </label>
+                            <p className="text-xs text-on-surface-variant mt-0.5">Allow respondent to select more than one answer.</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                id="multiple-selection"
+                                checked={question.type === QuestionType.Checkbox}
+                                onChange={(e) => handleUpdate({ type: e.target.checked ? QuestionType.Checkbox : QuestionType.Radio })}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                    </div>
+                </div>
+            )}
+
             <div>
                 <label htmlFor="answer-format" className="block text-sm font-medium text-on-surface-variant mb-1">Answer Format</label>
                 <div className="relative">
                     <select id="answer-format" value={question.answerFormat || 'list'} onChange={e => handleUpdate({ answerFormat: e.target.value as any })} className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none">
                         <option value="list">List (Vertical)</option>
-                        <option value="dropdown">Dropdown</option>
-                        <option value="horizontal">Horizontal List</option>
                         <option value="grid">Grid</option>
                     </select>
                     <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
@@ -504,65 +525,131 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
     );
   };
   
-  const renderChoiceBasedAdvancedTab = () => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-sm font-medium text-on-surface mb-2">Display & Layout</h3>
-        <p className="text-xs text-on-surface-variant mb-4">Fine-tune the appearance of choices.</p>
-        
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="choice-orientation" className="block text-sm font-medium text-on-surface-variant mb-1">Choice Orientation</label>
-            <div className="relative">
-                <select 
-                  id="choice-orientation" 
-                  value={question.advancedSettings?.choiceOrientation || 'vertical'} 
-                  onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, choiceOrientation: e.target.value as any } })} 
-                  className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                >
-                    <option value="vertical">Vertical</option>
-                    <option value="horizontal">Horizontal</option>
-                    <option value="grid">Grid</option>
-                </select>
-                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-            </div>
-          </div>
+  const renderChoiceBasedAdvancedTab = () => {
+    const isChoiceGrid = question.type === QuestionType.ChoiceGrid;
+    return (
+        <div className="space-y-6">
+            {!isChoiceGrid && (
+                <div>
+                    <h3 className="text-sm font-medium text-on-surface mb-2">Display & Layout</h3>
+                    <p className="text-xs text-on-surface-variant mb-4">Fine-tune the appearance of choices.</p>
+                    
+                    <div className="space-y-4">
+                    <div>
+                        <label htmlFor="choice-orientation" className="block text-sm font-medium text-on-surface-variant mb-1">Choice Orientation</label>
+                        <div className="relative">
+                            <select 
+                            id="choice-orientation" 
+                            value={question.advancedSettings?.choiceOrientation || 'vertical'} 
+                            onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, choiceOrientation: e.target.value as any } })} 
+                            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                            >
+                                <option value="vertical">Vertical</option>
+                                <option value="horizontal">Horizontal</option>
+                                <option value="grid">Grid</option>
+                            </select>
+                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                        </div>
+                    </div>
 
-          {question.advancedSettings?.choiceOrientation === 'grid' && (
-            <div>
-              <label htmlFor="num-columns" className="block text-sm font-medium text-on-surface-variant mb-1">Number of Columns</label>
-              <input
-                type="number"
-                id="num-columns"
-                min="2"
-                max="10"
-                value={question.advancedSettings?.numColumns || 2}
-                onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, numColumns: parseInt(e.target.value, 10) } })}
-                className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-              />
-            </div>
-          )}
+                    {question.advancedSettings?.choiceOrientation === 'grid' && (
+                        <div>
+                        <label htmlFor="num-columns" className="block text-sm font-medium text-on-surface-variant mb-1">Number of Columns</label>
+                        <input
+                            type="number"
+                            id="num-columns"
+                            min="2"
+                            max="10"
+                            value={question.advancedSettings?.numColumns || 2}
+                            onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, numColumns: parseInt(e.target.value, 10) } })}
+                            className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                        />
+                        </div>
+                    )}
 
-          <div>
-            <label htmlFor="choice-width" className="block text-sm font-medium text-on-surface-variant mb-1">Choice Width</label>
-            <div className="relative">
-                <select 
-                  id="choice-width" 
-                  value={question.advancedSettings?.choiceWidth || 'auto'} 
-                  onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, choiceWidth: e.target.value as any } })} 
-                  className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                >
-                    <option value="auto">Auto</option>
-                    <option value="full">Full Width</option>
-                    <option value="fixed">Fixed</option>
-                </select>
-                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                    <div>
+                        <label htmlFor="choice-width" className="block text-sm font-medium text-on-surface-variant mb-1">Choice Width</label>
+                        <div className="relative">
+                            <select 
+                            id="choice-width" 
+                            value={question.advancedSettings?.choiceWidth || 'auto'} 
+                            onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, choiceWidth: e.target.value as any } })} 
+                            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                            >
+                                <option value="auto">Auto</option>
+                                <option value="full">Full Width</option>
+                                <option value="fixed">Fixed</option>
+                            </select>
+                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                        </div>
+                    </div>
+                    </div>
+                </div>
+            )}
+            <div className={!isChoiceGrid ? 'border-t border-outline-variant pt-6' : ''}>
+                <h3 className="text-sm font-medium text-on-surface mb-2">Mobile Layout</h3>
+                <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                        <label htmlFor="enable-mobile-layout" className="text-sm font-medium text-on-surface block">
+                            {isChoiceGrid ? 'Mobile-optimized layout' : 'Enable mobile-specific layout'}
+                        </label>
+                        <p className="text-xs text-on-surface-variant mt-0.5">
+                            {isChoiceGrid ? 'Display as an interactive accordion on mobile.' : 'Override display settings for mobile devices.'}
+                        </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            id="enable-mobile-layout" 
+                            checked={question.advancedSettings?.enableMobileLayout || false} 
+                            onChange={(e) => handleUpdate({ advancedSettings: { ...question.advancedSettings, enableMobileLayout: e.target.checked } })} 
+                            className="sr-only peer" 
+                        />
+                        <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                </div>
+
+                {question.advancedSettings?.enableMobileLayout && !isChoiceGrid && (
+                    <div className="mt-4 pl-4 border-l-2 border-outline-variant space-y-4">
+                        <div>
+                            <label htmlFor="mobile-choice-orientation" className="block text-sm font-medium text-on-surface-variant mb-1">Choice Orientation (Mobile)</label>
+                            <div className="relative">
+                                <select 
+                                id="mobile-choice-orientation" 
+                                value={question.advancedSettings?.mobile?.choiceOrientation || 'vertical'} 
+                                onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, mobile: { ...question.advancedSettings?.mobile, choiceOrientation: e.target.value as any } } })} 
+                                className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                                >
+                                    <option value="vertical">Vertical</option>
+                                    <option value="horizontal">Horizontal</option>
+                                    <option value="grid">Grid</option>
+                                </select>
+                                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label htmlFor="mobile-choice-width" className="block text-sm font-medium text-on-surface-variant mb-1">Choice Width (Mobile)</label>
+                            <div className="relative">
+                                <select 
+                                id="mobile-choice-width" 
+                                value={question.advancedSettings?.mobile?.choiceWidth || 'auto'} 
+                                onChange={e => handleUpdate({ advancedSettings: { ...question.advancedSettings, mobile: { ...question.advancedSettings?.mobile, choiceWidth: e.target.value as any } } })} 
+                                className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                                >
+                                    <option value="auto">Auto</option>
+                                    <option value="full">Full Width</option>
+                                    <option value="fixed">Fixed</option>
+                                </select>
+                                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
-          </div>
         </div>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderChoiceBasedPreviewTab = () => {
     return (
@@ -589,56 +676,95 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                             <div className="border-t border-outline-variant my-4"></div>
                             <p className="text-lg text-on-surface mb-6" dangerouslySetInnerHTML={{ __html: questionText || 'Question text will appear here' }}/>
                             {question.type === QuestionType.ChoiceGrid ? (
-                                <div className="divide-y divide-outline-variant rounded-lg border border-outline-variant overflow-hidden">
-                                    {(question.choices || []).filter(c => c.visible !== false).map(choice => {
-                                        const { label } = parseChoice(choice.text);
-                                        const isAccordionExpanded = expandedMobileRowId === choice.id;
-                                        const selectedScalePointId = selectedGridChoices.get(choice.id);
-                                        const selectedScalePoint = question.scalePoints?.find(sp => sp.id === selectedScalePointId);
+                                question.advancedSettings?.enableMobileLayout ? (
+                                    <div className="divide-y divide-outline-variant rounded-lg border border-outline-variant overflow-hidden">
+                                        {(question.choices || []).filter(c => c.visible !== false).map(choice => {
+                                            const { label } = parseChoice(choice.text);
+                                            const isAccordionExpanded = expandedMobileRowId === choice.id;
+                                            const selectedScalePointId = selectedGridChoices.get(choice.id);
+                                            const selectedScalePoint = question.scalePoints?.find(sp => sp.id === selectedScalePointId);
 
-                                        return (
-                                            <div key={choice.id}>
-                                                <button 
-                                                    onClick={() => setExpandedMobileRowId(isAccordionExpanded ? null : choice.id)}
-                                                    className="w-full flex justify-between items-center p-3 text-left bg-surface-container-high"
-                                                    aria-expanded={isAccordionExpanded}
-                                                >
-                                                    <div className="flex-1 pr-2">
-                                                        <p className="text-sm text-on-surface">{label}</p>
-                                                        {selectedScalePoint && !isAccordionExpanded && (
-                                                            <p className="text-xs text-primary mt-1 font-medium">{selectedScalePoint.text}</p>
-                                                        )}
-                                                    </div>
-                                                    <ChevronDownIcon className={`text-xl text-on-surface-variant transition-transform flex-shrink-0 ${isAccordionExpanded ? 'rotate-180' : ''}`} />
-                                                </button>
-                                                {isAccordionExpanded && (
-                                                    <div className="p-3 bg-surface">
-                                                        <div className="space-y-3">
-                                                            {(question.scalePoints || []).map(sp => {
-                                                                const isSelected = selectedScalePointId === sp.id;
-                                                                return (
-                                                                    <div 
-                                                                        key={sp.id}
-                                                                        onClick={() => handlePreviewGridClick(choice.id, sp.id)}
-                                                                        className="flex items-center gap-3 cursor-pointer"
-                                                                    >
-                                                                        {isSelected ? 
-                                                                            <RadioIcon className="text-2xl text-primary flex-shrink-0" /> : 
-                                                                            <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
-                                                                        }
-                                                                        <span className={`text-sm ${isSelected ? 'text-primary font-medium' : 'text-on-surface'}`}>
-                                                                            {sp.text}
-                                                                        </span>
-                                                                    </div>
-                                                                );
-                                                            })}
+                                            return (
+                                                <div key={choice.id}>
+                                                    <button 
+                                                        onClick={() => setExpandedMobileRowId(isAccordionExpanded ? null : choice.id)}
+                                                        className="w-full flex justify-between items-center p-3 text-left bg-surface-container-high"
+                                                        aria-expanded={isAccordionExpanded}
+                                                    >
+                                                        <div className="flex-1 pr-2">
+                                                            <p className="text-sm text-on-surface">{label}</p>
+                                                            {selectedScalePoint && !isAccordionExpanded && (
+                                                                <p className="text-xs text-primary mt-1 font-medium">{selectedScalePoint.text}</p>
+                                                            )}
                                                         </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                                        <ChevronDownIcon className={`text-xl text-on-surface-variant transition-transform flex-shrink-0 ${isAccordionExpanded ? 'rotate-180' : ''}`} />
+                                                    </button>
+                                                    {isAccordionExpanded && (
+                                                        <div className="p-3 bg-surface">
+                                                            <div className="space-y-3">
+                                                                {(question.scalePoints || []).map(sp => {
+                                                                    const isSelected = selectedScalePointId === sp.id;
+                                                                    return (
+                                                                        <div 
+                                                                            key={sp.id}
+                                                                            onClick={() => handlePreviewGridClick(choice.id, sp.id)}
+                                                                            className="flex items-center gap-3 cursor-pointer"
+                                                                        >
+                                                                            {isSelected ? 
+                                                                                <RadioIcon className="text-2xl text-primary flex-shrink-0" /> : 
+                                                                                <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
+                                                                            }
+                                                                            <span className={`text-sm ${isSelected ? 'text-primary font-medium' : 'text-on-surface'}`}>
+                                                                                {sp.text}
+                                                                            </span>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="overflow-x-auto border border-outline-variant rounded-lg">
+                                        <table className="w-full border-collapse text-sm">
+                                            <thead>
+                                                <tr className="border-b border-outline-variant bg-surface-container-high">
+                                                    <th className="p-2 text-left"></th>
+                                                    {(question.scalePoints || []).map(sp => (
+                                                        <th key={sp.id} className="p-2 text-center text-xs font-medium text-on-surface-variant align-bottom">
+                                                            <span>{sp.text}</span>
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(question.choices || []).filter(c => c.visible !== false).map((choice) => {
+                                                    const { label } = parseChoice(choice.text);
+                                                    return (
+                                                        <tr key={choice.id} className="border-b border-outline-variant last:border-b-0">
+                                                            <td className="p-2 text-on-surface pr-2 align-middle font-medium">
+                                                                {label}
+                                                            </td>
+                                                            {(question.scalePoints || []).map(sp => {
+                                                                const isSelected = selectedGridChoices.get(choice.id) === sp.id;
+                                                                return (
+                                                                <td key={sp.id} className="p-1 text-center align-middle">
+                                                                    <button onClick={() => handlePreviewGridClick(choice.id, sp.id)} className="p-1 rounded-full cursor-pointer">
+                                                                        {isSelected ? <RadioIcon className="text-xl text-primary" /> : <RadioButtonUncheckedIcon className="text-xl text-on-surface-variant" />}
+                                                                    </button>
+                                                                </td>
+                                                                )
+                                                            })}
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )
                             ) : (
                                 <div className="divide-y divide-outline-variant rounded-lg border border-outline-variant overflow-hidden">
                                     {(question.choices || []).filter(c => c.visible !== false).map(choice => {
@@ -713,7 +839,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                         </table>
                     </div>
                 ) : (
-                    <div className={`space-y-3 ${question.answerFormat === 'horizontal' ? 'flex flex-wrap gap-4' : 'flex flex-col'}`}>
+                    <div className="flex flex-col space-y-3">
                         {(question.choices || []).filter(c => c.visible !== false).map(choice => {
                             const isSelected = selectedPreviewChoices.has(choice.id);
                             return (

@@ -9,7 +9,7 @@ import {
     VisibilityOffIcon
 } from './icons';
 import { QuestionActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
-import { parseChoice } from '../utils';
+import { generateId, parseChoice } from '../utils';
 import { DisplayLogicDisplay, SkipLogicDisplay, BranchingLogicDisplay } from './LogicDisplays';
 
 // Helper for inline editing with contentEditable
@@ -56,8 +56,19 @@ const EditableText: React.FC<{
 
 const ChoiceDropIndicator = () => (
     <div className="relative h-px w-full bg-primary my-1 ml-6">
-        <div className="absolute left-0 top-1-2 -translate-y-1-2 h-1.5 w-1.5 rounded-full bg-primary" />
+        <div className="absolute left-0 top-1-2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-primary" />
     </div>
+);
+
+const TableDropIndicator: React.FC<{ colSpan: number }> = ({ colSpan }) => (
+    <tr className="h-0 p-0 m-0">
+      <td colSpan={colSpan} className="p-0 border-0 h-0 m-0 relative">
+        <div className="absolute inset-x-0 top-[-1px] h-px bg-primary">
+           <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-primary" />
+           <div className="absolute right-0 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-primary" />
+        </div>
+      </td>
+    </tr>
 );
 
 const QuestionCard: React.FC<{ 
@@ -188,6 +199,22 @@ const QuestionCard: React.FC<{
         setDraggedChoiceId(null);
         setDropTargetChoiceId(null);
     }, []);
+
+    const handleAddColumn = useCallback(() => {
+        const currentScalePoints = question.scalePoints || [];
+        const newScalePoint: Choice = {
+            id: generateId('s'),
+            text: `Column ${currentScalePoints.length + 1}`
+        };
+        onUpdateQuestion(question.id, { scalePoints: [...currentScalePoints, newScalePoint] });
+    }, [question.id, question.scalePoints, onUpdateQuestion]);
+
+    const handleScalePointTextChange = useCallback((scalePointId: string, newText: string) => {
+        const newScalePoints = (question.scalePoints || []).map(sp =>
+            sp.id === scalePointId ? { ...sp, text: newText } : sp
+        );
+        onUpdateQuestion(question.id, { scalePoints: newScalePoints });
+    }, [question.id, question.scalePoints, onUpdateQuestion]);
 
     if (question.type === QuestionType.PageBreak) {
         return (
@@ -327,7 +354,7 @@ const QuestionCard: React.FC<{
             </div>
 
             {/* Grid Cell 3: Body Content (starts in column 2) */}
-            <div className="col-start-2 mt-3">
+            <div className="col-start-2 mt-3 min-w-0">
                 <EditableText
                     html={question.text}
                     onChange={(newText) => onUpdateQuestion(question.id, { text: newText })}
@@ -347,41 +374,124 @@ const QuestionCard: React.FC<{
                 )}
                 
                 {question.type === QuestionType.ChoiceGrid && (
-                    <div className="mt-4 overflow-x-auto">
-                        <table className="w-full border-collapse">
-                            <thead>
-                                <tr className="border-b border-outline-variant">
-                                    <th className="p-2 text-left w-1/3"></th>
-                                    {(question.scalePoints || []).map(sp => (
-                                        <th key={sp.id} className="p-2 text-center text-xs font-normal text-on-surface-variant">
-                                            {sp.text}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {(question.choices || []).map(choice => {
-                                    const { variable, label } = parseChoice(choice.text);
-                                    return (
-                                        <tr key={choice.id} className="border-b border-outline-variant last:border-b-0">
-                                            <td className="p-2 text-sm text-on-surface pr-4">
-                                                <div className="flex items-center gap-2">
-                                                    {variable && <span className="font-bold text-on-surface-variant">{variable}</span>}
-                                                    <span>{label}</span>
-                                                </div>
-                                            </td>
-                                            {(question.scalePoints || []).map(sp => (
-                                                <td key={sp.id} className="p-2 text-center">
-                                                    <RadioButtonUncheckedIcon className="text-xl text-outline" />
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                    <div className="mt-4">
+                        <div className="overflow-x-auto">
+                            <table className="border-collapse">
+                                <thead>
+                                    <tr className="border-b border-outline-variant">
+                                        <th className="py-2 pr-2 text-left"></th>
+                                        {(question.scalePoints || []).map(sp => (
+                                            <th key={sp.id} className="py-2 px-3 text-center text-xs font-normal text-on-surface-variant align-bottom group/header relative">
+                                                <EditableText
+                                                    html={sp.text}
+                                                    onChange={(newText) => handleScalePointTextChange(sp.id, newText)}
+                                                    onFocus={() => onSelect(question)}
+                                                    className="text-on-surface-variant"
+                                                />
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const newScalePoints = question.scalePoints?.filter(p => p.id !== sp.id);
+                                                        onUpdateQuestion(question.id, { scalePoints: newScalePoints });
+                                                    }}
+                                                    className="absolute -top-1 -right-1 p-0.5 rounded-full bg-surface-container-highest text-on-surface-variant hover:bg-error-container hover:text-on-error-container opacity-0 group-hover/header:opacity-100"
+                                                    aria-label="Remove column"
+                                                >
+                                                    <XIcon className="text-sm" />
+                                                </button>
+                                            </th>
+                                        ))}
+                                        <th className="w-12 p-2"></th>
+                                    </tr>
+                                </thead>
+                                <tbody
+                                    onDrop={handleChoiceDrop}
+                                    onDragOver={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setDropTargetChoiceId(null);
+                                    }}
+                                >
+                                    {(question.choices || []).map(choice => {
+                                        const { variable, label } = parseChoice(choice.text);
+                                        const numColumns = (question.scalePoints?.length || 0) + 2;
+                                        return (
+                                            <React.Fragment key={choice.id}>
+                                                {dropTargetChoiceId === choice.id && <TableDropIndicator colSpan={numColumns} />}
+                                                <tr
+                                                    className={`border-b border-outline-variant last:border-b-0 group/choice transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
+                                                    draggable
+                                                    onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
+                                                    onDragOver={(e) => handleChoiceDragOver(e, choice.id)}
+                                                    onDragEnd={handleChoiceDragEnd}
+                                                >
+                                                    <td className="p-2 text-sm text-on-surface pr-4">
+                                                        <div className="flex items-center gap-1">
+                                                            <DragIndicatorIcon className="text-xl text-on-surface-variant cursor-grab opacity-0 group-hover/choice:opacity-100 transition-opacity" />
+                                                            {variable && <span className="font-bold text-on-surface-variant">{variable}</span>}
+                                                            <EditableText
+                                                                html={label}
+                                                                onChange={(newLabel) => {
+                                                                    const newText = variable ? `${variable} ${newLabel}` : newLabel;
+                                                                    const newChoices = (question.choices || []).map(c =>
+                                                                        c.id === choice.id ? { ...c, text: newText } : c
+                                                                    );
+                                                                    onUpdateQuestion(question.id, { choices: newChoices });
+                                                                }}
+                                                                onFocus={() => onSelect(question)}
+                                                                className="text-on-surface flex-grow"
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    {(question.scalePoints || []).map(sp => (
+                                                        <td key={sp.id} className="p-2 text-center">
+                                                            <RadioButtonUncheckedIcon className="text-xl text-outline" />
+                                                        </td>
+                                                    ))}
+                                                    <td className="p-2 text-center">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const newChoices = question.choices?.filter(c => c.id !== choice.id);
+                                                                onUpdateQuestion(question.id, { choices: newChoices });
+                                                            }}
+                                                            className="ml-auto p-1 rounded-full text-on-surface-variant hover:bg-surface-container-highest opacity-0 group-hover/choice:opacity-100"
+                                                            aria-label="Remove row"
+                                                        >
+                                                            <XIcon className="text-base" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </React.Fragment>
+                                        );
+                                    })}
+                                    {dropTargetChoiceId === null && draggedChoiceId && <TableDropIndicator colSpan={(question.scalePoints?.length || 0) + 2} />}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="flex items-center gap-4 mt-4">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onAddChoice(question.id);
+                                }}
+                                className="flex items-center text-sm text-primary font-medium hover:underline"
+                            >
+                                <PlusIcon className="text-base mr-1" /> Add row
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleAddColumn();
+                                }}
+                                className="flex items-center text-sm text-primary font-medium hover:underline"
+                            >
+                                <PlusIcon className="text-base mr-1" /> Add column
+                            </button>
+                        </div>
                     </div>
                 )}
+
 
                 {question.choices && question.type !== QuestionType.ChoiceGrid && (
                     <div 

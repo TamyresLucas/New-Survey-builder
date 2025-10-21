@@ -47,6 +47,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
     const [draggedScalePointId, setDraggedScalePointId] = useState<string | null>(null);
     const [dropTargetScalePointId, setDropTargetScalePointId] = useState<string | null>(null);
     const [selectedPreviewChoices, setSelectedPreviewChoices] = useState<Set<string>>(new Set());
+    const [selectedGridChoices, setSelectedGridChoices] = useState<Map<string, string>>(new Map());
+    const [expandedMobileRowId, setExpandedMobileRowId] = useState<string | null>(null);
 
     const allSurveyQuestions = useMemo(() => survey.blocks.flatMap(b => b.questions), [survey]);
     const currentQuestionIndex = useMemo(() => allSurveyQuestions.findIndex(q => q.id === question.id), [allSurveyQuestions, question.id]);
@@ -82,6 +84,14 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
         setExpandedChoiceId(null);
         setIsTypeMenuOpen(false);
         setSelectedPreviewChoices(new Set());
+        setSelectedGridChoices(new Map());
+        
+        // Default to first row expanded in mobile choice grid preview
+        if (question.type === QuestionType.ChoiceGrid && question.choices && question.choices.length > 0) {
+            setExpandedMobileRowId(question.choices[0].id);
+        } else {
+            setExpandedMobileRowId(null);
+        }
     }, [question]);
 
     useEffect(() => {
@@ -270,7 +280,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
 
 
     const handlePreviewChoiceClick = useCallback((choiceId: string) => {
-        if (question.type === QuestionType.Radio || question.type === QuestionType.ChoiceGrid) {
+        if (question.type === QuestionType.Radio) {
             setSelectedPreviewChoices(new Set([choiceId]));
         } else if (question.type === QuestionType.Checkbox) {
             setSelectedPreviewChoices((prev: Set<string>) => {
@@ -284,6 +294,26 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
             });
         }
     }, [question.type]);
+
+    const handlePreviewGridClick = useCallback((rowId: string, columnId: string) => {
+        setSelectedGridChoices(prev => {
+            const newMap = new Map(prev);
+            newMap.set(rowId, columnId);
+            return newMap;
+        });
+
+        // "Select and advance" logic for mobile accordion view
+        const choices = question.choices || [];
+        const currentIndex = choices.findIndex(c => c.id === rowId);
+        
+        if (currentIndex !== -1 && currentIndex < choices.length - 1) {
+            const nextChoice = choices[currentIndex + 1];
+            setExpandedMobileRowId(nextChoice.id);
+        } else {
+            // Last item was selected, so just collapse.
+            setExpandedMobileRowId(null);
+        }
+    }, [question.choices]);
 
     const CurrentQuestionTypeInfo = toolboxItems.find(item => item.name === question.type);
     const initialChoicesText = (question.choices || []).map(c => parseChoice(c.text).label).join('\n');
@@ -370,7 +400,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                             e.stopPropagation();
                             handleChoiceDragOver(e, choice.id);
                         }}
-                        onDragEnd={handleChoiceDragEnd}
+                        onDragEnd={handleChoiceDrop}
                     >
                         <div className={`flex items-center gap-2 transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}>
                             <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing" aria-label="Reorder choice">
@@ -558,29 +588,82 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                             </header>
                             <div className="border-t border-outline-variant my-4"></div>
                             <p className="text-lg text-on-surface mb-6" dangerouslySetInnerHTML={{ __html: questionText || 'Question text will appear here' }}/>
-                            <div className="divide-y divide-outline-variant rounded-lg border border-outline-variant overflow-hidden">
-                                {(question.choices || []).filter(c => c.visible !== false).map(choice => {
-                                    const isSelected = selectedPreviewChoices.has(choice.id);
-                                    return (
-                                        <div 
-                                            key={choice.id} 
-                                            className={`flex items-center gap-4 p-3 cursor-pointer transition-colors ${isSelected ? 'bg-primary-container' : 'bg-surface-container-high'}`}
-                                            onClick={() => handlePreviewChoiceClick(choice.id)}
-                                        >
-                                            {question.type === QuestionType.Radio ? (
-                                                isSelected ? 
-                                                    <RadioIcon className="text-2xl text-primary flex-shrink-0" /> : 
-                                                    <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
-                                            ) : (
-                                                isSelected ?
-                                                    <CheckboxFilledIcon className="text-2xl text-primary flex-shrink-0" /> :
-                                                    <CheckboxOutlineIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
-                                            )}
-                                            <span className={`text-sm ${isSelected ? 'text-on-primary-container font-medium' : 'text-on-surface'}`} dangerouslySetInnerHTML={{ __html: parseChoice(choice.text).label }} />
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                            {question.type === QuestionType.ChoiceGrid ? (
+                                <div className="divide-y divide-outline-variant rounded-lg border border-outline-variant overflow-hidden">
+                                    {(question.choices || []).filter(c => c.visible !== false).map(choice => {
+                                        const { label } = parseChoice(choice.text);
+                                        const isAccordionExpanded = expandedMobileRowId === choice.id;
+                                        const selectedScalePointId = selectedGridChoices.get(choice.id);
+                                        const selectedScalePoint = question.scalePoints?.find(sp => sp.id === selectedScalePointId);
+
+                                        return (
+                                            <div key={choice.id}>
+                                                <button 
+                                                    onClick={() => setExpandedMobileRowId(isAccordionExpanded ? null : choice.id)}
+                                                    className="w-full flex justify-between items-center p-3 text-left bg-surface-container-high"
+                                                    aria-expanded={isAccordionExpanded}
+                                                >
+                                                    <div className="flex-1 pr-2">
+                                                        <p className="text-sm text-on-surface">{label}</p>
+                                                        {selectedScalePoint && !isAccordionExpanded && (
+                                                            <p className="text-xs text-primary mt-1 font-medium">{selectedScalePoint.text}</p>
+                                                        )}
+                                                    </div>
+                                                    <ChevronDownIcon className={`text-xl text-on-surface-variant transition-transform flex-shrink-0 ${isAccordionExpanded ? 'rotate-180' : ''}`} />
+                                                </button>
+                                                {isAccordionExpanded && (
+                                                    <div className="p-3 bg-surface">
+                                                        <div className="space-y-3">
+                                                            {(question.scalePoints || []).map(sp => {
+                                                                const isSelected = selectedScalePointId === sp.id;
+                                                                return (
+                                                                    <div 
+                                                                        key={sp.id}
+                                                                        onClick={() => handlePreviewGridClick(choice.id, sp.id)}
+                                                                        className="flex items-center gap-3 cursor-pointer"
+                                                                    >
+                                                                        {isSelected ? 
+                                                                            <RadioIcon className="text-2xl text-primary flex-shrink-0" /> : 
+                                                                            <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
+                                                                        }
+                                                                        <span className={`text-sm ${isSelected ? 'text-primary font-medium' : 'text-on-surface'}`}>
+                                                                            {sp.text}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-outline-variant rounded-lg border border-outline-variant overflow-hidden">
+                                    {(question.choices || []).filter(c => c.visible !== false).map(choice => {
+                                        const isSelected = selectedPreviewChoices.has(choice.id);
+                                        return (
+                                            <div 
+                                                key={choice.id} 
+                                                className={`flex items-center gap-4 p-3 cursor-pointer transition-colors ${isSelected ? 'bg-primary-container' : 'bg-surface-container-high'}`}
+                                                onClick={() => handlePreviewChoiceClick(choice.id)}
+                                            >
+                                                {question.type === QuestionType.Radio ? (
+                                                    isSelected ? 
+                                                        <RadioIcon className="text-2xl text-primary flex-shrink-0" /> : 
+                                                        <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
+                                                ) : (
+                                                    isSelected ?
+                                                        <CheckboxFilledIcon className="text-2xl text-primary flex-shrink-0" /> :
+                                                        <CheckboxOutlineIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
+                                                )}
+                                                <span className={`text-sm ${isSelected ? 'text-on-primary-container font-medium' : 'text-on-surface'}`} dangerouslySetInnerHTML={{ __html: parseChoice(choice.text).label }} />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -592,29 +675,68 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
               </header>
               <div className="space-y-4">
                 <p className="text-xl font-medium text-on-surface" dangerouslySetInnerHTML={{ __html: questionText || 'Question text will appear here' }} />
-                <div className={`space-y-3 ${question.answerFormat === 'horizontal' ? 'flex flex-wrap gap-4' : 'flex flex-col'}`}>
-                  {(question.choices || []).filter(c => c.visible !== false).map(choice => {
-                    const isSelected = selectedPreviewChoices.has(choice.id);
-                    return (
-                        <div
-                            key={choice.id}
-                            onClick={() => handlePreviewChoiceClick(choice.id)}
-                            className={`flex items-center gap-3 p-3 rounded-md cursor-pointer border transition-colors ${isSelected ? 'bg-primary-container border-primary shadow-sm' : 'hover:bg-surface-container-high border-outline-variant'}`}
-                        >
-                          {question.type === QuestionType.Radio ? (
-                              isSelected ?
-                                <RadioIcon className="text-2xl text-primary flex-shrink-0" /> :
-                                <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
-                          ) : (
-                              isSelected ?
-                                <CheckboxFilledIcon className="text-2xl text-primary flex-shrink-0" /> :
-                                <CheckboxOutlineIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
-                          )}
-                          <span className={`text-base ${isSelected ? 'text-on-primary-container font-medium' : 'text-on-surface'}`} dangerouslySetInnerHTML={{ __html: parseChoice(choice.text).label }} />
-                        </div>
-                    );
-                  })}
-                </div>
+                {question.type === QuestionType.ChoiceGrid ? (
+                    <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr className="border-b-2 border-outline-variant">
+                                    <th className="p-3 text-left w-1/3"></th>
+                                    {(question.scalePoints || []).map(sp => (
+                                        <th key={sp.id} className="p-3 text-center text-sm font-medium text-on-surface-variant align-bottom">
+                                            <span>{sp.text}</span>
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(question.choices || []).filter(c => c.visible !== false).map((choice) => {
+                                    const { label } = parseChoice(choice.text);
+                                    return (
+                                        <tr key={choice.id} className="border-b border-outline-variant last:border-b-0 hover:bg-surface-container-high">
+                                            <td className="p-3 text-base text-on-surface pr-4 align-middle">
+                                                {label}
+                                            </td>
+                                            {(question.scalePoints || []).map(sp => {
+                                                const isSelected = selectedGridChoices.get(choice.id) === sp.id;
+                                                return (
+                                                <td key={sp.id} className="p-2 text-center align-middle">
+                                                    <button onClick={() => handlePreviewGridClick(choice.id, sp.id)} className="p-1 rounded-full cursor-pointer">
+                                                        {isSelected ? <RadioIcon className="text-2xl text-primary" /> : <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant" />}
+                                                    </button>
+                                                </td>
+                                                )
+                                            })}
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div className={`space-y-3 ${question.answerFormat === 'horizontal' ? 'flex flex-wrap gap-4' : 'flex flex-col'}`}>
+                        {(question.choices || []).filter(c => c.visible !== false).map(choice => {
+                            const isSelected = selectedPreviewChoices.has(choice.id);
+                            return (
+                                <div
+                                    key={choice.id}
+                                    onClick={() => handlePreviewChoiceClick(choice.id)}
+                                    className={`flex items-center gap-3 p-3 rounded-md cursor-pointer border transition-colors ${isSelected ? 'bg-primary-container border-primary shadow-sm' : 'hover:bg-surface-container-high border-outline-variant'}`}
+                                >
+                                {question.type === QuestionType.Radio ? (
+                                    isSelected ?
+                                        <RadioIcon className="text-2xl text-primary flex-shrink-0" /> :
+                                        <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
+                                ) : (
+                                    isSelected ?
+                                        <CheckboxFilledIcon className="text-2xl text-primary flex-shrink-0" /> :
+                                        <CheckboxOutlineIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
+                                )}
+                                <span className={`text-base ${isSelected ? 'text-on-primary-container font-medium' : 'text-on-surface'}`} dangerouslySetInnerHTML={{ __html: parseChoice(choice.text).label }} />
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
               </div>
             </div>
           )}

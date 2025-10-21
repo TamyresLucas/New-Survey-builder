@@ -51,6 +51,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     const [edges, setEdges, onEdgesChange] = useEdgesState<DiagramEdge>([]);
     const reactFlowInstance = useReactFlow();
     const prevActiveTabRef = useRef<string>();
+    const prevSelectedQuestionRef = useRef<Question | null>(null);
 
     // Memoize the flat list of all questions and a map of their indices for efficient validation.
     const questionIndexMap = useMemo(() => {
@@ -245,29 +246,26 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         setEdges(layoutEdges.map(e => ({ ...e, selected: e.source === selectedId })));
         
         const justSwitchedToFlow = prevActiveTabRef.current !== 'Flow' && activeMainTab === 'Flow';
+        const justDeselectedQuestion = !!prevSelectedQuestionRef.current && !selectedQuestion;
         
-        const timer = setTimeout(() => {
-            if (selectedId) {
-                const outgoingEdges = layoutEdges.filter(e => e.source === selectedId);
-                const targetNodeIds = outgoingEdges.map(e => e.target);
-                const nodesToFit = [...new Set([selectedId, ...targetNodeIds])];
+        if (selectedId) {
+            const outgoingEdges = layoutEdges.filter(e => e.source === selectedId);
+            const targetNodeIds = outgoingEdges.map(e => e.target);
+            const nodesToFit = [...new Set([selectedId, ...targetNodeIds])];
 
-                reactFlowInstance.fitView({
-                    nodes: nodesToFit.map(id => ({ id })),
-                    duration: 600,
-                    padding: 0.25,
-                });
-            } else if (justSwitchedToFlow) {
-                reactFlowInstance.fitView({ duration: 600, padding: 0.1 });
-            }
-        }, 100);
-        
-        return () => clearTimeout(timer);
-
+            reactFlowInstance.fitView({
+                nodes: nodesToFit.map(id => ({ id })),
+                duration: 600,
+                padding: 0.25,
+            });
+        } else if (justSwitchedToFlow || justDeselectedQuestion) {
+            reactFlowInstance.fitView({ duration: 600, padding: 0.1 });
+        }
     }, [layoutNodes, layoutEdges, selectedQuestion, activeMainTab, reactFlowInstance, setNodes, setEdges]);
     
     useEffect(() => {
         prevActiveTabRef.current = activeMainTab;
+        prevSelectedQuestionRef.current = selectedQuestion;
     });
 
     const isValidConnection = useCallback((connection: Connection) => {

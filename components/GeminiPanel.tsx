@@ -87,7 +87,11 @@ const updateQuestionFunctionDeclaration: FunctionDeclaration = {
       answerFormat: {
           type: Type.STRING,
           description: "For choice-based questions, sets the display format.",
-          enum: ['list', 'dropdown', 'horizontal']
+          enum: ['list', 'grid']
+      },
+      multipleSelection: {
+        type: Type.BOOLEAN,
+        description: "For Radio Button or Checkbox questions, set to true to allow multiple answers (Checkbox), or false for a single answer (Radio Button). This will change the question's type.",
       }
     },
     required: ['qid'],

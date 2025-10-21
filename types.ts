@@ -193,11 +193,16 @@ export interface Question {
   };
 
   // New properties for detailed editing
-  answerFormat?: 'list' | 'dropdown' | 'horizontal' | 'grid';
+  answerFormat?: 'list' | 'grid';
   advancedSettings?: {
     choiceOrientation?: 'vertical' | 'horizontal' | 'grid';
     numColumns?: number;
     choiceWidth?: 'auto' | 'full' | 'fixed';
+    enableMobileLayout?: boolean;
+    mobile?: {
+      choiceOrientation?: 'vertical' | 'horizontal' | 'grid';
+      choiceWidth?: 'auto' | 'full' | 'fixed';
+    }
   };
   styleOverrides?: {
     customColor?: string | null;

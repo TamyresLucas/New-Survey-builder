@@ -166,38 +166,95 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
   const pages = useMemo(() => {
     const allQuestions = survey.blocks.flatMap(b => b.questions);
     if (allQuestions.length === 0) return [[]];
-
-    // FIX: Changed the order of filter and map to ensure correct type inference for the Map constructor.
-    const questionMapByQid = new Map(allQuestions.filter(q => q.qid).map(q => [q.qid, q]));
-
-    // Filter questions based on display logic
+  
+    const questionMapByQid: Map<string, Question> = new Map(allQuestions.filter(q => q.qid).map(q => [q.qid, q]));
+  
     const visibleQuestions = allQuestions.filter(question => {
         return evaluateDisplayLogic(question, answers, survey, questionMapByQid);
     });
-
-    // Paginate the visible questions
-    return visibleQuestions.reduce((acc, question) => {
+  
+    // 1. Split questions into pages based on PageBreak elements.
+    const pagesWithPotentialEmpties = visibleQuestions.reduce((acc, question) => {
       if (question.type === QuestionType.PageBreak) {
-        if (acc[acc.length - 1].length > 0) {
-            acc.push([]);
-        }
+        // Always start a new page after a page break.
+        acc.push([]);
       } else {
+        // Ensure there's at least one page to push to.
+        if (acc.length === 0) {
+          acc.push([]);
+        }
         acc[acc.length - 1].push(question);
       }
       return acc;
-    }, [[]] as Question[][]);
+    }, [] as Question[][]);
+    
+    // 2. Filter out any pages that are empty.
+    const finalPages = pagesWithPotentialEmpties.filter(page => page.length > 0);
+  
+    // 3. If there are no visible questions at all, return a single empty page structure.
+    if (finalPages.length === 0) {
+      return [[]];
+    }
+  
+    return finalPages;
   }, [survey, answers]);
+  
+  const nextStepInfo = useMemo(() => {
+    const questionsOnPage = pages[currentPage];
+    if (!questionsOnPage) {
+        return { action: 'next' as const, pageIndex: currentPage + 1 };
+    }
+
+    let destination: string | null = null;
+
+    for (let i = questionsOnPage.length - 1; i >= 0; i--) {
+        const question = questionsOnPage[i];
+        const logic = question.skipLogic;
+        const answer = answers.get(question.id);
+
+        if (logic && answer) {
+            if (logic.type === 'simple' && logic.isConfirmed) {
+                destination = logic.skipTo;
+                break; 
+            } else if (logic.type === 'per_choice' && (typeof answer === 'string' || answer instanceof Set)) {
+                const answerSet = typeof answer === 'string' ? new Set([answer]) : answer;
+                for (const ans of Array.from(answerSet).reverse()) {
+                    const rule = logic.rules.find(r => r.choiceId === ans && r.isConfirmed);
+                    if (rule?.skipTo) {
+                        destination = rule.skipTo;
+                        break; 
+                    }
+                }
+                if (destination) break; 
+            }
+        }
+    }
+
+    if (destination === 'end') {
+        return { action: 'submit' as const };
+    }
+
+    if (destination && destination !== 'next') {
+        const pageIndex = pages.findIndex(p => p.some(q => q.id === destination));
+        if (pageIndex > -1) {
+            return { action: 'next' as const, pageIndex };
+        }
+    }
+
+    if (currentPage >= pages.length - 1) {
+        return { action: 'submit' as const };
+    }
+
+    return { action: 'next' as const, pageIndex: currentPage + 1 };
+  }, [currentPage, pages, answers]);
 
   useEffect(() => {
-    // If the current page index is now out of bounds due to questions disappearing,
-    // move to the last available page.
     if (currentPage >= pages.length) {
       setCurrentPage(Math.max(0, pages.length - 1));
     }
   }, [pages, currentPage]);
 
   useEffect(() => {
-    // Clear validation errors when the page changes, but keep the answers
     setValidationErrors(new Set());
   }, [currentPage]);
 
@@ -224,7 +281,7 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
   };
 
   const currentQuestions = pages[currentPage] || [];
-  const isLastPage = currentPage === pages.length - 1;
+  const isEffectivelyLastPage = nextStepInfo.action === 'submit';
 
   const handleAnswerChange = (questionId: string, answer: any) => {
     setAnswers(prev => new Map(prev).set(questionId, answer));
@@ -284,55 +341,11 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
 
     setPageHistory(prev => [...prev, currentPage]);
 
-    let destination: string | null = null;
-    const questionsOnPage = pages[currentPage];
-
-    for (let i = questionsOnPage.length - 1; i >= 0; i--) {
-      const question = questionsOnPage[i];
-      const logic = question.skipLogic;
-      const answer = answers.get(question.id);
-
-      if (logic && answer) {
-        if (logic.type === 'simple') {
-          destination = logic.skipTo;
-          break;
-        } else if (logic.type === 'per_choice' && (typeof answer === 'string' || answer instanceof Set)) {
-            const answerSet = typeof answer === 'string' ? new Set([answer]) : answer;
-            for (const ans of Array.from(answerSet).reverse()) {
-                const choice = question.choices?.find(c => c.id === ans);
-                if (choice) {
-                    const rule = logic.rules.find(r => r.choiceId === choice.id);
-                    if (rule && rule.skipTo) {
-                        destination = rule.skipTo;
-                        break;
-                    }
-                }
-            }
-            if (destination) break;
-        }
-      }
-    }
-
-    if (destination === 'end') {
+    if (nextStepInfo.action === 'submit') {
       handleSubmit();
-      return;
+    } else {
+      setCurrentPage(nextStepInfo.pageIndex);
     }
-
-    let nextPageIndex = -1;
-
-    if (destination && destination !== 'next') {
-      nextPageIndex = pages.findIndex(page => page.some(q => q.id === destination));
-    }
-
-    if (nextPageIndex === -1) {
-      if (isLastPage) {
-        handleSubmit();
-        return;
-      }
-      nextPageIndex = currentPage + 1;
-    }
-
-    setCurrentPage(nextPageIndex);
   };
 
   const handleBack = () => {
@@ -349,7 +362,7 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
     answers: answers,
     validationErrors: validationErrors,
     onAnswerChange: handleAnswerChange,
-    isLastPage: isLastPage,
+    isLastPage: isEffectivelyLastPage,
     currentPage: currentPage,
     onBack: handleBack,
     onNext: handleNext,

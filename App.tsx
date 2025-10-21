@@ -17,6 +17,7 @@ import { surveyReducer, SurveyActionType } from './state/surveyReducer';
 import { PanelRightIcon } from './components/icons';
 import { validateSurveyLogic } from './logicValidator';
 import DiagramCanvas from './components/DiagramCanvas';
+import { SurveyPreview } from './components/SurveyPreview';
 
 const App: React.FC = () => {
   const [survey, dispatch] = useReducer(surveyReducer, initialSurveyData, renumberSurveyVariables);
@@ -31,6 +32,7 @@ const App: React.FC = () => {
   const [isRightSidebarExpanded, setIsRightSidebarExpanded] = useState(false);
   const [logicIssues, setLogicIssues] = useState<LogicIssue[]>([]);
   const [focusedLogicSource, setFocusedLogicSource] = useState<string | null>(null);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
   // FIX: Hoisted showBulkEditPanel declaration before its use on line 41.
   const showBulkEditPanel = checkedQuestions.size >= 2;
@@ -482,6 +484,10 @@ const App: React.FC = () => {
     alert('Add to Library functionality not implemented.');
   }, []);
 
+  const handleTogglePreviewMode = useCallback(() => {
+    setIsPreviewMode(prev => !prev);
+  }, []);
+
   // Deselect single question when bulk selecting
   useEffect(() => {
     if (checkedQuestions.size >= 2 && selectedQuestion) {
@@ -613,7 +619,7 @@ const App: React.FC = () => {
         onToggleGeminiPanel={handleToggleGeminiPanel} 
         onUpdateSurveyName={handleUpdateSurveyTitle}
       />
-      <SubHeader />
+      <SubHeader onTogglePreview={handleTogglePreviewMode} />
       <div className="flex flex-1 overflow-hidden">
         <LeftSidebar activeTab={activeMainTab} onTabSelect={handleTabSelect} />
         <main className={`flex flex-1 bg-surface overflow-hidden ${isDiagramView ? 'relative' : ''}`}>
@@ -682,6 +688,9 @@ const App: React.FC = () => {
           </div>
         </main>
       </div>
+      {isPreviewMode && (
+        <SurveyPreview survey={survey} onClose={handleTogglePreviewMode} />
+      )}
     </div>
   );
 };

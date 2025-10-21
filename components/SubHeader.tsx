@@ -1,6 +1,11 @@
 import React, { memo } from 'react';
+import { EyeIcon } from './icons';
 
-const SubHeader: React.FC = memo(() => {
+interface SubHeaderProps {
+  onTogglePreview: () => void;
+}
+
+const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview }) => {
   const navItems = ['Design', 'Test', 'Distribute', 'Results', 'Analyze'];
   const activeItem = 'Design';
 
@@ -23,6 +28,17 @@ const SubHeader: React.FC = memo(() => {
             {item}
           </button>
         ))}
+      </div>
+
+      {/* Preview Button on the right */}
+      <div className="absolute right-4 top-1/2 -translate-y-1/2">
+        <button 
+          onClick={onTogglePreview}
+          className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-on-primary bg-primary rounded-full hover:opacity-90 transition-opacity"
+        >
+          <EyeIcon className="text-base" />
+          <span>Preview</span>
+        </button>
       </div>
     </nav>
   );

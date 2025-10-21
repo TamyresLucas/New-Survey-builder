@@ -3,11 +3,11 @@ import type { Question } from '../types';
 import { QuestionType } from '../types';
 import { parseChoice } from '../utils';
 import {
-  RadioButtonUncheckedIcon,
-  RadioIcon as RadioButtonCheckedIcon,
-  CheckboxOutlineIcon,
-  CheckboxFilledIcon as CheckboxCheckedIcon,
-  ChevronDownIcon,
+    RadioButtonUncheckedIcon,
+    RadioIcon as RadioButtonCheckedIcon,
+    CheckboxOutlineIcon,
+    CheckboxFilledIcon as CheckboxCheckedIcon,
+    ChevronDownIcon,
 } from './icons';
 
 interface PreviewQuestionProps {
@@ -21,42 +21,42 @@ interface PreviewQuestionProps {
 export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAnswerChange, isInvalid, device, value }) => {
   // Local state for UI that doesn't affect survey state (e.g., accordion expansion)
   const [expandedMobileRowId, setExpandedMobileRowId] = useState<string | null>(question.choices?.[0]?.id ?? null);
-
+  
   const handleRadioChange = (choiceId: string) => {
     onAnswerChange(question.id, choiceId);
   };
 
   const handleCheckboxChange = (choiceId: string) => {
-    // FIX: Safely initialize currentSet to prevent errors if `value` is truthy but not a Set.
-    const currentSet = value instanceof Set ? new Set(value) : new Set<string>();
-    if (currentSet.has(choiceId)) {
-      currentSet.delete(choiceId);
+    const currentSet = (value as Set<string>) || new Set();
+    const newSet = new Set(currentSet);
+    if (newSet.has(choiceId)) {
+      newSet.delete(choiceId);
     } else {
-      currentSet.add(choiceId);
+      newSet.add(choiceId);
     }
-    onAnswerChange(question.id, currentSet);
+    onAnswerChange(question.id, newSet);
   };
-
+  
   const handleGridChange = (rowId: string, colId: string) => {
-    const newMap = (value as Map<string, string>) || new Map();
-    newMap.set(rowId, colId);
-    onAnswerChange(question.id, newMap);
-
-    // "Select and advance" logic for mobile accordion view
-    if (device === 'mobile' && question.advancedSettings?.enableMobileLayout) {
-      const choices = question.choices || [];
-      const currentIndex = choices.findIndex(c => c.id === rowId);
-      if (currentIndex !== -1 && currentIndex < choices.length - 1) {
-        const nextChoice = choices[currentIndex + 1];
-        setExpandedMobileRowId(nextChoice.id);
-      } else {
-        setExpandedMobileRowId(null);
+      const newMap = (value as Map<string, string>) || new Map();
+      newMap.set(rowId, colId);
+      onAnswerChange(question.id, newMap);
+      
+      // "Select and advance" logic for mobile accordion view
+      if (device === 'mobile' && question.advancedSettings?.enableMobileLayout) {
+        const choices = question.choices || [];
+        const currentIndex = choices.findIndex(c => c.id === rowId);
+        if (currentIndex !== -1 && currentIndex < choices.length - 1) {
+            const nextChoice = choices[currentIndex + 1];
+            setExpandedMobileRowId(nextChoice.id);
+        } else {
+            setExpandedMobileRowId(null);
+        }
       }
-    }
   };
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    onAnswerChange(question.id, e.target.value);
+      onAnswerChange(question.id, e.target.value);
   }
 
   const renderQuestionText = () => (
@@ -75,30 +75,18 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
     const settings = (device === 'mobile' && question.advancedSettings?.enableMobileLayout)
       ? { ...question.advancedSettings, ...question.advancedSettings?.mobile }
       : question.advancedSettings;
-
+    
     const orientation = settings?.choiceOrientation || 'vertical';
     const numColumns = settings?.numColumns || 2;
-
-    const gridLayoutClasses: { [key: number]: string } = {
-      2: 'grid-cols-2',
-      3: 'grid-cols-3',
-      4: 'grid-cols-4',
-      5: 'grid-cols-5',
-      6: 'grid-cols-6',
-      7: 'grid-cols-7',
-      8: 'grid-cols-8',
-      9: 'grid-cols-9',
-      10: 'grid-cols-10',
-    };
-
+    
     const layoutClasses = {
-      vertical: 'flex flex-col space-y-3',
-      horizontal: 'flex flex-wrap items-center gap-4',
-      grid: `grid gap-3 ${gridLayoutClasses[numColumns] || 'grid-cols-2'}`
+        vertical: 'flex flex-col space-y-3',
+        horizontal: 'flex items-center space-x-4',
+        grid: `grid gap-3 grid-cols-${numColumns}`
     }[orientation];
 
     const radioSelection = value as string | null;
-    const checkboxSelection = (value instanceof Set ? value : new Set<string>()) as Set<string>;
+    const checkboxSelection = (value as Set<string>) || new Set();
 
     return (
       <div className={layoutClasses}>
@@ -108,10 +96,11 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
             <div
               key={choice.id}
               onClick={() => isRadio ? handleRadioChange(choice.id) : handleCheckboxChange(choice.id)}
-              className={`flex items-center gap-3 p-3 rounded-md cursor-pointer border transition-colors ${isSelected
-                ? 'bg-primary-container border-primary shadow-sm'
-                : 'hover:bg-surface-container-lowest border-outline-variant'
-                }`}
+              className={`flex items-center gap-3 p-3 rounded-md cursor-pointer border transition-colors ${
+                isSelected
+                  ? 'bg-primary-container border-primary shadow-sm'
+                  : 'hover:bg-surface-container-high border-outline-variant'
+              }`}
             >
               {isRadio ? (
                 isSelected ? <RadioButtonCheckedIcon className="text-2xl text-primary flex-shrink-0" /> : <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
@@ -127,133 +116,133 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
       </div>
     );
   };
-
+  
   const renderChoiceGrid = () => {
     if (!question.choices || !question.scalePoints) return null;
     const gridSelection = (value as Map<string, string>) || new Map();
-
+    
     // Check if we should render the mobile-optimized accordion view
     if (device === 'mobile' && question.advancedSettings?.enableMobileLayout) {
-      return (
-        <div className="divide-y divide-outline-variant rounded-lg border border-outline-variant overflow-hidden">
-          {(question.choices || []).map(choice => {
-            const { label } = parseChoice(choice.text);
-            const isAccordionExpanded = expandedMobileRowId === choice.id;
-            const selectedScalePointId = gridSelection.get(choice.id);
-            const selectedScalePoint = question.scalePoints?.find(sp => sp.id === selectedScalePointId);
+        return (
+            <div className="divide-y divide-outline-variant rounded-lg border border-outline-variant overflow-hidden">
+                {(question.choices || []).map(choice => {
+                    const { label } = parseChoice(choice.text);
+                    const isAccordionExpanded = expandedMobileRowId === choice.id;
+                    const selectedScalePointId = gridSelection.get(choice.id);
+                    const selectedScalePoint = question.scalePoints?.find(sp => sp.id === selectedScalePointId);
 
-            return (
-              <div key={choice.id}>
-                <button
-                  onClick={() => setExpandedMobileRowId(isAccordionExpanded ? null : choice.id)}
-                  className="w-full flex justify-between items-center p-3 text-left bg-surface-container-high"
-                  aria-expanded={isAccordionExpanded}
-                >
-                  <div className="flex-1 pr-2">
-                    <p className="text-sm text-on-surface">{label}</p>
-                    {selectedScalePoint && !isAccordionExpanded && (
-                      <p className="text-xs text-primary mt-1 font-medium">{selectedScalePoint.text}</p>
-                    )}
-                  </div>
-                  <ChevronDownIcon className={`text-xl text-on-surface-variant transition-transform flex-shrink-0 ${isAccordionExpanded ? 'rotate-180' : ''}`} />
-                </button>
-                {isAccordionExpanded && (
-                  <div className="p-3 bg-surface">
-                    <div className="space-y-3">
-                      {(question.scalePoints || []).map(sp => {
-                        const isSelected = selectedScalePointId === sp.id;
-                        return (
-                          <div
-                            key={sp.id}
-                            onClick={() => handleGridChange(choice.id, sp.id)}
-                            className="flex items-center gap-3 cursor-pointer"
-                          >
-                            {isSelected ?
-                              <RadioButtonCheckedIcon className="text-2xl text-primary flex-shrink-0" /> :
-                              <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
-                            }
-                            <span className={`text-sm ${isSelected ? 'text-primary font-medium' : 'text-on-surface'}`}>
-                              {sp.text}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      );
+                    return (
+                        <div key={choice.id}>
+                            <button 
+                                onClick={() => setExpandedMobileRowId(isAccordionExpanded ? null : choice.id)}
+                                className="w-full flex justify-between items-center p-3 text-left bg-surface-container-high"
+                                aria-expanded={isAccordionExpanded}
+                            >
+                                <div className="flex-1 pr-2">
+                                    <p className="text-sm text-on-surface">{label}</p>
+                                    {selectedScalePoint && !isAccordionExpanded && (
+                                        <p className="text-xs text-primary mt-1 font-medium">{selectedScalePoint.text}</p>
+                                    )}
+                                </div>
+                                <ChevronDownIcon className={`text-xl text-on-surface-variant transition-transform flex-shrink-0 ${isAccordionExpanded ? 'rotate-180' : ''}`} />
+                            </button>
+                            {isAccordionExpanded && (
+                                <div className="p-3 bg-surface">
+                                    <div className="space-y-3">
+                                        {(question.scalePoints || []).map(sp => {
+                                            const isSelected = selectedScalePointId === sp.id;
+                                            return (
+                                                <div 
+                                                    key={sp.id}
+                                                    onClick={() => handleGridChange(choice.id, sp.id)}
+                                                    className="flex items-center gap-3 cursor-pointer"
+                                                >
+                                                    {isSelected ? 
+                                                        <RadioButtonCheckedIcon className="text-2xl text-primary flex-shrink-0" /> : 
+                                                        <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
+                                                    }
+                                                    <span className={`text-sm ${isSelected ? 'text-primary font-medium' : 'text-on-surface'}`}>
+                                                        {sp.text}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        );
     }
-
+    
     // Default desktop table view
     return (
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b-2 border-outline-variant">
-              <th className="p-3 text-left w-1/3"></th>
-              {question.scalePoints.map(sp => (
-                <th key={sp.id} className="p-3 text-center text-sm font-medium text-on-surface-variant align-bottom">
-                  <span>{sp.text}</span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {question.choices.map((choice) => (
-              <tr key={choice.id} className="border-b border-outline-variant last:border-b-0 hover:bg-surface-container-lowest">
-                <td className="p-3 text-base text-on-surface pr-4 align-middle">
-                  {parseChoice(choice.text).label}
-                </td>
-                {question.scalePoints.map(sp => {
-                  const isSelected = gridSelection.get(choice.id) === sp.id;
-                  return (
-                    <td key={sp.id} className="p-2 text-center align-middle">
-                      <button
-                        onClick={() => handleGridChange(choice.id, sp.id)}
-                        className="p-1 rounded-full cursor-pointer"
-                        aria-label={`Select ${sp.text} for ${parseChoice(choice.text).label}`}
-                      >
-                        {isSelected ? <RadioButtonCheckedIcon className="text-2xl text-primary" /> : <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant" />}
-                      </button>
-                    </td>
-                  )
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+        <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+                <thead>
+                    <tr className="border-b-2 border-outline-variant">
+                        <th className="p-3 text-left w-1/3"></th>
+                        {question.scalePoints.map(sp => (
+                            <th key={sp.id} className="p-3 text-center text-sm font-medium text-on-surface-variant align-bottom">
+                                <span>{sp.text}</span>
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {question.choices.map((choice) => (
+                        <tr key={choice.id} className="border-b border-outline-variant last:border-b-0 hover:bg-surface-container-high">
+                            <td className="p-3 text-base text-on-surface pr-4 align-middle">
+                                {parseChoice(choice.text).label}
+                            </td>
+                            {question.scalePoints.map(sp => {
+                                const isSelected = gridSelection.get(choice.id) === sp.id;
+                                return (
+                                <td key={sp.id} className="p-2 text-center align-middle">
+                                    <button 
+                                        onClick={() => handleGridChange(choice.id, sp.id)}
+                                        className="p-1 rounded-full cursor-pointer"
+                                        aria-label={`Select ${sp.text} for ${parseChoice(choice.text).label}`}
+                                    >
+                                        {isSelected ? <RadioButtonCheckedIcon className="text-2xl text-primary" /> : <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant" />}
+                                    </button>
+                                </td>
+                                )
+                            })}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
     );
   };
-
+  
   const renderTextEntry = () => {
-    const settings = question.textEntrySettings;
-    const textValue = (value as string) || '';
-    return (
-      <div className="w-full">
-        {settings?.answerLength === 'long' ? (
-          <textarea
-            rows={8}
-            value={textValue}
-            onChange={handleTextChange}
-            placeholder={settings.placeholder || 'Your answer...'}
-            className="w-full bg-surface border border-outline rounded-md p-2 text-base text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-          />
-        ) : (
-          <input
-            type="text"
-            value={textValue}
-            onChange={handleTextChange}
-            placeholder={settings?.placeholder || 'Your answer...'}
-            className="w-full bg-surface border border-outline rounded-md p-2 text-base text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-          />
-        )}
-      </div>
-    );
+      const settings = question.textEntrySettings;
+      const textValue = (value as string) || '';
+      return (
+          <div className="w-full">
+              {settings?.answerLength === 'long' ? (
+                  <textarea 
+                    rows={8}
+                    value={textValue}
+                    onChange={handleTextChange}
+                    placeholder={settings.placeholder || 'Your answer...'}
+                    className="w-full bg-surface border border-outline rounded-md p-2 text-base text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                  />
+              ) : (
+                  <input
+                    type="text"
+                    value={textValue}
+                    onChange={handleTextChange}
+                    placeholder={settings?.placeholder || 'Your answer...'}
+                    className="w-full bg-surface border border-outline rounded-md p-2 text-base text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                  />
+              )}
+          </div>
+      );
   };
 
   const renderContent = () => {
@@ -273,7 +262,7 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
   };
 
   return (
-    <div className="mb-4 last:mb-0">
+    <div className="py-8 border-b border-outline-variant last:border-b-0">
       {renderQuestionText()}
       {renderContent()}
       {isInvalid && (

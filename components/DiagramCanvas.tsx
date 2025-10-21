@@ -60,6 +60,16 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     }, [survey]);
     
     const { layoutNodes, layoutEdges } = useMemo(() => {
+        // This helper finds the next question in the survey flow that is not a page break.
+        const findNextQuestion = (startIndex: number, allQs: Question[]): Question | undefined => {
+            for (let i = startIndex + 1; i < allQs.length; i++) {
+                if (allQs[i].type !== QuestionType.PageBreak) {
+                    return allQs[i];
+                }
+            }
+            return undefined;
+        };
+        
         const relevantQuestions = survey.blocks.flatMap(b => b.questions).filter(q =>
             q.type === QuestionType.Radio ||
             q.type === QuestionType.Checkbox ||
@@ -72,6 +82,9 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         }
         
         const questionMap: Map<string, Question> = new Map(relevantQuestions.map(q => [q.id, q]));
+        
+        // This list includes all questions, including page breaks, for correct indexing.
+        const allQuestions = survey.blocks.flatMap(b => b.questions);
 
         const nodeHeights = new Map<string, number>();
         relevantQuestions.forEach(q => {
@@ -94,8 +107,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         const queue: string[] = relevantQuestions[0] ? [relevantQuestions[0].id] : [];
         const visited = new Set<string>(queue);
 
-        const allQuestions = survey.blocks.flatMap(b => b.questions);
-
         while(queue.length > 0) {
             const currentId = queue.shift()!;
             const currentQuestion = questionMap.get(currentId)!;
@@ -117,7 +128,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             }
             
             const currentIdxInAll = allQuestions.findIndex(q => q.id === currentId);
-            const nextQuestionInSurvey = allQuestions[currentIdxInAll + 1];
+            const nextQuestionInSurvey = findNextQuestion(currentIdxInAll, allQuestions);
 
             // Default "next" logic
             let hasExplicitTerminalLogic = false; // Check if logic explicitly goes to 'end' or if all paths are defined
@@ -194,14 +205,15 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 let isDraft = false;
 
                 const logicToUse = q.draftSkipLogic ?? q.skipLogic;
+                const nextQuestion = findNextQuestion(index, allQuestions);
 
                 if (logicToUse) {
                     if (logicToUse.type === 'simple' && handle.id === 'output') {
-                        targetId = logicToUse.skipTo === 'next' ? allQuestions[index + 1]?.id : logicToUse.skipTo;
+                        targetId = logicToUse.skipTo === 'next' ? nextQuestion?.id : logicToUse.skipTo;
                     } else if (logicToUse.type === 'per_choice') {
                         const rule = logicToUse.rules.find(r => r.choiceId === handle.id);
                         if (rule && rule.skipTo) {
-                           targetId = rule.skipTo === 'next' ? allQuestions[index + 1]?.id : rule.skipTo;
+                           targetId = rule.skipTo === 'next' ? nextQuestion?.id : rule.skipTo;
                         }
                     }
                 }
@@ -216,7 +228,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                         isImplicitlyTerminal = logicToUse.skipTo !== 'next';
                     }
                     if (!isImplicitlyTerminal) {
-                        targetId = allQuestions[index + 1].id;
+                        targetId = nextQuestion?.id;
                     }
                 }
 

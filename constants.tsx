@@ -65,6 +65,12 @@ export const initialSurveyData: Survey = {
           },
         },
         {
+          id: 'pb1',
+          qid: '',
+          text: 'Page Break',
+          type: QuestionType.PageBreak,
+        },
+        {
           id: 'q2',
           qid: 'Q2',
           text: 'How often do you visit our café?',
@@ -73,6 +79,12 @@ export const initialSurveyData: Survey = {
             answerLength: 'long',
             placeholder: 'e.g., Once a week'
           }
+        },
+        {
+          id: 'pb2',
+          qid: '',
+          text: 'Page Break',
+          type: QuestionType.PageBreak,
         },
         {
           id: 'q3',
@@ -86,6 +98,12 @@ export const initialSurveyData: Survey = {
             { id: 'q3c4', text: 'Q3_4 Drip Coffee' },
             { id: 'q3c5', text: 'Q3_5 Other: ____' },
           ],
+        },
+        {
+          id: 'pb3',
+          qid: '',
+          text: 'Page Break',
+          type: QuestionType.PageBreak,
         },
         {
             id: 'q4',

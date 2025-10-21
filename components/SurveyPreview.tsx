@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import type { Survey, Question } from '../types';
+import type { Survey, Question, DisplayLogicCondition } from '../types';
 import { QuestionType } from '../types';
 import { XIcon, ArrowRightAltIcon, SignalIcon, BatteryIcon } from './icons';
 import { PreviewQuestion } from './PreviewQuestion';
+import { CHOICE_BASED_QUESTION_TYPES } from '../utils';
 
 interface SurveyPreviewProps {
   survey: Survey;
@@ -21,6 +22,85 @@ interface PreviewContentProps {
   onBack: () => void;
   onNext: () => void;
 }
+
+// Helper functions for display logic evaluation
+const evaluateCondition = (
+  condition: DisplayLogicCondition,
+  answers: Map<string, any>,
+  survey: Survey,
+  questionMapByQid: Map<string, Question>
+): boolean => {
+  const sourceQuestion = questionMapByQid.get(condition.questionId);
+  if (!sourceQuestion) return false;
+
+  const answer = answers.get(sourceQuestion.id);
+
+  if (condition.operator === 'is_empty') {
+    if (answer === undefined || answer === null) return true;
+    if (typeof answer === 'string' && answer.trim() === '') return true;
+    if (answer instanceof Set && answer.size === 0) return true;
+    return false;
+  }
+  if (condition.operator === 'is_not_empty') {
+    if (answer === undefined || answer === null) return false;
+    if (typeof answer === 'string' && answer.trim() === '') return false;
+    if (answer instanceof Set && answer.size === 0) return false;
+    return true;
+  }
+
+  if (CHOICE_BASED_QUESTION_TYPES.has(sourceQuestion.type) && sourceQuestion.choices) {
+    const conditionValue = condition.value;
+
+    if (typeof answer === 'string') { // Radio button
+      const selectedChoice = sourceQuestion.choices.find(c => c.id === answer);
+      const actualValue = selectedChoice ? selectedChoice.text : null;
+      if (condition.operator === 'equals') return actualValue === conditionValue;
+      if (condition.operator === 'not_equals') return actualValue !== conditionValue;
+    }
+
+    if (answer instanceof Set) { // Checkbox
+      const selectedChoiceTexts = new Set(
+        Array.from(answer)
+          .map(choiceId => sourceQuestion.choices!.find(c => c.id === choiceId)?.text)
+          .filter(Boolean) as string[]
+      );
+      if (condition.operator === 'equals') return selectedChoiceTexts.has(conditionValue);
+      if (condition.operator === 'not_equals') return !selectedChoiceTexts.has(conditionValue);
+    }
+  } else { // For TextEntry, etc.
+    const actualValue = answer as string | null;
+    if (condition.operator === 'equals') return actualValue === condition.value;
+    if (condition.operator === 'not_equals') return actualValue !== condition.value;
+    if (condition.operator === 'contains') return actualValue?.includes(condition.value) ?? false;
+  }
+
+  return false;
+};
+
+const evaluateDisplayLogic = (
+  question: Question,
+  answers: Map<string, any>,
+  survey: Survey,
+  questionMapByQid: Map<string, Question>
+): boolean => {
+  if (!question.displayLogic || question.displayLogic.conditions.length === 0) {
+    return true; // Always visible if no logic
+  }
+
+  const { operator, conditions } = question.displayLogic;
+  const confirmedConditions = conditions.filter(c => c.isConfirmed);
+
+  if (confirmedConditions.length === 0) return true;
+
+  const conditionResults = confirmedConditions.map(cond => evaluateCondition(cond, answers, survey, questionMapByQid));
+
+  if (operator === 'AND') {
+    return conditionResults.every(result => result);
+  } else { // OR
+    return conditionResults.some(result => result);
+  }
+};
+
 
 // This component now ONLY renders the content (questions, buttons), not the device chrome.
 const PreviewContent: React.FC<PreviewContentProps> = ({
@@ -85,10 +165,18 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
 
   const pages = useMemo(() => {
     const allQuestions = survey.blocks.flatMap(b => b.questions);
-    
     if (allQuestions.length === 0) return [[]];
 
-    return allQuestions.reduce((acc, question) => {
+    // FIX: Changed the order of filter and map to ensure correct type inference for the Map constructor.
+    const questionMapByQid = new Map(allQuestions.filter(q => q.qid).map(q => [q.qid, q]));
+
+    // Filter questions based on display logic
+    const visibleQuestions = allQuestions.filter(question => {
+        return evaluateDisplayLogic(question, answers, survey, questionMapByQid);
+    });
+
+    // Paginate the visible questions
+    return visibleQuestions.reduce((acc, question) => {
       if (question.type === QuestionType.PageBreak) {
         if (acc[acc.length - 1].length > 0) {
             acc.push([]);
@@ -98,10 +186,18 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
       }
       return acc;
     }, [[]] as Question[][]);
-  }, [survey]);
+  }, [survey, answers]);
 
   useEffect(() => {
-    setAnswers(new Map());
+    // If the current page index is now out of bounds due to questions disappearing,
+    // move to the last available page.
+    if (currentPage >= pages.length) {
+      setCurrentPage(Math.max(0, pages.length - 1));
+    }
+  }, [pages, currentPage]);
+
+  useEffect(() => {
+    // Clear validation errors when the page changes, but keep the answers
     setValidationErrors(new Set());
   }, [currentPage]);
 
@@ -203,10 +299,13 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
         } else if (logic.type === 'per_choice' && (typeof answer === 'string' || answer instanceof Set)) {
             const answerSet = typeof answer === 'string' ? new Set([answer]) : answer;
             for (const ans of Array.from(answerSet).reverse()) {
-                const rule = logic.rules.find(r => r.choiceId === ans);
-                if (rule && rule.skipTo) {
-                    destination = rule.skipTo;
-                    break;
+                const choice = question.choices?.find(c => c.id === ans);
+                if (choice) {
+                    const rule = logic.rules.find(r => r.choiceId === choice.id);
+                    if (rule && rule.skipTo) {
+                        destination = rule.skipTo;
+                        break;
+                    }
                 }
             }
             if (destination) break;

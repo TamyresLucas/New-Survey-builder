@@ -109,11 +109,12 @@ interface QuestionActionsMenuProps {
   onDuplicate: () => void;
   onDelete: () => void;
   onAddPageBreak: () => void;
+  onMoveToNewBlock: () => void;
 }
 
-export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ onDuplicate, onDelete, onAddPageBreak }) => {
+export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ onDuplicate, onDelete, onAddPageBreak, onMoveToNewBlock }) => {
     const menuItems = [
-        { label: 'Move to block', action: () => {} },
+        { label: 'Move to new block', action: onMoveToNewBlock },
         { label: 'Duplicate', action: onDuplicate },
         { label: 'Replace from library', action: () => {} },
         { label: 'Add to library', action: () => {} },

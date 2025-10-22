@@ -72,7 +72,7 @@ export const DisplayLogicDisplay: React.FC<{ logic: DisplayLogic; survey: Survey
 
 
 // --- Skip Logic Component ---
-export const SkipLogicDisplay: React.FC<{ logic: SkipLogic; currentQuestion: Question; survey: Survey; onClick: () => void }> = ({ logic, currentQuestion, survey, onClick }) => {
+export const SkipLogicDisplay: React.FC<{ logic: SkipLogic; currentQuestion: Question; survey: Survey; onClick: () => void; onRemove: () => void; }> = ({ logic, currentQuestion, survey, onClick, onRemove }) => {
     if (logic.type === 'simple' && logic.isConfirmed !== true) {
         return null;
     }
@@ -87,14 +87,27 @@ export const SkipLogicDisplay: React.FC<{ logic: SkipLogic; currentQuestion: Que
     
     if (logic.type === 'simple' && logic.isConfirmed !== true) return null;
 
+    const handleRemove = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onRemove();
+    };
+
     return (
         <div 
             onClick={onClick}
-            className="mt-4 p-3 border border-outline-variant rounded-md bg-surface-container-high cursor-pointer hover:border-primary"
+            className="mt-4 p-3 border border-outline-variant rounded-md bg-surface-container-high cursor-pointer hover:border-primary group/skiplogic"
         >
-            <div className="flex items-center gap-2 mb-2">
-                <ArrowRightAltIcon className="text-lg text-primary" />
-                <h4 className="text-sm font-bold text-on-surface">Skip Logic</h4>
+            <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                    <ArrowRightAltIcon className="text-lg text-primary" />
+                    <h4 className="text-sm font-bold text-on-surface">Skip Logic</h4>
+                </div>
+                <button
+                    onClick={handleRemove}
+                    className="text-xs font-medium text-error hover:underline opacity-0 group-hover/skiplogic:opacity-100 transition-opacity"
+                >
+                    Remove
+                </button>
             </div>
             <div className="pl-2 space-y-1 text-sm text-on-surface-variant">
                 {logic.type === 'simple' && logic.isConfirmed && (

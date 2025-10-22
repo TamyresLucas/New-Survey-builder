@@ -22,6 +22,7 @@ interface SurveyBlockProps {
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
     onDeleteQuestion: (questionId: string) => void;
     onCopyQuestion: (questionId: string) => void;
+    onMoveQuestionToNewBlock: (questionId: string) => void;
     onDeleteBlock: (blockId: string) => void;
     onReorderQuestion: (draggedQuestionId: string, targetQuestionId: string | null, targetBlockId: string) => void;
     onAddQuestion: (questionType: QuestionType, targetQuestionId: string | null, targetBlockId: string) => void;
@@ -48,7 +49,7 @@ interface SurveyBlockProps {
 }
 
 const SurveyBlock: React.FC<SurveyBlockProps> = memo(({ 
-  block, survey, selectedQuestion, checkedQuestions, logicIssues, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
+  block, survey, selectedQuestion, checkedQuestions, logicIssues, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
   isBlockDragging, onBlockDragStart, onBlockDragEnd, isCollapsed, onToggleCollapse,
   onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onAddFromLibrary
 }) => {
@@ -293,6 +294,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                       onUpdateQuestion={onUpdateQuestion}
                       onDeleteQuestion={onDeleteQuestion}
                       onCopyQuestion={onCopyQuestion}
+                      onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
                       onToggleCheck={onToggleQuestionCheck}
                       toolboxItems={toolboxItems}
                       isDragging={draggedQuestionId === question.id}

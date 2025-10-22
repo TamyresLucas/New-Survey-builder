@@ -83,6 +83,7 @@ const QuestionCard: React.FC<{
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
     onDeleteQuestion: (questionId: string) => void;
     onCopyQuestion: (questionId: string) => void;
+    onMoveQuestionToNewBlock: (questionId: string) => void;
     toolboxItems: ToolboxItemData[];
     isDragging: boolean;
     onDragStart: () => void;
@@ -91,7 +92,7 @@ const QuestionCard: React.FC<{
     onAddPageBreakAfterQuestion: (questionId: string) => void;
 }> = memo(({ 
     question, survey, logicIssues, isSelected, isChecked, onSelect, onToggleCheck, id, 
-    onUpdateQuestion, onDeleteQuestion, onCopyQuestion, toolboxItems,
+    onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, toolboxItems,
     isDragging, onDragStart, onDragEnd, onAddChoice, onAddPageBreakAfterQuestion
 }) => {
     
@@ -347,6 +348,7 @@ const QuestionCard: React.FC<{
                                 onDuplicate={() => { onCopyQuestion(question.id); setIsActionsMenuOpen(false); }}
                                 onDelete={() => { onDeleteQuestion(question.id); setIsActionsMenuOpen(false); }}
                                 onAddPageBreak={() => { onAddPageBreakAfterQuestion(question.id); setIsActionsMenuOpen(false); }}
+                                onMoveToNewBlock={() => { onMoveQuestionToNewBlock(question.id); setIsActionsMenuOpen(false); }}
                             />
                         )}
                     </div>
@@ -585,6 +587,7 @@ const QuestionCard: React.FC<{
                         currentQuestion={question}
                         survey={survey}
                         onClick={() => onSelect(question, { tab: 'Behavior' })}
+                        onRemove={() => onUpdateQuestion(question.id, { skipLogic: undefined, draftSkipLogic: undefined })}
                     />
                 )}
                 {question.branchingLogic && question.branchingLogic.branches.length > 0 && (

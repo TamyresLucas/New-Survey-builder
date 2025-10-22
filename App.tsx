@@ -664,6 +664,7 @@ const App: React.FC = () => {
                   helpTopic={geminiHelpTopic}
                   selectedQuestion={selectedQuestion}
                   survey={survey}
+                  logicIssues={logicIssues}
                 />
             ) : showBulkEditPanel ? (
               <BulkEditPanel

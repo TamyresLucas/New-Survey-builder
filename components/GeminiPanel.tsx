@@ -1,9 +1,11 @@
 import { GoogleGenAI, FunctionDeclaration, Type, Chat } from "@google/genai";
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { XIcon, SparkleIcon, SendIcon, LoaderIcon, AccountCircleIcon } from './icons';
-import type { ChatMessage, Question, QuestionType, Choice, Survey, DisplayLogic, SkipLogic, SkipLogicRule } from '../types';
+import type { ChatMessage, Question, QuestionType, Choice, Survey, DisplayLogic, DisplayLogicCondition, SkipLogic, SkipLogicRule, Block, LogicIssue } from '../types';
 import { QuestionType as QTEnum } from '../types';
-import { generateId, parseChoice } from '../utils';
+// FIX: Add import for CHOICE_BASED_QUESTION_TYPES from ../utils to resolve 'Cannot find name' error.
+import { generateId, parseChoice, CHOICE_BASED_QUESTION_TYPES } from '../utils';
+import { validateSurveyLogic } from '../logicValidator';
 
 interface GeminiPanelProps {
   onClose: () => void;
@@ -12,9 +14,185 @@ interface GeminiPanelProps {
   helpTopic: string | null;
   selectedQuestion: Question | null;
   survey: Survey;
+  logicIssues: LogicIssue[];
 }
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+
+type PendingLogicChange = {
+    name: string;
+    args: any;
+};
+
+// Helper to deep compare function calls
+const isSameLogicChange = (a: PendingLogicChange | null, b: PendingLogicChange) => {
+    if (!a) return false;
+    // A simple JSON.stringify is good enough for this
+    return JSON.stringify(a) === JSON.stringify(b);
+};
+
+const findPreviousQuestion = (startIndex: number, allQs: Question[]): Question | undefined => {
+    for (let i = startIndex - 1; i >= 0; i--) {
+        // FIX: Changed QuestionType to QTEnum to use it as a value, as QuestionType was imported as a type.
+        if (allQs[i].type !== QTEnum.PageBreak) {
+            return allQs[i];
+        }
+    }
+    return undefined;
+};
+
+
+// Helper function to find conditions required to reach a question (one level back)
+const findDirectEntryConditions = (questionId: string, survey: Survey): DisplayLogicCondition[] => {
+    const allQuestions = survey.blocks.flatMap(b => b.questions);
+    const targetQuestion = allQuestions.find(q => q.id === questionId);
+    const targetQuestionIndex = allQuestions.findIndex(q => q.id === questionId);
+
+    if (!targetQuestion || targetQuestionIndex === -1) return [];
+
+    // Start with the question's own display logic
+    const conditions: DisplayLogicCondition[] = targetQuestion.displayLogic?.conditions.filter(c => c.isConfirmed) || [];
+
+    // Path 1: Explicit skips TO this question from any other question
+    for (const sourceQuestion of allQuestions) {
+        if (sourceQuestion.id === questionId) continue;
+        const skipLogic = sourceQuestion.skipLogic;
+        if (skipLogic?.type === 'per_choice' && skipLogic.rules) {
+            for (const rule of skipLogic.rules) {
+                if (rule.skipTo === questionId && rule.isConfirmed) {
+                    const choice = sourceQuestion.choices?.find(c => c.id === rule.choiceId);
+                    if (choice) {
+                        conditions.push({
+                            id: generateId('inferred'),
+                            questionId: sourceQuestion.qid,
+                            operator: 'equals',
+                            value: choice.text,
+                            isConfirmed: true,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // Path 2: Implicit fall-through from the preceding question
+    const prevQuestion = findPreviousQuestion(targetQuestionIndex, allQuestions);
+    if (prevQuestion) {
+        const prevLogic = prevQuestion.skipLogic;
+
+        if (!prevLogic) {
+             // If there's no logic, the only path is fall-through. This path doesn't add specific conditions from prevQuestion.
+        } else {
+            if (prevLogic.type === 'simple' && prevLogic.skipTo === 'next' && prevLogic.isConfirmed) {
+                // Unconditional fall-through. No specific conditions are added from prevQuestion.
+            } else if (prevLogic.type === 'per_choice') {
+                // Add conditions for each choice that explicitly falls through to 'next'
+                const fallThroughRules = prevLogic.rules.filter(r => r.skipTo === 'next' && r.isConfirmed);
+                for (const rule of fallThroughRules) {
+                    const choice = prevQuestion.choices?.find(c => c.id === rule.choiceId);
+                    if (choice) {
+                        conditions.push({
+                            id: generateId('inferred'),
+                            questionId: prevQuestion.qid,
+                            operator: 'equals',
+                            value: choice.text,
+                            isConfirmed: true,
+                        });
+                    }
+                }
+            }
+            // If prevLogic is simple and doesn't skip to 'next', there's no fall-through path, so we do nothing.
+        }
+    }
+    
+    // De-duplicate conditions
+    const uniqueConditions = Array.from(new Map(conditions.map(c => [`${c.questionId}-${c.operator}-${c.value}`, c])).values());
+    return uniqueConditions;
+};
+
+/**
+ * Creates a structured, readable text summary of the entire survey for the Gemini model.
+ * @param survey The survey object.
+ * @returns A string representing the survey structure.
+ */
+const generateSurveyContext = (survey: Survey, logicIssues: LogicIssue[]): string => {
+    let context = "";
+    const allQuestions = survey.blocks.flatMap(b => b.questions);
+
+    const formatDestination = (destinationId: string): string => {
+        if (destinationId === 'next' || destinationId === 'end') {
+            return destinationId;
+        }
+        const q = allQuestions.find(q => q.id === destinationId);
+        return q ? q.qid : 'an unknown question';
+    };
+
+    survey.blocks.forEach(block => {
+        context += `## Block ${block.bid}: ${block.title}\n`;
+        block.questions.forEach(q => {
+            if (q.type === QTEnum.PageBreak) {
+                context += `- (Page Break)\n`;
+                return;
+            }
+            context += `- **${q.qid}**: ${q.text} (*${q.type}*)\n`;
+
+            if (q.choices && q.choices.length > 0) {
+                context += `    - **Choices**: ${q.choices.map(c => `'${c.text}'`).join(', ')}\n`;
+            }
+            if (q.scalePoints && q.scalePoints.length > 0) {
+                context += `    - **Columns**: ${q.scalePoints.map(c => `'${c.text}'`).join(', ')}\n`;
+            }
+
+            const displayLogic = q.draftDisplayLogic ?? q.displayLogic;
+            if (displayLogic && displayLogic.conditions.length > 0) {
+                const logicStr = displayLogic.conditions
+                    .filter(c => c.isConfirmed)
+                    .map(c => `${c.questionId} ${c.operator} '${c.value}'`)
+                    .join(` ${displayLogic.operator} `);
+                if (logicStr) {
+                    context += `    - **Display Logic**: SHOW IF ${logicStr}\n`;
+                }
+            }
+
+            const skipLogic = q.draftSkipLogic ?? q.skipLogic;
+            if (skipLogic) {
+                if (skipLogic.type === 'simple' && skipLogic.isConfirmed) {
+                    const dest = formatDestination(skipLogic.skipTo);
+                    context += `    - **Skip Logic**: IF answered -> ${dest}\n`;
+                } else if (skipLogic.type === 'per_choice') {
+                    const rulesStr = skipLogic.rules
+                        .filter(r => r.isConfirmed)
+                        .map(rule => {
+                            const choice = q.choices?.find(c => c.id === rule.choiceId);
+                            const choiceLabel = choice ? parseChoice(choice.text).label : 'Unknown Choice';
+                            const dest = formatDestination(rule.skipTo);
+                            return `IF '${choiceLabel}' -> ${dest}`;
+                        })
+                        .join('; ');
+                    if (rulesStr) {
+                         context += `    - **Skip Logic**: ${rulesStr}\n`;
+                    }
+                }
+            }
+        });
+        context += "\n";
+    });
+
+    if (logicIssues && logicIssues.length > 0) {
+        context += `## Current Logic Issues\n`;
+        context += "The following logic problems have been detected in the survey:\n";
+        logicIssues.forEach(issue => {
+            const q = allQuestions.find(q => q.id === issue.questionId);
+            if (q) {
+                context += `- On Question ${q.qid}: ${issue.message}\n`;
+            }
+        });
+        context += "\n";
+    }
+
+
+    return context;
+};
 
 const addQuestionFunctionDeclaration: FunctionDeclaration = {
     name: 'add_question',
@@ -97,6 +275,21 @@ const updateQuestionFunctionDeclaration: FunctionDeclaration = {
     },
     required: ['qid'],
   },
+};
+
+const getQuestionDetailsFunctionDeclaration: FunctionDeclaration = {
+    name: 'get_question_details',
+    description: 'Retrieves the current configuration and details of a specific question in the survey.',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        qid: {
+          type: Type.STRING,
+          description: "The variable name of the question to get details for (e.g., 'Q1'). When the user asks about 'this question', use the qid from the provided context.",
+        },
+      },
+      required: ['qid'],
+    },
 };
 
 const setDisplayLogicFunctionDeclaration: FunctionDeclaration = {
@@ -210,21 +403,24 @@ const initialMessages: ChatMessage[] = [
 ];
 
 
-const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, onUpdateQuestion, helpTopic, selectedQuestion, survey }) => {
+const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, onUpdateQuestion, helpTopic, selectedQuestion, survey, logicIssues }) => {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingLogicChange, setPendingLogicChange] = useState<PendingLogicChange | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<Chat | null>(null);
 
   useEffect(() => {
     const systemInstruction = `You are a helpful survey building assistant integrated into a UI.
     Your primary goal is to help users build and modify surveys using available tools.
-    You can add questions, update questions, and add or remove display logic and skip logic.
-    When the user refers to "this question" or "the selected question," you should use the context provided about the currently selected question (if any).
-    Use the update_question tool to modify existing questions based on user requests like "make this required" or "change the choices".
-    Use the set_display_logic and set_skip_logic tools to add conditional logic. Use the corresponding remove_... tools to delete logic.
-    Always be concise and confirm actions taken.`;
+    With every user prompt, you will be provided with the complete current structure of the survey, including all questions, choices, and logic. You MUST treat this structure as the single source of truth.
+    The provided context may also include a list of 'Current Logic Issues'. You should be aware of these when making changes or if the user asks you to validate the survey.
+    When the user refers to "this question" or "the selected question," you should use the context provided about the currently selected question.
+    When you propose a logic change (display or skip logic), it will be validated. If validation fails, you will receive a response like "VALIDATION_FAILED: <details>".
+    When this happens, you MUST inform the user about the specific issues found in the details, and ask them if they want to proceed anyway.
+    Do not apologize or try to fix it yourself. Just present the facts and ask for confirmation.
+    If the user confirms, call the exact same function again. If they cancel, simply confirm the cancellation.`;
 
     chatRef.current = ai.chats.create({
       model: 'gemini-2.5-flash',
@@ -236,6 +432,7 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, 
         tools: [{ functionDeclarations: [
             addQuestionFunctionDeclaration, 
             updateQuestionFunctionDeclaration,
+            getQuestionDetailsFunctionDeclaration,
             setDisplayLogicFunctionDeclaration,
             removeDisplayLogicFunctionDeclaration,
             setSkipLogicFunctionDeclaration,
@@ -286,6 +483,148 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, 
       }
     }
   }, [helpTopic]);
+  
+  const applyLogicChange = useCallback((name: string, args: any) => {
+    const { qid } = args;
+    if (!qid) return;
+
+    switch (name) {
+        case 'set_display_logic': {
+            const { logicalOperator, conditions } = args as { logicalOperator?: 'AND' | 'OR'; conditions: { sourceQid: string; operator: any; value?: string }[] };
+            const questionToUpdate = survey.blocks.flatMap(b => b.questions).find(q => q.qid === qid);
+            if (questionToUpdate) {
+                const newDisplayLogic: DisplayLogic = {
+                    operator: logicalOperator || 'AND',
+                    conditions: conditions.map(c => ({ id: generateId('dlc'), questionId: c.sourceQid, operator: c.operator, value: c.value || '', isConfirmed: true }))
+                };
+                onUpdateQuestion({ qid, displayLogic: newDisplayLogic });
+            }
+            break;
+        }
+        case 'remove_display_logic': {
+            onUpdateQuestion({ qid, displayLogic: undefined });
+            break;
+        }
+        case 'set_skip_logic': {
+            const { rules } = args as { rules: { choiceText?: string; destinationQid: string }[] };
+            const questionToUpdate = survey.blocks.flatMap(b => b.questions).find(q => q.qid === qid);
+            if (!questionToUpdate) break;
+
+            let newSkipLogic: SkipLogic | undefined;
+
+            if (rules.length === 1 && !rules[0].choiceText && !CHOICE_BASED_QUESTION_TYPES.has(questionToUpdate.type)) {
+                const destQ = survey.blocks.flatMap(b => b.questions).find(q => q.qid.toLowerCase() === rules[0].destinationQid.toLowerCase());
+                const skipTo = ['next', 'end'].includes(rules[0].destinationQid.toLowerCase()) ? rules[0].destinationQid.toLowerCase() : destQ?.id || '';
+                if (skipTo) newSkipLogic = { type: 'simple', skipTo, isConfirmed: true };
+            } else if (questionToUpdate.choices) {
+                const skipRules: SkipLogicRule[] = [];
+                for (const rule of rules) {
+                    const choice = questionToUpdate.choices.find(c => parseChoice(c.text).label.toLowerCase() === rule.choiceText?.toLowerCase());
+                    if (choice) {
+                        const destQ = survey.blocks.flatMap(b => b.questions).find(q => q.qid.toLowerCase() === rule.destinationQid.toLowerCase());
+                        const skipTo = ['next', 'end'].includes(rule.destinationQid.toLowerCase()) ? rule.destinationQid.toLowerCase() : destQ?.id || '';
+                        if (skipTo) skipRules.push({ choiceId: choice.id, skipTo, isConfirmed: true });
+                    }
+                }
+                if (skipRules.length > 0) newSkipLogic = { type: 'per_choice', rules: skipRules };
+            }
+
+            if (newSkipLogic) onUpdateQuestion({ qid, skipLogic: newSkipLogic });
+            break;
+        }
+        case 'remove_skip_logic': {
+            onUpdateQuestion({ qid, skipLogic: undefined });
+            break;
+        }
+    }
+}, [onUpdateQuestion, survey]);
+
+const validateLogicChange = useCallback((name: string, args: any): { ok: boolean, error?: string } => {
+    // Run standard validation for loops or skipping backward first
+    const dryRunSurvey: Survey = JSON.parse(JSON.stringify(survey));
+    const questionInDryRun = dryRunSurvey.blocks.flatMap((b: Block) => b.questions).find((q: Question) => q.qid === args.qid);
+    if (!questionInDryRun) return { ok: false, error: 'Internal error during validation.' };
+
+    switch (name) {
+        case 'set_skip_logic': {
+            const { rules } = args;
+            if (rules.length === 1 && !rules[0].choiceText) { // Simple logic
+                questionInDryRun.skipLogic = { type: 'simple', skipTo: rules[0].destinationQid, isConfirmed: true };
+            } else { // Per-choice
+                questionInDryRun.skipLogic = { type: 'per_choice', rules: (questionInDryRun.choices || []).map(() => ({ choiceId: '', skipTo: '', isConfirmed: true })) };
+            }
+            break;
+        }
+        // other cases can be added if needed
+    }
+
+    const initialIssues = validateSurveyLogic(survey);
+    const newIssues = validateSurveyLogic(dryRunSurvey);
+    const initialIssueKeys = new Set(initialIssues.map(i => `${i.questionId}-${i.message}`));
+    
+    let criticalNewIssues = newIssues.filter(issue => !initialIssueKeys.has(`${issue.questionId}-${issue.message}`));
+    
+    if (criticalNewIssues.length > 0) {
+        const errorDetails = criticalNewIssues.map(issue => {
+            const q = survey.blocks.flatMap(b => b.questions).find(q => q.id === issue.questionId);
+            return `- On question ${q?.qid || 'unknown'}: ${issue.message}`;
+        }).join('\n');
+        return { ok: false, error: `This change may cause issues on other questions:\n${errorDetails}` };
+    }
+
+
+    // Advanced validation for impossible paths
+    if (name === 'set_skip_logic') {
+        const { qid, rules } = args;
+        const sourceQ = survey.blocks.flatMap(b => b.questions).find(q => q.qid === qid);
+        if (!sourceQ) return { ok: true }; // Should be caught by earlier checks
+
+        for (const rule of rules) {
+            const { destinationQid } = rule;
+            if (!destinationQid || ['next', 'end'].includes(destinationQid.toLowerCase())) continue;
+
+            const targetQ = survey.blocks.flatMap(b => b.questions).find(q => q.qid.toLowerCase() === destinationQid.toLowerCase());
+            if (!targetQ || !targetQ.displayLogic) continue;
+            
+            const targetDisplayConditions = targetQ.displayLogic.conditions.filter(c => c.isConfirmed);
+            const entryConditions = findDirectEntryConditions(sourceQ.id, survey);
+
+            // Add the condition for this specific skip rule, if it's choice-based
+            if (rule.choiceText && sourceQ.choices) {
+                const choice = sourceQ.choices.find(c => parseChoice(c.text).label.toLowerCase() === rule.choiceText.toLowerCase());
+                if (choice) {
+                    entryConditions.push({
+                        id: generateId('inferred'),
+                        questionId: sourceQ.qid,
+                        operator: 'equals',
+                        value: choice.text, // The full value, e.g. Q1_1 Yes
+                        isConfirmed: true,
+                    });
+                }
+            }
+            
+            // Combine all conditions and check for conflicts
+            const allConditions = [...targetDisplayConditions, ...entryConditions];
+            const conditionsByQid = new Map<string, DisplayLogicCondition[]>();
+            allConditions.forEach(c => {
+                if (!conditionsByQid.has(c.questionId)) conditionsByQid.set(c.questionId, []);
+                conditionsByQid.get(c.questionId)!.push(c);
+            });
+
+            for (const [conflictingQid, conditions] of conditionsByQid.entries()) {
+                if (conditions.length < 2) continue;
+                
+                const values = new Set(conditions.filter(c => c.operator === 'equals').map(c => c.value));
+                if (values.size > 1) {
+                    return { ok: false, error: `This skip logic creates an impossible path. The conditions required to reach ${sourceQ.qid} mean the destination question ${targetQ.qid} would be HIDDEN due to its display logic. The conflict involves question ${conflictingQid}.` };
+                }
+            }
+        }
+    }
+    
+    return { ok: true };
+}, [survey]);
+
 
   const handleSendMessage = useCallback(async () => {
     const trimmedInput = inputValue.trim();
@@ -297,136 +636,149 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, 
     setIsLoading(true);
 
     try {
-      let finalInput = trimmedInput;
-      if (selectedQuestion) {
-          finalInput = `CONTEXT: The user has question ${selectedQuestion.qid} ('${selectedQuestion.text}') selected.\n\nUSER PROMPT: ${trimmedInput}`;
-      }
+        const surveyContext = generateSurveyContext(survey, logicIssues);
+        let finalInput = `This is the current structure of the survey:\n${surveyContext}\nPlease use this as the single source of truth for the survey's content and logic.\n\n`;
 
-      const response = await chatRef.current.sendMessage({ message: finalInput });
-      
-      const newModelMessages: ChatMessage[] = [];
-
-      if (response.functionCalls && response.functionCalls.length > 0) {
-        for (const funcCall of response.functionCalls) {
-          if (funcCall.name === 'add_question') {
-            const { title, type, choices, after_qid, before_qid } = funcCall.args as { title: string; type: QuestionType; choices?: string[]; after_qid?: string; before_qid?: string; };
-            onAddQuestion(type, title, choices, after_qid, before_qid);
-
-            let confirmationText = `Sure, I've added a "${type}" question with the title "${title}"`;
-            if (before_qid) {
-              confirmationText += ` before question ${before_qid}. The question numbers have been updated.`;
-            } else if (after_qid) {
-              confirmationText += ` after question ${after_qid}.`;
-            } else {
-              confirmationText += '.';
-            }
-            newModelMessages.push({ role: 'model', text: confirmationText });
-          } else if (funcCall.name === 'update_question') {
-            const args = funcCall.args as any;
-            onUpdateQuestion(args);
-            newModelMessages.push({ role: 'model', text: `OK, I've updated question ${args.qid}.` });
-          } else if (funcCall.name === 'set_display_logic') {
-                const { qid, logicalOperator, conditions } = funcCall.args as { qid: string; logicalOperator?: 'AND' | 'OR'; conditions: { sourceQid: string; operator: any; value?: string }[] };
-                
-                const questionToUpdate = survey.blocks.flatMap(b => b.questions).find(q => q.qid === qid);
-                if (questionToUpdate) {
-                    const newDisplayLogic: DisplayLogic = {
-                        operator: logicalOperator || 'AND',
-                        conditions: conditions.map(c => ({
-                            id: generateId('dlc'),
-                            questionId: c.sourceQid,
-                            operator: c.operator,
-                            value: c.value || '',
-                            isConfirmed: true, // AI actions are auto-confirmed
-                        }))
-                    };
-                    onUpdateQuestion({ qid, displayLogic: newDisplayLogic });
-                    newModelMessages.push({ role: 'model', text: `OK, I've added display logic to ${qid}.` });
-                } else {
-                    newModelMessages.push({ role: 'model', text: `Sorry, I couldn't find question ${qid}.` });
-                }
-            } else if (funcCall.name === 'remove_display_logic') {
-                const { qid } = funcCall.args as { qid: string };
-                onUpdateQuestion({ qid, displayLogic: undefined });
-                newModelMessages.push({ role: 'model', text: `OK, I've removed the display logic from ${qid}.` });
-            } else if (funcCall.name === 'set_skip_logic') {
-                const { qid, rules } = funcCall.args as { qid: string; rules: { choiceText?: string; destinationQid: string }[] };
-                const questionToUpdate = survey.blocks.flatMap(b => b.questions).find(q => q.qid === qid);
-
-                if (questionToUpdate) {
-                    let newSkipLogic: SkipLogic | undefined = undefined;
-
-                    if (rules.length === 1 && !rules[0].choiceText && questionToUpdate.type === QTEnum.TextEntry) {
-                        const destQ = survey.blocks.flatMap(b => b.questions).find(q => q.qid.toLowerCase() === rules[0].destinationQid.toLowerCase());
-                        const skipTo = rules[0].destinationQid.toLowerCase() === 'next' ? 'next' : rules[0].destinationQid.toLowerCase() === 'end' ? 'end' : destQ?.id || '';
-
-                        if (skipTo) {
-                            newSkipLogic = { type: 'simple', skipTo, isConfirmed: true };
-                        }
-                    } else if (questionToUpdate.choices && rules.every(r => r.choiceText)) {
-                        const skipRules: SkipLogicRule[] = [];
-                        let allRulesValid = true;
-                        for (const rule of rules) {
-                            let choice = questionToUpdate.choices.find(c => parseChoice(c.text).label.toLowerCase() === rule.choiceText!.toLowerCase());
-                            if (!choice) {
-                                choice = questionToUpdate.choices.find(c => c.text.toLowerCase().includes(rule.choiceText!.toLowerCase()));
-                            }
-
-                            if (choice) {
-                                const destQ = survey.blocks.flatMap(b => b.questions).find(q => q.qid.toLowerCase() === rule.destinationQid.toLowerCase());
-                                const skipTo = rule.destinationQid.toLowerCase() === 'next' ? 'next' : rule.destinationQid.toLowerCase() === 'end' ? 'end' : destQ?.id || '';
-                                
-                                if (skipTo) {
-                                    skipRules.push({ choiceId: choice.id, skipTo, isConfirmed: true });
-                                } else {
-                                    allRulesValid = false;
-                                    newModelMessages.push({ role: 'model', text: `I couldn't find the destination question '${rule.destinationQid}' for choice '${rule.choiceText}'.` });
-                                    break;
-                                }
-                            } else {
-                                allRulesValid = false;
-                                newModelMessages.push({ role: 'model', text: `I couldn't find the choice '${rule.choiceText}' in question ${qid}.` });
-                                break;
-                            }
-                        }
-                        if (allRulesValid) {
-                            newSkipLogic = { type: 'per_choice', rules: skipRules };
-                        }
-                    }
-
-                    if (newSkipLogic) {
-                        onUpdateQuestion({ qid, skipLogic: newSkipLogic });
-                        newModelMessages.push({ role: 'model', text: `OK, I've added skip logic to ${qid}.` });
-                    } else if (newModelMessages.length === 0) {
-                        newModelMessages.push({ role: 'model', text: `Sorry, I couldn't set up that skip logic for ${qid}. Please make sure the choices and destinations are correct.` });
-                    }
-                } else {
-                    newModelMessages.push({ role: 'model', text: `Sorry, I couldn't find question ${qid}.` });
-                }
-            } else if (funcCall.name === 'remove_skip_logic') {
-                const { qid } = funcCall.args as { qid: string };
-                onUpdateQuestion({ qid, skipLogic: undefined });
-                newModelMessages.push({ role: 'model', text: `OK, I've removed the skip logic from ${qid}.` });
-            }
+        if (selectedQuestion) {
+            finalInput += `The user currently has question ${selectedQuestion.qid} selected.\n\n`;
         }
-      } else if (response.text) {
-        newModelMessages.push({ role: 'model', text: response.text });
-      } else {
-        newModelMessages.push({ role: 'model', text: "Sorry, I couldn't process that request." });
-      }
 
-      if (newModelMessages.length > 0) {
-        setMessages(prev => [...prev, ...newModelMessages]);
-      }
+        finalInput += `User request: "${trimmedInput}"`;
+
+        const response = await chatRef.current.sendMessage({ message: finalInput });
+      
+        const functionCalls = response.functionCalls;
+        let modelResponseText = response.text || '';
+
+        if (functionCalls && functionCalls.length > 0) {
+            const functionResponseParts = [];
+
+            for (const funcCall of functionCalls) {
+                const currentChange: PendingLogicChange = { name: funcCall.name, args: funcCall.args };
+                const logicFunctionNames = ['set_display_logic', 'remove_display_logic', 'set_skip_logic', 'remove_skip_logic'];
+
+                let resultPayload;
+
+                if (logicFunctionNames.includes(funcCall.name)) {
+                    if (isSameLogicChange(pendingLogicChange, currentChange)) {
+                        setPendingLogicChange(null);
+                        applyLogicChange(currentChange.name, currentChange.args);
+                        resultPayload = { result: "OK, change applied as requested by user confirmation." };
+                    } else {
+                        const validationResult = validateLogicChange(funcCall.name, funcCall.args);
+                        if (validationResult.ok) {
+                            setPendingLogicChange(null);
+                            applyLogicChange(funcCall.name, funcCall.args);
+                            resultPayload = { result: "OK, logic applied successfully after passing validation." };
+                        } else {
+                            setPendingLogicChange(currentChange);
+                            resultPayload = { result: `VALIDATION_FAILED: ${validationResult.error}` };
+                        }
+                    }
+                } else if (funcCall.name === 'add_question') {
+                    setPendingLogicChange(null);
+                    const { title, type, choices, after_qid, before_qid } = funcCall.args;
+                    onAddQuestion(type, title, choices, after_qid, before_qid);
+                    resultPayload = { result: "OK, question added." };
+                } else if (funcCall.name === 'update_question') {
+                    setPendingLogicChange(null);
+                    onUpdateQuestion(funcCall.args);
+                    resultPayload = { result: "OK, question updated." };
+                } else if (funcCall.name === 'get_question_details') {
+                    setPendingLogicChange(null);
+                    const { qid } = funcCall.args;
+                    const question = survey.blocks.flatMap(b => b.questions).find(q => q.qid === qid);
+
+                    if (!question) {
+                        resultPayload = { result: `ERROR: Question with QID '${qid}' not found.` };
+                    } else {
+                        const allQuestions = survey.blocks.flatMap(b => b.questions);
+                        const findQuestionById = (id: string) => allQuestions.find(q => q.id === id);
+
+                        const details: any = {
+                            qid: question.qid,
+                            text: question.text,
+                            type: question.type,
+                            isRequired: question.forceResponse || false,
+                        };
+
+                        if (question.choices) {
+                            details.choices = question.choices.map(c => parseChoice(c.text).label);
+                        }
+
+                        if (question.scalePoints) {
+                            details.scalePoints = question.scalePoints.map(sp => sp.text);
+                        }
+
+                        if (question.answerBehavior?.randomizeChoices) {
+                            details.isChoiceOrderRandomized = true;
+                        }
+
+                        if (question.textEntrySettings) {
+                            details.textEntryConfiguration = {
+                                answerLength: question.textEntrySettings.answerLength,
+                                contentTypeValidation: question.textEntrySettings.validation?.contentType
+                            };
+                        }
+
+                        const logicToUse = {
+                            display: question.draftDisplayLogic ?? question.displayLogic,
+                            skip: question.draftSkipLogic ?? question.skipLogic,
+                        };
+
+                        if (logicToUse.display && logicToUse.display.conditions.length > 0) {
+                            details.displayLogic = `Shown only if ${logicToUse.display.conditions.map(c => `${c.questionId} ${c.operator} ${c.value}`).join(` ${logicToUse.display.operator} `)}.`;
+                        }
+
+                        if (logicToUse.skip) {
+                            if (logicToUse.skip.type === 'simple') {
+                                const destQ = findQuestionById(logicToUse.skip.skipTo);
+                                details.skipLogic = `After answering, skips to ${destQ ? destQ.qid : logicToUse.skip.skipTo}.`;
+                            } else {
+                                const rulesSummary = logicToUse.skip.rules.map(rule => {
+                                    const choice = question.choices?.find(c => c.id === rule.choiceId);
+                                    const destQ = findQuestionById(rule.skipTo);
+                                    if (choice) {
+                                        return `if '${parseChoice(choice.text).label}' is selected, skip to ${destQ ? destQ.qid : rule.skipTo}`;
+                                    }
+                                    return '';
+                                }).filter(Boolean).join('; ');
+                                details.skipLogic = `Skips based on answer: ${rulesSummary}.`;
+                            }
+                        }
+                        
+                        resultPayload = { result: JSON.stringify(details, null, 2) };
+                    }
+                }
+                
+                functionResponseParts.push({
+                  functionResponse: {
+                    name: funcCall.name,
+                    response: resultPayload
+                  }
+                });
+            }
+            
+            if (functionResponseParts.length > 0) {
+                const followupResponse = await chatRef.current.sendMessage({ message: functionResponseParts });
+                modelResponseText += followupResponse.text;
+            }
+        } else {
+            setPendingLogicChange(null);
+        }
+
+        if (modelResponseText) {
+            setMessages(prev => [...prev, { role: 'model', text: modelResponseText }]);
+        }
 
     } catch (error) {
       console.error('Error calling Gemini API:', error);
-      const errorMessage: ChatMessage = { role: 'model', text: "Sorry, something went wrong. Please try again." };
+      const errorMessage: ChatMessage = { role: 'model', text: `Sorry, something went wrong. ${error instanceof Error ? error.message : String(error)}` };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
-  }, [inputValue, isLoading, onAddQuestion, onUpdateQuestion, selectedQuestion, survey]);
+  }, [inputValue, isLoading, onAddQuestion, onUpdateQuestion, selectedQuestion, survey, applyLogicChange, validateLogicChange, pendingLogicChange, logicIssues]);
 
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {

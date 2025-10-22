@@ -14,11 +14,30 @@ import { initialSurveyData, toolboxItems as initialToolboxItems } from './consta
 import { renumberSurveyVariables, generateId } from './utils';
 import { QuestionType as QTEnum } from './types';
 import { surveyReducer, SurveyActionType } from './state/surveyReducer';
-import { PanelRightIcon } from './components/icons';
+import { PanelRightIcon, WarningIcon, XIcon } from './components/icons';
 import { validateSurveyLogic } from './logicValidator';
 import DiagramCanvas from './components/DiagramCanvas';
 import { SurveyPreview } from './components/SurveyPreview';
 import CanvasTabs from './components/CanvasTabs';
+
+const Toast: React.FC<{ message: string; onDismiss: () => void }> = ({ message, onDismiss }) => {
+  return (
+      <div 
+          className="fixed bottom-8 right-8 z-50 flex items-start gap-4 px-6 py-3 rounded-lg shadow-2xl bg-error-container text-on-error-container animate-fade-in-up w-96"
+          role="alert"
+      >
+          <WarningIcon className="text-xl flex-shrink-0 mt-0.5" />
+          <p className="text-sm font-medium flex-grow">{message}</p>
+          <button 
+              onClick={onDismiss} 
+              className="p-1 -mr-2 -mt-1 rounded-full hover:bg-black/10 flex-shrink-0"
+              aria-label="Dismiss"
+          >
+              <XIcon className="text-lg" />
+          </button>
+      </div>
+  );
+};
 
 const App: React.FC = () => {
   const [survey, dispatch] = useReducer(surveyReducer, initialSurveyData, renumberSurveyVariables);
@@ -35,6 +54,7 @@ const App: React.FC = () => {
   const [logicIssues, setLogicIssues] = useState<LogicIssue[]>([]);
   const [focusedLogicSource, setFocusedLogicSource] = useState<string | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // FIX: Hoisted showBulkEditPanel declaration before its use on line 41.
   const showBulkEditPanel = checkedQuestions.size >= 2;
@@ -81,6 +101,16 @@ const App: React.FC = () => {
     // Update the ref to the current selection for the next change.
     prevSelectedQuestionIdRef.current = selectedQuestion?.id ?? null;
   }, [selectedQuestion]);
+
+  // Effect to auto-dismiss toast
+  useEffect(() => {
+    if (toastMessage) {
+        const timer = setTimeout(() => {
+            setToastMessage(null);
+        }, 6000); // 6 seconds
+        return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
 
 
   const handleBackToTop = useCallback(() => {
@@ -213,13 +243,20 @@ const App: React.FC = () => {
   const handleToggleRightSidebarExpand = useCallback(() => {
     setIsRightSidebarExpanded(prev => !prev);
   }, []);
+  
+  const handleExpandRightSidebar = useCallback(() => {
+    setIsRightSidebarExpanded(true);
+  }, []);
 
   const handleUpdateQuestion = useCallback((questionId: string, updates: Partial<Question>) => {
     dispatch({ type: SurveyActionType.UPDATE_QUESTION, payload: { questionId, updates } });
   }, []);
   
   const handleReorderQuestion = useCallback((draggedQuestionId: string, targetQuestionId: string | null, targetBlockId: string) => {
-    dispatch({ type: SurveyActionType.REORDER_QUESTION, payload: { draggedQuestionId, targetQuestionId, targetBlockId } });
+    const onLogicRemoved = (message: string) => {
+        setToastMessage(message);
+    };
+    dispatch({ type: SurveyActionType.REORDER_QUESTION, payload: { draggedQuestionId, targetQuestionId, targetBlockId, onLogicRemoved } });
   }, []);
 
   const handleReorderToolbox = useCallback((newItems: ToolboxItemData[]) => {
@@ -417,6 +454,14 @@ const App: React.FC = () => {
     dispatch({ type: SurveyActionType.COPY_QUESTION, payload: { questionId } });
   }, []);
 
+  const handleMoveQuestionToNewBlock = useCallback((questionId: string) => {
+    const onLogicRemoved = (message: string) => {
+        setToastMessage(message);
+    };
+    dispatch({ type: SurveyActionType.MOVE_QUESTION_TO_NEW_BLOCK, payload: { questionId, onLogicRemoved } });
+    handleSelectQuestion(null);
+  }, [handleSelectQuestion]);
+
   const handleAddChoice = useCallback((questionId: string) => {
     dispatch({ type: SurveyActionType.ADD_CHOICE, payload: { questionId } });
   }, []);
@@ -571,6 +616,7 @@ const App: React.FC = () => {
                   onUpdateQuestion={handleUpdateQuestion}
                   onDeleteQuestion={handleDeleteQuestion}
                   onCopyQuestion={handleCopyQuestion}
+                  onMoveQuestionToNewBlock={handleMoveQuestionToNewBlock}
                   onDeleteBlock={handleDeleteBlock}
                   onReorderQuestion={handleReorderQuestion}
                   onReorderBlock={handleReorderBlock}
@@ -630,7 +676,7 @@ const App: React.FC = () => {
     handleDeleteQuestion, handleCopyQuestion, handleAddPageBreakAfterQuestion, handleExpandBlock, handleCollapseBlock,
     handleSelectAllInBlock, handleUnselectAllInBlock, handleUpdateQuestion, handleAddBlockFromToolbox, handleAddQuestion,
     handleToggleQuestionCheck, handleToggleBlockCollapse, handleAddChoice, handleUpdateBlockTitle, handleUpdateSurveyTitle,
-    handleAddToLibrary, isGeminiPanelOpen, showBulkEditPanel, activeCanvasTab
+    handleAddToLibrary, isGeminiPanelOpen, showBulkEditPanel, activeCanvasTab, handleMoveQuestionToNewBlock
   ]);
   
   return (
@@ -696,6 +742,7 @@ const App: React.FC = () => {
                   onDeleteChoice={handleDeleteChoice}
                   isExpanded={isRightSidebarExpanded}
                   onToggleExpand={handleToggleRightSidebarExpand}
+                  onExpandSidebar={handleExpandRightSidebar}
                   toolboxItems={toolboxItems}
                   onRequestGeminiHelp={handleRequestGeminiHelp}
                 />
@@ -714,6 +761,9 @@ const App: React.FC = () => {
       </div>
       {isPreviewMode && (
         <SurveyPreview survey={survey} onClose={handleTogglePreviewMode} />
+      )}
+      {toastMessage && (
+          <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
       )}
     </div>
   );

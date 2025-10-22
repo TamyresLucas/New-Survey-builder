@@ -28,13 +28,14 @@ interface QuestionEditorProps {
     onAddChoice: (questionId: string) => void;
     onDeleteChoice: (questionId: string, choiceId: string) => void;
     isExpanded: boolean;
+    onExpandSidebar: () => void;
     toolboxItems: ToolboxItemData[];
     onRequestGeminiHelp: (topic: string) => void;
 }
 
 const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
     question, survey, logicIssues, activeTab, focusedLogicSource, onUpdateQuestion, onAddChoice, onDeleteChoice,
-    isExpanded, toolboxItems, onRequestGeminiHelp
+    isExpanded, onExpandSidebar, toolboxItems, onRequestGeminiHelp
 }) => {
     const [questionText, setQuestionText] = useState(question.text);
     const [expandedChoiceId, setExpandedChoiceId] = useState<string | null>(null);
@@ -1220,7 +1221,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                                     label="Carry forward choices"
                                     addButtonLabel="Add choices"
                                     description="Use answers from a previous question as choices in this one."
-                                    onAddLogic={() => {}}
+                                    onAddLogic={onExpandSidebar}
                                 />
                             </div>
                             <div className="py-6 first:pt-0">
@@ -1232,7 +1233,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                                     label="Carry forward scale points"
                                     addButtonLabel="Add scale points"
                                     description="Use scale points from a previous grid question as choices in this one."
-                                    onAddLogic={() => {}}
+                                    onAddLogic={onExpandSidebar}
                                 />
                             </div>
                         </>
@@ -1248,7 +1249,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                                 previousQuestions={previousQuestions}
                                 issues={logicIssues.filter(i => i.type === 'display')}
                                 onUpdate={handleUpdate}
-                                onAddLogic={() => {}}
+                                onAddLogic={onExpandSidebar}
                                 onRequestGeminiHelp={onRequestGeminiHelp}
                             />
                         </div>
@@ -1260,7 +1261,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                             issues={logicIssues.filter(i => i.type === 'skip')}
                             onUpdate={handleUpdate}
                             isChoiceBased={isChoiceBased}
-                            onAddLogic={() => {}}
+                            onAddLogic={onExpandSidebar}
                             onRequestGeminiHelp={onRequestGeminiHelp}
                             focusedLogicSource={focusedLogicSource}
                         />
@@ -1292,6 +1293,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                 otherwiseIsConfirmed: true,
             }
         });
+        onExpandSidebar();
     };
 
     return (
@@ -1322,7 +1324,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                         followingQuestions={followingQuestions}
                         issues={logicIssues.filter(i => i.type === 'branching')}
                         onUpdate={handleUpdate}
-                        onAddLogic={() => {}}
+                        onAddLogic={onExpandSidebar}
                         onRequestGeminiHelp={onRequestGeminiHelp}
                     />
                   )}
@@ -1341,7 +1343,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     questionQid={question.qid}
                     workflows={beforeWorkflows}
                     onUpdateWorkflows={(newWorkflows) => handleUpdate({ beforeWorkflows: newWorkflows })}
-                    onAddWorkflow={() => {}}
+                    onAddWorkflow={onExpandSidebar}
                 />
                 <WorkflowSectionEditor
                     title="After Answering This Question"
@@ -1349,7 +1351,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     questionQid={question.qid}
                     workflows={afterWorkflows}
                     onUpdateWorkflows={(newWorkflows) => handleUpdate({ afterWorkflows: newWorkflows })}
-                    onAddWorkflow={() => {}}
+                    onAddWorkflow={onExpandSidebar}
                 />
             </div>
         </CollapsibleSection>
@@ -3000,6 +3002,7 @@ export const RightSidebar: React.FC<{
   onDeleteChoice: (questionId: string, choiceId: string) => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  onExpandSidebar: () => void;
   toolboxItems: ToolboxItemData[];
   onRequestGeminiHelp: (topic: string) => void;
 }> = memo(({
@@ -3015,6 +3018,7 @@ export const RightSidebar: React.FC<{
     onDeleteChoice,
     isExpanded,
     onToggleExpand,
+    onExpandSidebar,
     toolboxItems,
     onRequestGeminiHelp,
 }) => {
@@ -3070,6 +3074,7 @@ export const RightSidebar: React.FC<{
                     onAddChoice={onAddChoice}
                     onDeleteChoice={onDeleteChoice}
                     isExpanded={isExpanded}
+                    onExpandSidebar={onExpandSidebar}
                     toolboxItems={toolboxItems}
                     onRequestGeminiHelp={onRequestGeminiHelp}
                 />

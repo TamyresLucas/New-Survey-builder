@@ -25,6 +25,7 @@ export enum SurveyActionType {
     BULK_DUPLICATE_QUESTIONS = 'BULK_DUPLICATE_QUESTIONS',
     BULK_UPDATE_QUESTIONS = 'BULK_UPDATE_QUESTIONS',
     BULK_MOVE_TO_NEW_BLOCK = 'BULK_MOVE_TO_NEW_BLOCK',
+    MOVE_QUESTION_TO_NEW_BLOCK = 'MOVE_QUESTION_TO_NEW_BLOCK',
     CLEANUP_UNCONFIRMED_LOGIC = 'CLEANUP_UNCONFIRMED_LOGIC',
 }
 
@@ -32,6 +33,88 @@ export interface Action {
     type: SurveyActionType;
     payload: any;
 }
+
+// Helper function to perform post-move logic validation
+const validateAndCleanLogicAfterMove = (
+    survey: Survey, 
+    onLogicRemoved: (message: string) => void
+) => {
+    const allQuestions = survey.blocks.flatMap((b: Block) => b.questions);
+    const questionIndexMap = new Map(allQuestions.map((q, i) => [q.id, i]));
+    const questionQidMap = new Map(allQuestions.map(q => [q.id, q.qid]));
+
+    // We need to iterate through ALL questions because moving one question (e.g., Q1)
+    // can invalidate logic on another question (e.g., Q2 which depended on Q1).
+    for (const question of allQuestions) {
+        let wasModified = false;
+
+        // 1. Validate Skip Logic (preventing backward skips)
+        if (question.skipLogic) {
+            const questionIndex = questionIndexMap.get(question.id);
+            if (questionIndex !== undefined) {
+                let isLogicInvalid = false;
+                const logic = question.skipLogic;
+
+                if (logic.type === 'simple') {
+                    const targetId = logic.skipTo;
+                    if (targetId && targetId !== 'next' && targetId !== 'end') {
+                        const targetIndex = questionIndexMap.get(targetId);
+                        if (targetIndex !== undefined && targetIndex < questionIndex) {
+                            isLogicInvalid = true;
+                        }
+                    }
+                } else if (logic.type === 'per_choice') {
+                    for (const rule of logic.rules) {
+                        const targetId = rule.skipTo;
+                        if (targetId && targetId !== 'next' && targetId !== 'end') {
+                            const targetIndex = questionIndexMap.get(targetId);
+                            if (targetIndex !== undefined && targetIndex < questionIndex) {
+                                isLogicInvalid = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (isLogicInvalid) {
+                    question.skipLogic = undefined;
+                    question.draftSkipLogic = undefined; // Also clear draft
+                    wasModified = true;
+                    onLogicRemoved?.(`Skip logic on question ${question.qid} was removed because its new position was after its destination, which would create an invalid loop.`);
+                }
+            }
+        }
+
+        // 2. Validate Display Logic (source question must come before target)
+        if (question.displayLogic) {
+            const questionIndex = questionIndexMap.get(question.id);
+            if (questionIndex !== undefined) {
+                const validConditions = question.displayLogic.conditions.filter(condition => {
+                    if (!condition.questionId) return true; // Keep incomplete conditions
+                    const sourceQ = allQuestions.find(q => q.qid === condition.questionId);
+                    if (!sourceQ) return true; // Keep if source is gone, validator will catch it
+                    
+                    const sourceIndex = questionIndexMap.get(sourceQ.id);
+                    // The condition is valid only if the source question comes BEFORE this question
+                    return sourceIndex !== undefined && sourceIndex < questionIndex;
+                });
+
+                if (validConditions.length < question.displayLogic.conditions.length) {
+                    wasModified = true;
+                    if (validConditions.length === 0) {
+                        question.displayLogic = undefined;
+                        question.draftDisplayLogic = undefined;
+                    } else {
+                        question.displayLogic.conditions = validConditions;
+                        if (question.draftDisplayLogic) {
+                            question.draftDisplayLogic.conditions = validConditions;
+                        }
+                    }
+                    onLogicRemoved?.(`Display logic on question ${question.qid} was removed because its source question was moved after it.`);
+                }
+            }
+        }
+    }
+};
 
 export function surveyReducer(state: Survey, action: Action): Survey {
     const newState = JSON.parse(JSON.stringify(state));
@@ -350,15 +433,18 @@ export function surveyReducer(state: Survey, action: Action): Survey {
         }
 
         case SurveyActionType.REORDER_QUESTION: {
-            const { draggedQuestionId, targetQuestionId, targetBlockId } = action.payload;
+            const { draggedQuestionId, targetQuestionId, targetBlockId, onLogicRemoved } = action.payload;
             let draggedQuestion: Question | undefined;
-            
-            newState.blocks.forEach((block: Block) => {
-                const qIndex = block.questions.findIndex(q => q.id === draggedQuestionId);
+            let originalBlockId: string | undefined;
+
+            for (const block of newState.blocks) {
+                const qIndex = block.questions.findIndex((q: Question) => q.id === draggedQuestionId);
                 if (qIndex !== -1) {
                     [draggedQuestion] = block.questions.splice(qIndex, 1);
+                    originalBlockId = block.id;
+                    break;
                 }
-            });
+            }
 
             if (!draggedQuestion) return state;
 
@@ -373,6 +459,15 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                     targetBlock.questions.push(draggedQuestion);
                 }
             }
+
+            if (originalBlockId) {
+                const originalBlock = newState.blocks.find((b: Block) => b.id === originalBlockId);
+                if (originalBlock && originalBlock.questions.length === 0 && newState.blocks.length > 1) {
+                    newState.blocks = newState.blocks.filter((b: Block) => b.id !== originalBlockId);
+                }
+            }
+
+            validateAndCleanLogicAfterMove(newState, onLogicRemoved);
             
             return renumberSurveyVariables(newState);
         }
@@ -608,6 +703,46 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             return renumberSurveyVariables(newState);
         }
         
+        case SurveyActionType.MOVE_QUESTION_TO_NEW_BLOCK: {
+            const { questionId, onLogicRemoved } = action.payload;
+            let questionToMove: Question | undefined;
+            let originalBlock: Block | undefined;
+            let originalBlockIndex = -1;
+
+            // Find and remove the question from its original block
+            for (let i = 0; i < newState.blocks.length; i++) {
+                const block = newState.blocks[i];
+                const questionIndex = block.questions.findIndex((q: Question) => q.id === questionId);
+                if (questionIndex !== -1) {
+                    [questionToMove] = block.questions.splice(questionIndex, 1);
+                    originalBlock = block;
+                    originalBlockIndex = i;
+                    break;
+                }
+            }
+
+            if (!questionToMove || !originalBlock) {
+                return state;
+            }
+
+            const newBlock: Block = {
+                id: generateId('block'),
+                title: 'New Block',
+                questions: [questionToMove],
+            };
+
+            newState.blocks.splice(originalBlockIndex + 1, 0, newBlock);
+
+            // Clean up original block if it becomes empty
+            if (originalBlock.questions.length === 0 && newState.blocks.length > 1) {
+                newState.blocks = newState.blocks.filter((b: Block) => b.id !== originalBlock.id);
+            }
+
+            validateAndCleanLogicAfterMove(newState, onLogicRemoved);
+            
+            return renumberSurveyVariables(newState);
+        }
+
         case SurveyActionType.CLEANUP_UNCONFIRMED_LOGIC: {
             const { questionId } = action.payload;
             if (!questionId) return state;

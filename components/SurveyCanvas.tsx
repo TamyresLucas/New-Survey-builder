@@ -68,11 +68,14 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
   };
 
   const handleBlockDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
     const isDraggingExistingBlock = !!draggedBlockId;
     const isAddingNewBlock = e.dataTransfer.types.includes('application/survey-toolbox-block');
 
+    // This handler is only for blocks. If we're not dragging a block, do nothing.
+    // This allows the dragOver event to be handled by child SurveyBlock components for question dragging.
     if (!isDraggingExistingBlock && !isAddingNewBlock) return;
+    
+    e.preventDefault();
     
     const blockElements = [...(e.currentTarget as HTMLDivElement).querySelectorAll('div[data-block-id]')] as HTMLDivElement[];
     
@@ -95,15 +98,20 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
   };
   
   const handleBlockDrop = (e: React.DragEvent) => {
-    e.preventDefault();
     const isAddingNewBlock = e.dataTransfer.types.includes('application/survey-toolbox-block');
 
-    if (isAddingNewBlock) {
-        onAddBlockFromToolbox(dropTargetBlockId);
-    } else if (draggedBlockId) {
-        onReorderBlock(draggedBlockId, dropTargetBlockId);
+    // This handler is only for blocks. If we're not dropping a block, do nothing.
+    if (isAddingNewBlock || draggedBlockId) {
+        e.preventDefault();
+
+        if (isAddingNewBlock) {
+            onAddBlockFromToolbox(dropTargetBlockId);
+        } else if (draggedBlockId) {
+            onReorderBlock(draggedBlockId, dropTargetBlockId);
+        }
     }
     
+    // Always reset block-dragging state on drop
     setDraggedBlockId(null);
     setDropTargetBlockId(null);
     setIsDraggingNewBlock(false);

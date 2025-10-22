@@ -312,6 +312,10 @@ const App: React.FC = () => {
                 randomizeChoices: updatesFromAI.randomizeChoices,
             };
         }
+        
+        // Handle logic updates. The entire logic object is passed. 'undefined' is used for removal.
+        if ('displayLogic' in updatesFromAI) finalUpdates.displayLogic = updatesFromAI.displayLogic;
+        if ('skipLogic' in updatesFromAI) finalUpdates.skipLogic = updatesFromAI.skipLogic;
 
         // Handle 'choices' transformation from string array to Choice object array
         if (updatesFromAI.choices) {
@@ -659,6 +663,7 @@ const App: React.FC = () => {
                   onUpdateQuestion={handleUpdateQuestionFromAI}
                   helpTopic={geminiHelpTopic}
                   selectedQuestion={selectedQuestion}
+                  survey={survey}
                 />
             ) : showBulkEditPanel ? (
               <BulkEditPanel

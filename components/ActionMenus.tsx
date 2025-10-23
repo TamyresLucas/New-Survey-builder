@@ -106,10 +106,10 @@ export const BlockActionsMenu: React.FC<BlockActionsMenuProps> = ({ onDuplicate,
 
 // Shared Question Actions Menu
 interface QuestionActionsMenuProps {
-  onDuplicate: () => void;
-  onDelete: () => void;
-  onAddPageBreak: () => void;
-  onMoveToNewBlock: () => void;
+  onDuplicate?: () => void;
+  onDelete?: () => void;
+  onAddPageBreak?: () => void;
+  onMoveToNewBlock?: () => void;
 }
 
 export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ onDuplicate, onDelete, onAddPageBreak, onMoveToNewBlock }) => {
@@ -120,7 +120,7 @@ export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ onDupl
         { label: 'Add to library', action: () => {} },
         { label: 'Add page break', action: onAddPageBreak },
         { label: 'Add note', action: () => {} },
-    ];
+    ].filter(item => typeof item.action === 'function');
 
     return (
         <div className="absolute top-full right-0 mt-2 w-56 bg-surface-container-high border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
@@ -139,18 +139,22 @@ export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ onDupl
             </li>
             ))}
         </ul>
-        <div className="border-t border-dotted border-outline-variant mx-2" />
-        <div className="py-1">
-            <button
-            onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-            }}
-            className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container"
-            >
-            Delete
-            </button>
-        </div>
+        {onDelete && (
+          <>
+            <div className="border-t border-dotted border-outline-variant mx-2" />
+            <div className="py-1">
+              <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container"
+              >
+                Delete
+              </button>
+            </div>
+          </>
+        )}
         </div>
     );
 };

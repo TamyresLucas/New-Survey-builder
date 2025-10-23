@@ -27,6 +27,7 @@ export enum SurveyActionType {
     BULK_MOVE_TO_NEW_BLOCK = 'BULK_MOVE_TO_NEW_BLOCK',
     MOVE_QUESTION_TO_NEW_BLOCK = 'MOVE_QUESTION_TO_NEW_BLOCK',
     CLEANUP_UNCONFIRMED_LOGIC = 'CLEANUP_UNCONFIRMED_LOGIC',
+    RESTORE_STATE = 'RESTORE_STATE',
 }
 
 export interface Action {
@@ -765,6 +766,11 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             delete questionToClean.draftAfterWorkflows;
 
             return newState;
+        }
+
+        case SurveyActionType.RESTORE_STATE: {
+            // This action payload is a complete survey state.
+            return action.payload;
         }
 
 

@@ -13,39 +13,53 @@ import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssu
 import { initialSurveyData, toolboxItems as initialToolboxItems } from './constants';
 import { renumberSurveyVariables, generateId } from './utils';
 import { QuestionType as QTEnum } from './types';
-import { surveyReducer, SurveyActionType } from './state/surveyReducer';
+// FIX: Import the 'Action' type from 'surveyReducer' to resolve 'Cannot find name' error.
+import { surveyReducer, SurveyActionType, type Action } from './state/surveyReducer';
 import { PanelRightIcon, WarningIcon, XIcon } from './components/icons';
 import { validateSurveyLogic } from './logicValidator';
 import DiagramCanvas from './components/DiagramCanvas';
 import { SurveyPreview } from './components/SurveyPreview';
 import CanvasTabs from './components/CanvasTabs';
 
-const Toast: React.FC<{ message: string; onDismiss: () => void }> = ({ message, onDismiss }) => {
+const Toast: React.FC<{ message: string; onDismiss: () => void; onUndo?: () => void }> = ({ message, onDismiss, onUndo }) => {
   useEffect(() => {
-    const timer = setTimeout(onDismiss, 6000);
+    // Make toasts with an undo button last longer
+    const duration = onUndo ? 10000 : 6000;
+    const timer = setTimeout(onDismiss, duration);
     return () => clearTimeout(timer);
-  }, [onDismiss]);
+  }, [onDismiss, onUndo]);
 
   return (
       <div 
-          className="flex items-start gap-4 px-6 py-3 rounded-lg shadow-2xl bg-error-container text-on-error-container animate-fade-in-up w-96"
+          className="flex items-center gap-4 px-4 py-3 rounded-lg shadow-2xl bg-error-container text-on-error-container animate-fade-in-up w-auto max-w-md"
           role="alert"
       >
-          <WarningIcon className="text-xl flex-shrink-0 mt-0.5" />
+          <WarningIcon className="text-xl flex-shrink-0" />
           <p className="text-sm font-medium flex-grow">{message}</p>
-          <button 
-              onClick={onDismiss} 
-              className="p-1 -mr-2 -mt-1 rounded-full hover:bg-black/10 flex-shrink-0"
-              aria-label="Dismiss"
-          >
-              <XIcon className="text-lg" />
-          </button>
+          <div className="flex-shrink-0 flex items-center gap-2 border-l border-on-error-container/20 pl-3 ml-2">
+              {onUndo && (
+                  <button
+                      onClick={onUndo}
+                      className="px-3 py-1 text-xs font-bold uppercase rounded-full hover:bg-black/10 text-on-error-container"
+                  >
+                      Undo
+                  </button>
+              )}
+              <button 
+                  onClick={onDismiss} 
+                  className="p-1 -mr-1 rounded-full hover:bg-black/10"
+                  aria-label="Dismiss"
+              >
+                  <XIcon className="text-lg" />
+              </button>
+          </div>
       </div>
   );
 };
 
 const App: React.FC = () => {
   const [survey, dispatch] = useReducer(surveyReducer, initialSurveyData, renumberSurveyVariables);
+  const [history, setHistory] = useState<Survey[]>([]);
   const [toolboxItems, setToolboxItems] = useState<ToolboxItemData[]>(initialToolboxItems);
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
   const [checkedQuestions, setCheckedQuestions] = useState<Set<string>>(new Set());
@@ -59,7 +73,7 @@ const App: React.FC = () => {
   const [logicIssues, setLogicIssues] = useState<LogicIssue[]>([]);
   const [focusedLogicSource, setFocusedLogicSource] = useState<string | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [toasts, setToasts] = useState<{ id: number; message: string }[]>([]);
+  const [toasts, setToasts] = useState<{ id: number; message: string; onUndo?: () => void }[]>([]);
 
   // FIX: Hoisted showBulkEditPanel declaration before its use on line 41.
   const showBulkEditPanel = checkedQuestions.size >= 2;
@@ -107,14 +121,41 @@ const App: React.FC = () => {
     prevSelectedQuestionIdRef.current = selectedQuestion?.id ?? null;
   }, [selectedQuestion]);
 
-  const showToast = useCallback((message: string) => {
-    const newToast = { id: Date.now() + Math.random(), message };
-    setToasts(prevToasts => [...prevToasts, newToast]);
-  }, []);
-
   const dismissToast = useCallback((id: number) => {
     setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
   }, []);
+
+  const handleUndo = useCallback(() => {
+    if (history.length > 0) {
+        const lastState = history[history.length - 1];
+        dispatch({ type: SurveyActionType.RESTORE_STATE, payload: lastState });
+        setHistory(prev => prev.slice(0, -1));
+        setToasts([]); // Clear all toasts on undo
+    }
+  }, [history]);
+
+  const showToast = useCallback((message: string, onUndo?: () => void) => {
+    const newToast = { id: Date.now() + Math.random(), message, onUndo };
+    setToasts(prevToasts => [...prevToasts, newToast]);
+  }, []);
+
+  const undoableActionTypes = useMemo(() => new Set([
+      SurveyActionType.REORDER_QUESTION,
+      SurveyActionType.MOVE_QUESTION_TO_NEW_BLOCK,
+      SurveyActionType.DELETE_QUESTION,
+      SurveyActionType.DELETE_BLOCK,
+      SurveyActionType.BULK_DELETE_QUESTIONS,
+      SurveyActionType.BULK_MOVE_TO_NEW_BLOCK,
+      SurveyActionType.DELETE_CHOICE,
+  ]), []);
+
+  const dispatchAndRecord = useCallback((action: Action) => {
+      if (undoableActionTypes.has(action.type)) {
+          // Limit history size to prevent memory issues, e.g., 10 levels
+          setHistory(prev => [...prev, survey].slice(-10)); 
+      }
+      dispatch(action);
+  }, [survey, undoableActionTypes]);
 
 
   const handleBackToTop = useCallback(() => {
@@ -258,22 +299,22 @@ const App: React.FC = () => {
   
   const handleReorderQuestion = useCallback((draggedQuestionId: string, targetQuestionId: string | null, targetBlockId: string) => {
     const onLogicRemoved = (message: string) => {
-        showToast(message);
+        showToast(message, handleUndo);
     };
-    dispatch({ type: SurveyActionType.REORDER_QUESTION, payload: { draggedQuestionId, targetQuestionId, targetBlockId, onLogicRemoved } });
-  }, [showToast]);
+    dispatchAndRecord({ type: SurveyActionType.REORDER_QUESTION, payload: { draggedQuestionId, targetQuestionId, targetBlockId, onLogicRemoved } });
+  }, [showToast, handleUndo, dispatchAndRecord]);
 
   const handleReorderToolbox = useCallback((newItems: ToolboxItemData[]) => {
     setToolboxItems(newItems);
   }, []);
 
   const handleReorderBlock = useCallback((draggedBlockId: string, targetBlockId: string | null) => {
-    dispatch({ type: SurveyActionType.REORDER_BLOCK, payload: { draggedBlockId, targetBlockId } });
-  }, []);
+    dispatchAndRecord({ type: SurveyActionType.REORDER_BLOCK, payload: { draggedBlockId, targetBlockId } });
+  }, [dispatchAndRecord]);
 
   const handleAddBlockFromToolbox = useCallback((targetBlockId: string | null) => {
-    dispatch({ type: SurveyActionType.ADD_BLOCK_FROM_TOOLBOX, payload: { targetBlockId } });
-  }, []);
+    dispatchAndRecord({ type: SurveyActionType.ADD_BLOCK_FROM_TOOLBOX, payload: { targetBlockId } });
+  }, [dispatchAndRecord]);
 
   const handleAddQuestion = useCallback((questionType: QuestionType, targetQuestionId: string | null, targetBlockId: string) => {
     const onQuestionAdded = (newQuestionId: string) => {
@@ -290,8 +331,8 @@ const App: React.FC = () => {
             }, 0);
         }
     };
-    dispatch({ type: SurveyActionType.ADD_QUESTION, payload: { questionType, targetQuestionId, targetBlockId, onQuestionAdded } });
-  }, [handleSelectQuestion]);
+    dispatchAndRecord({ type: SurveyActionType.ADD_QUESTION, payload: { questionType, targetQuestionId, targetBlockId, onQuestionAdded } });
+  }, [handleSelectQuestion, dispatchAndRecord]);
   
   const handleAddQuestionToBlock = useCallback((blockId: string, questionType: QuestionType) => {
     const onQuestionAdded = (newQuestionId: string) => {
@@ -307,12 +348,12 @@ const App: React.FC = () => {
             }, 0);
         }
     };
-    dispatch({ type: SurveyActionType.ADD_QUESTION, payload: { questionType, targetQuestionId: null, targetBlockId: blockId, onQuestionAdded } });
-  }, [handleSelectQuestion]);
+    dispatchAndRecord({ type: SurveyActionType.ADD_QUESTION, payload: { questionType, targetQuestionId: null, targetBlockId: blockId, onQuestionAdded } });
+  }, [handleSelectQuestion, dispatchAndRecord]);
 
   const handleAddQuestionFromAI = useCallback((questionType: QuestionType, text: string, choiceStrings?: string[], afterQid?: string, beforeQid?: string) => {
-    dispatch({ type: SurveyActionType.ADD_QUESTION_FROM_AI, payload: { questionType, text, choiceStrings, afterQid, beforeQid } });
-  }, []);
+    dispatchAndRecord({ type: SurveyActionType.ADD_QUESTION_FROM_AI, payload: { questionType, text, choiceStrings, afterQid, beforeQid } });
+  }, [dispatchAndRecord]);
 
   const handleUpdateQuestionFromAI = useCallback((args: any) => {
     const { qid, ...updatesFromAI } = args;
@@ -376,12 +417,12 @@ const App: React.FC = () => {
 
 
   const handleAddBlock = useCallback((blockId: string, position: 'above' | 'below') => {
-    dispatch({ type: SurveyActionType.ADD_BLOCK, payload: { blockId, position } });
-  }, []);
+    dispatchAndRecord({ type: SurveyActionType.ADD_BLOCK, payload: { blockId, position } });
+  }, [dispatchAndRecord]);
 
   const handleCopyBlock = useCallback((blockId: string) => {
-    dispatch({ type: SurveyActionType.COPY_BLOCK, payload: { blockId } });
-  }, []);
+    dispatchAndRecord({ type: SurveyActionType.COPY_BLOCK, payload: { blockId } });
+  }, [dispatchAndRecord]);
   
   const handleExpandAllBlocks = useCallback(() => {
     setCollapsedBlocks(new Set());
@@ -392,7 +433,7 @@ const App: React.FC = () => {
   }, [survey.blocks]);
 
   const handleDeleteQuestion = useCallback((questionId: string) => {
-    dispatch({ type: SurveyActionType.DELETE_QUESTION, payload: { questionId } });
+    dispatchAndRecord({ type: SurveyActionType.DELETE_QUESTION, payload: { questionId } });
     if (selectedQuestion?.id === questionId) {
         setSelectedQuestion(null);
     }
@@ -401,7 +442,7 @@ const App: React.FC = () => {
         newSet.delete(questionId);
         return newSet;
     });
-  }, [selectedQuestion]);
+  }, [selectedQuestion, dispatchAndRecord]);
 
   const handleDeleteBlock = useCallback((blockId: string) => {
     const blockToDelete = survey.blocks.find(b => b.id === blockId);
@@ -418,8 +459,8 @@ const App: React.FC = () => {
         return newSet;
     });
 
-    dispatch({ type: SurveyActionType.DELETE_BLOCK, payload: { blockId } });
-  }, [survey, selectedQuestion]);
+    dispatchAndRecord({ type: SurveyActionType.DELETE_BLOCK, payload: { blockId } });
+  }, [survey, selectedQuestion, dispatchAndRecord]);
   
   const handleToggleQuestionCheck = useCallback((questionId: string) => {
     setCheckedQuestions(prev => {
@@ -455,28 +496,28 @@ const App: React.FC = () => {
   }, [survey.blocks]);
 
   const handleCopyQuestion = useCallback((questionId: string) => {
-    dispatch({ type: SurveyActionType.COPY_QUESTION, payload: { questionId } });
-  }, []);
+    dispatchAndRecord({ type: SurveyActionType.COPY_QUESTION, payload: { questionId } });
+  }, [dispatchAndRecord]);
 
   const handleMoveQuestionToNewBlock = useCallback((questionId: string) => {
     const onLogicRemoved = (message: string) => {
-        showToast(message);
+        showToast(message, handleUndo);
     };
-    dispatch({ type: SurveyActionType.MOVE_QUESTION_TO_NEW_BLOCK, payload: { questionId, onLogicRemoved } });
+    dispatchAndRecord({ type: SurveyActionType.MOVE_QUESTION_TO_NEW_BLOCK, payload: { questionId, onLogicRemoved } });
     handleSelectQuestion(null);
-  }, [handleSelectQuestion, showToast]);
+  }, [handleSelectQuestion, showToast, handleUndo, dispatchAndRecord]);
 
   const handleAddChoice = useCallback((questionId: string) => {
-    dispatch({ type: SurveyActionType.ADD_CHOICE, payload: { questionId } });
-  }, []);
+    dispatchAndRecord({ type: SurveyActionType.ADD_CHOICE, payload: { questionId } });
+  }, [dispatchAndRecord]);
   
   const handleDeleteChoice = useCallback((questionId: string, choiceId: string) => {
-    dispatch({ type: SurveyActionType.DELETE_CHOICE, payload: { questionId, choiceId } });
-  }, []);
+    dispatchAndRecord({ type: SurveyActionType.DELETE_CHOICE, payload: { questionId, choiceId } });
+  }, [dispatchAndRecord]);
 
   const handleAddPageBreakAfterQuestion = useCallback((questionId: string) => {
-    dispatch({ type: SurveyActionType.ADD_PAGE_BREAK_AFTER_QUESTION, payload: { questionId } });
-  }, []);
+    dispatchAndRecord({ type: SurveyActionType.ADD_PAGE_BREAK_AFTER_QUESTION, payload: { questionId } });
+  }, [dispatchAndRecord]);
 
   const handleUpdateBlockTitle = useCallback((blockId: string, title: string) => {
     dispatch({ type: SurveyActionType.UPDATE_BLOCK_TITLE, payload: { blockId, title } });
@@ -504,36 +545,36 @@ const App: React.FC = () => {
 
   const handleBulkDelete = useCallback(() => {
     if (window.confirm(`Are you sure you want to delete ${checkedQuestions.size} questions?`)) {
-      dispatch({ type: SurveyActionType.BULK_DELETE_QUESTIONS, payload: { questionIds: checkedQuestions } });
+      dispatchAndRecord({ type: SurveyActionType.BULK_DELETE_QUESTIONS, payload: { questionIds: checkedQuestions } });
       handleClearSelection();
     }
-  }, [checkedQuestions, handleClearSelection]);
+  }, [checkedQuestions, handleClearSelection, dispatchAndRecord]);
   
   const handleBulkDuplicate = useCallback(() => {
-    dispatch({ type: SurveyActionType.BULK_DUPLICATE_QUESTIONS, payload: { questionIds: checkedQuestions } });
+    dispatchAndRecord({ type: SurveyActionType.BULK_DUPLICATE_QUESTIONS, payload: { questionIds: checkedQuestions } });
     handleClearSelection();
-  }, [checkedQuestions, handleClearSelection]);
+  }, [checkedQuestions, handleClearSelection, dispatchAndRecord]);
 
   const handleBulkMoveToNewBlock = useCallback(() => {
-    dispatch({ type: SurveyActionType.BULK_MOVE_TO_NEW_BLOCK, payload: { questionIds: checkedQuestions } });
+    dispatchAndRecord({ type: SurveyActionType.BULK_MOVE_TO_NEW_BLOCK, payload: { questionIds: checkedQuestions } });
     handleClearSelection();
-  }, [checkedQuestions, handleClearSelection]);
+  }, [checkedQuestions, handleClearSelection, dispatchAndRecord]);
   
   const handleBulkHideQuestion = useCallback(() => {
-    dispatch({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { isHidden: true } } });
-  }, [checkedQuestions]);
+    dispatchAndRecord({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { isHidden: true } } });
+  }, [checkedQuestions, dispatchAndRecord]);
 
   const handleBulkHideBackButton = useCallback(() => {
-    dispatch({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { hideBackButton: true } } });
-  }, [checkedQuestions]);
+    dispatchAndRecord({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { hideBackButton: true } } });
+  }, [checkedQuestions, dispatchAndRecord]);
   
   const handleBulkForceResponse = useCallback(() => {
-    dispatch({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { forceResponse: true } } });
-  }, [checkedQuestions]);
+    dispatchAndRecord({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { forceResponse: true } } });
+  }, [checkedQuestions, dispatchAndRecord]);
 
   const handleBulkUnforceResponse = useCallback(() => {
-    dispatch({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { forceResponse: false } } });
-  }, [checkedQuestions]);
+    dispatchAndRecord({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { forceResponse: false } } });
+  }, [checkedQuestions, dispatchAndRecord]);
   
   const handleAddToLibrary = useCallback(() => {
     alert('Add to Library functionality not implemented.');
@@ -769,7 +810,7 @@ const App: React.FC = () => {
       )}
       <div className="fixed bottom-8 right-8 z-50 flex flex-col-reverse items-end gap-2">
         {toasts.map((toast) => (
-            <Toast key={toast.id} message={toast.message} onDismiss={() => dismissToast(toast.id)} />
+            <Toast key={toast.id} message={toast.message} onDismiss={() => dismissToast(toast.id)} onUndo={toast.onUndo} />
         ))}
       </div>
     </div>

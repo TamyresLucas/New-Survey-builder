@@ -23,6 +23,7 @@ interface SurveyBlockProps {
     onDeleteQuestion: (questionId: string) => void;
     onCopyQuestion: (questionId: string) => void;
     onMoveQuestionToNewBlock: (questionId: string) => void;
+    onMoveQuestionToExistingBlock: (questionId: string, targetBlockId: string) => void;
     onDeleteBlock: (blockId: string) => void;
     onReorderQuestion: (draggedQuestionId: string, targetQuestionId: string | null, targetBlockId: string) => void;
     onAddQuestion: (questionType: QuestionType, targetQuestionId: string | null, targetBlockId: string) => void;
@@ -49,7 +50,7 @@ interface SurveyBlockProps {
 }
 
 const SurveyBlock: React.FC<SurveyBlockProps> = memo(({ 
-  block, survey, selectedQuestion, checkedQuestions, logicIssues, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
+  block, survey, selectedQuestion, checkedQuestions, logicIssues, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
   isBlockDragging, onBlockDragStart, onBlockDragEnd, isCollapsed, onToggleCollapse,
   onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onAddFromLibrary
 }) => {
@@ -286,6 +287,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                     <QuestionCard
                       question={question}
                       survey={survey}
+                      currentBlockId={block.id}
                       logicIssues={logicIssues.filter(issue => issue.questionId === question.id)}
                       id={`question-card-${question.id}`}
                       isSelected={selectedQuestion?.id === question.id}
@@ -295,6 +297,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                       onDeleteQuestion={onDeleteQuestion}
                       onCopyQuestion={onCopyQuestion}
                       onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
+                      onMoveQuestionToExistingBlock={onMoveQuestionToExistingBlock}
                       onToggleCheck={onToggleQuestionCheck}
                       toolboxItems={toolboxItems}
                       isDragging={draggedQuestionId === question.id}

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import type { QuestionType, ToolboxItemData } from '../types';
+import React, { useState, useMemo } from 'react';
+import type { QuestionType, ToolboxItemData, Survey } from '../types';
 import { ChevronRightIcon } from './icons';
 
 export const QuestionTypeSelectionMenuContent: React.FC<{ 
@@ -106,55 +106,93 @@ export const BlockActionsMenu: React.FC<BlockActionsMenuProps> = ({ onDuplicate,
 
 // Shared Question Actions Menu
 interface QuestionActionsMenuProps {
+  survey: Survey;
+  currentBlockId: string;
   onDuplicate?: () => void;
   onDelete?: () => void;
   onAddPageBreak?: () => void;
   onMoveToNewBlock?: () => void;
+  onMoveToExistingBlock?: (targetBlockId: string) => void;
 }
 
-export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ onDuplicate, onDelete, onAddPageBreak, onMoveToNewBlock }) => {
-    const menuItems = [
-        { label: 'Move to new block', action: onMoveToNewBlock },
-        { label: 'Duplicate', action: onDuplicate },
-        { label: 'Replace from library', action: () => {} },
-        { label: 'Add to library', action: () => {} },
-        { label: 'Add page break', action: onAddPageBreak },
-        { label: 'Add note', action: () => {} },
-    ].filter(item => typeof item.action === 'function');
+export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ survey, currentBlockId, onDuplicate, onDelete, onAddPageBreak, onMoveToNewBlock, onMoveToExistingBlock }) => {
+    const [isMoveSubMenuOpen, setIsMoveSubMenuOpen] = useState(false);
+    
+    const otherBlocks = useMemo(() => 
+        survey.blocks.filter(b => b.id !== currentBlockId),
+        [survey.blocks, currentBlockId]
+    );
+
+    const showMoveToSubMenu = otherBlocks.length > 0;
 
     return (
         <div className="absolute top-full right-0 mt-2 w-56 bg-surface-container-high border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-        <ul className="py-1">
-            {menuItems.map((item) => (
-            <li key={item.label}>
-                <button
-                onClick={(e) => {
-                    e.stopPropagation();
-                    item.action();
-                }}
-                className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest"
-                >
-                {item.label}
-                </button>
-            </li>
-            ))}
-        </ul>
-        {onDelete && (
-          <>
-            <div className="border-t border-dotted border-outline-variant mx-2" />
-            <div className="py-1">
-              <button
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete();
-                }}
-                className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container"
-              >
-                Delete
-              </button>
-            </div>
-          </>
-        )}
+            <ul className="py-1">
+                {onMoveToNewBlock && onMoveToExistingBlock && (
+                    <li 
+                        className="relative"
+                        onMouseEnter={() => showMoveToSubMenu && setIsMoveSubMenuOpen(true)}
+                        onMouseLeave={() => showMoveToSubMenu && setIsMoveSubMenuOpen(false)}
+                    >
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (!showMoveToSubMenu) {
+                                    onMoveToNewBlock();
+                                }
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest flex justify-between items-center"
+                        >
+                            <span>{showMoveToSubMenu ? 'Move to' : 'Move to new block'}</span>
+                            {showMoveToSubMenu && <ChevronRightIcon className="text-base" />}
+                        </button>
+                        {showMoveToSubMenu && isMoveSubMenuOpen && (
+                            <div className="absolute top-0 left-full ml-1 w-56 bg-surface-container-high border border-outline-variant rounded-md shadow-lg z-30">
+                                <ul className="py-1 max-h-48 overflow-y-auto">
+                                    {otherBlocks.map(block => (
+                                        <li key={block.id}>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onMoveToExistingBlock(block.id); }}
+                                                className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest truncate"
+                                                title={`${block.bid}: ${block.title}`}
+                                            >
+                                                {block.bid}: {block.title}
+                                            </button>
+                                        </li>
+                                    ))}
+                                    <div className="border-t border-dotted border-outline-variant mx-2" />
+                                    <li>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); onMoveToNewBlock(); }}
+                                            className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest"
+                                        >
+                                            New block
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        )}
+                    </li>
+                )}
+                {onDuplicate && <li><button onClick={(e) => { e.stopPropagation(); onDuplicate(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Duplicate</button></li>}
+                <li><button onClick={(e) => { e.stopPropagation(); alert('Not implemented'); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Replace from library</button></li>
+                <li><button onClick={(e) => { e.stopPropagation(); alert('Not implemented'); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Add to library</button></li>
+                {onAddPageBreak && <li><button onClick={(e) => { e.stopPropagation(); onAddPageBreak(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Add page break</button></li>}
+                <li><button onClick={(e) => { e.stopPropagation(); alert('Not implemented'); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Add note</button></li>
+            </ul>
+            {onDelete && (
+                <>
+                    <div className="border-t border-dotted border-outline-variant mx-2" />
+                    <div className="py-1">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                            className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container"
+                        >
+                            Delete
+                        </button>
+                    </div>
+                </>
+            )}
         </div>
     );
 };

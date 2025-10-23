@@ -54,15 +54,29 @@ export const initialSurveyData: Survey = {
           text: 'Have you purchased coffee from our café in the past month?',
           type: QuestionType.Radio,
           choices: [
-            { id: 'q1c1', text: 'Q1_1 Yes' },
-            { id: 'q1c2', text: 'Q1_2 No' },
+            { id: 'q1c1', text: 'Yes' },
+            { id: 'q1c2', text: 'No' },
           ],
-          skipLogic: {
-            type: 'per_choice',
-            rules: [
-              { choiceId: 'q1c1', skipTo: 'q3', isConfirmed: true },
-              { choiceId: 'q1c2', skipTo: 'next', isConfirmed: true },
+          branchingLogic: {
+            branches: [
+              {
+                id: 'branch-q1-1',
+                operator: 'AND',
+                conditions: [
+                  {
+                    id: 'cond-q1-1',
+                    questionId: 'Q1',
+                    operator: 'equals',
+                    value: 'Q1_2 No',
+                    isConfirmed: true,
+                  },
+                ],
+                thenSkipTo: 'block:block2',
+                thenSkipToIsConfirmed: true,
+              },
             ],
+            otherwiseSkipTo: 'next',
+            otherwiseIsConfirmed: true,
           },
         },
         {
@@ -74,12 +88,13 @@ export const initialSurveyData: Survey = {
         {
           id: 'q2',
           qid: 'Q2',
-          text: 'How often do you visit our café?',
-          type: QuestionType.TextEntry,
-          textEntrySettings: {
-            answerLength: 'long',
-            placeholder: 'e.g., Once a week'
-          }
+          text: 'What type of coffee do you usually order?',
+          type: QuestionType.Checkbox,
+          choices: [
+            { id: 'q2c1', text: 'Espresso' },
+            { id: 'q2c2', text: 'Latte/Cappuccino' },
+            { id: 'q2c3', text: 'Cold Brew' },
+          ],
         },
         {
           id: 'pb2',
@@ -88,60 +103,56 @@ export const initialSurveyData: Survey = {
           type: QuestionType.PageBreak,
         },
         {
-          id: 'q3',
-          qid: 'Q3',
-          text: 'What type of coffee do you usually order?',
-          type: QuestionType.Checkbox,
+            id: 'q3',
+            qid: 'Q3',
+            text: 'Please rate your satisfaction with our service:',
+            type: QuestionType.ChoiceGrid,
+            choices: [
+              { id: 'q3r1', text: 'Quality of coffee' },
+              { id: 'q3r2', text: 'Speed of service' },
+              { id: 'q3r3', text: 'Friendliness of staff' },
+            ],
+            scalePoints: [
+              { id: 'q3s1', text: 'Dissatisfied' },
+              { id: 'q3s2', text: 'Neutral' },
+              { id: 'q3s3', text: 'Satisfied' },
+            ],
+        },
+      ],
+    },
+    {
+      id: 'block2',
+      title: 'No recent purchases',
+      questions: [
+        {
+          id: 'q4',
+          qid: 'Q4',
+          text: 'What are the main reasons for not purchasing?',
+          type: QuestionType.Radio,
           choices: [
-            { id: 'q3c1', text: 'Q3_1 Espresso' },
-            { id: 'q3c2', text: 'Q3_2 Latte/Cappuccino' },
-            { id: 'q3c3', text: 'Q3_3 Cold Brew' },
-            { id: 'q3c4', text: 'Q3_4 Drip Coffee' },
-            { id: 'q3c5', text: 'Q3_5 Other: ____' },
+            { id: 'q4c1', text: 'Price' },
+            { id: 'q4c2', text: 'Location' },
+            { id: 'q4c3', text: 'Variety' },
           ],
         },
         {
-          id: 'pb3',
-          qid: '',
-          text: 'Page Break',
-          type: QuestionType.PageBreak,
+          id: 'q5',
+          qid: 'Q5',
+          text: 'Click to write the question text',
+          type: QuestionType.TextEntry,
         },
         {
-            id: 'q4',
-            qid: 'Q4',
-            text: 'Please rate your satisfaction with the following aspects of our service:',
-            type: QuestionType.ChoiceGrid,
-            answerFormat: 'grid',
-            advancedSettings: {
-              enableMobileLayout: true,
-            },
-            displayLogic: {
-                operator: 'AND',
-                conditions: [
-                    {
-                        id: generateId('dlc'),
-                        questionId: 'Q1',
-                        operator: 'equals',
-                        value: 'Q1_1 Yes',
-                        isConfirmed: true,
-                    }
-                ]
-            },
-            choices: [
-              { id: 'q4c1', text: 'Quality of coffee' },
-              { id: 'q4c2', text: 'Speed of service' },
-              { id: 'q4c3', text: 'Friendliness of staff' },
-            ],
-            scalePoints: [
-              { id: 'q4s1', text: 'Very Dissatisfied' },
-              { id: 'q4s2', text: 'Dissatisfied' },
-              { id: 'q4s3', text: 'Neutral' },
-              { id: 'q4s4', text: 'Satisfied' },
-              { id: 'q4s5', text: 'Very Satisfied' },
-            ],
-          },
-      ],
-    },
+          id: 'q6',
+          qid: 'Q6',
+          text: 'Would you like to receive special offers?',
+          type: QuestionType.Radio,
+          choices: [
+            { id: 'q6c1', text: 'Yes' },
+            { id: 'q6c2', text: 'No' },
+          ],
+        },
+      ]
+    }
   ],
 };
 

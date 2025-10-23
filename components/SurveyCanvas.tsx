@@ -12,6 +12,7 @@ interface SurveyCanvasProps {
   onDeleteQuestion: (questionId: string) => void;
   onCopyQuestion: (questionId: string) => void;
   onMoveQuestionToNewBlock: (questionId: string) => void;
+  onMoveQuestionToExistingBlock: (questionId: string, targetBlockId: string) => void;
   onDeleteBlock: (blockId: string) => void;
   onReorderQuestion: (draggedQuestionId: string, targetQuestionId: string | null, targetBlockId: string) => void;
   onReorderBlock: (draggedBlockId: string, targetBlockId: string | null) => void;
@@ -44,7 +45,7 @@ const DropIndicator = () => (
     </div>
 );
 
-const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuestion, checkedQuestions, logicIssues, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onDeleteBlock, onReorderQuestion, onReorderBlock, onAddBlockFromToolbox, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, collapsedBlocks, onToggleBlockCollapse, onCopyBlock, onExpandAllBlocks, onCollapseAllBlocks, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onUpdateSurveyTitle, onAddFromLibrary }) => {
+const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuestion, checkedQuestions, logicIssues, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onReorderBlock, onAddBlockFromToolbox, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, collapsedBlocks, onToggleBlockCollapse, onCopyBlock, onExpandAllBlocks, onCollapseAllBlocks, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onUpdateSurveyTitle, onAddFromLibrary }) => {
   const [draggedQuestionId, setDraggedQuestionId] = useState<string | null>(null);
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
   const [dropTargetBlockId, setDropTargetBlockId] = useState<string | null>(null);
@@ -148,6 +149,7 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
               onDeleteQuestion={onDeleteQuestion}
               onCopyQuestion={onCopyQuestion}
               onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
+              onMoveQuestionToExistingBlock={onMoveQuestionToExistingBlock}
               onDeleteBlock={onDeleteBlock}
               onReorderQuestion={onReorderQuestion}
               onAddQuestion={onAddQuestion}

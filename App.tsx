@@ -151,6 +151,7 @@ const App: React.FC = () => {
       SurveyActionType.REORDER_QUESTION,
       SurveyActionType.REPOSITION_QUESTION,
       SurveyActionType.MOVE_QUESTION_TO_NEW_BLOCK,
+      SurveyActionType.MOVE_QUESTION_TO_EXISTING_BLOCK,
       SurveyActionType.DELETE_QUESTION,
       SurveyActionType.DELETE_BLOCK,
       SurveyActionType.BULK_DELETE_QUESTIONS,
@@ -534,6 +535,14 @@ const App: React.FC = () => {
     dispatchAndRecord({ type: SurveyActionType.MOVE_QUESTION_TO_NEW_BLOCK, payload: { questionId, onLogicRemoved } });
     handleSelectQuestion(null);
   }, [handleSelectQuestion, showToast, handleUndo, dispatchAndRecord]);
+  
+  const handleMoveQuestionToExistingBlock = useCallback((questionId: string, targetBlockId: string) => {
+    const onLogicRemoved = (message: string) => {
+        showToast(message, handleUndo);
+    };
+    dispatchAndRecord({ type: SurveyActionType.MOVE_QUESTION_TO_EXISTING_BLOCK, payload: { questionId, targetBlockId, onLogicRemoved } });
+    handleSelectQuestion(null);
+  }, [showToast, handleUndo, dispatchAndRecord, handleSelectQuestion]);
 
   const handleAddChoice = useCallback((questionId: string) => {
     dispatchAndRecord({ type: SurveyActionType.ADD_CHOICE, payload: { questionId } });
@@ -662,6 +671,7 @@ const App: React.FC = () => {
                 onDeleteQuestion={handleDeleteQuestion}
                 onCopyQuestion={handleCopyQuestion}
                 onMoveQuestionToNewBlock={handleMoveQuestionToNewBlock}
+                onMoveQuestionToExistingBlock={handleMoveQuestionToExistingBlock}
                 onAddPageBreakAfterQuestion={handleAddPageBreakAfterQuestion}
                 onExpandBlock={handleExpandBlock}
                 onCollapseBlock={handleCollapseBlock}
@@ -682,6 +692,7 @@ const App: React.FC = () => {
                   onDeleteQuestion={handleDeleteQuestion}
                   onCopyQuestion={handleCopyQuestion}
                   onMoveQuestionToNewBlock={handleMoveQuestionToNewBlock}
+                  onMoveQuestionToExistingBlock={handleMoveQuestionToExistingBlock}
                   onDeleteBlock={handleDeleteBlock}
                   onReorderQuestion={handleReorderQuestion}
                   onReorderBlock={handleReorderBlock}
@@ -750,7 +761,7 @@ const App: React.FC = () => {
     handleDeleteQuestion, handleCopyQuestion, handleAddPageBreakAfterQuestion, handleExpandBlock, handleCollapseBlock,
     handleSelectAllInBlock, handleUnselectAllInBlock, handleUpdateQuestion, handleAddBlockFromToolbox, handleAddQuestion,
     handleToggleQuestionCheck, handleToggleBlockCollapse, handleAddChoice, handleUpdateBlockTitle, handleUpdateSurveyTitle,
-    handleAddToLibrary, isGeminiPanelOpen, showBulkEditPanel, activeCanvasTab, handleMoveQuestionToNewBlock
+    handleAddToLibrary, isGeminiPanelOpen, showBulkEditPanel, activeCanvasTab, handleMoveQuestionToNewBlock, handleMoveQuestionToExistingBlock
   ]);
   
   return (

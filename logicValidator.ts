@@ -17,10 +17,18 @@ const getQuestionMap = (survey: Survey): { byId: Map<string, Question>, byQid: M
 export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
     const issues: LogicIssue[] = [];
     const { byId, byQid, byIndex } = getQuestionMap(survey);
+    const blockOfQuestionMap = new Map<string, number>();
+    survey.blocks.forEach((block, index) => {
+        block.questions.forEach(q => {
+            blockOfQuestionMap.set(q.id, index);
+        });
+    });
+
 
     for (const block of survey.blocks) {
         for (const question of block.questions) {
             const currentQuestionIndex = byIndex.get(question.id)!;
+            const currentBlockIndex = blockOfQuestionMap.get(question.id)!;
 
             // 1. Validate Display Logic
             if (question.displayLogic) {
@@ -54,7 +62,31 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
             // 2. Validate Skip Logic
             if (question.skipLogic) {
                 const validateTarget = (target: string, sourceId?: string) => {
-                    if (target === 'next' || target === 'end') return;
+                    if (target === 'next' || target === 'end' || !target) return;
+
+                    if (target.startsWith('block:')) {
+                        const blockId = target.substring(6);
+                        const targetBlockIndex = survey.blocks.findIndex(b => b.id === blockId);
+                        if (targetBlockIndex === -1) {
+                            issues.push({
+                                questionId: question.id,
+                                type: 'skip',
+                                message: `The destination block no longer exists.`,
+                                sourceId,
+                                field: 'skipTo',
+                            });
+                        } else if (targetBlockIndex < currentBlockIndex) {
+                            issues.push({
+                                questionId: question.id,
+                                type: 'skip',
+                                message: `Skipping backward to a previous block can cause loops.`,
+                                sourceId,
+                                field: 'skipTo',
+                            });
+                        }
+                        return;
+                    }
+
                     const targetQuestion = byId.get(target);
                     if (!targetQuestion) {
                          issues.push({
@@ -99,7 +131,31 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
             // 3. Validate Branching Logic
             if (question.branchingLogic) {
                 const validateBranchTarget = (target: string, sourceId?: string) => {
-                     if (target === 'next' || target === 'end') return;
+                     if (target === 'next' || target === 'end' || !target) return;
+                     
+                     if (target.startsWith('block:')) {
+                        const blockId = target.substring(6);
+                        const targetBlockIndex = survey.blocks.findIndex(b => b.id === blockId);
+                        if (targetBlockIndex === -1) {
+                             issues.push({
+                                questionId: question.id,
+                                type: 'branching',
+                                message: `The destination block no longer exists.`,
+                                sourceId,
+                                field: 'skipTo',
+                            });
+                        } else if (targetBlockIndex < currentBlockIndex) {
+                             issues.push({
+                                questionId: question.id,
+                                type: 'branching',
+                                message: `Branching backward to a previous block can cause loops.`,
+                                sourceId,
+                                field: 'skipTo',
+                            });
+                        }
+                        return;
+                    }
+
                      const targetQuestion = byId.get(target);
                      if (!targetQuestion) {
                         issues.push({
@@ -138,7 +194,7 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
                             });
                         } else {
                             const sourceQuestionIndex = byIndex.get(sourceQuestion.id)!;
-                            if (sourceQuestionIndex >= currentQuestionIndex) {
+                            if (sourceQuestionIndex > currentQuestionIndex) {
                                 issues.push({
                                     questionId: question.id,
                                     type: 'branching',

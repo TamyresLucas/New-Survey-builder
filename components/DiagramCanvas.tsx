@@ -60,7 +60,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     }, [survey]);
     
     const { layoutNodes, layoutEdges } = useMemo(() => {
-        // This helper finds the next question in the survey flow that is not a page break.
         const findNextQuestion = (startIndex: number, allQs: Question[]): Question | undefined => {
             for (let i = startIndex + 1; i < allQs.length; i++) {
                 if (allQs[i].type !== QuestionType.PageBreak) {
@@ -82,8 +81,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         }
         
         const questionMap: Map<string, Question> = new Map(relevantQuestions.map(q => [q.id, q]));
-        
-        // This list includes all questions, including page breaks, for correct indexing.
         const allQuestions = survey.blocks.flatMap(b => b.questions);
 
         const nodeHeights = new Map<string, number>();
@@ -130,8 +127,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             const currentIdxInAll = allQuestions.findIndex(q => q.id === currentId);
             const nextQuestionInSurvey = findNextQuestion(currentIdxInAll, allQuestions);
 
-            // Default "next" logic
-            let hasExplicitTerminalLogic = false; // Check if logic explicitly goes to 'end' or if all paths are defined
+            let hasExplicitTerminalLogic = false; 
             if (skipLogic?.type === 'simple' && skipLogic.skipTo !== 'next') {
                 hasExplicitTerminalLogic = true;
             } else if (skipLogic?.type === 'per_choice' && skipLogic.rules.every(r => r.skipTo && r.skipTo !== 'next')) {
@@ -204,32 +200,53 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 let targetId: string | null = null;
                 let isDraft = false;
 
-                const logicToUse = q.draftSkipLogic ?? q.skipLogic;
+                const branchingLogicToUse = q.draftBranchingLogic ?? q.branchingLogic;
+                const skipLogicToUse = q.draftSkipLogic ?? q.skipLogic;
                 const nextQuestion = findNextQuestion(index, allQuestions);
+                
+                if (branchingLogicToUse) {
+                    isDraft = !!q.draftBranchingLogic;
+                    let ruleApplied = false;
+                    const currentChoice = (q.choices || []).find(c => c.id === handle.id);
 
-                if (logicToUse) {
-                    if (logicToUse.type === 'simple' && handle.id === 'output') {
-                        targetId = logicToUse.skipTo === 'next' ? nextQuestion?.id : logicToUse.skipTo;
-                    } else if (logicToUse.type === 'per_choice') {
-                        const rule = logicToUse.rules.find(r => r.choiceId === handle.id);
+                    if (currentChoice) {
+                        for (const branch of branchingLogicToUse.branches) {
+                            const condition = branch.conditions[0];
+                            if (condition && condition.value === currentChoice.text) {
+                                targetId = branch.thenSkipTo;
+                                ruleApplied = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!ruleApplied) {
+                        targetId = branchingLogicToUse.otherwiseSkipTo;
+                    }
+                } else if (skipLogicToUse) {
+                    isDraft = !!q.draftSkipLogic;
+                    if (skipLogicToUse.type === 'simple' && handle.id === 'output') {
+                        targetId = skipLogicToUse.skipTo;
+                    } else if (skipLogicToUse.type === 'per_choice') {
+                        const rule = skipLogicToUse.rules.find(r => r.choiceId === handle.id);
                         if (rule && rule.skipTo) {
-                           targetId = rule.skipTo === 'next' ? nextQuestion?.id : rule.skipTo;
+                           targetId = rule.skipTo;
                         }
                     }
                 }
-                
-                isDraft = !!q.draftSkipLogic;
 
-                // Default logic if no skip logic is defined for this handle
-                if (!targetId && index < allQuestions.length - 1) {
-                    // Check if *any* other rule on this question is terminal. If so, don't draw a default.
-                    let isImplicitlyTerminal = false;
-                    if (logicToUse?.type === 'simple') {
-                        isImplicitlyTerminal = logicToUse.skipTo !== 'next';
-                    }
-                    if (!isImplicitlyTerminal) {
-                        targetId = nextQuestion?.id;
-                    }
+                if (targetId === 'next') {
+                    targetId = nextQuestion?.id || null;
+                }
+                
+                if (targetId && targetId.startsWith('block:')) {
+                    const blockId = targetId.substring(6);
+                    const targetBlock = survey.blocks.find(b => b.id === blockId);
+                    const firstQuestionInBlock = targetBlock?.questions.find(q => q.type !== QuestionType.PageBreak);
+                    targetId = firstQuestionInBlock?.id || null;
+                }
+
+                if (targetId === null && !branchingLogicToUse && !skipLogicToUse) {
+                    targetId = nextQuestion?.id || null;
                 }
 
                 if (targetId && targetId !== 'end' && questionMap.has(targetId)) {
@@ -285,7 +302,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             return false;
         }
 
-        // Prevent self-connections
         if (connection.source === connection.target) {
             return false;
         }
@@ -294,10 +310,9 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         const targetIndex = questionIndexMap.get(connection.target);
 
         if (sourceIndex === undefined || targetIndex === undefined) {
-            return false; // Should not happen with valid nodes
+            return false;
         }
         
-        // A connection is valid only if the target question comes after the source question.
         return targetIndex > sourceIndex;
     }, [questionIndexMap]);
 

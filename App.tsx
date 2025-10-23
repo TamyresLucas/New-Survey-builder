@@ -21,9 +21,14 @@ import { SurveyPreview } from './components/SurveyPreview';
 import CanvasTabs from './components/CanvasTabs';
 
 const Toast: React.FC<{ message: string; onDismiss: () => void }> = ({ message, onDismiss }) => {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 6000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+
   return (
       <div 
-          className="fixed bottom-8 right-8 z-50 flex items-start gap-4 px-6 py-3 rounded-lg shadow-2xl bg-error-container text-on-error-container animate-fade-in-up w-96"
+          className="flex items-start gap-4 px-6 py-3 rounded-lg shadow-2xl bg-error-container text-on-error-container animate-fade-in-up w-96"
           role="alert"
       >
           <WarningIcon className="text-xl flex-shrink-0 mt-0.5" />
@@ -54,7 +59,7 @@ const App: React.FC = () => {
   const [logicIssues, setLogicIssues] = useState<LogicIssue[]>([]);
   const [focusedLogicSource, setFocusedLogicSource] = useState<string | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<{ id: number; message: string }[]>([]);
 
   // FIX: Hoisted showBulkEditPanel declaration before its use on line 41.
   const showBulkEditPanel = checkedQuestions.size >= 2;
@@ -102,15 +107,14 @@ const App: React.FC = () => {
     prevSelectedQuestionIdRef.current = selectedQuestion?.id ?? null;
   }, [selectedQuestion]);
 
-  // Effect to auto-dismiss toast
-  useEffect(() => {
-    if (toastMessage) {
-        const timer = setTimeout(() => {
-            setToastMessage(null);
-        }, 6000); // 6 seconds
-        return () => clearTimeout(timer);
-    }
-  }, [toastMessage]);
+  const showToast = useCallback((message: string) => {
+    const newToast = { id: Date.now() + Math.random(), message };
+    setToasts(prevToasts => [...prevToasts, newToast]);
+  }, []);
+
+  const dismissToast = useCallback((id: number) => {
+    setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
+  }, []);
 
 
   const handleBackToTop = useCallback(() => {
@@ -254,10 +258,10 @@ const App: React.FC = () => {
   
   const handleReorderQuestion = useCallback((draggedQuestionId: string, targetQuestionId: string | null, targetBlockId: string) => {
     const onLogicRemoved = (message: string) => {
-        setToastMessage(message);
+        showToast(message);
     };
     dispatch({ type: SurveyActionType.REORDER_QUESTION, payload: { draggedQuestionId, targetQuestionId, targetBlockId, onLogicRemoved } });
-  }, []);
+  }, [showToast]);
 
   const handleReorderToolbox = useCallback((newItems: ToolboxItemData[]) => {
     setToolboxItems(newItems);
@@ -456,11 +460,11 @@ const App: React.FC = () => {
 
   const handleMoveQuestionToNewBlock = useCallback((questionId: string) => {
     const onLogicRemoved = (message: string) => {
-        setToastMessage(message);
+        showToast(message);
     };
     dispatch({ type: SurveyActionType.MOVE_QUESTION_TO_NEW_BLOCK, payload: { questionId, onLogicRemoved } });
     handleSelectQuestion(null);
-  }, [handleSelectQuestion]);
+  }, [handleSelectQuestion, showToast]);
 
   const handleAddChoice = useCallback((questionId: string) => {
     dispatch({ type: SurveyActionType.ADD_CHOICE, payload: { questionId } });
@@ -588,6 +592,7 @@ const App: React.FC = () => {
                 onDeleteBlock={handleDeleteBlock}
                 onDeleteQuestion={handleDeleteQuestion}
                 onCopyQuestion={handleCopyQuestion}
+                onMoveQuestionToNewBlock={handleMoveQuestionToNewBlock}
                 onAddPageBreakAfterQuestion={handleAddPageBreakAfterQuestion}
                 onExpandBlock={handleExpandBlock}
                 onCollapseBlock={handleCollapseBlock}
@@ -762,9 +767,11 @@ const App: React.FC = () => {
       {isPreviewMode && (
         <SurveyPreview survey={survey} onClose={handleTogglePreviewMode} />
       )}
-      {toastMessage && (
-          <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
-      )}
+      <div className="fixed bottom-8 right-8 z-50 flex flex-col-reverse items-end gap-2">
+        {toasts.map((toast) => (
+            <Toast key={toast.id} message={toast.message} onDismiss={() => dismissToast(toast.id)} />
+        ))}
+      </div>
     </div>
   );
 };

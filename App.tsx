@@ -672,15 +672,6 @@ const App: React.FC = () => {
             
             <div className="relative flex-1 flex flex-col min-w-0">
               <div ref={canvasContainerRef} className={`relative flex-1 overflow-y-auto pt-16 px-4 pb-4 transition-all duration-300 ${selectedQuestion || isGeminiPanelOpen || showBulkEditPanel ? 'pr-0' : ''}`}>
-                {!isBuildPanelOpen && (
-                  <button
-                    onClick={() => setIsBuildPanelOpen(true)}
-                    className="absolute top-4 left-0 z-10 p-2 rounded-r-md text-on-surface-variant hover:bg-surface-container-high"
-                    aria-label="Open build panel"
-                  >
-                    <PanelRightIcon className="text-xl" />
-                  </button>
-                )}
                 <SurveyCanvas 
                   survey={survey} 
                   selectedQuestion={selectedQuestion} 
@@ -717,6 +708,15 @@ const App: React.FC = () => {
                   onAddFromLibrary={handleAddToLibrary}
                 />
               </div>
+              {!isBuildPanelOpen && (
+                <button
+                  onClick={() => setIsBuildPanelOpen(true)}
+                  className="absolute top-4 left-0 z-10 p-2 rounded-r-md text-on-surface-variant hover:bg-surface-container-high"
+                  aria-label="Open build panel"
+                >
+                  <PanelRightIcon className="text-xl" />
+                </button>
+              )}
               <CanvasTabs 
                   variant="floating"
                   activeTab={activeCanvasTab}

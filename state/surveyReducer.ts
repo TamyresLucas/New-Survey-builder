@@ -26,6 +26,7 @@ export enum SurveyActionType {
     BULK_UPDATE_QUESTIONS = 'BULK_UPDATE_QUESTIONS',
     BULK_MOVE_TO_NEW_BLOCK = 'BULK_MOVE_TO_NEW_BLOCK',
     MOVE_QUESTION_TO_NEW_BLOCK = 'MOVE_QUESTION_TO_NEW_BLOCK',
+    REPOSITION_QUESTION = 'REPOSITION_QUESTION',
     CLEANUP_UNCONFIRMED_LOGIC = 'CLEANUP_UNCONFIRMED_LOGIC',
     RESTORE_STATE = 'RESTORE_STATE',
 }
@@ -739,6 +740,64 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 newState.blocks = newState.blocks.filter((b: Block) => b.id !== originalBlock.id);
             }
 
+            validateAndCleanLogicAfterMove(newState, onLogicRemoved);
+            
+            return renumberSurveyVariables(newState);
+        }
+
+        case SurveyActionType.REPOSITION_QUESTION: {
+            const { qid, after_qid, before_qid, onLogicRemoved } = action.payload;
+        
+            let draggedQuestion: Question | undefined;
+            let originalBlock: Block | undefined;
+        
+            // Find and remove the question to be moved
+            for (const block of newState.blocks) {
+                const qIndex = block.questions.findIndex((q: Question) => q.qid === qid);
+                if (qIndex !== -1) {
+                    [draggedQuestion] = block.questions.splice(qIndex, 1);
+                    originalBlock = block;
+                    break;
+                }
+            }
+        
+            if (!draggedQuestion) {
+                console.warn(`[Reducer] Could not find question with QID ${qid} to reposition.`);
+                return state; // No change
+            }
+        
+            let targetPlaced = false;
+            const targetQid = before_qid || after_qid;
+            const isAfter = !!after_qid;
+        
+            if (targetQid) {
+                for (const block of newState.blocks) {
+                    const targetQIndex = block.questions.findIndex((q: Question) => q.qid === targetQid);
+                    if (targetQIndex !== -1) {
+                        const insertionIndex = isAfter ? targetQIndex + 1 : targetQIndex;
+                        block.questions.splice(insertionIndex, 0, draggedQuestion);
+                        targetPlaced = true;
+                        break;
+                    }
+                }
+            }
+        
+            if (!targetPlaced) {
+                console.warn(`[Reducer] Could not find target QID ${targetQid}. Reverting move.`);
+                if (originalBlock) {
+                    // Failsafe: put it back if target not found. This is complex because we don't store original index.
+                    // For now, add to end of original block.
+                    originalBlock.questions.push(draggedQuestion);
+                } else {
+                    newState.blocks[newState.blocks.length - 1].questions.push(draggedQuestion);
+                }
+            }
+        
+            // Cleanup original block if it becomes empty
+            if (originalBlock && originalBlock.questions.length === 0 && newState.blocks.length > 1) {
+                newState.blocks = newState.blocks.filter((b: Block) => b.id !== originalBlock.id);
+            }
+            
             validateAndCleanLogicAfterMove(newState, onLogicRemoved);
             
             return renumberSurveyVariables(newState);

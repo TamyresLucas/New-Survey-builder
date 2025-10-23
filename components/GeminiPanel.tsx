@@ -11,6 +11,8 @@ interface GeminiPanelProps {
   onClose: () => void;
   onAddQuestion: (questionType: QuestionType, title: string, choices?: string[], afterQid?: string, beforeQid?: string) => void;
   onUpdateQuestion: (args: any) => void;
+  onRepositionQuestion: (args: { qid: string, after_qid?: string, before_qid?: string }) => void;
+  onDeleteQuestion: (qid: string) => void;
   helpTopic: string | null;
   selectedQuestion: Question | null;
   survey: Survey;
@@ -24,11 +26,16 @@ type PendingLogicChange = {
     args: any;
 };
 
-// Helper to deep compare function calls
+// Helper to deep compare function calls, ignoring the 'force' parameter
 const isSameLogicChange = (a: PendingLogicChange | null, b: PendingLogicChange) => {
     if (!a) return false;
-    // A simple JSON.stringify is good enough for this
-    return JSON.stringify(a) === JSON.stringify(b);
+    
+    const aArgs = { ...a.args };
+    delete aArgs.force;
+    const bArgs = { ...b.args };
+    delete bArgs.force;
+
+    return a.name === b.name && JSON.stringify(aArgs) === JSON.stringify(bArgs);
 };
 
 const findPreviousQuestion = (startIndex: number, allQs: Question[]): Question | undefined => {
@@ -398,12 +405,54 @@ const removeSkipLogicFunctionDeclaration: FunctionDeclaration = {
     },
 };
 
+const repositionQuestionFunctionDeclaration: FunctionDeclaration = {
+    name: 'reposition_question',
+    description: 'Moves an existing question to a new position in the survey, either before or after another specified question.',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        qid: {
+          type: Type.STRING,
+          description: "The variable name of the question to move (e.g., 'Q1').",
+        },
+        after_qid: {
+            type: Type.STRING,
+            description: "The variable name (e.g., 'Q2') of the question AFTER which the selected question should be moved."
+        },
+        before_qid: {
+            type: Type.STRING,
+            description: "The variable name (e.g., 'Q3') of the question BEFORE which the selected question should be moved."
+        },
+        force: {
+            type: Type.BOOLEAN,
+            description: "Defaults to false. If true, bypasses logic validation and forces the move. This should only be used after the user has been warned about potential logic issues and has confirmed they want to proceed."
+        }
+      },
+      required: ['qid'],
+    },
+};
+
+const deleteQuestionFunctionDeclaration: FunctionDeclaration = {
+    name: 'delete_question',
+    description: 'Deletes an existing question from the survey based on its variable name (QID).',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        qid: {
+          type: Type.STRING,
+          description: "The variable name of the question to delete (e.g., 'Q1').",
+        },
+      },
+      required: ['qid'],
+    },
+};
+
 const initialMessages: ChatMessage[] = [
     { role: 'model', text: "Hi! How can I help you build your survey today? You can ask me to add questions, suggest improvements, or check for issues." }
 ];
 
 
-const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, onUpdateQuestion, helpTopic, selectedQuestion, survey, logicIssues }) => {
+const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, onUpdateQuestion, onRepositionQuestion, onDeleteQuestion, helpTopic, selectedQuestion, survey, logicIssues }) => {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -413,14 +462,16 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, 
 
   useEffect(() => {
     const systemInstruction = `You are a helpful survey building assistant integrated into a UI.
-    Your primary goal is to help users build and modify surveys using available tools.
-    With every user prompt, you will be provided with the complete current structure of the survey, including all questions, choices, and logic. You MUST treat this structure as the single source of truth.
-    The provided context may also include a list of 'Current Logic Issues'. You should be aware of these when making changes or if the user asks you to validate the survey.
-    When the user refers to "this question" or "the selected question," you should use the context provided about the currently selected question.
-    When you propose a logic change (display or skip logic), it will be validated. If validation fails, you will receive a response like "VALIDATION_FAILED: <details>".
-    When this happens, you MUST inform the user about the specific issues found in the details, and ask them if they want to proceed anyway.
-    Do not apologize or try to fix it yourself. Just present the facts and ask for confirmation.
-    If the user confirms, call the exact same function again. If they cancel, simply confirm the cancellation.`;
+Your primary goal is to help users build and modify surveys using available tools.
+With every user prompt, you will be provided with the complete current structure of the survey, including all questions, choices, and logic. You MUST treat this structure as the single source of truth.
+The provided context may also include a list of 'Current Logic Issues'. You should be aware of these when making changes or if the user asks you to validate the survey.
+When the user refers to "this question" or "the selected question," you should use the context provided about the currently selected question.
+When calling 'reposition_question', you MUST provide either 'before_qid' or 'after_qid'.
+
+When you propose a logic change (display or skip logic) or a question move (reposition_question), it will be validated. If validation fails, you will receive a response like "VALIDATION_FAILED: <details>".
+When this happens, you MUST inform the user about the specific issues found in the details, and ask them if they want to proceed anyway.
+Do not apologize or try to fix it yourself. Just present the facts and ask for confirmation.
+If the user confirms, call the exact same function again, but for a reposition, add the 'force: true' parameter. For logic changes, just call the function again. If they cancel, simply confirm the cancellation.`;
 
     chatRef.current = ai.chats.create({
       model: 'gemini-2.5-flash',
@@ -437,6 +488,8 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, 
             removeDisplayLogicFunctionDeclaration,
             setSkipLogicFunctionDeclaration,
             removeSkipLogicFunctionDeclaration,
+            repositionQuestionFunctionDeclaration,
+            deleteQuestionFunctionDeclaration,
         ] }],
       },
       systemInstruction: { parts: [{ text: systemInstruction }] }
@@ -625,6 +678,68 @@ const validateLogicChange = useCallback((name: string, args: any): { ok: boolean
     return { ok: true };
 }, [survey]);
 
+const validateReposition = useCallback((args: any): { ok: boolean, error?: string } => {
+    const { qid, after_qid, before_qid } = args;
+
+    if (!after_qid && !before_qid) {
+        return { ok: false, error: "The destination for the move is unclear. Please specify whether to move it before or after another question." };
+    }
+
+    const dryRunSurvey: Survey = JSON.parse(JSON.stringify(survey));
+    
+    let draggedQuestion: Question | undefined;
+    let originalBlock: Block | undefined;
+    
+    for (const block of dryRunSurvey.blocks) {
+        const qIndex = block.questions.findIndex((q: Question) => q.qid === qid);
+        if (qIndex !== -1) {
+            [draggedQuestion] = block.questions.splice(qIndex, 1);
+            originalBlock = block;
+            break;
+        }
+    }
+    if (!draggedQuestion) return { ok: false, error: `Question ${qid} was not found in the survey.` };
+
+    let targetPlaced = false;
+    const targetQid = before_qid || after_qid;
+    const isAfter = !!after_qid;
+
+    if (targetQid) {
+        for (const block of dryRunSurvey.blocks) {
+            const targetQIndex = block.questions.findIndex((q: Question) => q.qid === targetQid);
+            if (targetQIndex !== -1) {
+                const insertionIndex = isAfter ? targetQIndex + 1 : targetQIndex;
+                block.questions.splice(insertionIndex, 0, draggedQuestion);
+                targetPlaced = true;
+                break;
+            }
+        }
+    }
+    if (!targetPlaced) return { ok: false, error: `The target question ${targetQid} was not found.` };
+    
+    if (originalBlock && originalBlock.questions.length === 0 && dryRunSurvey.blocks.length > 1) {
+        dryRunSurvey.blocks = dryRunSurvey.blocks.filter((b: Block) => b.id !== originalBlock!.id);
+    }
+    
+    const renumberedDryRun = JSON.parse(JSON.stringify(dryRunSurvey));
+    // The renumbering happens in reducer, but for validation we need to account for it.
+    // The logic validator works on indices, which is what we need.
+    const newIssues = validateSurveyLogic(dryRunSurvey);
+    
+    const currentIssueMessages = new Set(logicIssues.map(i => i.message));
+    const criticalNewIssues = newIssues.filter(issue => !currentIssueMessages.has(issue.message));
+    
+    if (criticalNewIssues.length > 0) {
+        const errorDetails = criticalNewIssues.map(issue => {
+            const q = dryRunSurvey.blocks.flatMap(b => b.questions).find(q => q.id === issue.questionId);
+            return `- On question ${q?.qid || 'unknown'}: ${issue.message}`;
+        }).join('\n');
+        return { ok: false, error: `This move will create new logic issues:\n${errorDetails}` };
+    }
+
+    return { ok: true };
+}, [survey, logicIssues]);
+
 
   const handleSendMessage = useCallback(async () => {
     const trimmedInput = inputValue.trim();
@@ -675,6 +790,23 @@ const validateLogicChange = useCallback((name: string, args: any): { ok: boolean
                             resultPayload = { result: `VALIDATION_FAILED: ${validationResult.error}` };
                         }
                     }
+                } else if (funcCall.name === 'reposition_question') {
+                    const { force } = funcCall.args;
+                    if (force && isSameLogicChange(pendingLogicChange, currentChange)) {
+                        setPendingLogicChange(null);
+                        onRepositionQuestion(funcCall.args);
+                        resultPayload = { result: "OK, the question has been moved as you confirmed." };
+                    } else {
+                        const validationResult = validateReposition(funcCall.args);
+                        if (validationResult.ok) {
+                            setPendingLogicChange(null);
+                            onRepositionQuestion(funcCall.args);
+                            resultPayload = { result: "OK, the question has been moved successfully." };
+                        } else {
+                            setPendingLogicChange(currentChange);
+                            resultPayload = { result: `VALIDATION_FAILED: ${validationResult.error}` };
+                        }
+                    }
                 } else if (funcCall.name === 'add_question') {
                     setPendingLogicChange(null);
                     const { title, type, choices, after_qid, before_qid } = funcCall.args;
@@ -684,6 +816,11 @@ const validateLogicChange = useCallback((name: string, args: any): { ok: boolean
                     setPendingLogicChange(null);
                     onUpdateQuestion(funcCall.args);
                     resultPayload = { result: "OK, question updated." };
+                } else if (funcCall.name === 'delete_question') {
+                    setPendingLogicChange(null);
+                    const { qid } = funcCall.args;
+                    onDeleteQuestion(qid);
+                    resultPayload = { result: "OK, question deleted." };
                 } else if (funcCall.name === 'get_question_details') {
                     setPendingLogicChange(null);
                     const { qid } = funcCall.args;
@@ -778,7 +915,7 @@ const validateLogicChange = useCallback((name: string, args: any): { ok: boolean
     } finally {
       setIsLoading(false);
     }
-  }, [inputValue, isLoading, onAddQuestion, onUpdateQuestion, selectedQuestion, survey, applyLogicChange, validateLogicChange, pendingLogicChange, logicIssues]);
+  }, [inputValue, isLoading, onAddQuestion, onUpdateQuestion, onRepositionQuestion, onDeleteQuestion, selectedQuestion, survey, applyLogicChange, validateLogicChange, validateReposition, pendingLogicChange, logicIssues]);
 
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {

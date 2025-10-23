@@ -74,6 +74,7 @@ const TableDropIndicator: React.FC<{ colSpan: number }> = ({ colSpan }) => (
 const QuestionCard: React.FC<{ 
     question: Question, 
     survey: Survey,
+    currentBlockId: string,
     logicIssues: LogicIssue[],
     isSelected: boolean,
     isChecked: boolean,
@@ -84,6 +85,7 @@ const QuestionCard: React.FC<{
     onDeleteQuestion: (questionId: string) => void;
     onCopyQuestion: (questionId: string) => void;
     onMoveQuestionToNewBlock: (questionId: string) => void;
+    onMoveQuestionToExistingBlock: (questionId: string, targetBlockId: string) => void;
     toolboxItems: ToolboxItemData[];
     isDragging: boolean;
     onDragStart: () => void;
@@ -91,8 +93,8 @@ const QuestionCard: React.FC<{
     onAddChoice: (questionId: string) => void;
     onAddPageBreakAfterQuestion: (questionId: string) => void;
 }> = memo(({ 
-    question, survey, logicIssues, isSelected, isChecked, onSelect, onToggleCheck, id, 
-    onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, toolboxItems,
+    question, survey, currentBlockId, logicIssues, isSelected, isChecked, onSelect, onToggleCheck, id, 
+    onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, toolboxItems,
     isDragging, onDragStart, onDragEnd, onAddChoice, onAddPageBreakAfterQuestion
 }) => {
     
@@ -345,10 +347,13 @@ const QuestionCard: React.FC<{
                         </button>
                         {isActionsMenuOpen && (
                             <QuestionActionsMenu
+                                survey={survey}
+                                currentBlockId={currentBlockId}
                                 onDuplicate={() => { onCopyQuestion(question.id); setIsActionsMenuOpen(false); }}
                                 onDelete={() => { onDeleteQuestion(question.id); setIsActionsMenuOpen(false); }}
                                 onAddPageBreak={() => { onAddPageBreakAfterQuestion(question.id); setIsActionsMenuOpen(false); }}
                                 onMoveToNewBlock={() => { onMoveQuestionToNewBlock(question.id); setIsActionsMenuOpen(false); }}
+                                onMoveToExistingBlock={(targetBlockId) => { onMoveQuestionToExistingBlock(question.id, targetBlockId); setIsActionsMenuOpen(false); }}
                             />
                         )}
                     </div>

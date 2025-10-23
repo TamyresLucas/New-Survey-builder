@@ -1284,7 +1284,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     {
                         id: generateId('branch'),
                         operator: 'AND',
-                        conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
+                        conditions: [{ id: generateId('cond'), questionId: question.qid, operator: '', value: '', isConfirmed: false }],
                         thenSkipTo: '',
                         thenSkipToIsConfirmed: false,
                     }
@@ -1298,39 +1298,38 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
 
     return (
       <div className="space-y-8">
-        {previousQuestions.length > 0 && (
-            <CollapsibleSection title="Branching Logic" defaultExpanded={true}>
-                <div className="py-6 first:pt-0">
-                  {!branchingLogic ? (
-                      <div>
-                          <p className="text-xs text-on-surface-variant mb-3">Create complex paths through the survey based on multiple conditions.</p>
-                          <div className="flex items-center gap-4">
-                              <div className="relative group/tooltip inline-block">
-                                <button onClick={handleEnableBranching} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                                    <PlusIcon className="text-base" />
-                                    Add branch rule
-                                </button>
-                                <div className="absolute bottom-full mb-2 left-0 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
-                                    Send people down different survey paths based on multiple conditions.
-                                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
-                                </div>
-                              </div>
+        <CollapsibleSection title="Branching Logic" defaultExpanded={true}>
+            <div className="py-6 first:pt-0">
+              {!branchingLogic ? (
+                  <div>
+                      <p className="text-xs text-on-surface-variant mb-3">Create complex paths through the survey based on multiple conditions.</p>
+                      <div className="flex items-center gap-4">
+                          <div className="relative group/tooltip inline-block">
+                            <button onClick={handleEnableBranching} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                                <PlusIcon className="text-base" />
+                                Add branch rule
+                            </button>
+                            <div className="absolute bottom-full mb-2 left-0 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
+                                Send people down different survey paths based on multiple conditions.
+                                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
+                            </div>
                           </div>
                       </div>
-                  ) : (
-                    <BranchingLogicEditor
-                        question={question}
-                        previousQuestions={previousQuestions}
-                        followingQuestions={followingQuestions}
-                        issues={logicIssues.filter(i => i.type === 'branching')}
-                        onUpdate={handleUpdate}
-                        onAddLogic={onExpandSidebar}
-                        onRequestGeminiHelp={onRequestGeminiHelp}
-                    />
-                  )}
-                </div>
-            </CollapsibleSection>
-        )}
+                  </div>
+              ) : (
+                <BranchingLogicEditor
+                    question={question}
+                    survey={survey}
+                    previousQuestions={previousQuestions}
+                    followingQuestions={followingQuestions}
+                    issues={logicIssues.filter(i => i.type === 'branching')}
+                    onUpdate={handleUpdate}
+                    onAddLogic={onExpandSidebar}
+                    onRequestGeminiHelp={onRequestGeminiHelp}
+                />
+              )}
+            </div>
+        </CollapsibleSection>
         
         <CollapsibleSection title="Workflows" defaultExpanded={true}>
             <div className="-mt-2 mb-4">
@@ -1892,10 +1891,18 @@ interface LogicConditionRowProps {
     previousQuestions: Question[];
     issues: LogicIssue[];
     invalidFields?: Set<keyof (DisplayLogicCondition | BranchingLogicCondition)>;
+    isFirstCondition?: boolean;
+    currentQuestion?: Question;
 }
 
-const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpdateCondition, onRemoveCondition, onConfirm, previousQuestions, issues, invalidFields = new Set() }) => {
-    const referencedQuestion = useMemo(() => previousQuestions.find(q => q.qid === condition.questionId), [previousQuestions, condition.questionId]);
+const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpdateCondition, onRemoveCondition, onConfirm, previousQuestions, issues, invalidFields = new Set(), isFirstCondition = false, currentQuestion }) => {
+    const referencedQuestion = useMemo(() => {
+        if (isFirstCondition && currentQuestion) {
+            return currentQuestion;
+        }
+        return previousQuestions.find(q => q.qid === condition.questionId);
+    }, [isFirstCondition, currentQuestion, previousQuestions, condition.questionId]);
+    
     const isNumericInput = referencedQuestion?.type === QuestionType.NumericAnswer;
     const isChoiceBasedInput = referencedQuestion && CHOICE_BASED_QUESTION_TYPES.has(referencedQuestion.type);
     const isConfirmed = condition.isConfirmed ?? false;
@@ -1982,16 +1989,28 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
         <div className="flex items-center gap-2 p-2 bg-surface-container-high rounded-md min-w-max">
             {/* 1. Question */}
             <div className="relative group/tooltip w-48 flex-shrink-0">
-                <select 
-                    value={condition.questionId} 
-                    onChange={(e) => onUpdateCondition('questionId', e.target.value)} 
-                    className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${questionBorderClass}`} 
-                    aria-label="Select question"
-                >
-                    <option value="">select question</option>
-                    {previousQuestions.map(q => <option key={q.id} value={q.qid}>{q.qid}: {truncate(q.text, 50)}</option>)}
-                </select>
-                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                {isFirstCondition && currentQuestion ? (
+                    <div 
+                        title={`${currentQuestion.qid}: ${currentQuestion.text}`}
+                        className="w-full bg-surface-container-high border border-outline rounded-md px-2 py-1.5 text-sm text-on-surface-variant flex items-center gap-2 cursor-not-allowed"
+                    >
+                        <span className="font-semibold">{currentQuestion.qid}:</span>
+                        <span className="truncate">{truncate(currentQuestion.text, 50)}</span>
+                    </div>
+                ) : (
+                    <>
+                        <select 
+                            value={condition.questionId} 
+                            onChange={(e) => onUpdateCondition('questionId', e.target.value)} 
+                            className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${questionBorderClass}`} 
+                            aria-label="Select question"
+                        >
+                            <option value="">select question</option>
+                            {previousQuestions.map(q => <option key={q.id} value={q.qid}>{q.qid}: {truncate(q.text, 50)}</option>)}
+                        </select>
+                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                    </>
+                )}
                 <Tooltip issue={questionIssue} />
             </div>
 
@@ -2057,7 +2076,7 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
     );
 };
 
-const DestinationRow: React.FC<{
+interface DestinationRowProps {
   label: string | React.ReactNode;
   value: string;
   onChange: (value: string) => void;
@@ -2067,9 +2086,18 @@ const DestinationRow: React.FC<{
   issue?: LogicIssue;
   invalid?: boolean;
   followingQuestions: Question[];
+  survey?: Survey;
+  currentBlockId?: string | null;
   className?: string;
   [key: string]: any; // Allow other props
-}> = ({ label, value, onChange, onConfirm, onRemove, isConfirmed = true, issue, invalid = false, followingQuestions, className = '', ...rest }) => {
+}
+
+const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange, onConfirm, onRemove, isConfirmed = true, issue, invalid = false, followingQuestions, survey, currentBlockId, className = '', ...rest }) => {
+    const otherBlocks = useMemo(() => {
+        if (!survey || !currentBlockId) return [];
+        return survey.blocks.filter(b => b.id !== currentBlockId);
+    }, [survey, currentBlockId]);
+
     return (
         <div className={`flex items-center gap-2 ${className}`} {...rest}>
             <span className="text-sm text-on-surface flex-shrink-0">{label}</span>
@@ -2080,9 +2108,22 @@ const DestinationRow: React.FC<{
                     className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none ${(issue || invalid) ? 'border-error' : 'border-outline'}`}
                 >
                     <option value="">Select destination...</option>
-                    <option value="next">Next Question</option>
-                    {followingQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}
-                    <option value="end">End of Survey</option>
+                    <optgroup label="Default">
+                        <option value="next">Next Question</option>
+                        <option value="end">End of Survey</option>
+                    </optgroup>
+                    {otherBlocks.length > 0 && (
+                        <optgroup label="Blocks">
+                            {otherBlocks.map(block => (
+                                <option key={block.id} value={`block:${block.id}`}>{block.bid}: {truncate(block.title, 50)}</option>
+                            ))}
+                        </optgroup>
+                    )}
+                    {followingQuestions.length > 0 && (
+                        <optgroup label="Questions">
+                            {followingQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}
+                        </optgroup>
+                    )}
                 </select>
                 <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
                 {issue && (
@@ -2786,17 +2827,24 @@ const CarryForwardLogicEditor: React.FC<{
     );
 };
 
-const BranchingLogicEditor: React.FC<{
+interface BranchingLogicEditorProps {
     question: Question;
+    survey: Survey;
     previousQuestions: Question[];
     followingQuestions: Question[];
     issues: LogicIssue[];
     onUpdate: (updates: Partial<Question>) => void;
     onAddLogic: () => void;
     onRequestGeminiHelp: (topic: string) => void;
-}> = ({ question, previousQuestions, followingQuestions, issues, onUpdate, onAddLogic, onRequestGeminiHelp }) => {
+}
+
+const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, survey, previousQuestions, followingQuestions, issues, onUpdate, onAddLogic, onRequestGeminiHelp }) => {
     const branchingLogic = question.draftBranchingLogic ?? question.branchingLogic;
     const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof BranchingLogicCondition | 'skipTo'>>>(new Map());
+
+    const currentBlockId = useMemo(() => {
+        return survey.blocks.find(b => b.questions.some(q => q.id === question.id))?.id || null;
+    }, [survey.blocks, question.id]);
 
     if (!branchingLogic) return null; 
 
@@ -2808,7 +2856,20 @@ const BranchingLogicEditor: React.FC<{
     const handleUpdateCondition = (branchId: string, conditionId: string, field: keyof BranchingLogicCondition, value: any) => {
         const branch = branchingLogic.branches.find(b => b.id === branchId);
         if (!branch) return;
-        const newConditions = branch.conditions.map(c => c.id === conditionId ? { ...c, [field]: value, isConfirmed: false } : c);
+
+        const newConditions = branch.conditions.map(c => {
+            if (c.id === conditionId) {
+                const newCondition = { ...c, [field]: value, isConfirmed: false };
+                // If the question is changed (only possible for non-first conditions), reset operator and value
+                if (field === 'questionId') {
+                    newCondition.operator = '';
+                    newCondition.value = '';
+                }
+                return newCondition;
+            }
+            return c;
+        });
+
         handleUpdateBranch(branchId, { conditions: newConditions, thenSkipToIsConfirmed: false });
     };
 
@@ -2866,20 +2927,12 @@ const BranchingLogicEditor: React.FC<{
     };
 
     const handleRemoveLogic = () => onUpdate({ branchingLogic: undefined, draftBranchingLogic: undefined });
-
-    const handleAddCondition = (branchId: string) => {
-        const newCondition: BranchingLogicCondition = { id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false };
-        const branch = branchingLogic.branches.find(b => b.id === branchId);
-        if (!branch) return;
-        const newConditions = [...branch.conditions, newCondition];
-        handleUpdateBranch(branchId, { conditions: newConditions, thenSkipToIsConfirmed: false });
-    };
     
     const handleAddBranch = () => {
         const newBranch: BranchingLogicBranch = {
             id: generateId('branch'),
             operator: 'AND',
-            conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
+            conditions: [{ id: generateId('cond'), questionId: question.qid, operator: '', value: '', isConfirmed: false }],
             thenSkipTo: '',
             thenSkipToIsConfirmed: false,
         };
@@ -2919,13 +2972,7 @@ const BranchingLogicEditor: React.FC<{
                     <div key={branch.id} className="p-3 border border-outline-variant rounded-md bg-surface-container">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold text-primary">IF</span>
-                                {branch.conditions.length > 1 && (
-                                    <div className="flex gap-1">
-                                        <button onClick={() => handleUpdateBranch(branch.id, { operator: 'AND' })} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${branch.operator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
-                                        <button onClick={() => handleUpdateBranch(branch.id, { operator: 'OR' })} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${branch.operator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
-                                    </div>
-                                )}
+                                <span className="font-bold text-primary">IF</span>
                             </div>
                             <button onClick={() => handleRemoveBranch(branch.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Remove branch"><XIcon className="text-lg"/></button>
                         </div>
@@ -2935,21 +2982,16 @@ const BranchingLogicEditor: React.FC<{
                                 <LogicConditionRow
                                     key={condition.id}
                                     condition={condition}
+                                    isFirstCondition={condIndex === 0}
+                                    currentQuestion={question}
                                     onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
-                                    onRemoveCondition={branch.conditions.length > 1 ? () => {
-                                        const newConditions = branch.conditions.filter(c => c.id !== condition.id);
-                                        handleUpdateBranch(branch.id, { conditions: newConditions, thenSkipToIsConfirmed: false });
-                                    } : undefined}
+                                    onRemoveCondition={undefined}
                                     previousQuestions={previousQuestions}
                                     issues={issues.filter(i => i.sourceId === condition.id)}
                                     invalidFields={validationErrors.get(condition.id)}
                                 />
                             ))}
                         </div>
-
-                        <button onClick={() => handleAddCondition(branch.id)} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline mb-3">
-                            <PlusIcon className="text-base" /> Add condition
-                        </button>
 
                         <DestinationRow
                             label={<span className="font-bold text-primary">THEN</span>}
@@ -2960,6 +3002,8 @@ const BranchingLogicEditor: React.FC<{
                             issue={issues.find(i => i.sourceId === branch.id && i.field === 'skipTo')}
                             invalid={validationErrors.has(branch.id)}
                             followingQuestions={followingQuestions}
+                            survey={survey}
+                            currentBlockId={currentBlockId}
                         />
                     </div>
                 ))}
@@ -2979,6 +3023,8 @@ const BranchingLogicEditor: React.FC<{
                     issue={issues.find(i => i.sourceId === 'otherwise' && i.field === 'skipTo')}
                     invalid={validationErrors.has('otherwise')}
                     followingQuestions={followingQuestions}
+                    survey={survey}
+                    currentBlockId={currentBlockId}
                 />
             </div>
         </div>
@@ -3024,8 +3070,7 @@ export const RightSidebar: React.FC<{
 }) => {
     const isChoiceBased = useMemo(() => CHOICE_BASED_QUESTION_TYPES.has(question.type), [question.type]);
     const tabs = ['Settings', 'Behavior', 'Advanced'];
-    const showPreviewTab = isChoiceBased || question.type === QuestionType.TextEntry;
-    if (showPreviewTab) {
+    if (!['Description', 'Page Break'].includes(question.type)) {
         tabs.push('Preview');
     }
 

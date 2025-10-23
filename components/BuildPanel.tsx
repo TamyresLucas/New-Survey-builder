@@ -26,6 +26,7 @@ interface BuildPanelProps {
   onDeleteQuestion: (questionId: string) => void;
   onCopyQuestion: (questionId: string) => void;
   onMoveQuestionToNewBlock: (questionId: string) => void;
+  onMoveQuestionToExistingBlock: (questionId: string, targetBlockId: string) => void;
   onAddPageBreakAfterQuestion: (questionId: string) => void;
   onSelectAllInBlock: (blockId: string) => void;
   onUnselectAllInBlock: (blockId: string) => void;
@@ -42,7 +43,7 @@ const DropIndicator = ({ small = false }: { small?: boolean }) => (
     </div>
 );
 
-const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, showDropIndicator, onSelectQuestion, onDragStart, onDragEnd, TypeIcon, onOpenMenu, openQuestionMenuId, questionActionsMenuRef, onCopyQuestion, onDeleteQuestion, onAddPageBreakAfterQuestion, onMoveQuestionToNewBlock }: any) => {
+const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, showDropIndicator, onSelectQuestion, onDragStart, onDragEnd, TypeIcon, onCopyQuestion, onDeleteQuestion, onAddPageBreakAfterQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, survey, currentBlockId }: any) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -90,10 +91,13 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
                     </button>
                     {isMenuOpen && (
                         <QuestionActionsMenu
+                            survey={survey}
+                            currentBlockId={currentBlockId}
                             onDelete={() => { onDeleteQuestion(question.id); setIsMenuOpen(false); }}
                             onDuplicate={() => { onCopyQuestion(question.id); setIsMenuOpen(false); }}
                             onAddPageBreak={() => { onAddPageBreakAfterQuestion(question.id); setIsMenuOpen(false); }}
                             onMoveToNewBlock={() => { onMoveQuestionToNewBlock(question.id); setIsMenuOpen(false); }}
+                            onMoveToExistingBlock={(targetBlockId) => { onMoveQuestionToExistingBlock(question.id, targetBlockId); setIsMenuOpen(false); }}
                         />
                     )}
                 </div>
@@ -106,7 +110,7 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
 const BuildPanel: React.FC<BuildPanelProps> = memo(({ 
   onClose, survey, onSelectQuestion, selectedQuestion, checkedQuestions, collapsedBlocks, toolboxItems, onReorderToolbox, onReorderQuestion, onReorderBlock,
   onAddBlock, onCopyBlock, onAddQuestionToBlock, onExpandAllBlocks, onCollapseAllBlocks, onDeleteBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock,
-  onAddPageBreakAfterQuestion, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock
+  onMoveQuestionToExistingBlock, onAddPageBreakAfterQuestion, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock
 }) => {
   const [activeTab, setActiveTab] = useState('Content');
   const [searchTerm, setSearchTerm] = useState('');
@@ -451,7 +455,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
           </div>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto overflow-x-visible">
         {activeTab === 'Toolbox' && (
           <ul
             ref={toolboxListRef}
@@ -571,6 +575,9 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                             onCopyQuestion={onCopyQuestion}
                             onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
                             onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
+                            onMoveQuestionToExistingBlock={onMoveQuestionToExistingBlock}
+                            survey={survey}
+                            currentBlockId={block.id}
                         />
                       ))}
                       {!isSearching && dropContentTarget?.blockId === block.id && dropContentTarget.questionId === null && <DropIndicator small />}

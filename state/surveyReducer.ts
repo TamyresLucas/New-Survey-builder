@@ -26,6 +26,7 @@ export enum SurveyActionType {
     BULK_UPDATE_QUESTIONS = 'BULK_UPDATE_QUESTIONS',
     BULK_MOVE_TO_NEW_BLOCK = 'BULK_MOVE_TO_NEW_BLOCK',
     MOVE_QUESTION_TO_NEW_BLOCK = 'MOVE_QUESTION_TO_NEW_BLOCK',
+    MOVE_QUESTION_TO_EXISTING_BLOCK = 'MOVE_QUESTION_TO_EXISTING_BLOCK',
     REPOSITION_QUESTION = 'REPOSITION_QUESTION',
     CLEANUP_UNCONFIRMED_LOGIC = 'CLEANUP_UNCONFIRMED_LOGIC',
     RESTORE_STATE = 'RESTORE_STATE',
@@ -744,6 +745,48 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             
             return renumberSurveyVariables(newState);
         }
+
+        case SurveyActionType.MOVE_QUESTION_TO_EXISTING_BLOCK: {
+            const { questionId, targetBlockId, onLogicRemoved } = action.payload;
+            let questionToMove: Question | undefined;
+            let originalBlockId: string | undefined;
+
+            // Find and remove the question from its original block
+            for (const block of newState.blocks) {
+                const qIndex = block.questions.findIndex((q: Question) => q.id === questionId);
+                if (qIndex !== -1) {
+                    [questionToMove] = block.questions.splice(qIndex, 1);
+                    originalBlockId = block.id;
+                    break;
+                }
+            }
+
+            if (!questionToMove) return state;
+
+            // Find target block and add the question
+            const targetBlock = newState.blocks.find((b: Block) => b.id === targetBlockId);
+            if (!targetBlock) {
+                // Failsafe: if target block is not found, put the question back.
+                const originalBlock = newState.blocks.find((b: Block) => b.id === originalBlockId);
+                originalBlock?.questions.push(questionToMove);
+                return state;
+            }
+
+            targetBlock.questions.push(questionToMove);
+
+            // Clean up original block if it becomes empty
+            if (originalBlockId) {
+                const originalBlock = newState.blocks.find((b: Block) => b.id === originalBlockId);
+                if (originalBlock && originalBlock.questions.length === 0 && newState.blocks.length > 1) {
+                    newState.blocks = newState.blocks.filter((b: Block) => b.id !== originalBlockId);
+                }
+            }
+
+            validateAndCleanLogicAfterMove(newState, onLogicRemoved);
+            
+            return renumberSurveyVariables(newState);
+        }
+
 
         case SurveyActionType.REPOSITION_QUESTION: {
             const { qid, after_qid, before_qid, onLogicRemoved } = action.payload;

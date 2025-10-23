@@ -17,6 +17,13 @@ const findQuestionById = (survey: Survey, id: string): Question | undefined => {
 const formatDestination = (destination: string, survey: Survey): string => {
     if (destination === 'next') return 'Next Question';
     if (destination === 'end') return 'End of Survey';
+    
+    if (destination.startsWith('block:')) {
+        const blockId = destination.substring(6);
+        const block = survey.blocks.find(b => b.id === blockId);
+        return block ? `Block ${block.bid}: ${truncate(block.title, 30)}` : 'an unknown block';
+    }
+
     const question = findQuestionById(survey, destination);
     return question ? `${question.qid}: ${truncate(question.text, 30)}` : 'an unknown location';
 };

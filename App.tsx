@@ -83,6 +83,12 @@ const App: React.FC = () => {
   const surveyRef = useRef(survey);
   const [collapsedBlocks, setCollapsedBlocks] = useState<Set<string>>(new Set());
   const prevSelectedQuestionIdRef = useRef<string | null>(null);
+  
+  // Ref to hold the latest history state to avoid stale closures in callbacks.
+  const historyRef = useRef(history);
+  useEffect(() => {
+    historyRef.current = history;
+  }, [history]);
 
   const isDiagramView = activeMainTab === 'Flow';
   const isAnyRightPanelOpen = isGeminiPanelOpen || showBulkEditPanel || !!selectedQuestion;
@@ -126,13 +132,15 @@ const App: React.FC = () => {
   }, []);
 
   const handleUndo = useCallback(() => {
-    if (history.length > 0) {
-        const lastState = history[history.length - 1];
+    // Use the ref to get the most up-to-date history state, avoiding stale closures.
+    const currentHistory = historyRef.current;
+    if (currentHistory.length > 0) {
+        const lastState = currentHistory[currentHistory.length - 1];
         dispatch({ type: SurveyActionType.RESTORE_STATE, payload: lastState });
-        setHistory(prev => prev.slice(0, -1));
+        setHistory(currentHistory.slice(0, -1));
         setToasts([]); // Clear all toasts on undo
     }
-  }, [history]);
+  }, [dispatch]);
 
   const showToast = useCallback((message: string, onUndo?: () => void) => {
     const newToast = { id: Date.now() + Math.random(), message, onUndo };
@@ -141,6 +149,7 @@ const App: React.FC = () => {
 
   const undoableActionTypes = useMemo(() => new Set([
       SurveyActionType.REORDER_QUESTION,
+      SurveyActionType.REPOSITION_QUESTION,
       SurveyActionType.MOVE_QUESTION_TO_NEW_BLOCK,
       SurveyActionType.DELETE_QUESTION,
       SurveyActionType.DELETE_BLOCK,
@@ -355,6 +364,16 @@ const App: React.FC = () => {
     dispatchAndRecord({ type: SurveyActionType.ADD_QUESTION_FROM_AI, payload: { questionType, text, choiceStrings, afterQid, beforeQid } });
   }, [dispatchAndRecord]);
 
+  const handleRepositionQuestion = useCallback((args: { qid: string; after_qid?: string; before_qid?: string }) => {
+    const onLogicRemoved = (message: string) => {
+        showToast(message, handleUndo);
+    };
+    dispatchAndRecord({ 
+        type: SurveyActionType.REPOSITION_QUESTION, 
+        payload: { ...args, onLogicRemoved } 
+    });
+  }, [showToast, handleUndo, dispatchAndRecord]);
+
   const handleUpdateQuestionFromAI = useCallback((args: any) => {
     const { qid, ...updatesFromAI } = args;
     if (!qid) {
@@ -443,6 +462,15 @@ const App: React.FC = () => {
         return newSet;
     });
   }, [selectedQuestion, dispatchAndRecord]);
+
+  const handleDeleteQuestionFromAI = useCallback((qid: string) => {
+    const questionToDelete = surveyRef.current.blocks.flatMap(b => b.questions).find(q => q.qid === qid);
+    if (questionToDelete) {
+      handleDeleteQuestion(questionToDelete.id);
+    } else {
+      console.warn(`[AI Action] Could not find question with QID: ${qid} to delete.`);
+    }
+  }, [handleDeleteQuestion]);
 
   const handleDeleteBlock = useCallback((blockId: string) => {
     const blockToDelete = survey.blocks.find(b => b.id === blockId);
@@ -753,6 +781,8 @@ const App: React.FC = () => {
                   onClose={handleToggleGeminiPanel} 
                   onAddQuestion={handleAddQuestionFromAI}
                   onUpdateQuestion={handleUpdateQuestionFromAI}
+                  onRepositionQuestion={handleRepositionQuestion}
+                  onDeleteQuestion={handleDeleteQuestionFromAI}
                   helpTopic={geminiHelpTopic}
                   selectedQuestion={selectedQuestion}
                   survey={survey}

@@ -158,6 +158,21 @@
       .react-flow__edge.selected .react-flow__marker-end path {
           fill: hsl(var(--color-primary));
       }
+      
+      .dark .react-flow__background {
+        background-color: hsl(var(--color-surface));
+      }
+      .dark .react-flow__edge-path {
+        stroke: hsl(var(--color-outline));
+      }
+      .dark .react-flow__edge-text {
+        background-color: hsl(var(--color-surface-container-highest));
+        color: hsl(var(--color-on-surface));
+        padding: 4px 6px;
+      }
+      .dark .react-flow__marker-end path {
+        fill: hsl(var(--color-outline));
+      }
 
       /* React Flow Controls Dark Mode Overrides */
       .dark .react-flow__controls {

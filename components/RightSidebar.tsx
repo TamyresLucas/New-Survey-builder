@@ -51,6 +51,28 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
     const [selectedGridChoices, setSelectedGridChoices] = useState<Map<string, string>>(new Map());
     const [expandedMobileRowId, setExpandedMobileRowId] = useState<string | null>(null);
 
+    const createPasteHandler = useCallback(<T extends HTMLInputElement | HTMLTextAreaElement>(
+        onChange: (newValue: string) => void
+    ) => (e: React.ClipboardEvent<T>) => {
+        e.preventDefault();
+        const text = e.clipboardData.getData('text/plain');
+        const target = e.currentTarget;
+        const start = target.selectionStart ?? 0;
+        const end = target.selectionEnd ?? 0;
+
+        const newValue = target.value.substring(0, start) + text + target.value.substring(end);
+        onChange(newValue);
+
+        const newCursorPos = start + text.length;
+        // Using requestAnimationFrame to ensure the cursor is set after the re-render.
+        requestAnimationFrame(() => {
+            if (document.activeElement === target) {
+                target.selectionStart = newCursorPos;
+                target.selectionEnd = newCursorPos;
+            }
+        });
+    }, []);
+
     const allSurveyQuestions = useMemo(() => survey.blocks.flatMap(b => b.questions), [survey]);
     const currentQuestionIndex = useMemo(() => allSurveyQuestions.findIndex(q => q.id === question.id), [allSurveyQuestions, question.id]);
 
@@ -392,6 +414,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                 value={questionText}
                 onChange={(e) => setQuestionText(e.target.value)}
                 onBlur={handleTextBlur}
+                onPaste={createPasteHandler(setQuestionText)}
                 rows={4}
                 className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
                 placeholder="Enter your question here..."
@@ -433,6 +456,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                                     type="text"
                                     value={parseChoice(choice.text).label}
                                     onChange={(e) => handleChoiceTextChange(choice.id, e.target.value)}
+                                    onPaste={createPasteHandler((newValue) => handleChoiceTextChange(choice.id, newValue))}
                                     className="w-full bg-transparent p-2 text-sm text-on-surface focus:outline-none"
                                     placeholder="Enter choice text"
                                 />
@@ -501,6 +525,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                                         type="text"
                                         value={scalePoint.text}
                                         onChange={(e) => handleScalePointTextChange(scalePoint.id, e.target.value)}
+                                        onPaste={createPasteHandler((newValue) => handleScalePointTextChange(scalePoint.id, newValue))}
                                         className="w-full bg-transparent p-2 text-sm text-on-surface focus:outline-none"
                                         placeholder="Enter column text"
                                     />
@@ -952,6 +977,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                 value={questionText}
                 onChange={(e) => setQuestionText(e.target.value)}
                 onBlur={handleTextBlur}
+                onPaste={createPasteHandler(setQuestionText)}
                 rows={4}
                 className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary resize-y"
                 placeholder="Enter your question here..."
@@ -982,6 +1008,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     id="placeholder"
                     value={textEntrySettings.placeholder || ''}
                     onChange={(e) => handleUpdateSettings({ placeholder: e.target.value })}
+                    onPaste={createPasteHandler((newValue) => handleUpdateSettings({ placeholder: newValue }))}
                     className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
                     placeholder="e.g., Enter your answer here..."
                 />
@@ -1186,6 +1213,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
           value={questionText}
           onChange={(e) => setQuestionText(e.target.value)}
           onBlur={handleTextBlur}
+          onPaste={createPasteHandler(setQuestionText)}
           rows={4}
           className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
           placeholder="Enter your question here..."

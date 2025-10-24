@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import type { Survey, Question, DisplayLogicCondition } from '../types';
+import type { Survey, Question, DisplayLogicCondition, BranchingLogicCondition } from '../types';
 import { QuestionType } from '../types';
 import { XIcon, ArrowRightAltIcon, SignalIcon, BatteryIcon } from './icons';
 import { PreviewQuestion } from './PreviewQuestion';
@@ -25,7 +25,7 @@ interface PreviewContentProps {
 
 // Helper functions for display logic evaluation
 const evaluateCondition = (
-  condition: DisplayLogicCondition,
+  condition: DisplayLogicCondition | BranchingLogicCondition,
   answers: Map<string, any>,
   survey: Survey,
   questionMapByQid: Map<string, Question>
@@ -163,41 +163,48 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
   const mobilePaneRef = useRef<HTMLDivElement>(null);
   const scrollLockRef = useRef(false);
 
-  const pages = useMemo(() => {
+  const questionMapByQid = useMemo(() => {
     const allQuestions = survey.blocks.flatMap(b => b.questions);
-    if (allQuestions.length === 0) return [[]];
-  
-    const questionMapByQid: Map<string, Question> = new Map(allQuestions.filter(q => q.qid).map(q => [q.qid, q]));
-  
-    const visibleQuestions = allQuestions.filter(question => {
-        return evaluateDisplayLogic(question, answers, survey, questionMapByQid);
-    });
-  
-    // 1. Split questions into pages based on PageBreak elements.
-    const pagesWithPotentialEmpties = visibleQuestions.reduce((acc, question) => {
-      if (question.type === QuestionType.PageBreak) {
-        // Always start a new page after a page break.
-        acc.push([]);
-      } else {
-        // Ensure there's at least one page to push to.
-        if (acc.length === 0) {
-          acc.push([]);
+    return new Map(allQuestions.filter(q => q.qid).map(q => [q.qid, q]));
+  }, [survey]);
+
+  const pages = useMemo(() => {
+    const finalPages: Question[][] = [];
+    let currentPage: Question[] = [];
+
+    for (const block of survey.blocks) {
+        // Treat start of a new block as an implicit page break if the current page isn't empty.
+        if (currentPage.length > 0) {
+            finalPages.push(currentPage);
+            currentPage = [];
         }
-        acc[acc.length - 1].push(question);
-      }
-      return acc;
-    }, [] as Question[][]);
-    
-    // 2. Filter out any pages that are empty.
-    const finalPages = pagesWithPotentialEmpties.filter(page => page.length > 0);
-  
-    // 3. If there are no visible questions at all, return a single empty page structure.
-    if (finalPages.length === 0) {
-      return [[]];
+
+        for (const question of block.questions) {
+            // Only consider questions that should be visible based on display logic
+            const isVisible = evaluateDisplayLogic(question, answers, survey, questionMapByQid);
+            if (!isVisible) continue;
+
+            if (question.type === QuestionType.PageBreak) {
+                // If there's content on the current page, finalize it before the break.
+                if (currentPage.length > 0) {
+                    finalPages.push(currentPage);
+                }
+                // Start a new page after the break.
+                currentPage = [];
+            } else {
+                currentPage.push(question);
+            }
+        }
     }
-  
-    return finalPages;
-  }, [survey, answers]);
+
+    // Add the last page if it has any questions
+    if (currentPage.length > 0) {
+        finalPages.push(currentPage);
+    }
+    
+    // If after all logic, there are no pages, return a single empty page to avoid crashes.
+    return finalPages.length > 0 ? finalPages : [[]];
+  }, [survey, answers, questionMapByQid]);
   
   const nextStepInfo = useMemo(() => {
     const questionsOnPage = pages[currentPage];
@@ -207,26 +214,74 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
 
     let destination: string | null = null;
 
+    // Iterate through questions on the current page in reverse order to find the last applicable logic
     for (let i = questionsOnPage.length - 1; i >= 0; i--) {
         const question = questionsOnPage[i];
-        const logic = question.skipLogic;
         const answer = answers.get(question.id);
 
-        if (logic && answer) {
-            if (logic.type === 'simple' && logic.isConfirmed) {
-                destination = logic.skipTo;
+        // An answer must exist for some logic to be triggered
+        if (answer === undefined) {
+            continue;
+        }
+
+        // 1. Check for Branching Logic first
+        const branchingLogic = question.branchingLogic;
+        if (branchingLogic && branchingLogic.branches) {
+            let branchMatched = false;
+            for (const branch of branchingLogic.branches) {
+                if (!branch.thenSkipToIsConfirmed) continue;
+
+                const confirmedConditions = branch.conditions.filter(c => c.isConfirmed);
+                if (confirmedConditions.length === 0) continue;
+
+                const conditionResults = confirmedConditions.map(cond => 
+                    evaluateCondition(cond, answers, survey, questionMapByQid)
+                );
+                
+                const branchResult = branch.operator === 'AND'
+                    ? conditionResults.every(res => res)
+                    : conditionResults.some(res => res);
+
+                if (branchResult) {
+                    destination = branch.thenSkipTo;
+                    branchMatched = true;
+                    break;
+                }
+            }
+
+            if (branchMatched) {
                 break; 
-            } else if (logic.type === 'per_choice' && (typeof answer === 'string' || answer instanceof Set)) {
+            }
+
+            if (branchingLogic.otherwiseIsConfirmed) {
+                destination = branchingLogic.otherwiseSkipTo;
+                break;
+            }
+        }
+        
+        if (destination !== null) {
+            break;
+        }
+
+        // 2. Fallback to Skip Logic
+        const skipLogic = question.skipLogic;
+        if (skipLogic) {
+            if (skipLogic.type === 'simple' && skipLogic.isConfirmed) {
+                destination = skipLogic.skipTo;
+            } else if (skipLogic.type === 'per_choice' && (typeof answer === 'string' || answer instanceof Set)) {
                 const answerSet = typeof answer === 'string' ? new Set([answer]) : answer;
-                for (const ans of Array.from(answerSet).reverse()) {
-                    const rule = logic.rules.find(r => r.choiceId === ans && r.isConfirmed);
+                for (const ans of Array.from(answerSet).reverse()) { 
+                    const rule = skipLogic.rules.find(r => r.choiceId === ans && r.isConfirmed);
                     if (rule?.skipTo) {
                         destination = rule.skipTo;
-                        break; 
+                        break;
                     }
                 }
-                if (destination) break; 
             }
+        }
+        
+        if (destination !== null) {
+            break;
         }
     }
 
@@ -235,7 +290,15 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
     }
 
     if (destination && destination !== 'next') {
-        const pageIndex = pages.findIndex(p => p.some(q => q.id === destination));
+        let targetId = destination;
+        if (destination.startsWith('block:')) {
+            const blockId = destination.substring(6);
+            const targetBlock = survey.blocks.find(b => b.id === blockId);
+            const firstQuestionInBlock = targetBlock?.questions.find(q => q.type !== QuestionType.PageBreak);
+            targetId = firstQuestionInBlock?.id || '';
+        }
+
+        const pageIndex = pages.findIndex(p => p.some(q => q.id === targetId));
         if (pageIndex > -1) {
             return { action: 'next' as const, pageIndex };
         }
@@ -246,7 +309,7 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
     }
 
     return { action: 'next' as const, pageIndex: currentPage + 1 };
-  }, [currentPage, pages, answers]);
+  }, [currentPage, pages, answers, survey, questionMapByQid]);
 
   useEffect(() => {
     if (currentPage >= pages.length) {

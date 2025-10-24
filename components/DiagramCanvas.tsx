@@ -33,7 +33,6 @@ const nodeTypes: NodeTypes = {
 };
 
 const NODE_WIDTH = 320;
-const NODE_HEIGHT = 180;
 const X_SPACING = 450;
 const VERTICAL_GAP = 80;
 
@@ -69,50 +68,34 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             return undefined;
         };
         
-        const relevantQuestions = survey.blocks.flatMap(b => b.questions).filter(q =>
-            q.type === QuestionType.Radio ||
-            q.type === QuestionType.Checkbox ||
-            q.type === QuestionType.TextEntry ||
-            q.type === QuestionType.ChoiceGrid
-        );
+        const allQuestions = survey.blocks.flatMap(b => b.questions);
+        const questionMap: Map<string, Question> = new Map(allQuestions.map(q => [q.id, q]));
 
-        if (relevantQuestions.length === 0) {
+        if (allQuestions.length === 0) {
             return { layoutNodes: [], layoutEdges: [] };
         }
         
-        const questionMap: Map<string, Question> = new Map(relevantQuestions.map(q => [q.id, q]));
-        const allQuestions = survey.blocks.flatMap(b => b.questions);
-
-        const nodeHeights = new Map<string, number>();
-        relevantQuestions.forEach(q => {
-            let height = NODE_HEIGHT;
-            if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid) {
-                height = 100 + (q.choices?.length || 0) * 32;
-            }
-            nodeHeights.set(q.id, height);
+        // --- Graph Representation ---
+        const adj: Record<string, string[]> = {};
+        const revAdj: Record<string, string[]> = {};
+        allQuestions.forEach(q => {
+            adj[q.id] = [];
+            revAdj[q.id] = [];
         });
-        
-        const nodePositions = new Map<string, { x: number, y: number }>();
-        const columns: string[][] = [];
-        const questionToColumn = new Map<string, number>();
 
-        if (relevantQuestions[0]) {
-            columns[0] = [relevantQuestions[0].id];
-            questionToColumn.set(relevantQuestions[0].id, 0);
-        }
-
-        const queue: string[] = relevantQuestions[0] ? [relevantQuestions[0].id] : [];
-        const visited = new Set<string>(queue);
-
-        while(queue.length > 0) {
-            const currentId = queue.shift()!;
-            const currentQuestion = questionMap.get(currentId)!;
-            const currentColumn = questionToColumn.get(currentId)!;
-            const nextColumn = currentColumn + 1;
-
+        allQuestions.forEach((q, index) => {
             const targets = new Set<string>();
-            const skipLogic = currentQuestion.draftSkipLogic ?? currentQuestion.skipLogic;
-            if (skipLogic) {
+            const skipLogic = q.draftSkipLogic ?? q.skipLogic;
+            const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
+
+            if (branchingLogic) {
+                branchingLogic.branches.forEach(branch => {
+                    if (branch.thenSkipTo && branch.thenSkipTo !== 'next' && branch.thenSkipTo !== 'end') targets.add(branch.thenSkipTo);
+                });
+                if (branchingLogic.otherwiseSkipTo && branchingLogic.otherwiseSkipTo !== 'next' && branchingLogic.otherwiseSkipTo !== 'end') {
+                    targets.add(branchingLogic.otherwiseSkipTo);
+                }
+            } else if (skipLogic) {
                 if (skipLogic.type === 'simple' && skipLogic.skipTo !== 'next' && skipLogic.skipTo !== 'end') {
                     targets.add(skipLogic.skipTo);
                 } else if (skipLogic.type === 'per_choice') {
@@ -124,51 +107,98 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 }
             }
             
-            const currentIdxInAll = allQuestions.findIndex(q => q.id === currentId);
-            const nextQuestionInSurvey = findNextQuestion(currentIdxInAll, allQuestions);
+            const nextQuestion = findNextQuestion(index, allQuestions);
+            if(nextQuestion) targets.add(nextQuestion.id);
 
-            let hasExplicitTerminalLogic = false; 
-            if (skipLogic?.type === 'simple' && skipLogic.skipTo !== 'next') {
-                hasExplicitTerminalLogic = true;
-            } else if (skipLogic?.type === 'per_choice' && skipLogic.rules.every(r => r.skipTo && r.skipTo !== 'next')) {
-                hasExplicitTerminalLogic = true;
-            }
-
-            if (nextQuestionInSurvey && !hasExplicitTerminalLogic) {
-                targets.add(nextQuestionInSurvey.id);
-            }
-
-
-            if (!columns[nextColumn]) columns[nextColumn] = [];
             targets.forEach(targetId => {
-                if (questionMap.has(targetId) && !visited.has(targetId)) {
-                    visited.add(targetId);
-                    questionToColumn.set(targetId, nextColumn);
-                    columns[nextColumn].push(targetId);
-                    queue.push(targetId);
+                let finalTargetId = targetId;
+                if (targetId.startsWith('block:')) {
+                    const blockId = targetId.substring(6);
+                    const targetBlock = survey.blocks.find(b => b.id === blockId);
+                    finalTargetId = targetBlock?.questions.find(q => q.type !== QuestionType.PageBreak)?.id || '';
+                }
+
+                if (finalTargetId && questionMap.has(finalTargetId)) {
+                    adj[q.id].push(finalTargetId);
+                    revAdj[finalTargetId].push(q.id);
                 }
             });
+        });
+        
+        // --- Longest Path Algorithm (for column placement) ---
+        const longestPath = new Map<string, number>();
+        const inDegree: Record<string, number> = {};
+        allQuestions.forEach(q => {
+            longestPath.set(q.id, 0);
+            inDegree[q.id] = revAdj[q.id].length;
+        });
+        
+        const queue: string[] = allQuestions.filter(q => inDegree[q.id] === 0).map(q => q.id);
+        
+        while(queue.length > 0) {
+            const u = queue.shift()!;
+            for(const v of adj[u]) {
+                const newPathLength = (longestPath.get(u) || 0) + 1;
+                if (newPathLength > (longestPath.get(v) || 0)) {
+                    longestPath.set(v, newPathLength);
+                }
+                inDegree[v]--;
+                if(inDegree[v] === 0) {
+                    queue.push(v);
+                }
+            }
         }
         
+        // --- Column Grouping & Vertical Placement ---
+        const columns: string[][] = [];
+        longestPath.forEach((col, qId) => {
+            if (!columns[col]) columns[col] = [];
+            columns[col].push(qId);
+        });
+
+        const nodePositions = new Map<string, { x: number, y: number }>();
+        const nodeHeights = new Map<string, number>();
+
+        allQuestions.forEach(q => {
+            let height = 120;
+            if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid) {
+                height = 100 + (q.choices?.length || 0) * 40;
+            }
+            nodeHeights.set(q.id, height);
+        });
+
         columns.forEach((column, colIndex) => {
-            const totalColumnHeight = column.reduce((sum, qId) => sum + (nodeHeights.get(qId) || NODE_HEIGHT), 0) + Math.max(0, column.length - 1) * VERTICAL_GAP;
-            let currentY = -totalColumnHeight / 2;
-            column.forEach((qId) => {
-                const nodeHeight = nodeHeights.get(qId) || NODE_HEIGHT;
-                nodePositions.set(qId, {
-                    x: colIndex * X_SPACING,
-                    y: currentY
-                });
-                currentY += nodeHeight + VERTICAL_GAP;
+            const desiredY: Record<string, number> = {};
+            column.forEach(qId => {
+                const parents = revAdj[qId];
+                if (parents.length > 0) {
+                    const avgParentY = parents.reduce((sum, pId) => sum + (nodePositions.get(pId)?.y || 0), 0) / parents.length;
+                    desiredY[qId] = avgParentY;
+                } else {
+                    desiredY[qId] = 0;
+                }
+            });
+
+            const sortedColumn = column.sort((a, b) => desiredY[a] - desiredY[b]);
+            
+            let totalHeight = sortedColumn.reduce((sum, qId) => sum + (nodeHeights.get(qId) || 0), 0) + Math.max(0, sortedColumn.length - 1) * VERTICAL_GAP;
+            let currentY = -totalHeight / 2;
+
+            sortedColumn.forEach(qId => {
+                const height = nodeHeights.get(qId) || 0;
+                nodePositions.set(qId, { x: colIndex * X_SPACING, y: currentY + height / 2 });
+                currentY += height + VERTICAL_GAP;
             });
         });
 
+        // --- Create Nodes and Edges for React Flow ---
         const flowNodes: DiagramNode[] = [];
         const flowEdges: DiagramEdge[] = [];
+        
+        allQuestions.forEach((q) => {
+            if (q.type === QuestionType.PageBreak || q.type === QuestionType.Description) return;
 
-        relevantQuestions.forEach((q) => {
             const position = nodePositions.get(q.id) || { x: 0, y: 0 };
-            const index = allQuestions.findIndex(aq => aq.id === q.id);
             
             if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid) {
                 flowNodes.push({
@@ -181,85 +211,56 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                             id: c.id, text: parseChoice(c.text).label, variableName: parseChoice(c.text).variable
                         })) || []
                     },
-                    width: NODE_WIDTH, height: nodeHeights.get(q.id) || NODE_HEIGHT,
+                    width: NODE_WIDTH, height: nodeHeights.get(q.id) || 0,
                 });
             } else {
                 flowNodes.push({
                     id: q.id, type: 'text_entry', position,
                     data: { variableName: q.qid, question: q.text },
-                    width: NODE_WIDTH, height: nodeHeights.get(q.id) || NODE_HEIGHT,
+                    width: NODE_WIDTH, height: nodeHeights.get(q.id) || 0,
                 });
             }
 
-            const sourceHandles: { id: string; choice?: any }[] =
-                (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid)
-                    ? (q.choices || []).map(c => ({ id: c.id, choice: c }))
-                    : [{ id: 'output' }];
-
-            sourceHandles.forEach(handle => {
-                let targetId: string | null = null;
-                let isDraft = false;
-
-                const branchingLogicToUse = q.draftBranchingLogic ?? q.branchingLogic;
-                const skipLogicToUse = q.draftSkipLogic ?? q.skipLogic;
-                const nextQuestion = findNextQuestion(index, allQuestions);
+            adj[q.id].forEach(targetId => {
+                const sourceQuestion = q;
+                let edgeLabel: string | undefined;
+                let sourceHandle: string | undefined;
                 
-                if (branchingLogicToUse) {
-                    isDraft = !!q.draftBranchingLogic;
-                    let ruleApplied = false;
-                    const currentChoice = (q.choices || []).find(c => c.id === handle.id);
-
-                    if (currentChoice) {
-                        for (const branch of branchingLogicToUse.branches) {
-                            const condition = branch.conditions[0];
-                            if (condition && condition.value === currentChoice.text) {
-                                targetId = branch.thenSkipTo;
-                                ruleApplied = true;
-                                break;
-                            }
+                // Determine source handle and label for choice-based questions
+                const skipLogic = sourceQuestion.draftSkipLogic ?? sourceQuestion.skipLogic;
+                if(skipLogic?.type === 'per_choice') {
+                    const rule = skipLogic.rules.find(r => {
+                        let destId = r.skipTo;
+                        if (r.skipTo.startsWith('block:')) {
+                            const blockId = r.skipTo.substring(6);
+                            const targetBlock = survey.blocks.find(b => b.id === blockId);
+                            destId = targetBlock?.questions.find(q => q.type !== QuestionType.PageBreak)?.id || '';
                         }
-                    }
-                    if (!ruleApplied) {
-                        targetId = branchingLogicToUse.otherwiseSkipTo;
-                    }
-                } else if (skipLogicToUse) {
-                    isDraft = !!q.draftSkipLogic;
-                    if (skipLogicToUse.type === 'simple' && handle.id === 'output') {
-                        targetId = skipLogicToUse.skipTo;
-                    } else if (skipLogicToUse.type === 'per_choice') {
-                        const rule = skipLogicToUse.rules.find(r => r.choiceId === handle.id);
-                        if (rule && rule.skipTo) {
-                           targetId = rule.skipTo;
+                        return destId === targetId;
+                    });
+
+                    if (rule) {
+                        sourceHandle = rule.choiceId;
+                        const choice = sourceQuestion.choices?.find(c => c.id === rule.choiceId);
+                        if (choice) {
+                            edgeLabel = parseChoice(choice.text).variable;
                         }
                     }
                 }
 
-                if (targetId === 'next') {
-                    targetId = nextQuestion?.id || null;
-                }
-                
-                if (targetId && targetId.startsWith('block:')) {
-                    const blockId = targetId.substring(6);
-                    const targetBlock = survey.blocks.find(b => b.id === blockId);
-                    const firstQuestionInBlock = targetBlock?.questions.find(q => q.type !== QuestionType.PageBreak);
-                    targetId = firstQuestionInBlock?.id || null;
+                 if (!sourceHandle) {
+                    sourceHandle = (sourceQuestion.choices && sourceQuestion.choices.length > 0) ? undefined : 'output';
                 }
 
-                if (targetId === null && !branchingLogicToUse && !skipLogicToUse) {
-                    targetId = nextQuestion?.id || null;
-                }
-
-                if (targetId && targetId !== 'end' && questionMap.has(targetId)) {
-                    const edgeLabel = handle.choice ? parseChoice(handle.choice.text).variable : undefined;
+                if(targetId && questionMap.has(targetId)){
                     flowEdges.push({
-                        id: `e-${q.id}-${handle.id}-${targetId}`,
+                        id: `e-${q.id}-${sourceHandle || 'body'}-${targetId}`,
                         source: q.id,
-                        sourceHandle: handle.id,
+                        sourceHandle: sourceHandle,
                         target: targetId,
                         targetHandle: 'input',
                         label: edgeLabel,
-                        markerEnd: { type: MarkerType.ArrowClosed },
-                        className: isDraft ? 'draft' : undefined,
+                        markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--color-outline))' },
                     });
                 }
             });
@@ -453,6 +454,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     variant={BackgroundVariant.Dots}
                     gap={20}
                     size={1}
+                    color="hsl(var(--color-outline-variant))"
                     className="bg-surface"
                 />
                 <Controls />

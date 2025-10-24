@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { XIcon, SparkleIcon, SendIcon, LoaderIcon, AccountCircleIcon } from './icons';
 import type { ChatMessage, Question, QuestionType, Choice, Survey, DisplayLogic, DisplayLogicCondition, SkipLogic, SkipLogicRule, Block, LogicIssue } from '../types';
 import { QuestionType as QTEnum } from '../types';
-// FIX: Add import for CHOICE_BASED_QUESTION_TYPES from ../utils to resolve 'Cannot find name' error.
 import { generateId, parseChoice, CHOICE_BASED_QUESTION_TYPES } from '../utils';
 import { validateSurveyLogic } from '../logicValidator';
 
@@ -40,7 +39,6 @@ const isSameLogicChange = (a: PendingLogicChange | null, b: PendingLogicChange) 
 
 const findPreviousQuestion = (startIndex: number, allQs: Question[]): Question | undefined => {
     for (let i = startIndex - 1; i >= 0; i--) {
-        // FIX: Changed QuestionType to QTEnum to use it as a value, as QuestionType was imported as a type.
         if (allQs[i].type !== QTEnum.PageBreak) {
             return allQs[i];
         }

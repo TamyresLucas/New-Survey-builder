@@ -117,12 +117,18 @@ export const initialSurveyData: Survey = {
               { id: 'q3s2', text: 'Neutral' },
               { id: 'q3s3', text: 'Satisfied' },
             ],
+            skipLogic: {
+              type: 'simple',
+              skipTo: 'q6',
+              isConfirmed: true,
+            },
         },
       ],
     },
     {
       id: 'block2',
       title: 'No recent purchases',
+      branchName: 'Non-Purchaser Branch',
       questions: [
         {
           id: 'q4',

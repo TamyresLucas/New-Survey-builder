@@ -59,6 +59,21 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     }, [survey]);
     
     const { layoutNodes, layoutEdges } = useMemo(() => {
+        const allQuestions = survey.blocks.flatMap(b => b.questions);
+        const questionMap: Map<string, Question> = new Map(allQuestions.map(q => [q.id, q]));
+        
+        const questionIdToBlockIdMap = new Map<string, string>();
+        survey.blocks.forEach(b => {
+            b.questions.forEach(q => {
+                questionIdToBlockIdMap.set(q.id, b.id);
+            });
+        });
+        const allQuestionsOrder = new Map(allQuestions.map((q, i) => [q.id, i]));
+
+        if (allQuestions.length === 0) {
+            return { layoutNodes: [], layoutEdges: [] };
+        }
+        
         const findNextQuestion = (startIndex: number, allQs: Question[]): Question | undefined => {
             for (let i = startIndex + 1; i < allQs.length; i++) {
                 if (allQs[i].type !== QuestionType.PageBreak) {
@@ -67,13 +82,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             }
             return undefined;
         };
-        
-        const allQuestions = survey.blocks.flatMap(b => b.questions);
-        const questionMap: Map<string, Question> = new Map(allQuestions.map(q => [q.id, q]));
-
-        if (allQuestions.length === 0) {
-            return { layoutNodes: [], layoutEdges: [] };
-        }
         
         const resolveDestination = (dest: string, currentIndex: number): string | undefined => {
             if (dest === 'next') return findNextQuestion(currentIndex, allQuestions)?.id;
@@ -97,58 +105,77 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         });
 
         allQuestions.forEach((q, index) => {
-            const uniqueTargets = new Set<string>();
-            
+            if (q.type === QuestionType.PageBreak || q.type === QuestionType.Description) return;
+
+            const targets = new Map<string, 'explicit' | 'fallthrough'>();
+
             const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
-            // FIX: Add explicit type annotation for the 'skipLogic' variable to fix type inference issue.
             const skipLogic: SkipLogic | undefined = q.draftSkipLogic ?? q.skipLogic;
 
-            // Collect all possible destinations from this question for layout purposes
+            let hasExplicitLogic = false;
+
             if (branchingLogic) {
+                hasExplicitLogic = true;
                 branchingLogic.branches.forEach(branch => {
                     if (branch.thenSkipToIsConfirmed && branch.thenSkipTo) {
                         const targetId = resolveDestination(branch.thenSkipTo, index);
-                        if (targetId) uniqueTargets.add(targetId);
+                        if (targetId) targets.set(targetId, 'explicit');
                     }
                 });
                 if (branchingLogic.otherwiseIsConfirmed && branchingLogic.otherwiseSkipTo) {
                     const targetId = resolveDestination(branchingLogic.otherwiseSkipTo, index);
-                    if (targetId) uniqueTargets.add(targetId);
+                    if (targetId) targets.set(targetId, 'explicit');
                 }
             } else if (skipLogic) {
                 if (skipLogic.type === 'simple' && skipLogic.isConfirmed) {
+                    hasExplicitLogic = true;
                     const targetId = resolveDestination(skipLogic.skipTo, index);
-                    if (targetId) uniqueTargets.add(targetId);
+                    if (targetId) targets.set(targetId, 'explicit');
                 } else if (skipLogic.type === 'per_choice') {
+                    hasExplicitLogic = true; // Assume explicit even if some fall through
                     const rulesChoices = new Set<string>();
                     skipLogic.rules.forEach(rule => {
                         rulesChoices.add(rule.choiceId);
                         if (rule.isConfirmed) {
                             const targetId = resolveDestination(rule.skipTo, index);
-                            if (targetId) uniqueTargets.add(targetId);
+                            if (targetId) targets.set(targetId, 'explicit');
+                        } else {
+                            const targetId = resolveDestination('next', index);
+                            if (targetId) targets.set(targetId, 'fallthrough');
                         }
                     });
-                    // If any choice doesn't have a confirmed rule, it falls through to next.
-                    const hasFallthrough = q.choices?.some(c => !rulesChoices.has(c.id)) || skipLogic.rules.some(r => !r.isConfirmed);
-                    if (hasFallthrough) {
+                    const hasChoiceWithoutRule = q.choices?.some(c => !rulesChoices.has(c.id));
+                    if (hasChoiceWithoutRule) {
                         const targetId = resolveDestination('next', index);
-                        if (targetId) uniqueTargets.add(targetId);
+                        if (targetId) targets.set(targetId, 'fallthrough');
                     }
                 }
-            } else {
-                const targetId = resolveDestination('next', index);
-                if (targetId) uniqueTargets.add(targetId);
-            }
-            
-            if (uniqueTargets.size === 0) {
-                const targetId = resolveDestination('next', index);
-                if (targetId) uniqueTargets.add(targetId);
             }
 
-            uniqueTargets.forEach(targetId => {
+            if (!hasExplicitLogic) {
+                const targetId = resolveDestination('next', index);
+                if (targetId) targets.set(targetId, 'fallthrough');
+            }
+
+            if (targets.size === 0) {
+                 const targetId = resolveDestination('next', index);
+                 if (targetId) targets.set(targetId, 'fallthrough');
+            }
+
+            targets.forEach((type, targetId) => {
                 if (targetId && questionMap.has(targetId)) {
-                    adj[q.id].push(targetId);
-                    revAdj[targetId].push(q.id);
+                    let shouldAddToLayout = true;
+                    if (type === 'fallthrough') {
+                        const sourceBlock = questionIdToBlockIdMap.get(q.id);
+                        const targetBlock = questionIdToBlockIdMap.get(targetId);
+                        if (sourceBlock !== targetBlock) {
+                            shouldAddToLayout = false;
+                        }
+                    }
+                    if (shouldAddToLayout) {
+                        adj[q.id].push(targetId);
+                        revAdj[targetId].push(q.id);
+                    }
                 }
             });
         });
@@ -158,14 +185,14 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         const inDegree: Record<string, number> = {};
         allQuestions.forEach(q => {
             longestPath.set(q.id, 0);
-            inDegree[q.id] = revAdj[q.id].length;
+            inDegree[q.id] = revAdj[q.id]?.length || 0;
         });
         
-        const queue: string[] = allQuestions.filter(q => inDegree[q.id] === 0).map(q => q.id);
+        const queue: string[] = allQuestions.filter(q => (inDegree[q.id] || 0) === 0).map(q => q.id);
         
         while(queue.length > 0) {
             const u = queue.shift()!;
-            for(const v of adj[u]) {
+            for(const v of (adj[u] || [])) {
                 const newPathLength = (longestPath.get(u) || 0) + 1;
                 if (newPathLength > (longestPath.get(v) || 0)) {
                     longestPath.set(v, newPathLength);
@@ -176,12 +203,45 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 }
             }
         }
+
+        // --- Branch-Aware Layouting ---
+        const branchRoot = new Map<string, string>(); // Maps node ID -> branch root ID
+        const branchQueue: string[] = allQuestions.filter(q => (revAdj[q.id]?.length || 0) === 0).map(q => q.id);
+        const visitedForBranching = new Set<string>();
+        branchQueue.forEach(qId => branchRoot.set(qId, qId));
+
+        let head = 0;
+        while(head < branchQueue.length) {
+            const u = branchQueue[head++];
+            
+            // FIX: Using explicit comparison to avoid potential type inference issues on arithmetic operations.
+            const children = (adj[u] || []).sort((a,b) => {
+                const orderA = allQuestionsOrder.get(a) ?? 0;
+                const orderB = allQuestionsOrder.get(b) ?? 0;
+                // FIX: Replaced subtraction with explicit comparison to resolve arithmetic operation error on line 221.
+                return orderA > orderB ? 1 : (orderA < orderB ? -1 : 0);
+            });
+            const uIsFork = children.length > 1;
+
+            children.forEach(v => {
+                const newRoot = uIsFork ? v : (branchRoot.get(u) || v);
+                if (!branchRoot.has(v)) {
+                    branchRoot.set(v, newRoot);
+                }
+                if (!visitedForBranching.has(v)) {
+                    visitedForBranching.add(v);
+                    branchQueue.push(v);
+                }
+            });
+        }
         
         // --- Column Grouping & Vertical Placement ---
         const columns: string[][] = [];
         longestPath.forEach((col, qId) => {
-            if (!columns[col]) columns[col] = [];
-            columns[col].push(qId);
+            if (questionMap.has(qId)) {
+                if (!columns[col]) columns[col] = [];
+                columns[col].push(qId);
+            }
         });
 
         const nodePositions = new Map<string, { x: number, y: number }>();
@@ -196,18 +256,30 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         });
 
         columns.forEach((column, colIndex) => {
-            const desiredY: Record<string, number> = {};
-            column.forEach(qId => {
-                const parents = revAdj[qId];
-                if (parents.length > 0) {
-                    const avgParentY = parents.reduce((sum, pId) => sum + (nodePositions.get(pId)?.y || 0), 0) / parents.length;
-                    desiredY[qId] = avgParentY;
-                } else {
-                    desiredY[qId] = 0;
+            const sortedColumn = column.sort((a, b) => {
+                const rootA = branchRoot.get(a);
+                const rootB = branchRoot.get(b);
+                
+                const rootOrderA = rootA ? allQuestionsOrder.get(rootA) ?? Infinity : Infinity;
+                const rootOrderB = rootB ? allQuestionsOrder.get(rootB) ?? Infinity : Infinity;
+                
+                if (rootOrderA !== rootOrderB) {
+                    // FIX: Using explicit comparison instead of subtraction to avoid potential type issues with Infinity.
+                    return rootOrderA > rootOrderB ? 1 : -1;
                 }
+        
+                const pathA = longestPath.get(a) ?? 0;
+                const pathB = longestPath.get(b) ?? 0;
+                if (pathA !== pathB) {
+                    return pathA - pathB;
+                }
+        
+                // FIX: Using explicit comparison to avoid potential type inference issues on arithmetic operations.
+                const orderA = allQuestionsOrder.get(a) ?? 0;
+                const orderB = allQuestionsOrder.get(b) ?? 0;
+                // FIX: Replaced subtraction with explicit comparison to resolve arithmetic operation error on line 279.
+                return orderA > orderB ? 1 : (orderA < orderB ? -1 : 0);
             });
-
-            const sortedColumn = column.sort((a, b) => desiredY[a] - desiredY[b]);
             
             let totalHeight = sortedColumn.reduce((sum, qId) => sum + (nodeHeights.get(qId) || 0), 0) + Math.max(0, sortedColumn.length - 1) * VERTICAL_GAP;
             let currentY = -totalHeight / 2;
@@ -226,7 +298,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         allQuestions.forEach((q) => {
             if (q.type === QuestionType.PageBreak || q.type === QuestionType.Description) return;
 
-            const position = nodePositions.get(q.id) || { x: 0, y: 0 };
+            const position = nodePositions.get(q.id) || { x: (longestPath.get(q.id) || 0) * X_SPACING, y: 0 };
             
             if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid) {
                 flowNodes.push({
@@ -254,7 +326,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             if (q.type === QuestionType.PageBreak || q.type === QuestionType.Description) return;
 
             const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
-            // FIX: Add explicit type annotation for the 'skipLogic' variable to fix type inference issue.
             const skipLogic: SkipLogic | undefined = q.draftSkipLogic ?? q.skipLogic;
 
             if (q.choices && q.choices.length > 0 && (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid)) {
@@ -297,12 +368,10 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                         }
                     });
                 } else {
-                    // This block now handles both 'simple' skip logic and 'no logic'
                     let fallthroughTarget: string | undefined;
                     if (skipLogic?.type === 'simple' && skipLogic.isConfirmed) {
                         fallthroughTarget = resolveDestination(skipLogic.skipTo, index);
                     } else {
-                        // No logic, or unconfirmed simple logic
                         fallthroughTarget = resolveDestination('next', index);
                     }
                     

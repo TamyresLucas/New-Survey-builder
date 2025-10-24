@@ -4,7 +4,6 @@ import SubHeader from './components/SubHeader';
 import LeftSidebar from './components/LeftSidebar';
 import BuildPanel from './components/BuildPanel';
 import SurveyCanvas from './components/SurveyCanvas';
-// FIX: Changed import to a named import since RightSidebar is not a default export.
 import { RightSidebar } from './components/RightSidebar';
 import SurveyStructureWidget from './components/SurveyStructureWidget';
 import GeminiPanel from './components/GeminiPanel';
@@ -13,7 +12,6 @@ import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssu
 import { initialSurveyData, toolboxItems as initialToolboxItems } from './constants';
 import { renumberSurveyVariables, generateId } from './utils';
 import { QuestionType as QTEnum } from './types';
-// FIX: Import the 'Action' type from 'surveyReducer' to resolve 'Cannot find name' error.
 import { surveyReducer, SurveyActionType, type Action } from './state/surveyReducer';
 import { PanelRightIcon, WarningIcon, XIcon } from './components/icons';
 import { validateSurveyLogic } from './logicValidator';
@@ -75,7 +73,6 @@ const App: React.FC = () => {
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [toasts, setToasts] = useState<{ id: number; message: string; onUndo?: () => void }[]>([]);
 
-  // FIX: Hoisted showBulkEditPanel declaration before its use on line 41.
   const showBulkEditPanel = checkedQuestions.size >= 2;
 
   const canvasContainerRef = useRef<HTMLDivElement>(null);
@@ -706,7 +703,6 @@ const App: React.FC = () => {
                   toolboxItems={toolboxItems}
                   collapsedBlocks={collapsedBlocks}
                   onToggleBlockCollapse={handleToggleBlockCollapse}
-                  // FIX: `onCopyBlock` was not defined. It should be `handleCopyBlock`.
                   onCopyBlock={handleCopyBlock}
                   onExpandAllBlocks={handleExpandAllBlocks}
                   onCollapseAllBlocks={handleCollapseAllBlocks}

@@ -287,7 +287,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
             if (dropIndex !== -1) {
                 scalePoints.splice(dropIndex, 0, draggedItem);
             } else {
-                scalePoints.push(draggedItem);
+                scalePoints.push(draggedItem); // Fallback
             }
         }
         
@@ -1300,7 +1300,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
     );
   };
 
-  const renderAdvancedTab = () => {
+  const renderBranchingLogicTab = () => {
     const branchingLogic = question.draftBranchingLogic ?? question.branchingLogic;
     const beforeWorkflows = question.draftBeforeWorkflows ?? question.beforeWorkflows ?? [];
     const afterWorkflows = question.draftAfterWorkflows ?? question.afterWorkflows ?? [];
@@ -1410,8 +1410,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                 return <p className="text-sm text-on-surface-variant text-center mt-4">This question type has no editable settings.</p>;
             case 'Behavior':
                 return renderBehaviorTab();
-            case 'Advanced':
-                return renderAdvancedTab();
+            case 'Branching Logic':
+                return renderBranchingLogicTab();
             case 'Preview':
                 if (isChoiceBased) return renderChoiceBasedPreviewTab();
                 if (question.type === QuestionType.TextEntry) return renderTextEntryPreviewTab();
@@ -2117,10 +2117,11 @@ interface DestinationRowProps {
   survey?: Survey;
   currentBlockId?: string | null;
   className?: string;
+  hideNextQuestion?: boolean;
   [key: string]: any; // Allow other props
 }
 
-const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange, onConfirm, onRemove, isConfirmed = true, issue, invalid = false, followingQuestions, survey, currentBlockId, className = '', ...rest }) => {
+const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange, onConfirm, onRemove, isConfirmed = true, issue, invalid = false, followingQuestions, survey, currentBlockId, className = '', hideNextQuestion = false, ...rest }) => {
     const otherBlocks = useMemo(() => {
         if (!survey || !currentBlockId) return [];
         return survey.blocks.filter(b => b.id !== currentBlockId);
@@ -2137,7 +2138,7 @@ const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange,
                 >
                     <option value="">Select destination...</option>
                     <optgroup label="Default">
-                        <option value="next">Next Question</option>
+                        {!hideNextQuestion && <option value="next">Next Question</option>}
                         <option value="end">End of Survey</option>
                     </optgroup>
                     {otherBlocks.length > 0 && (
@@ -3029,7 +3030,8 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
                             isConfirmed={branch.thenSkipToIsConfirmed}
                             issue={issues.find(i => i.sourceId === branch.id && i.field === 'skipTo')}
                             invalid={validationErrors.has(branch.id)}
-                            followingQuestions={followingQuestions}
+                            followingQuestions={[]}
+                            hideNextQuestion={true}
                             survey={survey}
                             currentBlockId={currentBlockId}
                         />
@@ -3051,6 +3053,7 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
                     issue={issues.find(i => i.sourceId === 'otherwise' && i.field === 'skipTo')}
                     invalid={validationErrors.has('otherwise')}
                     followingQuestions={followingQuestions}
+                    hideNextQuestion={false}
                     survey={survey}
                     currentBlockId={currentBlockId}
                 />
@@ -3097,7 +3100,7 @@ export const RightSidebar: React.FC<{
     onRequestGeminiHelp,
 }) => {
     const isChoiceBased = useMemo(() => CHOICE_BASED_QUESTION_TYPES.has(question.type), [question.type]);
-    const tabs = ['Settings', 'Behavior', 'Advanced'];
+    const tabs = ['Settings', 'Behavior', 'Branching Logic'];
     if (!['Description', 'Page Break'].includes(question.type)) {
         tabs.push('Preview');
     }

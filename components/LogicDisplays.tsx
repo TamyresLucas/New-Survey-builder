@@ -151,7 +151,7 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
         >
             <div className="flex items-center gap-2 mb-2">
                 <CallSplitIcon className="text-lg text-primary" />
-                <h4 className="text-sm font-bold text-on-surface">Advanced Logic</h4>
+                <h4 className="text-sm font-bold text-on-surface">Branching Logic</h4>
             </div>
             <div className="pl-2 space-y-2 text-sm">
                 {logic.branches.map((branch) => {

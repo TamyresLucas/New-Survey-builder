@@ -52,7 +52,6 @@ export interface DisplayLogicCondition {
   id: string;
   questionId: string; // This is the QID, e.g., "Q1"
   operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty' | '';
-  // FIX: Add missing value property to DisplayLogicCondition
   value: string;
   isConfirmed?: boolean;
 }
@@ -234,6 +233,7 @@ export interface Block {
   bid?: string;
   title: string;
   questions: Question[];
+  branchName?: string;
 }
 
 export interface Survey {
@@ -348,7 +348,6 @@ export interface Edge {
     condition?: string;
     logicType?: 'branch' | 'skip' | 'display';
   };
-  // FIX: Add missing 'markerEnd' property to support react-flow edge markers.
   markerEnd?: any;
   selected?: boolean;
   className?: string;

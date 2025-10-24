@@ -75,7 +75,20 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             return { layoutNodes: [], layoutEdges: [] };
         }
         
-        // --- Graph Representation ---
+        const resolveDestination = (dest: string, currentIndex: number): string | undefined => {
+            if (dest === 'next') return findNextQuestion(currentIndex, allQuestions)?.id;
+            if (dest === 'end') return undefined;
+            if (dest.startsWith('block:')) {
+                const blockId = dest.substring(6);
+                const targetBlock = survey.blocks.find(b => b.id === blockId);
+                return targetBlock?.questions.find(q => q.type !== QuestionType.PageBreak)?.id;
+            }
+            const qById = allQuestions.find(q => q.id === dest);
+            if (qById) return qById.id;
+            return undefined;
+        };
+        
+        // --- Graph Representation for Layout Algorithm ---
         const adj: Record<string, string[]> = {};
         const revAdj: Record<string, string[]> = {};
         allQuestions.forEach(q => {
@@ -84,43 +97,61 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         });
 
         allQuestions.forEach((q, index) => {
-            const targets = new Set<string>();
-            const skipLogic = q.draftSkipLogic ?? q.skipLogic;
+            const uniqueTargets = new Set<string>();
+            
             const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
+            const skipLogic = q.draftSkipLogic ?? q.skipLogic;
 
+            // Collect all possible destinations from this question for layout purposes
             if (branchingLogic) {
                 branchingLogic.branches.forEach(branch => {
-                    if (branch.thenSkipTo && branch.thenSkipTo !== 'next' && branch.thenSkipTo !== 'end') targets.add(branch.thenSkipTo);
+                    if (branch.thenSkipToIsConfirmed && branch.thenSkipTo) {
+                        const targetId = resolveDestination(branch.thenSkipTo, index);
+                        if (targetId) uniqueTargets.add(targetId);
+                    }
                 });
-                if (branchingLogic.otherwiseSkipTo && branchingLogic.otherwiseSkipTo !== 'next' && branchingLogic.otherwiseSkipTo !== 'end') {
-                    targets.add(branchingLogic.otherwiseSkipTo);
+                if (branchingLogic.otherwiseIsConfirmed && branchingLogic.otherwiseSkipTo) {
+                    const targetId = resolveDestination(branchingLogic.otherwiseSkipTo, index);
+                    if (targetId) uniqueTargets.add(targetId);
                 }
             } else if (skipLogic) {
-                if (skipLogic.type === 'simple' && skipLogic.skipTo !== 'next' && skipLogic.skipTo !== 'end') {
-                    targets.add(skipLogic.skipTo);
+                // FIX: Splitting the `if` condition ensures TypeScript correctly narrows the type of `skipLogic`
+                // to the 'simple' variant before accessing properties `isConfirmed` and `skipTo`.
+                if (skipLogic.type === 'simple') {
+                    if (skipLogic.isConfirmed) {
+                        const targetId = resolveDestination(skipLogic.skipTo, index);
+                        if (targetId) uniqueTargets.add(targetId);
+                    }
                 } else if (skipLogic.type === 'per_choice') {
+                    const rulesChoices = new Set<string>();
                     skipLogic.rules.forEach(rule => {
-                        if (rule.skipTo !== 'next' && rule.skipTo !== 'end') {
-                            targets.add(rule.skipTo);
+                        rulesChoices.add(rule.choiceId);
+                        if (rule.isConfirmed) {
+                            const targetId = resolveDestination(rule.skipTo, index);
+                            if (targetId) uniqueTargets.add(targetId);
                         }
                     });
+                    // If any choice doesn't have a confirmed rule, it falls through to next.
+                    const hasFallthrough = q.choices?.some(c => !rulesChoices.has(c.id)) || skipLogic.rules.some(r => !r.isConfirmed);
+                    if (hasFallthrough) {
+                        const targetId = resolveDestination('next', index);
+                        if (targetId) uniqueTargets.add(targetId);
+                    }
                 }
+            } else {
+                const targetId = resolveDestination('next', index);
+                if (targetId) uniqueTargets.add(targetId);
             }
             
-            const nextQuestion = findNextQuestion(index, allQuestions);
-            if(nextQuestion) targets.add(nextQuestion.id);
+            if (uniqueTargets.size === 0) {
+                const targetId = resolveDestination('next', index);
+                if (targetId) uniqueTargets.add(targetId);
+            }
 
-            targets.forEach(targetId => {
-                let finalTargetId = targetId;
-                if (targetId.startsWith('block:')) {
-                    const blockId = targetId.substring(6);
-                    const targetBlock = survey.blocks.find(b => b.id === blockId);
-                    finalTargetId = targetBlock?.questions.find(q => q.type !== QuestionType.PageBreak)?.id || '';
-                }
-
-                if (finalTargetId && questionMap.has(finalTargetId)) {
-                    adj[q.id].push(finalTargetId);
-                    revAdj[finalTargetId].push(q.id);
+            uniqueTargets.forEach(targetId => {
+                if (targetId && questionMap.has(targetId)) {
+                    adj[q.id].push(targetId);
+                    revAdj[targetId].push(q.id);
                 }
             });
         });
@@ -220,50 +251,94 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     width: NODE_WIDTH, height: nodeHeights.get(q.id) || 0,
                 });
             }
+        });
+        
+        allQuestions.forEach((q, index) => {
+            if (q.type === QuestionType.PageBreak || q.type === QuestionType.Description) return;
 
-            adj[q.id].forEach(targetId => {
-                const sourceQuestion = q;
-                let edgeLabel: string | undefined;
-                let sourceHandle: string | undefined;
-                
-                // Determine source handle and label for choice-based questions
-                const skipLogic = sourceQuestion.draftSkipLogic ?? sourceQuestion.skipLogic;
-                if(skipLogic?.type === 'per_choice') {
-                    const rule = skipLogic.rules.find(r => {
-                        let destId = r.skipTo;
-                        if (r.skipTo.startsWith('block:')) {
-                            const blockId = r.skipTo.substring(6);
-                            const targetBlock = survey.blocks.find(b => b.id === blockId);
-                            destId = targetBlock?.questions.find(q => q.type !== QuestionType.PageBreak)?.id || '';
+            const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
+            const skipLogic = q.draftSkipLogic ?? q.skipLogic;
+
+            if (q.choices && q.choices.length > 0 && (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid)) {
+                const destinations = new Map<string, { targetId?: string, label?: string }>();
+
+                if (branchingLogic) {
+                    const coveredChoices = new Set<string>();
+                    branchingLogic.branches.forEach(branch => {
+                        if (!branch.thenSkipToIsConfirmed) return;
+                        const condition = branch.conditions.find(c => c.questionId === q.qid && c.isConfirmed);
+                        if (condition) {
+                            const choice = q.choices?.find(c => c.text === condition.value);
+                            if (choice) {
+                                const targetId = resolveDestination(branch.thenSkipTo, index);
+                                destinations.set(choice.id, { targetId, label: `IF ${parseChoice(choice.text).label}` });
+                                coveredChoices.add(choice.id);
+                            }
                         }
-                        return destId === targetId;
                     });
 
-                    if (rule) {
-                        sourceHandle = rule.choiceId;
-                        const choice = sourceQuestion.choices?.find(c => c.id === rule.choiceId);
-                        if (choice) {
-                            edgeLabel = parseChoice(choice.text).variable;
+                    const otherwiseTargetId = resolveDestination(branchingLogic.otherwiseSkipTo, index);
+                    q.choices?.forEach(choice => {
+                        if (!coveredChoices.has(choice.id)) {
+                            destinations.set(choice.id, { targetId: otherwiseTargetId });
                         }
+                    });
+                } else if (skipLogic?.type === 'per_choice') {
+                    const rulesByChoiceId = new Map(skipLogic.rules.map(r => [r.choiceId, r]));
+                    q.choices?.forEach(choice => {
+                        const rule = rulesByChoiceId.get(choice.id);
+                        if (rule && rule.isConfirmed) {
+                            const targetId = resolveDestination(rule.skipTo, index);
+                            destinations.set(choice.id, { targetId, label: parseChoice(choice.text).variable });
+                        } else {
+                            const targetId = resolveDestination('next', index);
+                            destinations.set(choice.id, { targetId });
+                        }
+                    });
+                } else {
+                    const targetId = resolveDestination('next', index);
+                    q.choices?.forEach(choice => {
+                        destinations.set(choice.id, { targetId });
+                    });
+                }
+
+                destinations.forEach(({ targetId, label }, sourceHandleId) => {
+                    if (targetId && questionMap.has(targetId)) {
+                        flowEdges.push({
+                            id: `e-${q.id}-${sourceHandleId}-${targetId}`,
+                            source: q.id,
+                            sourceHandle: sourceHandleId,
+                            target: targetId,
+                            targetHandle: 'input',
+                            label,
+                            markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--color-outline))' },
+                        });
                     }
+                });
+
+            } else {
+                let targetId: string | undefined;
+                let edgeLabel: string | undefined;
+
+                if (skipLogic?.type === 'simple' && skipLogic.isConfirmed) {
+                    targetId = resolveDestination(skipLogic.skipTo, index);
+                    edgeLabel = "IF answered";
+                } else {
+                    targetId = resolveDestination('next', index);
                 }
 
-                 if (!sourceHandle) {
-                    sourceHandle = (sourceQuestion.choices && sourceQuestion.choices.length > 0) ? undefined : 'output';
-                }
-
-                if(targetId && questionMap.has(targetId)){
+                if (targetId && questionMap.has(targetId)) {
                     flowEdges.push({
-                        id: `e-${q.id}-${sourceHandle || 'body'}-${targetId}`,
+                        id: `e-${q.id}-output-${targetId}`,
                         source: q.id,
-                        sourceHandle: sourceHandle,
+                        sourceHandle: 'output',
                         target: targetId,
                         targetHandle: 'input',
                         label: edgeLabel,
                         markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--color-outline))' },
                     });
                 }
-            });
+            }
         });
         
         return { layoutNodes: flowNodes, layoutEdges: flowEdges };

@@ -100,7 +100,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             const uniqueTargets = new Set<string>();
             
             const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
-            const skipLogic = q.draftSkipLogic ?? q.skipLogic;
+            // FIX: Add explicit type annotation for the 'skipLogic' variable to fix type inference issue.
+            const skipLogic: SkipLogic | undefined = q.draftSkipLogic ?? q.skipLogic;
 
             // Collect all possible destinations from this question for layout purposes
             if (branchingLogic) {
@@ -115,13 +116,9 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     if (targetId) uniqueTargets.add(targetId);
                 }
             } else if (skipLogic) {
-                // FIX: Splitting the `if` condition ensures TypeScript correctly narrows the type of `skipLogic`
-                // to the 'simple' variant before accessing properties `isConfirmed` and `skipTo`.
-                if (skipLogic.type === 'simple') {
-                    if (skipLogic.isConfirmed) {
-                        const targetId = resolveDestination(skipLogic.skipTo, index);
-                        if (targetId) uniqueTargets.add(targetId);
-                    }
+                if (skipLogic.type === 'simple' && skipLogic.isConfirmed) {
+                    const targetId = resolveDestination(skipLogic.skipTo, index);
+                    if (targetId) uniqueTargets.add(targetId);
                 } else if (skipLogic.type === 'per_choice') {
                     const rulesChoices = new Set<string>();
                     skipLogic.rules.forEach(rule => {
@@ -257,7 +254,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             if (q.type === QuestionType.PageBreak || q.type === QuestionType.Description) return;
 
             const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
-            const skipLogic = q.draftSkipLogic ?? q.skipLogic;
+            // FIX: Add explicit type annotation for the 'skipLogic' variable to fix type inference issue.
+            const skipLogic: SkipLogic | undefined = q.draftSkipLogic ?? q.skipLogic;
 
             if (q.choices && q.choices.length > 0 && (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid)) {
                 const destinations = new Map<string, { targetId?: string, label?: string }>();
@@ -271,7 +269,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                             const choice = q.choices?.find(c => c.text === condition.value);
                             if (choice) {
                                 const targetId = resolveDestination(branch.thenSkipTo, index);
-                                destinations.set(choice.id, { targetId, label: `IF ${parseChoice(choice.text).label}` });
+                                const choiceVar = parseChoice(choice.text).variable;
+                                destinations.set(choice.id, { targetId, label: choiceVar });
                                 coveredChoices.add(choice.id);
                             }
                         }
@@ -280,26 +279,39 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     const otherwiseTargetId = resolveDestination(branchingLogic.otherwiseSkipTo, index);
                     q.choices?.forEach(choice => {
                         if (!coveredChoices.has(choice.id)) {
-                            destinations.set(choice.id, { targetId: otherwiseTargetId });
+                            const choiceVar = parseChoice(choice.text).variable;
+                            destinations.set(choice.id, { targetId: otherwiseTargetId, label: choiceVar });
                         }
                     });
                 } else if (skipLogic?.type === 'per_choice') {
                     const rulesByChoiceId = new Map(skipLogic.rules.map(r => [r.choiceId, r]));
                     q.choices?.forEach(choice => {
+                        const choiceVar = parseChoice(choice.text).variable;
                         const rule = rulesByChoiceId.get(choice.id);
                         if (rule && rule.isConfirmed) {
                             const targetId = resolveDestination(rule.skipTo, index);
-                            destinations.set(choice.id, { targetId, label: parseChoice(choice.text).variable });
+                            destinations.set(choice.id, { targetId, label: choiceVar });
                         } else {
                             const targetId = resolveDestination('next', index);
-                            destinations.set(choice.id, { targetId });
+                            destinations.set(choice.id, { targetId, label: choiceVar });
                         }
                     });
                 } else {
-                    const targetId = resolveDestination('next', index);
-                    q.choices?.forEach(choice => {
-                        destinations.set(choice.id, { targetId });
-                    });
+                    // This block now handles both 'simple' skip logic and 'no logic'
+                    let fallthroughTarget: string | undefined;
+                    if (skipLogic?.type === 'simple' && skipLogic.isConfirmed) {
+                        fallthroughTarget = resolveDestination(skipLogic.skipTo, index);
+                    } else {
+                        // No logic, or unconfirmed simple logic
+                        fallthroughTarget = resolveDestination('next', index);
+                    }
+                    
+                    if (fallthroughTarget) {
+                        q.choices?.forEach(choice => {
+                            const choiceVar = parseChoice(choice.text).variable;
+                            destinations.set(choice.id, { targetId: fallthroughTarget, label: choiceVar });
+                        });
+                    }
                 }
 
                 destinations.forEach(({ targetId, label }, sourceHandleId) => {

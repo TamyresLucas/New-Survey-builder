@@ -66,6 +66,27 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
   const [isAddQuestionMenuOpen, setIsAddQuestionMenuOpen] = useState(false);
   const addQuestionMenuRef = useRef<HTMLDivElement>(null);
 
+  const createPasteHandler = useCallback(<T extends HTMLInputElement | HTMLTextAreaElement>(
+    onChange: (newValue: string) => void
+  ) => (e: React.ClipboardEvent<T>) => {
+      e.preventDefault();
+      const text = e.clipboardData.getData('text/plain');
+      const target = e.currentTarget;
+      const start = target.selectionStart ?? 0;
+      const end = target.selectionEnd ?? 0;
+
+      const newValue = target.value.substring(0, start) + text + target.value.substring(end);
+      onChange(newValue);
+
+      const newCursorPos = start + text.length;
+      requestAnimationFrame(() => {
+          if (document.activeElement === target) {
+              target.selectionStart = newCursorPos;
+              target.selectionEnd = newCursorPos;
+          }
+      });
+  }, []);
+
   const selectableQuestions = useMemo(() => 
       block.questions.filter(q => q.type !== QTEnum.PageBreak), 
       [block.questions]
@@ -222,6 +243,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                     onBlur={handleTitleBlur}
                     onKeyDown={handleTitleKeyDown}
                     onClick={e => e.stopPropagation()}
+                    onPaste={createPasteHandler(setTitleValue)}
                     className="font-semibold text-base text-on-surface bg-transparent border-b border-primary focus:outline-none w-full"
                     style={{ fontFamily: "'Open Sans', sans-serif" }}
                 />

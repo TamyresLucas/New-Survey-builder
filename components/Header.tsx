@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, memo } from 'react';
+import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { LinkIcon, BellIcon, QuestionIcon, GridIcon, CheckmarkIcon, SunIcon, MoonIcon, SparkleIcon } from './icons';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -21,6 +21,27 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(surveyName);
   const titleInputRef = useRef<HTMLInputElement>(null);
+
+  const createPasteHandler = useCallback(<T extends HTMLInputElement | HTMLTextAreaElement>(
+    onChange: (newValue: string) => void
+  ) => (e: React.ClipboardEvent<T>) => {
+      e.preventDefault();
+      const text = e.clipboardData.getData('text/plain');
+      const target = e.currentTarget;
+      const start = target.selectionStart ?? 0;
+      const end = target.selectionEnd ?? 0;
+
+      const newValue = target.value.substring(0, start) + text + target.value.substring(end);
+      onChange(newValue);
+
+      const newCursorPos = start + text.length;
+      requestAnimationFrame(() => {
+          if (document.activeElement === target) {
+              target.selectionStart = newCursorPos;
+              target.selectionEnd = newCursorPos;
+          }
+      });
+  }, []);
 
   useEffect(() => {
     setTitleValue(surveyName);
@@ -125,6 +146,7 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
                 onChange={(e) => setTitleValue(e.target.value)}
                 onBlur={handleTitleSave}
                 onKeyDown={handleTitleKeyDown}
+                onPaste={createPasteHandler(setTitleValue)}
                 className="text-base font-medium bg-surface-container-highest border-b border-primary focus:outline-none ml-4"
                 style={{ fontFamily: "'Outfit', sans-serif" }}
             />

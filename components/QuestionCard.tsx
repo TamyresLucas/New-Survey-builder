@@ -36,6 +36,25 @@ const EditableText: React.FC<{
         }
     };
 
+    const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        const text = e.clipboardData.getData('text/plain');
+        const selection = window.getSelection();
+        if (!selection) return;
+
+        const range = selection.getRangeAt(0);
+        range.deleteContents();
+
+        const textNode = document.createTextNode(text);
+        range.insertNode(textNode);
+
+        // Move cursor to the end of the inserted text
+        range.setStartAfter(textNode);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    };
+
     const stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
 
     return (
@@ -49,6 +68,7 @@ const EditableText: React.FC<{
             onFocus={onFocus}
             onClick={stopPropagation}
             onMouseDown={stopPropagation} // Also stop mousedown to prevent App.tsx's deselect logic
+            onPaste={handlePaste}
         />
     );
 };

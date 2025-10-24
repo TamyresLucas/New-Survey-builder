@@ -765,7 +765,7 @@ const App: React.FC = () => {
   ]);
   
   return (
-    <div className="flex flex-col h-screen bg-surface text-on-surface">
+    <div className={`flex flex-col h-screen bg-surface text-on-surface ${isDiagramView ? 'dark' : ''}`}>
       <Header 
         surveyName={survey.title} 
         isGeminiPanelOpen={isGeminiPanelOpen} 

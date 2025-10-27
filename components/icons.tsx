@@ -40,6 +40,8 @@ export const CollapseIcon: React.FC<IconProps> = ({ className, style }) => <Mate
 export const PanelLeftIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="left_panel_close" className={className} style={style} />;
 export const PanelRightIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="left_panel_open" className={className} style={style} />;
 
+export const PageIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="description" className={className} style={style} />;
+
 
 // Updated Icons for better matching
 export const DescriptionIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="format_paragraph" className={className} style={style} />;

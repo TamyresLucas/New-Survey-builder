@@ -90,6 +90,12 @@ const App: React.FC = () => {
   const isDiagramView = activeMainTab === 'Flow';
   const isAnyRightPanelOpen = isGeminiPanelOpen || showBulkEditPanel || !!selectedQuestion;
 
+  // On first load, dispatch an action to apply the default paging mode and insert automatic page breaks.
+  useEffect(() => {
+    dispatch({ type: SurveyActionType.SET_PAGING_MODE, payload: { pagingMode: survey.pagingMode } });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
+
 
   useEffect(() => {
     surveyRef.current = survey;
@@ -154,6 +160,7 @@ const App: React.FC = () => {
       SurveyActionType.BULK_DELETE_QUESTIONS,
       SurveyActionType.BULK_MOVE_TO_NEW_BLOCK,
       SurveyActionType.DELETE_CHOICE,
+      SurveyActionType.SET_PAGING_MODE,
   ]), []);
 
   const dispatchAndRecord = useCallback((action: Action) => {
@@ -570,6 +577,10 @@ const App: React.FC = () => {
     setActiveMainTab(tabId);
   }, [activeMainTab]);
 
+  const handlePagingModeChange = useCallback((mode: Survey['pagingMode']) => {
+    dispatchAndRecord({ type: SurveyActionType.SET_PAGING_MODE, payload: { pagingMode: mode } });
+  }, [dispatchAndRecord]);
+
   const allBlocksCollapsed = survey.blocks.length > 0 && collapsedBlocks.size === survey.blocks.length;
 
   // Bulk action handlers
@@ -836,6 +847,7 @@ const App: React.FC = () => {
                         onBackToTop={handleBackToTop}
                         onToggleCollapseAll={handleToggleCollapseAll}
                         allBlocksCollapsed={allBlocksCollapsed}
+                        onPagingModeChange={handlePagingModeChange}
                     />
                 </div>
             ))}

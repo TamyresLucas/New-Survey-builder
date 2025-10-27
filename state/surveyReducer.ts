@@ -30,6 +30,7 @@ export enum SurveyActionType {
     REPOSITION_QUESTION = 'REPOSITION_QUESTION',
     CLEANUP_UNCONFIRMED_LOGIC = 'CLEANUP_UNCONFIRMED_LOGIC',
     RESTORE_STATE = 'RESTORE_STATE',
+    SET_PAGING_MODE = 'SET_PAGING_MODE',
 }
 
 export interface Action {
@@ -878,6 +879,44 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             return action.payload;
         }
 
+        case SurveyActionType.SET_PAGING_MODE: {
+            const { pagingMode } = action.payload;
+            newState.pagingMode = pagingMode;
+    
+            // Create a clean version of the survey without any automatic page breaks
+            const surveyWithoutAutoPageBreaks = JSON.parse(JSON.stringify(newState));
+            surveyWithoutAutoPageBreaks.blocks.forEach((block: Block) => {
+                block.questions = block.questions.filter((q: Question) => !(q.type === QTEnum.PageBreak && q.isAutomatic));
+            });
+    
+            // If mode is one-per-page, add breaks back to the clean version
+            if (pagingMode === 'one-per-page') {
+                surveyWithoutAutoPageBreaks.blocks.forEach((block: Block) => {
+                    const newQuestionsForBlock: Question[] = [];
+                    block.questions.forEach((question: Question, index: number) => {
+                        newQuestionsForBlock.push(question);
+    
+                        const isLastQuestionInBlock = index === block.questions.length - 1;
+                        const nextQuestionIsPageBreak = !isLastQuestionInBlock && block.questions[index + 1].type === QTEnum.PageBreak;
+                        
+                        if (question.type !== QTEnum.PageBreak && !isLastQuestionInBlock && !nextQuestionIsPageBreak) {
+                            newQuestionsForBlock.push({
+                                id: generateId('pb'),
+                                qid: '',
+                                text: 'Page Break',
+                                type: QTEnum.PageBreak,
+                                isAutomatic: true,
+                            });
+                        }
+                    });
+                    block.questions = newQuestionsForBlock;
+                });
+            }
+            
+            newState.blocks = surveyWithoutAutoPageBreaks.blocks;
+            
+            return renumberSurveyVariables(newState);
+        }
 
         default:
             return state;

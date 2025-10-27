@@ -12,6 +12,16 @@ const DropIndicator = () => (
     </div>
 );
 
+const PageIndicator = ({ number }: { number: number }) => (
+    <div className="flex items-center gap-4 my-6">
+        <div className="flex-grow h-px bg-outline-variant"></div>
+        <span className="text-sm font-bold tracking-wider text-on-surface-variant bg-surface-container px-3 py-1 rounded-full border border-outline-variant">
+            P{number}
+        </span>
+        <div className="flex-grow h-px bg-outline-variant"></div>
+    </div>
+);
+
 interface SurveyBlockProps {
     block: Block;
     survey: Survey;
@@ -47,12 +57,15 @@ interface SurveyBlockProps {
     onAddPageBreakAfterQuestion: (questionId: string) => void;
     onUpdateBlockTitle: (blockId: string, title: string) => void;
     onAddFromLibrary: () => void;
+    questionToPageMap: Map<string, number>;
+    pageStartQuestionIds: Set<string>;
 }
 
 const SurveyBlock: React.FC<SurveyBlockProps> = memo(({ 
   block, survey, selectedQuestion, checkedQuestions, logicIssues, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
   isBlockDragging, onBlockDragStart, onBlockDragEnd, isCollapsed, onToggleCollapse,
-  onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onAddFromLibrary
+  onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onAddFromLibrary,
+  questionToPageMap, pageStartQuestionIds
 }) => {
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [isToolboxDragOver, setIsToolboxDragOver] = useState(false);
@@ -302,38 +315,45 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
         >
           {block.questions.length > 0 ? (
             <>
-              {block.questions.map((question, index) => (
-                <React.Fragment key={question.id}>
-                  {dropTargetId === question.id && <DropIndicator />}
-                  <div className={index > 0 ? "mt-4" : ""}>
-                    <QuestionCard
-                      question={question}
-                      survey={survey}
-                      currentBlockId={block.id}
-                      logicIssues={logicIssues.filter(issue => issue.questionId === question.id)}
-                      id={`question-card-${question.id}`}
-                      isSelected={selectedQuestion?.id === question.id}
-                      isChecked={checkedQuestions.has(question.id)}
-                      onSelect={onSelectQuestion}
-                      onUpdateQuestion={onUpdateQuestion}
-                      onDeleteQuestion={onDeleteQuestion}
-                      onCopyQuestion={onCopyQuestion}
-                      onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
-                      onMoveQuestionToExistingBlock={onMoveQuestionToExistingBlock}
-                      onToggleCheck={onToggleQuestionCheck}
-                      toolboxItems={toolboxItems}
-                      isDragging={draggedQuestionId === question.id}
-                      onDragStart={() => {
-                        setDraggedQuestionId(question.id);
-                        onSelectQuestion(question);
-                      }}
-                      onDragEnd={() => setDraggedQuestionId(null)}
-                      onAddChoice={onAddChoice}
-                      onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
-                    />
-                  </div>
-                </React.Fragment>
-              ))}
+              {block.questions.map((question, index) => {
+                const isPageStart = pageStartQuestionIds.has(question.id);
+                const pageNumber = questionToPageMap.get(question.id);
+                
+                return (
+                    <React.Fragment key={question.id}>
+                    {isPageStart && pageNumber && <PageIndicator number={pageNumber} />}
+                    {dropTargetId === question.id && <DropIndicator />}
+                    <div className={index > 0 || isPageStart ? "mt-4" : ""}>
+                        <QuestionCard
+                          question={question}
+                          survey={survey}
+                          currentBlockId={block.id}
+                          logicIssues={logicIssues.filter(issue => issue.questionId === question.id)}
+                          id={`question-card-${question.id}`}
+                          isSelected={selectedQuestion?.id === question.id}
+                          isChecked={checkedQuestions.has(question.id)}
+                          onSelect={onSelectQuestion}
+                          onUpdateQuestion={onUpdateQuestion}
+                          onDeleteQuestion={onDeleteQuestion}
+                          onCopyQuestion={onCopyQuestion}
+                          onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
+                          onMoveQuestionToExistingBlock={onMoveQuestionToExistingBlock}
+                          onToggleCheck={onToggleQuestionCheck}
+                          toolboxItems={toolboxItems}
+                          isDragging={draggedQuestionId === question.id}
+                          onDragStart={() => {
+                            setDraggedQuestionId(question.id);
+                            onSelectQuestion(question);
+                          }}
+                          onDragEnd={() => setDraggedQuestionId(null)}
+                          onAddChoice={onAddChoice}
+                          onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
+                          questionToPageMap={questionToPageMap}
+                        />
+                    </div>
+                    </React.Fragment>
+                )
+              })}
               {dropTargetId === null && (draggedQuestionId || isToolboxDragOver) && <DropIndicator />}
             </>
           ) : (

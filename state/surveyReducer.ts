@@ -7,6 +7,7 @@ import { QuestionType as QTEnum } from '../types';
 export enum SurveyActionType {
     UPDATE_SURVEY_TITLE = 'UPDATE_SURVEY_TITLE',
     UPDATE_BLOCK_TITLE = 'UPDATE_BLOCK_TITLE',
+    UPDATE_BLOCK = 'UPDATE_BLOCK',
     UPDATE_QUESTION = 'UPDATE_QUESTION',
     ADD_QUESTION = 'ADD_QUESTION',
     ADD_QUESTION_FROM_AI = 'ADD_QUESTION_FROM_AI',
@@ -134,6 +135,15 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             const block = newState.blocks.find((b: Block) => b.id === blockId);
             if (block) {
                 block.title = title;
+            }
+            return newState;
+        }
+
+        case SurveyActionType.UPDATE_BLOCK: {
+            const { blockId, updates } = action.payload;
+            const block = newState.blocks.find((b: Block) => b.id === blockId);
+            if (block) {
+                Object.assign(block, updates);
             }
             return newState;
         }
@@ -279,7 +289,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
             Object.assign(questionInState, finalUpdates);
 
-            return updates.type || finalUpdates.choices || finalUpdates.scalePoints ? renumberSurveyVariables(newState) : newState;
+            return updates.type || finalUpdates.choices || finalUpdates.scalePoints || 'pageName' in updates ? renumberSurveyVariables(newState) : newState;
         }
 
         case SurveyActionType.ADD_QUESTION: {

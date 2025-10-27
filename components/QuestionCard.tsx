@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, memo, useCallback } from 'react';
-import type { Question, ToolboxItemData, Choice, Survey, LogicIssue } from '../types';
+import type { Question, ToolboxItemData, Choice, Survey, LogicIssue, Block } from '../types';
 import { QuestionType } from '../types';
 import { 
     DotsHorizontalIcon, RadioIcon, ChevronDownIcon, 
@@ -11,6 +11,7 @@ import {
 import { QuestionActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
 import { generateId, parseChoice } from '../utils';
 import { DisplayLogicDisplay, SkipLogicDisplay, BranchingLogicDisplay } from './LogicDisplays';
+import type { PageInfo } from './SurveyCanvas';
 
 // Helper for inline editing with contentEditable
 const EditableText: React.FC<{
@@ -102,6 +103,7 @@ const QuestionCard: React.FC<{
     onToggleCheck: (questionId: string) => void;
     id: string;
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
+    onUpdateBlock: (blockId: string, updates: Partial<Block>) => void;
     onDeleteQuestion: (questionId: string) => void;
     onCopyQuestion: (questionId: string) => void;
     onMoveQuestionToNewBlock: (questionId: string) => void;
@@ -112,11 +114,11 @@ const QuestionCard: React.FC<{
     onDragEnd: () => void;
     onAddChoice: (questionId: string) => void;
     onAddPageBreakAfterQuestion: (questionId: string) => void;
-    questionToPageMap: Map<string, number>;
+    pageInfo?: PageInfo;
 }> = memo(({ 
     question, survey, currentBlockId, logicIssues, isSelected, isChecked, onSelect, onToggleCheck, id, 
-    onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, toolboxItems,
-    isDragging, onDragStart, onDragEnd, onAddChoice, onAddPageBreakAfterQuestion, questionToPageMap
+    onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, toolboxItems,
+    isDragging, onDragStart, onDragEnd, onAddChoice, onAddPageBreakAfterQuestion, pageInfo
 }) => {
     
     const [isTypeMenuOpen, setIsTypeMenuOpen] = useState(false);
@@ -126,6 +128,10 @@ const QuestionCard: React.FC<{
     
     const [draggedChoiceId, setDraggedChoiceId] = useState<string | null>(null);
     const [dropTargetChoiceId, setDropTargetChoiceId] = useState<string | null>(null);
+    
+    const [isEditingPageName, setIsEditingPageName] = useState(false);
+    const [pageNameValue, setPageNameValue] = useState('');
+    const pageNameInputRef = useRef<HTMLInputElement>(null);
 
     const isAnyMenuOpen = isTypeMenuOpen || isActionsMenuOpen;
 
@@ -137,6 +143,19 @@ const QuestionCard: React.FC<{
         icon: item.icon,
         })), [toolboxItems]);
         
+    useEffect(() => {
+        if (pageInfo) {
+            setPageNameValue(pageInfo.pageName);
+        }
+    }, [pageInfo]);
+
+    useEffect(() => {
+        if (isEditingPageName && pageNameInputRef.current) {
+            pageNameInputRef.current.focus();
+            pageNameInputRef.current.select();
+        }
+    }, [isEditingPageName]);
+
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -240,392 +259,462 @@ const QuestionCard: React.FC<{
         onUpdateQuestion(question.id, { scalePoints: newScalePoints });
     }, [question.id, question.scalePoints, onUpdateQuestion]);
 
-    if (question.type === QuestionType.PageBreak) {
-        const pageNumber = questionToPageMap.get(question.id);
-        return (
-          <div
-            id={id}
-            data-question-id={question.id}
-            draggable="true"
-            onDragStart={(e) => {
-              e.dataTransfer.setData('text/plain', question.id);
-              onDragStart();
-            }}
-            onDragEnd={onDragEnd}
-            className={`relative flex items-center justify-between p-4 rounded-lg border-2 transition-all cursor-grab group ${
-              isSelected ? 'border-primary bg-primary-container/30' : 'border-transparent'
-            } ${isDragging ? 'opacity-50' : ''}`}
-            onClick={() => onSelect(question)}
-          >
-            <div className="flex items-center text-on-surface-variant font-semibold text-sm w-full">
-              <DragIndicatorIcon className="text-xl mr-2" />
-              <span className="flex-grow border-t-2 border-dashed border-outline-variant text-center py-2">
-                End of Page P{pageNumber}
-              </span>
+    const handleSavePageName = useCallback(() => {
+        if (pageInfo && pageNameValue.trim() && pageNameValue.trim() !== pageInfo.pageName) {
+            if (pageInfo.source === 'block' && onUpdateBlock) {
+                onUpdateBlock(pageInfo.sourceId, { pageName: pageNameValue.trim() });
+            } else if (pageInfo.source === 'page_break') {
+                onUpdateQuestion(pageInfo.sourceId, { pageName: pageNameValue.trim() });
+            }
+        }
+        setIsEditingPageName(false);
+    }, [pageInfo, pageNameValue, onUpdateBlock, onUpdateQuestion]);
+    
+    const handlePageNameKeyDown = useCallback((e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleSavePageName();
+        } else if (e.key === 'Escape') {
+            setIsEditingPageName(false);
+            if (pageInfo) setPageNameValue(pageInfo.pageName);
+        }
+    }, [handleSavePageName, pageInfo]);
+
+    const pageIndicator = useMemo(() => {
+        if (!pageInfo) return null;
+
+        const content = (
+            <div className="flex items-center gap-4 text-on-surface-variant w-full">
+                <div className="flex-grow h-px bg-outline-variant"></div>
+                
+                <div className="flex-shrink-0 flex items-stretch border border-outline-variant rounded-full overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 ring-offset-surface-container transition-shadow">
+                    <span 
+                        className="bg-surface-container-high px-3 py-1.5 text-sm font-bold text-on-surface border-r border-outline-variant"
+                        style={{ fontFamily: "'Open Sans', sans-serif" }}
+                    >
+                        P{pageInfo.pageNumber}
+                    </span>
+                    {isEditingPageName ? (
+                         <input
+                            ref={pageNameInputRef}
+                            type="text"
+                            value={pageNameValue}
+                            onChange={(e) => setPageNameValue(e.target.value)}
+                            onBlur={handleSavePageName}
+                            onKeyDown={handlePageNameKeyDown}
+                            onClick={e => e.stopPropagation()}
+                            className="font-semibold text-sm text-on-surface bg-surface-container px-3 py-1.5 focus:outline-none w-32"
+                            style={{ fontFamily: "'Open Sans', sans-serif" }}
+                        />
+                    ) : (
+                        <span
+                            onClick={(e) => { e.stopPropagation(); setIsEditingPageName(true); }}
+                            className="font-semibold text-sm text-on-surface cursor-pointer bg-surface-container hover:bg-surface-container-high px-3 py-1.5 transition-colors"
+                            style={{ fontFamily: "'Open Sans', sans-serif" }}
+                        >
+                            {pageNameValue}
+                        </span>
+                    )}
+                </div>
+
+                <div className="flex-grow h-px bg-outline-variant"></div>
             </div>
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteQuestion(question.id);
-                }}
-                className="p-1.5 rounded-full hover:bg-surface-container-high"
-                aria-label="Delete page break"
-              >
-                <XIcon className="text-lg" />
-              </button>
-            </div>
-          </div>
         );
+
+        // Render interactive indicator for explicit PageBreak questions
+        if (question.type === QuestionType.PageBreak) {
+            return (
+                 <div
+                    id={id}
+                    data-question-id={question.id}
+                    draggable="true"
+                    onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', question.id);
+                        onDragStart();
+                    }}
+                    onDragEnd={onDragEnd}
+                    className={`relative py-4 group cursor-grab ${isDragging ? 'opacity-50' : ''}`}
+                    onClick={() => onSelect(question)}
+                >
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <DragIndicatorIcon className="text-xl text-on-surface-variant" />
+                    </div>
+                    {content}
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onDeleteQuestion(question.id); }}
+                            className="p-1.5 rounded-full hover:bg-surface-container-high"
+                            aria-label="Delete page break"
+                        >
+                            <XIcon className="text-lg" />
+                        </button>
+                    </div>
+                </div>
+            );
+        } 
+        // Render non-interactive indicator for implicit page starts
+        else {
+            return (
+                <div className="mb-4">
+                    {content}
+                </div>
+            );
+        }
+    }, [pageInfo, isEditingPageName, pageNameValue, handleSavePageName, handlePageNameKeyDown, question.type, question.id, id, onDragStart, onDragEnd, isDragging, onSelect, onDeleteQuestion]);
+    
+    if (question.type === QuestionType.PageBreak) {
+        return pageIndicator;
     }
     
     const CurrentQuestionTypeIcon = questionTypeOptions.find(o => o.type === question.type)?.icon || RadioIcon;
     const hasLogicIssues = logicIssues.length > 0;
 
     return (
-        <div
-            id={id}
-            data-question-id={question.id}
-            draggable={true}
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
-            onClick={() => onSelect(question)}
-            className={`p-4 rounded-lg border-2 transition-all cursor-grab group grid grid-cols-[auto_1fr] items-start gap-x-3 relative ${
-                isSelected ? 'border-primary bg-surface-container-high shadow-md' : 'border-outline-variant hover:border-outline'
-            } ${isDragging ? 'opacity-50' : ''} ${isAnyMenuOpen ? 'z-10' : ''}`}
-        >
-            {/* Grid Cell 1: Checkbox */}
-            <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-outline text-primary focus:ring-primary accent-primary mt-1"
-                checked={isChecked}
-                onChange={(e) => {
-                    e.stopPropagation();
-                    onToggleCheck(question.id);
-                }}
-                onClick={(e) => e.stopPropagation()}
-            />
-
-            {/* Grid Cell 2: Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center text-sm text-on-surface-variant">
-                    <span className="font-bold text-on-surface mr-2">{question.qid}</span>
-                    {question.forceResponse && (
-                        <span className="px-2 py-0.5 text-xs font-medium bg-primary-container text-on-primary-container rounded-full">
-                            Required
-                        </span>
-                    )}
-                    {question.isHidden && (
-                        <div className={`relative group/tooltip ${question.forceResponse ? 'ml-2' : ''}`}>
-                            <VisibilityOffIcon className="text-on-surface-variant text-lg" />
-                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
-                                This question is hidden
-                                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
-                            </div>
-                        </div>
-                    )}
-                     {hasLogicIssues && (
-                        <div className={`relative group/tooltip ${question.forceResponse || question.isHidden ? 'ml-2' : ''}`}>
-                            <WarningIcon className="text-error" />
-                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
-                                <h4 className="font-bold mb-1">Logic Issues:</h4>
-                                <ul className="list-disc list-inside space-y-1">
-                                    {logicIssues.map((issue, index) => <li key={index}>{issue.message}</li>)}
-                                </ul>
-                                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-                <div className="flex items-center gap-2">
-                    <div ref={typeMenuContainerRef} className="relative">
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsTypeMenuOpen(prev => !prev);
-                            }}
-                            className="flex items-center gap-2 rounded-md px-2 py-1 border border-outline-variant hover:bg-surface-container-highest"
-                        >
-                            <CurrentQuestionTypeIcon className="text-base text-primary" />
-                            <span className="font-medium text-sm text-on-surface">{question.type}</span>
-                            <ChevronDownIcon className="text-base" />
-                        </button>
-                        {isTypeMenuOpen && (
-                          <div className="absolute top-full right-0 mt-2 w-64 z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-                            <QuestionTypeSelectionMenuContent onSelect={handleTypeSelect} toolboxItems={toolboxItems} />
-                          </div>
-                        )}
-                    </div>
-                    <div ref={actionsMenuContainerRef} className="relative transition-opacity">
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsActionsMenuOpen(prev => !prev);
-                            }}
-                            className="p-1.5 rounded-full hover:bg-surface-container-highest"
-                            aria-label="Question actions"
-                        >
-                            <DotsHorizontalIcon className="text-xl" />
-                        </button>
-                        {isActionsMenuOpen && (
-                            <QuestionActionsMenu
-                                survey={survey}
-                                currentBlockId={currentBlockId}
-                                onDuplicate={() => { onCopyQuestion(question.id); setIsActionsMenuOpen(false); }}
-                                onDelete={() => { onDeleteQuestion(question.id); setIsActionsMenuOpen(false); }}
-                                onAddPageBreak={() => { onAddPageBreakAfterQuestion(question.id); setIsActionsMenuOpen(false); }}
-                                onMoveToNewBlock={() => { onMoveQuestionToNewBlock(question.id); setIsActionsMenuOpen(false); }}
-                                onMoveToExistingBlock={(targetBlockId) => { onMoveQuestionToExistingBlock(question.id, targetBlockId); setIsActionsMenuOpen(false); }}
-                            />
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Grid Cell 3: Body Content (starts in column 2) */}
-            <div className="col-start-2 mt-3 min-w-0">
-                <EditableText
-                    html={question.text}
-                    onChange={(newText) => onUpdateQuestion(question.id, { text: newText })}
-                    onFocus={() => onSelect(question)}
-                    className="text-on-surface min-h-[24px]"
+        <>
+            {pageIndicator}
+            <div
+                id={id}
+                data-question-id={question.id}
+                draggable={true}
+                onDragStart={onDragStart}
+                onDragEnd={onDragEnd}
+                onClick={() => onSelect(question)}
+                className={`p-4 rounded-lg border-2 transition-all cursor-grab group grid grid-cols-[auto_1fr] items-start gap-x-3 relative ${
+                    isSelected ? 'border-primary bg-surface-container-high shadow-md' : 'border-outline-variant hover:border-outline'
+                } ${isDragging ? 'opacity-50' : ''} ${isAnyMenuOpen ? 'z-10' : ''}`}
+            >
+                {/* Grid Cell 1: Checkbox */}
+                <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-outline text-primary focus:ring-primary accent-primary mt-1"
+                    checked={isChecked}
+                    onChange={(e) => {
+                        e.stopPropagation();
+                        onToggleCheck(question.id);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
                 />
-                
-                {question.type === QuestionType.TextEntry && (
-                    <div className="mt-4">
-                        <textarea
-                            className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface resize-y cursor-default"
-                            rows={question.textEntrySettings?.answerLength === 'long' ? 8 : 1}
-                            placeholder={question.textEntrySettings?.placeholder || ''}
-                            readOnly
-                        />
+
+                {/* Grid Cell 2: Header */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center text-sm text-on-surface-variant">
+                        <span className="font-bold text-on-surface mr-2">{question.qid}</span>
+                        {question.forceResponse && (
+                            <span className="px-2 py-0.5 text-xs font-medium bg-primary-container text-on-primary-container rounded-full">
+                                Required
+                            </span>
+                        )}
+                        {question.isHidden && (
+                            <div className={`relative group/tooltip ${question.forceResponse ? 'ml-2' : ''}`}>
+                                <VisibilityOffIcon className="text-on-surface-variant text-lg" />
+                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
+                                    This question is hidden
+                                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
+                                </div>
+                            </div>
+                        )}
+                        {hasLogicIssues && (
+                            <div className={`relative group/tooltip ${question.forceResponse || question.isHidden ? 'ml-2' : ''}`}>
+                                <WarningIcon className="text-error" />
+                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
+                                    <h4 className="font-bold mb-1">Logic Issues:</h4>
+                                    <ul className="list-disc list-inside space-y-1">
+                                        {logicIssues.map((issue, index) => <li key={index}>{issue.message}</li>)}
+                                    </ul>
+                                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                )}
-                
-                {question.type === QuestionType.ChoiceGrid && (
-                    <div className="mt-4">
-                        <div className="overflow-x-auto">
-                            <table className="border-collapse">
-                                <thead>
-                                    <tr className="border-b border-outline-variant">
-                                        <th className="py-2 pr-2 text-left"></th>
-                                        {(question.scalePoints || []).map(sp => (
-                                            <th key={sp.id} className="py-2 px-3 text-center text-xs font-normal text-on-surface-variant align-bottom group/header relative">
-                                                <EditableText
-                                                    html={sp.text}
-                                                    onChange={(newText) => handleScalePointTextChange(sp.id, newText)}
-                                                    onFocus={() => onSelect(question)}
-                                                    className="text-on-surface-variant"
-                                                />
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        const newScalePoints = question.scalePoints?.filter(p => p.id !== sp.id);
-                                                        onUpdateQuestion(question.id, { scalePoints: newScalePoints });
-                                                    }}
-                                                    className="absolute -top-1 -right-1 p-0.5 rounded-full bg-surface-container-highest text-on-surface-variant hover:bg-error-container hover:text-on-error-container opacity-0 group-hover/header:opacity-100"
-                                                    aria-label="Remove column"
-                                                >
-                                                    <XIcon className="text-sm" />
-                                                </button>
-                                            </th>
-                                        ))}
-                                        <th className="w-12 p-2"></th>
-                                    </tr>
-                                </thead>
-                                <tbody
-                                    onDrop={handleChoiceDrop}
-                                    onDragOver={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setDropTargetChoiceId(null);
-                                    }}
-                                >
-                                    {(question.choices || []).map(choice => {
-                                        const { variable, label } = parseChoice(choice.text);
-                                        const numColumns = (question.scalePoints?.length || 0) + 2;
-                                        return (
-                                            <React.Fragment key={choice.id}>
-                                                {dropTargetChoiceId === choice.id && <TableDropIndicator colSpan={numColumns} />}
-                                                <tr
-                                                    className={`border-b border-outline-variant last:border-b-0 group/choice transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
-                                                    draggable
-                                                    onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
-                                                    onDragOver={(e) => handleChoiceDragOver(e, choice.id)}
-                                                    onDragEnd={handleChoiceDragEnd}
-                                                >
-                                                    <td className="p-2 text-sm text-on-surface pr-4">
-                                                        <div className="flex items-center gap-1">
-                                                            <DragIndicatorIcon className="text-xl text-on-surface-variant cursor-grab opacity-0 group-hover/choice:opacity-100 transition-opacity" />
-                                                            {variable && <span className="font-bold text-on-surface-variant">{variable}</span>}
-                                                            <EditableText
-                                                                html={label}
-                                                                onChange={(newLabel) => {
-                                                                    const newText = variable ? `${variable} ${newLabel}` : newLabel;
-                                                                    const newChoices = (question.choices || []).map(c =>
-                                                                        c.id === choice.id ? { ...c, text: newText } : c
-                                                                    );
+                    <div className="flex items-center gap-2">
+                        <div ref={typeMenuContainerRef} className="relative">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsTypeMenuOpen(prev => !prev);
+                                }}
+                                className="flex items-center gap-2 rounded-md px-2 py-1 border border-outline-variant hover:bg-surface-container-highest"
+                            >
+                                <CurrentQuestionTypeIcon className="text-base text-primary" />
+                                <span className="font-medium text-sm text-on-surface">{question.type}</span>
+                                <ChevronDownIcon className="text-base" />
+                            </button>
+                            {isTypeMenuOpen && (
+                            <div className="absolute top-full right-0 mt-2 w-64 z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+                                <QuestionTypeSelectionMenuContent onSelect={handleTypeSelect} toolboxItems={toolboxItems} />
+                            </div>
+                            )}
+                        </div>
+                        <div ref={actionsMenuContainerRef} className="relative transition-opacity">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsActionsMenuOpen(prev => !prev);
+                                }}
+                                className="p-1.5 rounded-full hover:bg-surface-container-highest"
+                                aria-label="Question actions"
+                            >
+                                <DotsHorizontalIcon className="text-xl" />
+                            </button>
+                            {isActionsMenuOpen && (
+                                <QuestionActionsMenu
+                                    survey={survey}
+                                    currentBlockId={currentBlockId}
+                                    onDuplicate={() => { onCopyQuestion(question.id); setIsActionsMenuOpen(false); }}
+                                    onDelete={() => { onDeleteQuestion(question.id); setIsActionsMenuOpen(false); }}
+                                    onAddPageBreak={() => { onAddPageBreakAfterQuestion(question.id); setIsActionsMenuOpen(false); }}
+                                    onMoveToNewBlock={() => { onMoveQuestionToNewBlock(question.id); setIsActionsMenuOpen(false); }}
+                                    onMoveToExistingBlock={(targetBlockId) => { onMoveQuestionToExistingBlock(question.id, targetBlockId); setIsActionsMenuOpen(false); }}
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Grid Cell 3: Body Content (starts in column 2) */}
+                <div className="col-start-2 mt-3 min-w-0">
+                    <EditableText
+                        html={question.text}
+                        onChange={(newText) => onUpdateQuestion(question.id, { text: newText })}
+                        onFocus={() => onSelect(question)}
+                        className="text-on-surface min-h-[24px]"
+                    />
+                    
+                    {question.type === QuestionType.TextEntry && (
+                        <div className="mt-4">
+                            <textarea
+                                className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface resize-y cursor-default"
+                                rows={question.textEntrySettings?.answerLength === 'long' ? 8 : 1}
+                                placeholder={question.textEntrySettings?.placeholder || ''}
+                                readOnly
+                            />
+                        </div>
+                    )}
+                    
+                    {question.type === QuestionType.ChoiceGrid && (
+                        <div className="mt-4">
+                            <div className="overflow-x-auto">
+                                <table className="border-collapse">
+                                    <thead>
+                                        <tr className="border-b border-outline-variant">
+                                            <th className="py-2 pr-2 text-left"></th>
+                                            {(question.scalePoints || []).map(sp => (
+                                                <th key={sp.id} className="py-2 px-3 text-center text-xs font-normal text-on-surface-variant align-bottom group/header relative">
+                                                    <EditableText
+                                                        html={sp.text}
+                                                        onChange={(newText) => handleScalePointTextChange(sp.id, newText)}
+                                                        onFocus={() => onSelect(question)}
+                                                        className="text-on-surface-variant"
+                                                    />
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const newScalePoints = question.scalePoints?.filter(p => p.id !== sp.id);
+                                                            onUpdateQuestion(question.id, { scalePoints: newScalePoints });
+                                                        }}
+                                                        className="absolute -top-1 -right-1 p-0.5 rounded-full bg-surface-container-highest text-on-surface-variant hover:bg-error-container hover:text-on-error-container opacity-0 group-hover/header:opacity-100"
+                                                        aria-label="Remove column"
+                                                    >
+                                                        <XIcon className="text-sm" />
+                                                    </button>
+                                                </th>
+                                            ))}
+                                            <th className="w-12 p-2"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody
+                                        onDrop={handleChoiceDrop}
+                                        onDragOver={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setDropTargetChoiceId(null);
+                                        }}
+                                    >
+                                        {(question.choices || []).map(choice => {
+                                            const { variable, label } = parseChoice(choice.text);
+                                            const numColumns = (question.scalePoints?.length || 0) + 2;
+                                            return (
+                                                <React.Fragment key={choice.id}>
+                                                    {dropTargetChoiceId === choice.id && <TableDropIndicator colSpan={numColumns} />}
+                                                    <tr
+                                                        className={`border-b border-outline-variant last:border-b-0 group/choice transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
+                                                        draggable
+                                                        onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
+                                                        onDragOver={(e) => handleChoiceDragOver(e, choice.id)}
+                                                        onDragEnd={handleChoiceDragEnd}
+                                                    >
+                                                        <td className="p-2 text-sm text-on-surface pr-4">
+                                                            <div className="flex items-center gap-1">
+                                                                <DragIndicatorIcon className="text-xl text-on-surface-variant cursor-grab opacity-0 group-hover/choice:opacity-100 transition-opacity" />
+                                                                {variable && <span className="font-bold text-on-surface-variant">{variable}</span>}
+                                                                <EditableText
+                                                                    html={label}
+                                                                    onChange={(newLabel) => {
+                                                                        const newText = variable ? `${variable} ${newLabel}` : newLabel;
+                                                                        const newChoices = (question.choices || []).map(c =>
+                                                                            c.id === choice.id ? { ...c, text: newText } : c
+                                                                        );
+                                                                        onUpdateQuestion(question.id, { choices: newChoices });
+                                                                    }}
+                                                                    onFocus={() => onSelect(question)}
+                                                                    className="text-on-surface flex-grow"
+                                                                />
+                                                            </div>
+                                                        </td>
+                                                        {(question.scalePoints || []).map(sp => (
+                                                            <td key={sp.id} className="p-2 text-center">
+                                                                <RadioButtonUncheckedIcon className="text-xl text-outline" />
+                                                            </td>
+                                                        ))}
+                                                        <td className="p-2 text-center">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const newChoices = question.choices?.filter(c => c.id !== choice.id);
                                                                     onUpdateQuestion(question.id, { choices: newChoices });
                                                                 }}
-                                                                onFocus={() => onSelect(question)}
-                                                                className="text-on-surface flex-grow"
-                                                            />
-                                                        </div>
-                                                    </td>
-                                                    {(question.scalePoints || []).map(sp => (
-                                                        <td key={sp.id} className="p-2 text-center">
-                                                            <RadioButtonUncheckedIcon className="text-xl text-outline" />
+                                                                className="ml-auto p-1 rounded-full text-on-surface-variant hover:bg-surface-container-highest opacity-0 group-hover/choice:opacity-100"
+                                                                aria-label="Remove row"
+                                                            >
+                                                                <XIcon className="text-base" />
+                                                            </button>
                                                         </td>
-                                                    ))}
-                                                    <td className="p-2 text-center">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                const newChoices = question.choices?.filter(c => c.id !== choice.id);
-                                                                onUpdateQuestion(question.id, { choices: newChoices });
-                                                            }}
-                                                            className="ml-auto p-1 rounded-full text-on-surface-variant hover:bg-surface-container-highest opacity-0 group-hover/choice:opacity-100"
-                                                            aria-label="Remove row"
-                                                        >
-                                                            <XIcon className="text-base" />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            </React.Fragment>
-                                        );
-                                    })}
-                                    {dropTargetChoiceId === null && draggedChoiceId && <TableDropIndicator colSpan={(question.scalePoints?.length || 0) + 2} />}
-                                </tbody>
-                            </table>
+                                                    </tr>
+                                                </React.Fragment>
+                                            );
+                                        })}
+                                        {dropTargetChoiceId === null && draggedChoiceId && <TableDropIndicator colSpan={(question.scalePoints?.length || 0) + 2} />}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="flex items-center gap-4 mt-4">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onAddChoice(question.id);
+                                    }}
+                                    className="flex items-center text-sm text-primary font-medium hover:underline"
+                                >
+                                    <PlusIcon className="text-base mr-1" /> Add row
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleAddColumn();
+                                    }}
+                                    className="flex items-center text-sm text-primary font-medium hover:underline"
+                                >
+                                    <PlusIcon className="text-base mr-1" /> Add column
+                                </button>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-4 mt-4">
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onAddChoice(question.id);
-                                }}
-                                className="flex items-center text-sm text-primary font-medium hover:underline"
-                            >
-                                <PlusIcon className="text-base mr-1" /> Add row
-                            </button>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleAddColumn();
-                                }}
-                                className="flex items-center text-sm text-primary font-medium hover:underline"
-                            >
-                                <PlusIcon className="text-base mr-1" /> Add column
-                            </button>
-                        </div>
-                    </div>
-                )}
+                    )}
 
 
-                {question.choices && question.type !== QuestionType.ChoiceGrid && (
-                    <div 
-                        className="mt-4 space-y-2"
-                        onDrop={handleChoiceDrop}
-                        onDragOver={(e) => {
-                            e.preventDefault();
-                            setDropTargetChoiceId(null);
-                        }}
-                    >
-                        {question.choices.map((choice, index) => {
-                            const { variable, label } = parseChoice(choice.text);
-                            return (
-                                <React.Fragment key={choice.id}>
-                                    {dropTargetChoiceId === choice.id && <ChoiceDropIndicator />}
-                                    <div 
-                                        className={`flex items-center group/choice transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
-                                        draggable={true}
-                                        onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
-                                        onDragOver={(e) => handleChoiceDragOver(e, choice.id)}
-                                        onDragEnd={handleChoiceDragEnd}
-                                    >
-                                        <DragIndicatorIcon className="text-xl text-on-surface-variant mr-1 cursor-grab opacity-0 group-hover/choice:opacity-100" />
-                                        {question.type === QuestionType.Radio ? (
-                                            index === 0 ? (
-                                                <RadioIcon className="text-xl text-on-surface-variant mr-2" />
+                    {question.choices && question.type !== QuestionType.ChoiceGrid && (
+                        <div 
+                            className="mt-4 space-y-2"
+                            onDrop={handleChoiceDrop}
+                            onDragOver={(e) => {
+                                e.preventDefault();
+                                setDropTargetChoiceId(null);
+                            }}
+                        >
+                            {question.choices.map((choice, index) => {
+                                const { variable, label } = parseChoice(choice.text);
+                                return (
+                                    <React.Fragment key={choice.id}>
+                                        {dropTargetChoiceId === choice.id && <ChoiceDropIndicator />}
+                                        <div 
+                                            className={`flex items-center group/choice transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
+                                            draggable={true}
+                                            onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
+                                            onDragOver={(e) => handleChoiceDragOver(e, choice.id)}
+                                            onDragEnd={handleChoiceDragEnd}
+                                        >
+                                            <DragIndicatorIcon className="text-xl text-on-surface-variant mr-1 cursor-grab opacity-0 group-hover/choice:opacity-100" />
+                                            {question.type === QuestionType.Radio ? (
+                                                index === 0 ? (
+                                                    <RadioIcon className="text-xl text-on-surface-variant mr-2" />
+                                                ) : (
+                                                    <RadioButtonUncheckedIcon className="text-xl text-on-surface-variant mr-2" />
+                                                )
                                             ) : (
-                                                <RadioButtonUncheckedIcon className="text-xl text-on-surface-variant mr-2" />
-                                            )
-                                        ) : (
-                                            <CheckboxOutlineIcon className="text-xl text-on-surface-variant mr-2" />
-                                        )}
-                                        
-                                        <div className="text-on-surface flex-grow min-h-[24px] flex items-center gap-2">
-                                            {variable && <span className="font-bold text-on-surface-variant mr-2">{variable}</span>}
-                                            <EditableText
-                                                html={label}
-                                                onChange={(newLabel) => {
-                                                    const newText = variable ? `${variable} ${newLabel}` : newLabel;
-                                                    const newChoices = (question.choices || []).map(c => 
-                                                        c.id === choice.id ? { ...c, text: newText } : c
-                                                    );
+                                                <CheckboxOutlineIcon className="text-xl text-on-surface-variant mr-2" />
+                                            )}
+                                            
+                                            <div className="text-on-surface flex-grow min-h-[24px] flex items-center gap-2">
+                                                {variable && <span className="font-bold text-on-surface-variant mr-2">{variable}</span>}
+                                                <EditableText
+                                                    html={label}
+                                                    onChange={(newLabel) => {
+                                                        const newText = variable ? `${variable} ${newLabel}` : newLabel;
+                                                        const newChoices = (question.choices || []).map(c => 
+                                                            c.id === choice.id ? { ...c, text: newText } : c
+                                                        );
+                                                        onUpdateQuestion(question.id, { choices: newChoices });
+                                                    }}
+                                                    onFocus={() => onSelect(question)}
+                                                    className="text-on-surface flex-grow"
+                                                />
+                                            </div>
+                                            
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const newChoices = question.choices?.filter(c => c.id !== choice.id);
                                                     onUpdateQuestion(question.id, { choices: newChoices });
                                                 }}
-                                                onFocus={() => onSelect(question)}
-                                                className="text-on-surface flex-grow"
-                                            />
+                                                className="ml-2 p-1 rounded-full text-on-surface-variant hover:bg-surface-container-highest opacity-0 group-hover/choice:opacity-100"
+                                                aria-label="Remove choice"
+                                            >
+                                                <XIcon className="text-base" />
+                                            </button>
                                         </div>
-                                        
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                const newChoices = question.choices?.filter(c => c.id !== choice.id);
-                                                onUpdateQuestion(question.id, { choices: newChoices });
-                                            }}
-                                            className="ml-2 p-1 rounded-full text-on-surface-variant hover:bg-surface-container-highest opacity-0 group-hover/choice:opacity-100"
-                                            aria-label="Remove choice"
-                                        >
-                                            <XIcon className="text-base" />
-                                        </button>
-                                    </div>
-                                </React.Fragment>
-                            );
-                        })}
-                        {dropTargetChoiceId === null && draggedChoiceId && <ChoiceDropIndicator />}
-                        <button
-                            onClick={(e) => { 
-                                e.stopPropagation(); 
-                                if (!isSelected) {
-                                    onSelect(question);
-                                }
-                                onAddChoice(question.id); 
-                            }}
-                            className="flex items-center text-sm text-primary font-medium mt-2 hover:underline"
-                        >
-                            <PlusIcon className="text-base mr-1" /> Add choice
-                        </button>
-                    </div>
-                )}
-                
-                {question.displayLogic && question.displayLogic.conditions.length > 0 && (
-                    <DisplayLogicDisplay
-                        logic={question.displayLogic}
-                        survey={survey}
-                        onClick={() => onSelect(question, { tab: 'Behavior' })}
-                    />
-                )}
-                {question.skipLogic && (
-                    <SkipLogicDisplay
-                        logic={question.skipLogic}
-                        currentQuestion={question}
-                        survey={survey}
-                        onClick={() => onSelect(question, { tab: 'Behavior' })}
-                        onRemove={() => onUpdateQuestion(question.id, { skipLogic: undefined, draftSkipLogic: undefined })}
-                    />
-                )}
-                {question.branchingLogic && question.branchingLogic.branches.length > 0 && (
-                     <BranchingLogicDisplay
-                        logic={question.branchingLogic}
-                        survey={survey}
-                        onClick={() => onSelect(question, { tab: 'Branching Logic' })}
-                    />
-                )}
+                                    </React.Fragment>
+                                );
+                            })}
+                            {dropTargetChoiceId === null && draggedChoiceId && <ChoiceDropIndicator />}
+                            <button
+                                onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    if (!isSelected) {
+                                        onSelect(question);
+                                    }
+                                    onAddChoice(question.id); 
+                                }}
+                                className="flex items-center text-sm text-primary font-medium mt-2 hover:underline"
+                            >
+                                <PlusIcon className="text-base mr-1" /> Add choice
+                            </button>
+                        </div>
+                    )}
+                    
+                    {question.displayLogic && question.displayLogic.conditions.length > 0 && (
+                        <DisplayLogicDisplay
+                            logic={question.displayLogic}
+                            survey={survey}
+                            onClick={() => onSelect(question, { tab: 'Behavior' })}
+                        />
+                    )}
+                    {question.skipLogic && (
+                        <SkipLogicDisplay
+                            logic={question.skipLogic}
+                            currentQuestion={question}
+                            survey={survey}
+                            onClick={() => onSelect(question, { tab: 'Behavior' })}
+                            onRemove={() => onUpdateQuestion(question.id, { skipLogic: undefined, draftSkipLogic: undefined })}
+                        />
+                    )}
+                    {question.branchingLogic && question.branchingLogic.branches.length > 0 && (
+                        <BranchingLogicDisplay
+                            logic={question.branchingLogic}
+                            survey={survey}
+                            onClick={() => onSelect(question, { tab: 'Branching Logic' })}
+                        />
+                    )}
+                </div>
             </div>
-        </div>
+        </>
     );
 });
 

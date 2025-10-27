@@ -8,7 +8,7 @@ import { RightSidebar } from './components/RightSidebar';
 import SurveyStructureWidget from './components/SurveyStructureWidget';
 import GeminiPanel from './components/GeminiPanel';
 import { BulkEditPanel } from './components/BulkEditPanel';
-import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssue } from './types';
+import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssue, Block } from './types';
 import { initialSurveyData, toolboxItems as initialToolboxItems } from './constants';
 import { renumberSurveyVariables, generateId } from './utils';
 import { QuestionType as QTEnum } from './types';
@@ -564,6 +564,10 @@ const App: React.FC = () => {
     dispatch({ type: SurveyActionType.UPDATE_BLOCK_TITLE, payload: { blockId, title } });
   }, []);
   
+  const handleUpdateBlock = useCallback((blockId: string, updates: Partial<Block>) => {
+    dispatch({ type: SurveyActionType.UPDATE_BLOCK, payload: { blockId, updates } });
+  }, []);
+
   const handleUpdateSurveyTitle = useCallback((title: string) => {
     dispatch({ type: SurveyActionType.UPDATE_SURVEY_TITLE, payload: { title } });
   }, []);
@@ -697,6 +701,7 @@ const App: React.FC = () => {
                   logicIssues={logicIssues}
                   onSelectQuestion={handleSelectQuestion}
                   onUpdateQuestion={handleUpdateQuestion}
+                  onUpdateBlock={handleUpdateBlock}
                   onDeleteQuestion={handleDeleteQuestion}
                   onCopyQuestion={handleCopyQuestion}
                   onMoveQuestionToNewBlock={handleMoveQuestionToNewBlock}
@@ -766,7 +771,7 @@ const App: React.FC = () => {
     handleSelectQuestion, handleReorderToolbox, handleReorderQuestion, handleReorderBlock, handleAddBlock,
     handleCopyBlock, handleAddQuestionToBlock, handleExpandAllBlocks, handleCollapseAllBlocks, handleDeleteBlock,
     handleDeleteQuestion, handleCopyQuestion, handleAddPageBreakAfterQuestion, handleExpandBlock, handleCollapseBlock,
-    handleSelectAllInBlock, handleUnselectAllInBlock, handleUpdateQuestion, handleAddBlockFromToolbox, handleAddQuestion,
+    handleSelectAllInBlock, handleUnselectAllInBlock, handleUpdateQuestion, handleUpdateBlock, handleAddBlockFromToolbox, handleAddQuestion,
     handleToggleQuestionCheck, handleToggleBlockCollapse, handleAddChoice, handleUpdateBlockTitle, handleUpdateSurveyTitle,
     handleAddToLibrary, isGeminiPanelOpen, showBulkEditPanel, activeCanvasTab, handleMoveQuestionToNewBlock, handleMoveQuestionToExistingBlock
   ]);

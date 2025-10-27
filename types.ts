@@ -165,6 +165,7 @@ export interface Question {
   hideBackButton?: boolean;
   forceResponse?: boolean;
   isAutomatic?: boolean; // For automatic page breaks
+  pageName?: string; // For editable page names on PageBreak questions
 
   // New property for choice-based validation
   choiceValidation?: {
@@ -235,6 +236,7 @@ export interface Block {
   title: string;
   questions: Question[];
   branchName?: string;
+  pageName?: string; // For editable page names on implicit pages
 }
 
 export interface Survey {

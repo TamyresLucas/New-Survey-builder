@@ -48,6 +48,7 @@ export const initialSurveyData: Survey = {
     {
       id: 'block1',
       title: 'Purchase Habits & Preferences',
+      pageName: 'Page 1',
       questions: [
         {
           id: 'q1',
@@ -120,6 +121,7 @@ export const initialSurveyData: Survey = {
       id: 'block2',
       title: 'No recent purchases',
       branchName: 'Non-Purchaser Branch',
+      pageName: 'Page 2',
       questions: [
         {
           id: 'q4',

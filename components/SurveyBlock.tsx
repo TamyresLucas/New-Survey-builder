@@ -4,21 +4,12 @@ import QuestionCard from './QuestionCard';
 import { ChevronDownIcon, DotsHorizontalIcon, DragIndicatorIcon } from './icons';
 import { BlockActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
 import { QuestionType as QTEnum } from '../types';
+import type { PageInfo } from './SurveyCanvas';
 
 const DropIndicator = () => (
     <div className="relative h-px w-full bg-primary my-2">
       <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
       <div className="absolute right-0 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
-    </div>
-);
-
-const PageIndicator = ({ number }: { number: number }) => (
-    <div className="flex items-center gap-4 my-6">
-        <div className="flex-grow h-px bg-outline-variant"></div>
-        <span className="text-sm font-bold tracking-wider text-on-surface-variant bg-surface-container px-3 py-1 rounded-full border border-outline-variant">
-            P{number}
-        </span>
-        <div className="flex-grow h-px bg-outline-variant"></div>
     </div>
 );
 
@@ -30,6 +21,7 @@ interface SurveyBlockProps {
     logicIssues: LogicIssue[];
     onSelectQuestion: (question: Question | null, tab?: string) => void;
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
+    onUpdateBlock: (blockId: string, updates: Partial<Block>) => void;
     onDeleteQuestion: (questionId: string) => void;
     onCopyQuestion: (questionId: string) => void;
     onMoveQuestionToNewBlock: (questionId: string) => void;
@@ -57,15 +49,14 @@ interface SurveyBlockProps {
     onAddPageBreakAfterQuestion: (questionId: string) => void;
     onUpdateBlockTitle: (blockId: string, title: string) => void;
     onAddFromLibrary: () => void;
-    questionToPageMap: Map<string, number>;
-    pageStartQuestionIds: Set<string>;
+    pageInfoMap: Map<string, PageInfo>;
 }
 
 const SurveyBlock: React.FC<SurveyBlockProps> = memo(({ 
-  block, survey, selectedQuestion, checkedQuestions, logicIssues, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
+  block, survey, selectedQuestion, checkedQuestions, logicIssues, onSelectQuestion, onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
   isBlockDragging, onBlockDragStart, onBlockDragEnd, isCollapsed, onToggleCollapse,
   onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onAddFromLibrary,
-  questionToPageMap, pageStartQuestionIds
+  pageInfoMap
 }) => {
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [isToolboxDragOver, setIsToolboxDragOver] = useState(false);
@@ -315,15 +306,10 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
         >
           {block.questions.length > 0 ? (
             <>
-              {block.questions.map((question, index) => {
-                const isPageStart = pageStartQuestionIds.has(question.id);
-                const pageNumber = questionToPageMap.get(question.id);
-                
-                return (
+              {block.questions.map((question, index) => (
                     <React.Fragment key={question.id}>
-                    {isPageStart && pageNumber && <PageIndicator number={pageNumber} />}
                     {dropTargetId === question.id && <DropIndicator />}
-                    <div className={index > 0 || isPageStart ? "mt-4" : ""}>
+                    <div className={index > 0 || pageInfoMap.has(question.id) ? "mt-4" : ""}>
                         <QuestionCard
                           question={question}
                           survey={survey}
@@ -334,6 +320,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                           isChecked={checkedQuestions.has(question.id)}
                           onSelect={onSelectQuestion}
                           onUpdateQuestion={onUpdateQuestion}
+                          onUpdateBlock={onUpdateBlock}
                           onDeleteQuestion={onDeleteQuestion}
                           onCopyQuestion={onCopyQuestion}
                           onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
@@ -348,12 +335,12 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                           onDragEnd={() => setDraggedQuestionId(null)}
                           onAddChoice={onAddChoice}
                           onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
-                          questionToPageMap={questionToPageMap}
+                          pageInfo={pageInfoMap.get(question.id)}
                         />
                     </div>
                     </React.Fragment>
                 )
-              })}
+              )}
               {dropTargetId === null && (draggedQuestionId || isToolboxDragOver) && <DropIndicator />}
             </>
           ) : (

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, memo, useRef, useMemo } from 'react';
-import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssue } from '../types';
+import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssue, Block } from '../types';
 import SurveyBlock from './SurveyBlock';
 import { QuestionType as QTEnum } from '../types';
 
@@ -10,6 +10,7 @@ interface SurveyCanvasProps {
   logicIssues: LogicIssue[];
   onSelectQuestion: (question: Question | null, tab?: string) => void;
   onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
+  onUpdateBlock: (blockId: string, updates: Partial<Block>) => void;
   onDeleteQuestion: (questionId: string) => void;
   onCopyQuestion: (questionId: string) => void;
   onMoveQuestionToNewBlock: (questionId: string) => void;
@@ -46,51 +47,80 @@ const DropIndicator = () => (
     </div>
 );
 
-const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuestion, checkedQuestions, logicIssues, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onReorderBlock, onAddBlockFromToolbox, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, collapsedBlocks, onToggleBlockCollapse, onCopyBlock, onExpandAllBlocks, onCollapseAllBlocks, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onUpdateSurveyTitle, onAddFromLibrary }) => {
+export type PageInfo = {
+  pageNumber: number;
+  pageName: string;
+  source: 'block' | 'page_break';
+  sourceId: string;
+};
+
+const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuestion, checkedQuestions, logicIssues, onSelectQuestion, onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onReorderBlock, onAddBlockFromToolbox, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, collapsedBlocks, onToggleBlockCollapse, onCopyBlock, onExpandAllBlocks, onCollapseAllBlocks, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onUpdateSurveyTitle, onAddFromLibrary }) => {
   const [draggedQuestionId, setDraggedQuestionId] = useState<string | null>(null);
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
   const [dropTargetBlockId, setDropTargetBlockId] = useState<string | null>(null);
   const [isDraggingNewBlock, setIsDraggingNewBlock] = useState(false);
 
-  const { questionToPageMap, pageStartQuestionIds } = useMemo(() => {
-    const qToPageMap = new Map<string, number>();
-    const pStartIds = new Set<string>();
+  const pageInfoMap = useMemo(() => {
+    const map = new Map<string, PageInfo>();
     let pageCounter = 1;
-    let isFirstQuestionOfPage = true;
 
     survey.blocks.forEach((block, blockIndex) => {
-        // If this isn't the first block, check if a new page should start.
-        if (blockIndex > 0) {
-            const prevBlock = survey.blocks[blockIndex - 1];
-            if (prevBlock.questions.length > 0) {
-                const lastQuestionInPrevBlock = prevBlock.questions[prevBlock.questions.length - 1];
-                // If the previous block didn't end with an explicit page break, this new block starts a new page.
-                if (lastQuestionInPrevBlock.type !== QTEnum.PageBreak) {
+        block.questions.forEach((question, questionIndex) => {
+            let isStartOfPage = false;
+            let pageNameSource: 'block' | 'page_break' | null = null;
+            let sourceId: string | null = null;
+
+            // Case 1: First question of the entire survey is P1.
+            if (blockIndex === 0 && questionIndex === 0 && question.type !== QTEnum.PageBreak) {
+                isStartOfPage = true;
+                pageNameSource = 'block';
+                sourceId = block.id;
+            }
+            // Case 2: A PageBreak question itself defines the start of the *next* page.
+            else if (question.type === QTEnum.PageBreak) {
+                pageCounter++;
+                isStartOfPage = true;
+                pageNameSource = 'page_break';
+                sourceId = question.id;
+            }
+            // Case 3: The first question of a new block *might* be a new page.
+            else if (questionIndex === 0 && blockIndex > 0) {
+                const prevBlock = survey.blocks[blockIndex - 1];
+                const lastQuestionOfPrevBlock = prevBlock.questions[prevBlock.questions.length - 1];
+                // If the previous block didn't end with a page break, this new block starts a new page.
+                if (!lastQuestionOfPrevBlock || lastQuestionOfPrevBlock.type !== QTEnum.PageBreak) {
                     pageCounter++;
-                    isFirstQuestionOfPage = true;
+                    isStartOfPage = true;
+                    pageNameSource = 'block';
+                    sourceId = block.id;
                 }
             }
-        }
-        
-        block.questions.forEach(question => {
-            // If we've determined this is the first question of a page, add it to the set for rendering the indicator.
-            if (isFirstQuestionOfPage && question.type !== QTEnum.PageBreak) {
-                pStartIds.add(question.id);
-                isFirstQuestionOfPage = false;
-            }
             
-            // Map the question to its calculated page number.
-            qToPageMap.set(question.id, pageCounter);
-
-            // If the question is a page break, increment the counter for the next page.
-            if (question.type === QTEnum.PageBreak) {
-                pageCounter++;
-                isFirstQuestionOfPage = true;
+            if (isStartOfPage && pageNameSource && sourceId) {
+                let storedPageName: string | undefined;
+                if (pageNameSource === 'block') {
+                    storedPageName = block.pageName;
+                } else { // page_break
+                    storedPageName = question.pageName;
+                }
+                
+                // A name is considered "default" if it's missing or matches the "Page X" pattern.
+                const isDefaultName = !storedPageName || /^Page \d+$/.test(storedPageName);
+                
+                // If it's a default name, generate a new one based on the current page number.
+                // Otherwise, keep the user-edited custom name.
+                const pageName = isDefaultName ? `Page ${pageCounter}` : storedPageName;
+                
+                map.set(question.id, {
+                    pageNumber: pageCounter,
+                    pageName: pageName as string,
+                    source: pageNameSource,
+                    sourceId,
+                });
             }
         });
     });
-
-    return { questionToPageMap: qToPageMap, pageStartQuestionIds: pStartIds };
+    return map;
   }, [survey]);
 
   useEffect(() => {
@@ -188,6 +218,7 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
               logicIssues={logicIssues}
               onSelectQuestion={onSelectQuestion}
               onUpdateQuestion={onUpdateQuestion}
+              onUpdateBlock={onUpdateBlock}
               onDeleteQuestion={onDeleteQuestion}
               onCopyQuestion={onCopyQuestion}
               onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
@@ -215,8 +246,7 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
               onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
               onUpdateBlockTitle={onUpdateBlockTitle}
               onAddFromLibrary={onAddFromLibrary}
-              questionToPageMap={questionToPageMap}
-              pageStartQuestionIds={pageStartQuestionIds}
+              pageInfoMap={pageInfoMap}
           />
         </React.Fragment>
       ))}

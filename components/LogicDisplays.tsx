@@ -45,8 +45,7 @@ const formatCondition = (condition: DisplayLogicCondition | BranchingLogicCondit
     if (['is_empty', 'is_not_empty'].includes(condition.operator)) {
         return `${qText} ${operator}`;
     }
-    // FIX: This now works because DisplayLogicCondition has the `value` property.
-    return `${qText} ${operator} "${(condition as BranchingLogicCondition).value}"`;
+    return `${qText} ${operator} "${condition.value}"`;
 };
 
 // --- Display Logic Component ---

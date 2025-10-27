@@ -164,6 +164,7 @@ export interface Question {
   isHidden?: boolean;
   hideBackButton?: boolean;
   forceResponse?: boolean;
+  isAutomatic?: boolean; // For automatic page breaks
 
   // New property for choice-based validation
   choiceValidation?: {
@@ -239,6 +240,7 @@ export interface Block {
 export interface Survey {
   title: string;
   blocks: Block[];
+  pagingMode: 'one-per-page' | 'multi-per-page';
 }
 
 export interface ToolboxItemData {

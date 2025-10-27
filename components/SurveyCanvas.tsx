@@ -1,6 +1,7 @@
-import React, { useEffect, useState, memo, useRef } from 'react';
+import React, { useEffect, useState, memo, useRef, useMemo } from 'react';
 import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssue } from '../types';
 import SurveyBlock from './SurveyBlock';
+import { QuestionType as QTEnum } from '../types';
 
 interface SurveyCanvasProps {
   survey: Survey;
@@ -50,6 +51,47 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
   const [dropTargetBlockId, setDropTargetBlockId] = useState<string | null>(null);
   const [isDraggingNewBlock, setIsDraggingNewBlock] = useState(false);
+
+  const { questionToPageMap, pageStartQuestionIds } = useMemo(() => {
+    const qToPageMap = new Map<string, number>();
+    const pStartIds = new Set<string>();
+    let pageCounter = 1;
+    let isFirstQuestionOfPage = true;
+
+    survey.blocks.forEach((block, blockIndex) => {
+        // If this isn't the first block, check if a new page should start.
+        if (blockIndex > 0) {
+            const prevBlock = survey.blocks[blockIndex - 1];
+            if (prevBlock.questions.length > 0) {
+                const lastQuestionInPrevBlock = prevBlock.questions[prevBlock.questions.length - 1];
+                // If the previous block didn't end with an explicit page break, this new block starts a new page.
+                if (lastQuestionInPrevBlock.type !== QTEnum.PageBreak) {
+                    pageCounter++;
+                    isFirstQuestionOfPage = true;
+                }
+            }
+        }
+        
+        block.questions.forEach(question => {
+            // If we've determined this is the first question of a page, add it to the set for rendering the indicator.
+            if (isFirstQuestionOfPage && question.type !== QTEnum.PageBreak) {
+                pStartIds.add(question.id);
+                isFirstQuestionOfPage = false;
+            }
+            
+            // Map the question to its calculated page number.
+            qToPageMap.set(question.id, pageCounter);
+
+            // If the question is a page break, increment the counter for the next page.
+            if (question.type === QTEnum.PageBreak) {
+                pageCounter++;
+                isFirstQuestionOfPage = true;
+            }
+        });
+    });
+
+    return { questionToPageMap: qToPageMap, pageStartQuestionIds: pStartIds };
+  }, [survey]);
 
   useEffect(() => {
     if (selectedQuestion) {
@@ -173,6 +215,8 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
               onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
               onUpdateBlockTitle={onUpdateBlockTitle}
               onAddFromLibrary={onAddFromLibrary}
+              questionToPageMap={questionToPageMap}
+              pageStartQuestionIds={pageStartQuestionIds}
           />
         </React.Fragment>
       ))}

@@ -43,6 +43,7 @@ import { generateId } from './utils';
 
 export const initialSurveyData: Survey = {
   title: 'Survey Name',
+  pagingMode: 'one-per-page',
   blocks: [
     {
       id: 'block1',
@@ -80,12 +81,6 @@ export const initialSurveyData: Survey = {
           },
         },
         {
-          id: 'pb1',
-          qid: '',
-          text: 'Page Break',
-          type: QuestionType.PageBreak,
-        },
-        {
           id: 'q2',
           qid: 'Q2',
           text: 'What type of coffee do you usually order?',
@@ -95,12 +90,6 @@ export const initialSurveyData: Survey = {
             { id: 'q2c2', text: 'Latte/Cappuccino' },
             { id: 'q2c3', text: 'Cold Brew' },
           ],
-        },
-        {
-          id: 'pb2',
-          qid: '',
-          text: 'Page Break',
-          type: QuestionType.PageBreak,
         },
         {
             id: 'q3',

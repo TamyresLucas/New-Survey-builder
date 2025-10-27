@@ -112,10 +112,11 @@ const QuestionCard: React.FC<{
     onDragEnd: () => void;
     onAddChoice: (questionId: string) => void;
     onAddPageBreakAfterQuestion: (questionId: string) => void;
+    questionToPageMap: Map<string, number>;
 }> = memo(({ 
     question, survey, currentBlockId, logicIssues, isSelected, isChecked, onSelect, onToggleCheck, id, 
     onUpdateQuestion, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, toolboxItems,
-    isDragging, onDragStart, onDragEnd, onAddChoice, onAddPageBreakAfterQuestion
+    isDragging, onDragStart, onDragEnd, onAddChoice, onAddPageBreakAfterQuestion, questionToPageMap
 }) => {
     
     const [isTypeMenuOpen, setIsTypeMenuOpen] = useState(false);
@@ -240,6 +241,7 @@ const QuestionCard: React.FC<{
     }, [question.id, question.scalePoints, onUpdateQuestion]);
 
     if (question.type === QuestionType.PageBreak) {
+        const pageNumber = questionToPageMap.get(question.id);
         return (
           <div
             id={id}
@@ -258,7 +260,7 @@ const QuestionCard: React.FC<{
             <div className="flex items-center text-on-surface-variant font-semibold text-sm w-full">
               <DragIndicatorIcon className="text-xl mr-2" />
               <span className="flex-grow border-t-2 border-dashed border-outline-variant text-center py-2">
-                Page Break
+                End of Page P{pageNumber}
               </span>
             </div>
             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -1,6 +1,6 @@
 import React, { memo, useMemo } from 'react';
 import type { Survey, Question } from '../types';
-import { QuestionIcon, BlockIcon, ClockSolidIcon } from './icons';
+import { QuestionIcon, PageIcon, ClockSolidIcon, ChevronDownIcon } from './icons';
 import { QuestionType } from '../types';
 
 interface DataCardProps {
@@ -29,6 +29,7 @@ interface SurveyStructureWidgetProps {
   onBackToTop: () => void;
   onToggleCollapseAll: () => void;
   allBlocksCollapsed: boolean;
+  onPagingModeChange: (mode: Survey['pagingMode']) => void;
 }
 
 // Helper function to calculate points based on question type
@@ -76,15 +77,14 @@ const calculateQuestionPoints = (question: Question): number => {
     }
 };
 
-const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ survey, onBackToTop, onToggleCollapseAll, allBlocksCollapsed }) => {
-  const { totalQuestions, requiredQuestions, totalBlocks, completionTimeString } = useMemo(() => {
+const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ survey, onBackToTop, onToggleCollapseAll, allBlocksCollapsed, onPagingModeChange }) => {
+  const { totalQuestions, requiredQuestions, totalPages, completionTimeString } = useMemo(() => {
     const allQuestions = survey.blocks.flatMap(block => block.questions);
   
     // Per user request, filter out non-interactive "questions" like descriptions from counts.
     const countableQuestions = allQuestions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak);
   
     const totalQuestions = countableQuestions.length;
-    const totalBlocks = survey.blocks.length;
     
     // "Required questions" is functionally the same as total questions based on current logic.
     const requiredQuestions = totalQuestions;
@@ -102,7 +102,16 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
         completionTimeString = `${estimatedTimeInMinutes} min`;
     }
 
-    return { totalQuestions, requiredQuestions, totalBlocks, completionTimeString };
+    // Calculate total pages
+    let totalPages = totalQuestions > 0 ? 1 : 0;
+    for (const q of allQuestions) {
+        if (q.type === QuestionType.PageBreak) {
+            totalPages++;
+        }
+    }
+
+
+    return { totalQuestions, requiredQuestions, totalPages, completionTimeString };
   }, [survey]);
 
   return (
@@ -112,12 +121,28 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
               Survey structure
           </h2>
       </div>
+      
+      <div className="relative">
+          <select
+              id="paging-mode"
+              aria-label="Paging mode"
+              value={survey.pagingMode}
+              onChange={e => onPagingModeChange(e.target.value as Survey['pagingMode'])}
+              className="w-full bg-surface border border-outline rounded-md py-2 px-3 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-2 focus:outline-primary appearance-none"
+          >
+              <option value="one-per-page">One Question per Page</option>
+              <option value="multi-per-page">Multi-Question per Page</option>
+          </select>
+          <ChevronDownIcon className="absolute right-2.5 top-1/2 -translate-y-1/2 text-base text-on-surface-variant pointer-events-none" />
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
             <DataCard icon={QuestionIcon} label="Total questions" value={totalQuestions} />
             <DataCard icon={QuestionIcon} label="Required questions" value={requiredQuestions} />
-            <DataCard icon={BlockIcon} label="Blocks" value={totalBlocks} />
+            <DataCard icon={PageIcon} label="Pages" value={totalPages} />
             <DataCard icon={ClockSolidIcon} label="Completion time" value={completionTimeString} />
       </div>
+
       <div className="flex justify-between items-center mt-2">
         <button onClick={onBackToTop} className="text-sm font-medium text-primary hover:underline" style={{ fontFamily: "'Open Sans', sans-serif" }}>Back To Top</button>
         <button onClick={onToggleCollapseAll} className="text-sm font-medium text-primary hover:underline" style={{ fontFamily: "'Open Sans', sans-serif" }}>

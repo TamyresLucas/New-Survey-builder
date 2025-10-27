@@ -292,15 +292,18 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
             if (CHOICE_BASED_QUESTION_TYPES.has(questionType)) {
                 if (questionType === QTEnum.ChoiceGrid) {
+                    newQuestion.text = "Please rate your experience:";
                     newQuestion.choices = [
-                        { id: generateId('c'), text: 'Row 1' },
-                        { id: generateId('c'), text: 'Row 2' },
-                        { id: generateId('c'), text: 'Row 3' },
+                        { id: generateId('c'), text: 'Product' },
+                        { id: generateId('c'), text: 'Service' },
+                        { id: generateId('c'), text: 'Speed' },
                     ];
                     newQuestion.scalePoints = [
-                        { id: generateId('s'), text: 'Column 1' },
-                        { id: generateId('s'), text: 'Column 2' },
-                        { id: generateId('s'), text: 'Column 3' },
+                        { id: generateId('s'), text: 'Very Dissatisfied' },
+                        { id: generateId('s'), text: 'Dissatisfied' },
+                        { id: generateId('s'), text: 'Neutral' },
+                        { id: generateId('s'), text: 'Satisfied' },
+                        { id: generateId('s'), text: 'Very Satisfied' },
                     ];
                     newQuestion.answerFormat = 'grid';
                     newQuestion.advancedSettings = { enableMobileLayout: true };

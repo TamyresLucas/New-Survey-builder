@@ -163,3 +163,112 @@ export const truncate = (str: string, maxLength: number): string => {
   }
   return str.slice(0, maxLength) + '...';
 };
+
+export const stripHtml = (html: string): string => {
+    if (typeof document === 'undefined') {
+        return html.replace(/<[^>]*>?/gm, '');
+    }
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    return tempDiv.textContent || tempDiv.innerText || '';
+};
+
+export const generateSurveyTextCopy = (survey: Survey): string => {
+  let output = `SURVEY: ${survey.title}\n`;
+  output += `========================================\n\n`;
+
+  const allQuestions = survey.blocks.flatMap(b => b.questions);
+
+  const formatDestination = (destinationId: string): string => {
+    if (destinationId === 'next') return 'Next Question';
+    if (destinationId === 'end') return 'End of Survey';
+
+    if (destinationId.startsWith('block:')) {
+        const blockId = destinationId.substring(6);
+        const block = survey.blocks.find(b => b.id === blockId);
+        return block ? `Block ${block.bid}` : 'Unknown Block';
+    }
+
+    const question = allQuestions.find(q => q.id === destinationId);
+    return question ? question.qid : 'Unknown Question';
+  };
+
+  survey.blocks.forEach(block => {
+    output += `BLOCK ${block.bid}: ${block.title}\n`;
+    output += `----------------------------------------\n`;
+
+    block.questions.forEach(q => {
+      if (q.type === 'Page Break') {
+        output += `[PAGE BREAK]\n\n`;
+        return;
+      }
+
+      output += `Question Variable: ${q.qid}\n`;
+      output += `Question Text: ${stripHtml(q.text)}\n`;
+
+      if (q.choices) {
+        output += `Choices:\n`;
+        q.choices.forEach(c => {
+          const { variable, label } = parseChoice(c.text);
+          output += `  ${variable || '(No Var)'}: ${stripHtml(label)}\n`;
+        });
+      }
+      
+      if (q.scalePoints) {
+          output += `Scale Points (Columns):\n`;
+          q.scalePoints.forEach(sp => {
+              output += `  - ${stripHtml(sp.text)}\n`;
+          });
+      }
+
+      const displayLogic = q.displayLogic;
+      if (displayLogic && displayLogic.conditions.filter(c => c.isConfirmed).length > 0) {
+        const logicStr = displayLogic.conditions
+          .filter(c => c.isConfirmed)
+          .map(c => `${c.questionId} ${c.operator} "${c.value}"`)
+          .join(` ${displayLogic.operator} `);
+        output += `  Display Logic: SHOW IF ${logicStr}\n`;
+      }
+
+      const skipLogic = q.skipLogic;
+      if (skipLogic) {
+        if (skipLogic.type === 'simple' && skipLogic.isConfirmed) {
+            output += `  Skip Logic: IF answered, skip to ${formatDestination(skipLogic.skipTo)}\n`;
+        } else if (skipLogic.type === 'per_choice') {
+            const rules = skipLogic.rules.filter(r => r.isConfirmed);
+            if(rules.length > 0) {
+                output += `  Skip Logic:\n`;
+                rules.forEach(rule => {
+                    const choice = q.choices?.find(c => c.id === rule.choiceId);
+                    if(choice) {
+                        const { label } = parseChoice(choice.text);
+                        output += `    IF "${stripHtml(label)}" is selected, skip to ${formatDestination(rule.skipTo)}\n`;
+                    }
+                });
+            }
+        }
+      }
+
+      const branchingLogic = q.branchingLogic;
+      if (branchingLogic) {
+          const hasConfirmedBranches = branchingLogic.branches.some(b => b.thenSkipToIsConfirmed);
+          if (hasConfirmedBranches || branchingLogic.otherwiseIsConfirmed) {
+              output += `  Branching Logic:\n`;
+              branchingLogic.branches.forEach(branch => {
+                  if (branch.thenSkipToIsConfirmed) {
+                      const conditionsStr = branch.conditions.filter(c => c.isConfirmed).map(c => `${c.questionId} ${c.operator} "${c.value}"`).join(` ${branch.operator} `);
+                      output += `    IF ${conditionsStr} THEN skip to ${formatDestination(branch.thenSkipTo)}\n`;
+                  }
+              });
+              if (branchingLogic.otherwiseIsConfirmed) {
+                   output += `    OTHERWISE skip to ${formatDestination(branchingLogic.otherwiseSkipTo)}\n`;
+              }
+          }
+      }
+      
+      output += `\n`;
+    });
+  });
+
+  return output;
+};

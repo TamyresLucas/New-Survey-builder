@@ -721,7 +721,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
         }
         
         case SurveyActionType.MOVE_QUESTION_TO_NEW_BLOCK: {
-            const { questionId, onLogicRemoved } = action.payload;
+            const { questionId, onLogicRemoved, onQuestionMoved } = action.payload;
             let questionToMove: Question | undefined;
             let originalBlock: Block | undefined;
             let originalBlockIndex = -1;
@@ -755,6 +755,8 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 newState.blocks = newState.blocks.filter((b: Block) => b.id !== originalBlock.id);
             }
 
+            onQuestionMoved?.(questionId);
+            
             validateAndCleanLogicAfterMove(newState, onLogicRemoved);
             
             return renumberSurveyVariables(newState);

@@ -457,13 +457,10 @@ const QuestionCard: React.FC<{
                             </button>
                             {isActionsMenuOpen && (
                                 <QuestionActionsMenu
-                                    survey={survey}
-                                    currentBlockId={currentBlockId}
                                     onDuplicate={() => { onCopyQuestion(question.id); setIsActionsMenuOpen(false); }}
                                     onDelete={() => { onDeleteQuestion(question.id); setIsActionsMenuOpen(false); }}
                                     onAddPageBreak={() => { onAddPageBreakAfterQuestion(question.id); setIsActionsMenuOpen(false); }}
                                     onMoveToNewBlock={() => { onMoveQuestionToNewBlock(question.id); setIsActionsMenuOpen(false); }}
-                                    onMoveToExistingBlock={(targetBlockId) => { onMoveQuestionToExistingBlock(question.id, targetBlockId); setIsActionsMenuOpen(false); }}
                                 />
                             )}
                         </div>

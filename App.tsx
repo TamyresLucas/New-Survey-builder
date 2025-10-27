@@ -10,16 +10,18 @@ import GeminiPanel from './components/GeminiPanel';
 import { BulkEditPanel } from './components/BulkEditPanel';
 import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssue, Block } from './types';
 import { initialSurveyData, toolboxItems as initialToolboxItems } from './constants';
-import { renumberSurveyVariables, generateId } from './utils';
+import { renumberSurveyVariables, generateId, generateSurveyTextCopy } from './utils';
 import { QuestionType as QTEnum } from './types';
 import { surveyReducer, SurveyActionType, type Action } from './state/surveyReducer';
-import { PanelRightIcon, WarningIcon, XIcon } from './components/icons';
+import { PanelRightIcon, WarningIcon, XIcon, CheckmarkIcon } from './components/icons';
 import { validateSurveyLogic } from './logicValidator';
 import DiagramCanvas from './components/DiagramCanvas';
 import { SurveyPreview } from './components/SurveyPreview';
 import CanvasTabs from './components/CanvasTabs';
 
-const Toast: React.FC<{ message: string; onDismiss: () => void; onUndo?: () => void }> = ({ message, onDismiss, onUndo }) => {
+type ToastType = 'error' | 'success';
+
+const Toast: React.FC<{ message: string; type: ToastType; onDismiss: () => void; onUndo?: () => void }> = ({ message, type, onDismiss, onUndo }) => {
   useEffect(() => {
     // Make toasts with an undo button last longer
     const duration = onUndo ? 10000 : 6000;
@@ -27,18 +29,28 @@ const Toast: React.FC<{ message: string; onDismiss: () => void; onUndo?: () => v
     return () => clearTimeout(timer);
   }, [onDismiss, onUndo]);
 
+  const isError = type === 'error';
+
+  const containerClasses = isError
+    ? 'bg-error-container text-on-error-container'
+    : 'bg-success-container text-on-success-container';
+  
+  const icon = isError
+    ? <WarningIcon className="text-xl flex-shrink-0" />
+    : <CheckmarkIcon className="text-xl flex-shrink-0" />;
+
   return (
       <div 
-          className="flex items-center gap-4 px-4 py-3 rounded-lg shadow-2xl bg-error-container text-on-error-container animate-fade-in-up w-auto max-w-md"
+          className={`flex items-center gap-4 px-4 py-3 rounded-lg shadow-2xl animate-fade-in-up w-auto max-w-md ${containerClasses}`}
           role="alert"
       >
-          <WarningIcon className="text-xl flex-shrink-0" />
+          {icon}
           <p className="text-sm font-medium flex-grow">{message}</p>
-          <div className="flex-shrink-0 flex items-center gap-2 border-l border-on-error-container/20 pl-3 ml-2">
+          <div className={`flex-shrink-0 flex items-center gap-2 border-l pl-3 ml-2 ${isError ? 'border-on-error-container/20' : 'border-on-success-container/20'}`}>
               {onUndo && (
                   <button
                       onClick={onUndo}
-                      className="px-3 py-1 text-xs font-bold uppercase rounded-full hover:bg-black/10 text-on-error-container"
+                      className={`px-3 py-1 text-xs font-bold uppercase rounded-full hover:bg-black/10 ${isError ? 'text-on-error-container' : 'text-on-success-container'}`}
                   >
                       Undo
                   </button>
@@ -71,7 +83,7 @@ const App: React.FC = () => {
   const [logicIssues, setLogicIssues] = useState<LogicIssue[]>([]);
   const [focusedLogicSource, setFocusedLogicSource] = useState<string | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [toasts, setToasts] = useState<{ id: number; message: string; onUndo?: () => void }[]>([]);
+  const [toasts, setToasts] = useState<{ id: number; message: string; type: ToastType; onUndo?: () => void }[]>([]);
 
   const showBulkEditPanel = checkedQuestions.size >= 2;
 
@@ -145,8 +157,8 @@ const App: React.FC = () => {
     }
   }, [dispatch]);
 
-  const showToast = useCallback((message: string, onUndo?: () => void) => {
-    const newToast = { id: Date.now() + Math.random(), message, onUndo };
+  const showToast = useCallback((message: string, type: ToastType = 'error', onUndo?: () => void) => {
+    const newToast = { id: Date.now() + Math.random(), message, type, onUndo };
     setToasts(prevToasts => [...prevToasts, newToast]);
   }, []);
 
@@ -313,7 +325,7 @@ const App: React.FC = () => {
   
   const handleReorderQuestion = useCallback((draggedQuestionId: string, targetQuestionId: string | null, targetBlockId: string) => {
     const onLogicRemoved = (message: string) => {
-        showToast(message, handleUndo);
+        showToast(message, 'error', handleUndo);
     };
     dispatchAndRecord({ type: SurveyActionType.REORDER_QUESTION, payload: { draggedQuestionId, targetQuestionId, targetBlockId, onLogicRemoved } });
   }, [showToast, handleUndo, dispatchAndRecord]);
@@ -371,7 +383,7 @@ const App: React.FC = () => {
 
   const handleRepositionQuestion = useCallback((args: { qid: string; after_qid?: string; before_qid?: string }) => {
     const onLogicRemoved = (message: string) => {
-        showToast(message, handleUndo);
+        showToast(message, 'error', handleUndo);
     };
     dispatchAndRecord({ 
         type: SurveyActionType.REPOSITION_QUESTION, 
@@ -534,15 +546,27 @@ const App: React.FC = () => {
 
   const handleMoveQuestionToNewBlock = useCallback((questionId: string) => {
     const onLogicRemoved = (message: string) => {
-        showToast(message, handleUndo);
+        showToast(message, 'error', handleUndo);
     };
-    dispatchAndRecord({ type: SurveyActionType.MOVE_QUESTION_TO_NEW_BLOCK, payload: { questionId, onLogicRemoved } });
-    handleSelectQuestion(null);
+
+    const onQuestionMoved = (movedQuestionId: string) => {
+      setTimeout(() => {
+        const currentSurvey = surveyRef.current;
+        const movedQuestion = currentSurvey.blocks
+            .flatMap(b => b.questions)
+            .find(q => q.id === movedQuestionId);
+        if (movedQuestion) {
+            handleSelectQuestion(movedQuestion);
+        }
+      }, 0);
+    };
+
+    dispatchAndRecord({ type: SurveyActionType.MOVE_QUESTION_TO_NEW_BLOCK, payload: { questionId, onLogicRemoved, onQuestionMoved } });
   }, [handleSelectQuestion, showToast, handleUndo, dispatchAndRecord]);
   
   const handleMoveQuestionToExistingBlock = useCallback((questionId: string, targetBlockId: string) => {
     const onLogicRemoved = (message: string) => {
-        showToast(message, handleUndo);
+        showToast(message, 'error', handleUndo);
     };
     dispatchAndRecord({ type: SurveyActionType.MOVE_QUESTION_TO_EXISTING_BLOCK, payload: { questionId, targetBlockId, onLogicRemoved } });
     handleSelectQuestion(null);
@@ -632,6 +656,17 @@ const App: React.FC = () => {
   const handleTogglePreviewMode = useCallback(() => {
     setIsPreviewMode(prev => !prev);
   }, []);
+
+  const handleCopySurvey = useCallback(async () => {
+    try {
+        const surveyText = generateSurveyTextCopy(surveyRef.current);
+        await navigator.clipboard.writeText(surveyText);
+        showToast('Survey content copied to clipboard!', 'success');
+    } catch (err) {
+        console.error('Failed to copy survey text: ', err);
+        showToast('Failed to copy survey. See console for details.', 'error');
+    }
+  }, [showToast]);
 
   // Deselect single question when bulk selecting
   useEffect(() => {
@@ -784,7 +819,7 @@ const App: React.FC = () => {
         onToggleGeminiPanel={handleToggleGeminiPanel} 
         onUpdateSurveyName={handleUpdateSurveyTitle}
       />
-      <SubHeader onTogglePreview={handleTogglePreviewMode} />
+      <SubHeader onTogglePreview={handleTogglePreviewMode} onCopySurvey={handleCopySurvey} />
       <div className="flex flex-1 overflow-hidden">
         <LeftSidebar activeTab={activeMainTab} onTabSelect={handleTabSelect} />
         <main className={`flex flex-1 bg-surface overflow-hidden ${isDiagramView ? 'relative' : ''}`}>
@@ -864,7 +899,7 @@ const App: React.FC = () => {
       )}
       <div className="fixed bottom-8 right-8 z-50 flex flex-col-reverse items-end gap-2">
         {toasts.map((toast) => (
-            <Toast key={toast.id} message={toast.message} onDismiss={() => dismissToast(toast.id)} onUndo={toast.onUndo} />
+            <Toast key={toast.id} message={toast.message} type={toast.type} onDismiss={() => dismissToast(toast.id)} onUndo={toast.onUndo} />
         ))}
       </div>
     </div>

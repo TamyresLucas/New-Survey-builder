@@ -106,72 +106,24 @@ export const BlockActionsMenu: React.FC<BlockActionsMenuProps> = ({ onDuplicate,
 
 // Shared Question Actions Menu
 interface QuestionActionsMenuProps {
-  survey: Survey;
-  currentBlockId: string;
   onDuplicate?: () => void;
   onDelete?: () => void;
   onAddPageBreak?: () => void;
   onMoveToNewBlock?: () => void;
-  onMoveToExistingBlock?: (targetBlockId: string) => void;
 }
 
-export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ survey, currentBlockId, onDuplicate, onDelete, onAddPageBreak, onMoveToNewBlock, onMoveToExistingBlock }) => {
-    const [isMoveSubMenuOpen, setIsMoveSubMenuOpen] = useState(false);
-    
-    const otherBlocks = useMemo(() => 
-        survey.blocks.filter(b => b.id !== currentBlockId),
-        [survey.blocks, currentBlockId]
-    );
-
-    const showMoveToSubMenu = otherBlocks.length > 0;
-
+export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ onDuplicate, onDelete, onAddPageBreak, onMoveToNewBlock }) => {
     return (
         <div className="absolute top-full right-0 mt-2 w-56 bg-surface-container-high border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
             <ul className="py-1">
-                {onMoveToNewBlock && onMoveToExistingBlock && (
-                    <li 
-                        className="relative"
-                        onMouseEnter={() => showMoveToSubMenu && setIsMoveSubMenuOpen(true)}
-                        onMouseLeave={() => showMoveToSubMenu && setIsMoveSubMenuOpen(false)}
-                    >
+                {onMoveToNewBlock && (
+                    <li>
                         <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (!showMoveToSubMenu) {
-                                    onMoveToNewBlock();
-                                }
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest flex justify-between items-center"
+                            onClick={(e) => { e.stopPropagation(); onMoveToNewBlock(); }}
+                            className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest"
                         >
-                            <span>{showMoveToSubMenu ? 'Move to' : 'Move to new block'}</span>
-                            {showMoveToSubMenu && <ChevronRightIcon className="text-base" />}
+                            Move to new block
                         </button>
-                        {showMoveToSubMenu && isMoveSubMenuOpen && (
-                            <div className="absolute top-0 left-full ml-1 w-56 bg-surface-container-high border border-outline-variant rounded-md shadow-lg z-30">
-                                <ul className="py-1 max-h-48 overflow-y-auto">
-                                    {otherBlocks.map(block => (
-                                        <li key={block.id}>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); onMoveToExistingBlock(block.id); }}
-                                                className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest truncate"
-                                                title={`${block.bid}: ${block.title}`}
-                                            >
-                                                {block.bid}: {block.title}
-                                            </button>
-                                        </li>
-                                    ))}
-                                    <div className="border-t border-dotted border-outline-variant mx-2" />
-                                    <li>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); onMoveToNewBlock(); }}
-                                            className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest"
-                                        >
-                                            New block
-                                        </button>
-                                    </li>
-                                </ul>
-                            </div>
-                        )}
                     </li>
                 )}
                 {onDuplicate && <li><button onClick={(e) => { e.stopPropagation(); onDuplicate(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Duplicate</button></li>}

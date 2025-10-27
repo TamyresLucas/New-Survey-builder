@@ -43,7 +43,7 @@ const DropIndicator = ({ small = false }: { small?: boolean }) => (
     </div>
 );
 
-const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, showDropIndicator, onSelectQuestion, onDragStart, onDragEnd, TypeIcon, onCopyQuestion, onDeleteQuestion, onAddPageBreakAfterQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, survey, currentBlockId }: any) => {
+const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, showDropIndicator, onSelectQuestion, onDragStart, onDragEnd, TypeIcon, onCopyQuestion, onDeleteQuestion, onAddPageBreakAfterQuestion, onMoveQuestionToNewBlock }: any) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -91,13 +91,10 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
                     </button>
                     {isMenuOpen && (
                         <QuestionActionsMenu
-                            survey={survey}
-                            currentBlockId={currentBlockId}
                             onDelete={() => { onDeleteQuestion(question.id); setIsMenuOpen(false); }}
                             onDuplicate={() => { onCopyQuestion(question.id); setIsMenuOpen(false); }}
                             onAddPageBreak={() => { onAddPageBreakAfterQuestion(question.id); setIsMenuOpen(false); }}
                             onMoveToNewBlock={() => { onMoveQuestionToNewBlock(question.id); setIsMenuOpen(false); }}
-                            onMoveToExistingBlock={(targetBlockId) => { onMoveQuestionToExistingBlock(question.id, targetBlockId); setIsMenuOpen(false); }}
                         />
                     )}
                 </div>
@@ -575,9 +572,6 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                             onCopyQuestion={onCopyQuestion}
                             onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
                             onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
-                            onMoveQuestionToExistingBlock={onMoveQuestionToExistingBlock}
-                            survey={survey}
-                            currentBlockId={block.id}
                         />
                       ))}
                       {!isSearching && dropContentTarget?.blockId === block.id && dropContentTarget.questionId === null && <DropIndicator small />}

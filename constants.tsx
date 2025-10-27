@@ -105,17 +105,19 @@ export const initialSurveyData: Survey = {
         {
             id: 'q3',
             qid: 'Q3',
-            text: 'Please rate your satisfaction with our service:',
+            text: 'Please rate your experience:',
             type: QuestionType.ChoiceGrid,
             choices: [
-              { id: 'q3r1', text: 'Quality of coffee' },
-              { id: 'q3r2', text: 'Speed of service' },
-              { id: 'q3r3', text: 'Friendliness of staff' },
+              { id: 'q3r1', text: 'Product' },
+              { id: 'q3r2', text: 'Service' },
+              { id: 'q3r3', text: 'Speed' },
             ],
             scalePoints: [
-              { id: 'q3s1', text: 'Dissatisfied' },
-              { id: 'q3s2', text: 'Neutral' },
-              { id: 'q3s3', text: 'Satisfied' },
+              { id: 'q3s1', text: 'Very Dissatisfied' },
+              { id: 'q3s2', text: 'Dissatisfied' },
+              { id: 'q3s3', text: 'Neutral' },
+              { id: 'q3s4', text: 'Satisfied' },
+              { id: 'q3s5', text: 'Very Satisfied' },
             ],
             skipLogic: {
               type: 'simple',

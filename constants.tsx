@@ -75,10 +75,12 @@ export const initialSurveyData: Survey = {
                 ],
                 thenSkipTo: 'block:block2',
                 thenSkipToIsConfirmed: true,
+                pathName: 'Non-Purchaser Path',
               },
             ],
             otherwiseSkipTo: 'next',
             otherwiseIsConfirmed: true,
+            otherwisePathName: 'Purchaser Path',
           },
         },
         {

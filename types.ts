@@ -80,7 +80,6 @@ export type RandomizationMethod =
   | 'permutation'
   | 'random_reverse'
   | 'reverse_order'
-  | 'rotation'
   | 'sort_by_code'
   | 'sort_by_text'
   | 'synchronized';
@@ -114,12 +113,14 @@ export interface BranchingLogicBranch {
   conditions: BranchingLogicCondition[];
   thenSkipTo: string; // 'next' | question ID (internal id) | 'end'
   thenSkipToIsConfirmed?: boolean;
+  pathName?: string;
 }
 
 export interface BranchingLogic {
   branches: BranchingLogicBranch[];
   otherwiseSkipTo: string; // 'next' | question ID (internal id) | 'end'
   otherwiseIsConfirmed?: boolean;
+  otherwisePathName?: string;
 }
 
 export interface ActionLogic {
@@ -355,6 +356,14 @@ export interface Edge {
   markerEnd?: any;
   selected?: boolean;
   className?: string;
+}
+
+export interface PathAnalysisResult {
+  id: string;
+  name: string;
+  questionCount: number;
+  completionTimeString: string;
+  pageCount: number;
 }
 
 

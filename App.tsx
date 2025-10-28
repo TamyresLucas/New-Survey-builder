@@ -16,6 +16,7 @@ import { surveyReducer, SurveyActionType, type Action } from './state/surveyRedu
 import { PanelRightIcon, WarningIcon, XIcon, CheckmarkIcon } from './components/icons';
 import { validateSurveyLogic } from './logicValidator';
 import DiagramCanvas from './components/DiagramCanvas';
+import PathAnalysisPanel from './components/diagram/PathAnalysisPanel';
 import { SurveyPreview } from './components/SurveyPreview';
 import CanvasTabs from './components/CanvasTabs';
 
@@ -880,6 +881,8 @@ const App: React.FC = () => {
                   toolboxItems={toolboxItems}
                   onRequestGeminiHelp={handleRequestGeminiHelp}
                 />
+            ) : (activeMainTab === 'Flow' && !isAnyRightPanelOpen) ? (
+                <PathAnalysisPanel survey={survey} />
             ) : (activeMainTab === 'Build' && (
                 <div className="pt-4 pr-4 pb-8 pl-4">
                     <SurveyStructureWidget 

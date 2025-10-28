@@ -1,7 +1,8 @@
-import React, { memo, useMemo } from 'react';
-import type { Survey, Question } from '../types';
+import React, { memo, useMemo, useState } from 'react';
+import type { Survey } from '../types';
 import { QuestionIcon, PageIcon, ClockSolidIcon, ChevronDownIcon } from './icons';
-import { QuestionType } from '../types';
+import { QuestionType as QTEnum } from '../types';
+import { calculateQuestionPoints, analyzeSurveyPaths } from '../utils';
 
 interface DataCardProps {
     icon: React.ComponentType<{ className?: string }>;
@@ -32,87 +33,76 @@ interface SurveyStructureWidgetProps {
   onPagingModeChange: (mode: Survey['pagingMode']) => void;
 }
 
-// Helper function to calculate points based on question type
-const calculateQuestionPoints = (question: Question): number => {
-    switch (question.type) {
-        // Simple single-choice questions: 1 point
-        case QuestionType.Radio:
-        case QuestionType.DropDownList:
-        case QuestionType.NetPromoterNPS:
-        case QuestionType.StarRating:
-            return 1;
-
-        // Multiple-choice questions: 0.5 points per choice
-        case QuestionType.Checkbox:
-        case QuestionType.ImageSelector:
-            return (question.choices?.length || 0) * 0.5;
-
-        // Grid questions: 1 point per row (approximating with choices)
-        case QuestionType.ChoiceGrid:
-        case QuestionType.HybridGrid:
-        case QuestionType.ImageChoiceGrid:
-            return question.choices?.length || 1;
-
-        // Open-ended/text questions: 3 points
-        case QuestionType.TextEntry:
-        case QuestionType.EmailAddressAnswer:
-        case QuestionType.NumericAnswer:
-        case QuestionType.Signature:
-            return 3;
-        
-        // Complex questions: 4 points
-        case QuestionType.CardSort:
-        case QuestionType.DragAndDropRanking:
-        case QuestionType.TextHighlighter:
-            return 4;
-        
-        // Non-interactive or simple info: 0 points
-        case QuestionType.Description:
-        case QuestionType.PageBreak:
-            return 0;
-
-        // Default for other types: 1 point as a baseline
-        default:
-            return 1;
-    }
-};
-
 const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ survey, onBackToTop, onToggleCollapseAll, allBlocksCollapsed, onPagingModeChange }) => {
+  
+  const [selectedPathId, setSelectedPathId] = useState<string>('all-paths');
+  const paths = useMemo(() => analyzeSurveyPaths(survey), [survey]);
+  const pathOptions = useMemo(() => [
+      { id: 'all-paths', name: 'All Paths' },
+      ...paths,
+  ], [paths]);
+
   const { totalQuestions, requiredQuestions, totalPages, completionTimeString } = useMemo(() => {
-    const allQuestions = survey.blocks.flatMap(block => block.questions);
-  
-    // Per user request, filter out non-interactive "questions" like descriptions from counts.
-    const countableQuestions = allQuestions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak);
-  
-    const totalQuestions = countableQuestions.length;
-    
-    // "Required questions" is functionally the same as total questions based on current logic.
-    const requiredQuestions = totalQuestions;
-    
-    // Calculate total points based on the provided logic for all questions, as descriptions already have 0 points.
-    const totalPoints = allQuestions.reduce((sum, question) => sum + calculateQuestionPoints(question), 0);
-  
-    // Convert points to time (8 points per minute)
-    const estimatedTimeInMinutes = Math.round(totalPoints / 8);
-  
-    let completionTimeString: string;
-    if (estimatedTimeInMinutes < 1) {
-        completionTimeString = requiredQuestions > 0 ? "<1 min" : "0 min";
-    } else {
-        completionTimeString = `${estimatedTimeInMinutes} min`;
+    // A specific path is selected from the dropdown
+    if (selectedPathId !== 'all-paths') {
+      const selectedPath = paths.find(p => p.id === selectedPathId);
+      if (selectedPath) {
+        return {
+          totalQuestions: selectedPath.questionCount,
+          requiredQuestions: selectedPath.questionCount, // Approximation: We don't have per-path 'forceResponse' data
+          totalPages: String(selectedPath.pageCount),
+          completionTimeString: selectedPath.completionTimeString,
+        };
+      }
     }
 
-    // Calculate total pages
-    let totalPages = totalQuestions > 0 ? 1 : 0;
-    for (const q of allQuestions) {
-        if (q.type === QuestionType.PageBreak) {
-            totalPages++;
+    // "All Paths" is selected (default case)
+    const allQuestionsList = survey.blocks.flatMap(block => block.questions);
+    const countableQuestions = allQuestionsList.filter(q => q.type !== QTEnum.Description && q.type !== QTEnum.PageBreak);
+    const totalQuestionsValue = countableQuestions.length;
+    const requiredQuestionsValue = countableQuestions.filter(q => q.forceResponse).length;
+
+    // If there's only one or zero paths, display single, more accurate values
+    if (paths.length <= 1) {
+        const totalPoints = allQuestionsList.reduce((sum, question) => sum + calculateQuestionPoints(question), 0);
+        const estimatedTimeInMinutes = Math.round(totalPoints / 8);
+        const timeString = estimatedTimeInMinutes < 1 ? (totalQuestionsValue > 0 ? "<1 min" : "0 min") : `${estimatedTimeInMinutes} min`;
+        
+        let pages;
+        if (survey.pagingMode === 'one-per-page') {
+            pages = countableQuestions.length;
+        } else {
+            pages = (survey.blocks.length > 0 ? 1 : 0) + allQuestionsList.filter(q => q.type === QTEnum.PageBreak).length;
         }
+
+        return {
+            totalQuestions: totalQuestionsValue,
+            requiredQuestions: requiredQuestionsValue,
+            totalPages: String(pages),
+            completionTimeString: timeString,
+        };
     }
+    
+    // If there are multiple paths, calculate and display ranges for metrics
+    const questionCounts = paths.map(p => p.questionCount);
+    const minQs = Math.min(...questionCounts);
+    const maxQs = Math.max(...questionCounts);
 
+    const completionTimes = paths.map(p => parseFloat(p.completionTimeString.replace('<', '')) || 0);
+    const minTime = Math.min(...completionTimes);
+    const maxTime = Math.max(...completionTimes);
+    
+    const pageCounts = paths.map(p => p.pageCount);
+    const minPages = Math.min(...pageCounts);
+    const maxPages = Math.max(...pageCounts);
 
-    return { totalQuestions, requiredQuestions, totalPages, completionTimeString };
-  }, [survey]);
+    return {
+        totalQuestions: minQs === maxQs ? String(maxQs) : `${minQs}-${maxQs}`,
+        requiredQuestions: 'N/A', // Cannot be determined accurately for multiple paths
+        totalPages: minPages === maxPages ? String(maxPages) : `${minPages}-${maxPages}`,
+        completionTimeString: minTime === maxTime ? `${maxTime} min` : `${minTime}-${maxTime} min`,
+    };
+  }, [survey, selectedPathId, paths]);
 
   return (
     <aside className="w-full bg-surface-container border border-outline-variant rounded-lg flex-shrink-0 flex flex-col p-4 gap-4 h-fit">
@@ -136,14 +126,30 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
             <ChevronDownIcon className="absolute right-2.5 top-1/2 -translate-y-1/2 text-base text-on-surface-variant pointer-events-none" />
         </div>
 
+        <div className="relative">
+            <select
+                id="path-selector"
+                aria-label="Survey Path"
+                value={selectedPathId}
+                onChange={e => setSelectedPathId(e.target.value)}
+                className="w-full bg-surface border border-outline rounded-md py-2 px-3 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-2 focus:outline-primary appearance-none"
+                disabled={paths.length === 0}
+            >
+                {pathOptions.map(path => (
+                    <option key={path.id} value={path.id}>{path.name}</option>
+                ))}
+            </select>
+            <ChevronDownIcon className="absolute right-2.5 top-1/2 -translate-y-1/2 text-base text-on-surface-variant pointer-events-none" />
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
               <DataCard icon={QuestionIcon} label="Total questions" value={totalQuestions} />
               <DataCard icon={QuestionIcon} label="Required questions" value={requiredQuestions} />
               <DataCard icon={PageIcon} label="Pages" value={totalPages} />
               <DataCard icon={ClockSolidIcon} label="Completion time" value={completionTimeString} />
         </div>
-
-        <div className="flex justify-between items-center mt-2">
+        
+        <div className="flex justify-between items-center mt-2 border-t border-outline-variant pt-4">
           <button onClick={onBackToTop} className="text-sm font-medium text-primary hover:underline" style={{ fontFamily: "'Open Sans', sans-serif" }}>Back To Top</button>
           <button onClick={onToggleCollapseAll} className="text-sm font-medium text-primary hover:underline" style={{ fontFamily: "'Open Sans', sans-serif" }}>
               {allBlocksCollapsed ? 'Expand All' : 'Collapse All'}

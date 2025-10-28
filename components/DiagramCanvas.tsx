@@ -340,8 +340,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                             const choice = q.choices?.find(c => c.text === condition.value);
                             if (choice) {
                                 const targetId = resolveDestination(branch.thenSkipTo, index);
-                                const choiceVar = parseChoice(choice.text).variable;
-                                destinations.set(choice.id, { targetId, label: choiceVar });
+                                destinations.set(choice.id, { targetId, label: branch.pathName || parseChoice(choice.text).variable });
                                 coveredChoices.add(choice.id);
                             }
                         }
@@ -350,8 +349,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     const otherwiseTargetId = resolveDestination(branchingLogic.otherwiseSkipTo, index);
                     q.choices?.forEach(choice => {
                         if (!coveredChoices.has(choice.id)) {
-                            const choiceVar = parseChoice(choice.text).variable;
-                            destinations.set(choice.id, { targetId: otherwiseTargetId, label: choiceVar });
+                            destinations.set(choice.id, { targetId: otherwiseTargetId, label: branchingLogic.otherwisePathName || 'Otherwise' });
                         }
                     });
                 } else if (skipLogic?.type === 'per_choice') {

@@ -1300,7 +1300,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
     );
   };
 
-  const renderBranchingLogicTab = () => {
+  const renderAdvancedTab = () => {
     const branchingLogic = question.draftBranchingLogic ?? question.branchingLogic;
     const beforeWorkflows = question.draftBeforeWorkflows ?? question.beforeWorkflows ?? [];
     const afterWorkflows = question.draftAfterWorkflows ?? question.afterWorkflows ?? [];
@@ -1410,8 +1410,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                 return <p className="text-sm text-on-surface-variant text-center mt-4">This question type has no editable settings.</p>;
             case 'Behavior':
                 return renderBehaviorTab();
-            case 'Branching Logic':
-                return renderBranchingLogicTab();
+            case 'Advanced':
+                return renderAdvancedTab();
             case 'Preview':
                 if (isChoiceBased) return renderChoiceBasedPreviewTab();
                 if (question.type === QuestionType.TextEntry) return renderTextEntryPreviewTab();
@@ -2977,6 +2977,15 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
     const handleUpdateOtherwise = (value: string) => {
         onUpdate({ branchingLogic: { ...branchingLogic, otherwiseSkipTo: value, otherwiseIsConfirmed: false } });
     };
+    
+    const handleUpdatePathName = (branchId: string, newName: string) => {
+        const newBranches = branchingLogic.branches.map(b => b.id === branchId ? { ...b, pathName: newName } : b);
+        onUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
+    };
+
+    const handleUpdateOtherwisePathName = (newName: string) => {
+        onUpdate({ branchingLogic: { ...branchingLogic, otherwisePathName: newName } });
+    };
 
     return (
         <div>
@@ -3021,20 +3030,34 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
                                 />
                             ))}
                         </div>
+                        
+                        <div className="mb-3">
+                           <DestinationRow
+                                label={<span className="font-bold text-primary">THEN</span>}
+                                value={branch.thenSkipTo}
+                                onChange={(value) => handleUpdateBranch(branch.id, { thenSkipTo: value, thenSkipToIsConfirmed: false })}
+                                onConfirm={() => handleConfirmBranch(branch.id)}
+                                isConfirmed={branch.thenSkipToIsConfirmed}
+                                issue={issues.find(i => i.sourceId === branch.id && i.field === 'skipTo')}
+                                invalid={validationErrors.has(branch.id)}
+                                followingQuestions={[]}
+                                hideNextQuestion={true}
+                                survey={survey}
+                                currentBlockId={currentBlockId}
+                            />
+                        </div>
 
-                        <DestinationRow
-                            label={<span className="font-bold text-primary">THEN</span>}
-                            value={branch.thenSkipTo}
-                            onChange={(value) => handleUpdateBranch(branch.id, { thenSkipTo: value, thenSkipToIsConfirmed: false })}
-                            onConfirm={() => handleConfirmBranch(branch.id)}
-                            isConfirmed={branch.thenSkipToIsConfirmed}
-                            issue={issues.find(i => i.sourceId === branch.id && i.field === 'skipTo')}
-                            invalid={validationErrors.has(branch.id)}
-                            followingQuestions={[]}
-                            hideNextQuestion={true}
-                            survey={survey}
-                            currentBlockId={currentBlockId}
-                        />
+                        <div>
+                            <label htmlFor={`path-name-${branch.id}`} className="block text-xs font-medium text-on-surface-variant mb-1">Path Name</label>
+                            <input
+                                type="text"
+                                id={`path-name-${branch.id}`}
+                                value={branch.pathName || `Path ${branchIndex + 1}`}
+                                onChange={e => handleUpdatePathName(branch.id, e.target.value)}
+                                className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                                placeholder={`e.g., Path ${branchIndex + 1}`}
+                            />
+                        </div>
                     </div>
                 ))}
             </div>
@@ -3044,19 +3067,32 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
             </button>
 
             <div className="mt-4 pt-4 border-t border-outline-variant">
-                <DestinationRow
-                    label="Otherwise"
-                    value={branchingLogic.otherwiseSkipTo}
-                    onChange={handleUpdateOtherwise}
-                    onConfirm={handleConfirmOtherwise}
-                    isConfirmed={branchingLogic.otherwiseIsConfirmed}
-                    issue={issues.find(i => i.sourceId === 'otherwise' && i.field === 'skipTo')}
-                    invalid={validationErrors.has('otherwise')}
-                    followingQuestions={followingQuestions}
-                    hideNextQuestion={false}
-                    survey={survey}
-                    currentBlockId={currentBlockId}
-                />
+                 <div className="mb-3">
+                    <DestinationRow
+                        label="Otherwise"
+                        value={branchingLogic.otherwiseSkipTo}
+                        onChange={handleUpdateOtherwise}
+                        onConfirm={handleConfirmOtherwise}
+                        isConfirmed={branchingLogic.otherwiseIsConfirmed}
+                        issue={issues.find(i => i.sourceId === 'otherwise' && i.field === 'skipTo')}
+                        invalid={validationErrors.has('otherwise')}
+                        followingQuestions={followingQuestions}
+                        hideNextQuestion={false}
+                        survey={survey}
+                        currentBlockId={currentBlockId}
+                    />
+                </div>
+                 <div>
+                    <label htmlFor={`path-name-otherwise`} className="block text-xs font-medium text-on-surface-variant mb-1">Path Name</label>
+                    <input
+                        type="text"
+                        id={`path-name-otherwise`}
+                        value={branchingLogic.otherwisePathName || `Path ${branchingLogic.branches.length + 1}`}
+                        onChange={e => handleUpdateOtherwisePathName(e.target.value)}
+                        className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                        placeholder={`e.g., Path ${branchingLogic.branches.length + 1}`}
+                    />
+                </div>
             </div>
         </div>
     );
@@ -3100,7 +3136,7 @@ export const RightSidebar: React.FC<{
     onRequestGeminiHelp,
 }) => {
     const isChoiceBased = useMemo(() => CHOICE_BASED_QUESTION_TYPES.has(question.type), [question.type]);
-    const tabs = ['Settings', 'Behavior', 'Branching Logic'];
+    const tabs = ['Settings', 'Behavior', 'Advanced'];
     if (!['Description', 'Page Break'].includes(question.type)) {
         tabs.push('Preview');
     }

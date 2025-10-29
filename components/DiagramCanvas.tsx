@@ -214,7 +214,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         while(head < branchQueue.length) {
             const u = branchQueue[head++];
             
-            // FIX: Using explicit comparison to avoid potential type inference issues on arithmetic operations.
+// FIX: Using explicit comparison to avoid potential type inference issues on arithmetic operations.
             const children = (adj[u] || []).sort((a,b) => {
                 const orderA = allQuestionsOrder.get(a) ?? 0;
                 const orderB = allQuestionsOrder.get(b) ?? 0;
@@ -271,7 +271,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 const pathA = longestPath.get(a) ?? 0;
                 const pathB = longestPath.get(b) ?? 0;
                 if (pathA !== pathB) {
-                    return pathA - pathB;
+                    return pathA > pathB ? 1 : -1;
                 }
         
                 // FIX: Using explicit comparison to avoid potential type inference issues on arithmetic operations.

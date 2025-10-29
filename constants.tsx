@@ -42,14 +42,20 @@ import { generateId } from './utils';
 
 
 export const initialSurveyData: Survey = {
-  title: 'Survey Name',
+  title: 'Customer Feedback Survey (Saved)',
   pagingMode: 'one-per-page',
   blocks: [
     {
       id: 'block1',
-      title: 'Purchase Habits & Preferences',
+      title: 'Introduction',
       pageName: 'Page 1',
       questions: [
+        {
+          id: 'q-welcome',
+          qid: 'WELCOME',
+          text: 'Welcome to our feedback survey! Your opinion is important to us.',
+          type: QuestionType.Description,
+        },
         {
           id: 'q1',
           qid: 'Q1',
@@ -62,27 +68,33 @@ export const initialSurveyData: Survey = {
           branchingLogic: {
             branches: [
               {
-                id: 'branch-q1-1',
+                id: 'branch-q1-purchaser',
                 operator: 'AND',
-                conditions: [
-                  {
-                    id: 'cond-q1-1',
-                    questionId: 'Q1',
-                    operator: 'equals',
-                    value: 'Q1_2 No',
-                    isConfirmed: true,
-                  },
-                ],
+                conditions: [{ id: 'cond-q1-1', questionId: 'Q1', operator: 'equals', value: 'Q1_1 Yes', isConfirmed: true }],
                 thenSkipTo: 'block:block2',
+                thenSkipToIsConfirmed: true,
+                pathName: 'Purchaser Path',
+              },
+              {
+                id: 'branch-q1-nonpurchaser',
+                operator: 'AND',
+                conditions: [{ id: 'cond-q1-2', questionId: 'Q1', operator: 'equals', value: 'Q1_2 No', isConfirmed: true }],
+                thenSkipTo: 'block:block3',
                 thenSkipToIsConfirmed: true,
                 pathName: 'Non-Purchaser Path',
               },
             ],
-            otherwiseSkipTo: 'next',
+            otherwiseSkipTo: 'end',
             otherwiseIsConfirmed: true,
-            otherwisePathName: 'Purchaser Path',
           },
         },
+      ],
+    },
+    {
+      id: 'block2',
+      title: 'Purchase Details',
+      pageName: 'Page 2',
+      questions: [
         {
           id: 'q2',
           qid: 'Q2',
@@ -95,35 +107,34 @@ export const initialSurveyData: Survey = {
           ],
         },
         {
-            id: 'q3',
-            qid: 'Q3',
-            text: 'Please rate your experience:',
-            type: QuestionType.ChoiceGrid,
-            choices: [
-              { id: 'q3r1', text: 'Product' },
-              { id: 'q3r2', text: 'Service' },
-              { id: 'q3r3', text: 'Speed' },
-            ],
-            scalePoints: [
-              { id: 'q3s1', text: 'Very Dissatisfied' },
-              { id: 'q3s2', text: 'Dissatisfied' },
-              { id: 'q3s3', text: 'Neutral' },
-              { id: 'q3s4', text: 'Satisfied' },
-              { id: 'q3s5', text: 'Very Satisfied' },
-            ],
-            skipLogic: {
-              type: 'simple',
-              skipTo: 'q6',
-              isConfirmed: true,
-            },
+          id: 'q3',
+          qid: 'Q3',
+          text: 'Please rate your experience:',
+          type: QuestionType.ChoiceGrid,
+          choices: [
+            { id: 'q3r1', text: 'Product' },
+            { id: 'q3r2', text: 'Service' },
+            { id: 'q3r3', text: 'Speed' },
+          ],
+          scalePoints: [
+            { id: 'q3s1', text: 'Very Dissatisfied' },
+            { id: 'q3s2', text: 'Dissatisfied' },
+            { id: 'q3s3', text: 'Neutral' },
+            { id: 'q3s4', text: 'Satisfied' },
+            { id: 'q3s5', text: 'Very Satisfied' },
+          ],
+          skipLogic: {
+            type: 'simple',
+            skipTo: 'block:block4',
+            isConfirmed: true,
+          },
         },
       ],
     },
     {
-      id: 'block2',
-      title: 'No recent purchases',
-      branchName: 'Non-Purchaser Branch',
-      pageName: 'Page 2',
+      id: 'block3',
+      title: 'Feedback for Non-Purchasers',
+      pageName: 'Page 3',
       questions: [
         {
           id: 'q4',
@@ -139,9 +150,16 @@ export const initialSurveyData: Survey = {
         {
           id: 'q5',
           qid: 'Q5',
-          text: 'Click to write the question text',
+          text: 'What could we do to encourage you to visit?',
           type: QuestionType.TextEntry,
         },
+      ],
+    },
+    {
+      id: 'block4',
+      title: 'Conclusion',
+      pageName: 'Page 4',
+      questions: [
         {
           id: 'q6',
           qid: 'Q6',
@@ -152,8 +170,8 @@ export const initialSurveyData: Survey = {
             { id: 'q6c2', text: 'No' },
           ],
         },
-      ]
-    }
+      ],
+    },
   ],
 };
 

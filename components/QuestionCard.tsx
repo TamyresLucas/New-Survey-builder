@@ -706,7 +706,7 @@ const QuestionCard: React.FC<{
                         <BranchingLogicDisplay
                             logic={question.branchingLogic}
                             survey={survey}
-                            onClick={() => onSelect(question, { tab: 'Branching Logic' })}
+                            onClick={() => onSelect(question, { tab: 'Advanced' })}
                         />
                     )}
                 </div>

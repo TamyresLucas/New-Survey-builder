@@ -333,8 +333,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
         const currentScalePoints = question.scalePoints || [];
         const newScalePoint: Choice = {
             id: generateId('s'),
-            // Fix: Explicitly cast array length to a number to prevent type errors.
-            text: `Column ${(currentScalePoints.length as number) + 1}`
+            // FIX: Explicitly convert array length to a number to handle potential 'unknown' type.
+            text: `Column ${Number(currentScalePoints.length) + 1}`
         };
         handleUpdate({ scalePoints: [...currentScalePoints, newScalePoint] });
     }, [question.scalePoints, handleUpdate]);
@@ -1979,8 +1979,8 @@ const WorkflowSectionEditor: React.FC<{
 }> = memo(({ title, description, questionQid, workflows, onUpdateWorkflows, onAddWorkflow }) => {
 
     const handleAddWorkflow = () => {
-        // Fix: Explicitly cast array length to a number to prevent type errors.
-        const newWorkflowNumber = (workflows.length as number) + 1;
+        // FIX: Explicitly convert array length to a number to handle potential 'unknown' type.
+        const newWorkflowNumber = Number(workflows.length) + 1;
         const newWorkflow: Workflow = {
             id: generateId('wf'),
             wid: `${questionQid}-WF${newWorkflowNumber}`,
@@ -3190,67 +3190,113 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
             </div>
             
             <div className="space-y-4">
-                {branchingLogic.branches.map((branch, branchIndex) => (
-                    <div key={branch.id} className="p-3 border border-outline-variant rounded-md bg-surface-container">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                                <span className="font-bold text-primary">IF</span>
+                {branchingLogic.branches.map((branch, branchIndex) => {
+                    // Calculate destinations used by other branches in this same logic block.
+                    const otherUsedDestinations = new Set(
+                        branchingLogic.branches
+                            .filter(b => b.id !== branch.id)
+                            .map(b => b.thenSkipTo)
+                            .filter(Boolean)
+                    );
+
+                    // Create filtered lists of available destinations for this specific branch.
+                    let availableFollowingQuestions = followingQuestions.filter(q => !otherUsedDestinations.has(q.id));
+                    let availableFutureBlocks = futureBlocks.filter(b => !otherUsedDestinations.has(`block:${b.id}`));
+                    let availableFuturePages = futurePages.filter(p => !otherUsedDestinations.has(p.destinationId));
+
+                    // Ensure the current branch's own destination is present in the lists,
+                    // so it can be selected in the dropdown even if used by another branch.
+                    const currentDestination = branch.thenSkipTo;
+                    if (currentDestination) {
+                        if (currentDestination.startsWith('block:')) {
+                            const blockId = currentDestination.substring(6);
+                            if (!availableFutureBlocks.some(b => b.id === blockId)) {
+                                const blockToAdd = survey.blocks.find(b => b.id === blockId);
+                                if (blockToAdd) {
+                                    availableFutureBlocks.push(blockToAdd);
+                                    const blockOrder = new Map(survey.blocks.map((b, i) => [b.id, i]));
+                                    // FIX: The result of Map.get can be undefined. Subtraction with Infinity might not be type-safe in all TS configs.
+                                    availableFutureBlocks.sort((a, b) => (blockOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (blockOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER));
+                                }
+                            }
+                        } else if (currentDestination !== 'next' && currentDestination !== 'end') {
+                            if (!availableFollowingQuestions.some(q => q.id === currentDestination)) {
+                                const questionToAdd = survey.blocks.flatMap(b => b.questions).find(q => q.id === currentDestination);
+                                if (questionToAdd) {
+                                    availableFollowingQuestions.push(questionToAdd);
+                                    // FIX: `allSurveyQuestions` was not defined in this scope.
+                                    const allSurveyQuestions = survey.blocks.flatMap(b => b.questions);
+                                    const questionOrder = new Map(allSurveyQuestions.map((q, i) => [q.id, i]));
+                                    // FIX: The result of Map.get can be undefined. Subtraction with Infinity might not be type-safe in all TS configs.
+                                    availableFollowingQuestions.sort((a, b) => (questionOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (questionOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER));
+                                }
+                            }
+                        }
+                    }
+
+                    return (
+                        <div key={branch.id} className="p-3 border border-outline-variant rounded-md bg-surface-container">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-bold text-primary">IF</span>
+                                </div>
+                                <button onClick={() => handleRemoveBranch(branch.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Remove branch"><XIcon className="text-lg"/></button>
                             </div>
-                            <button onClick={() => handleRemoveBranch(branch.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Remove branch"><XIcon className="text-lg"/></button>
-                        </div>
 
-                        <div className="space-y-2 mb-3">
-                            {branch.conditions.map((condition, condIndex) => (
-                                <LogicConditionRow
-                                    key={condition.id}
-                                    condition={condition}
-                                    isFirstCondition={condIndex === 0}
+                            <div className="space-y-2 mb-3">
+                                {branch.conditions.map((condition, condIndex) => (
+                                    <LogicConditionRow
+                                        key={condition.id}
+                                        condition={condition}
+                                        isFirstCondition={condIndex === 0}
+                                        currentQuestion={question}
+                                        onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
+                                        onRemoveCondition={undefined}
+                                        previousQuestions={previousQuestions}
+                                        issues={issues.filter(i => i.sourceId === condition.id)}
+                                        invalidFields={validationErrors.get(condition.id)}
+                                    />
+                                ))}
+                            </div>
+                            
+                            <div className="mb-3">
+                               <DestinationRow
+                                    label={<span className="font-bold text-primary">THEN</span>}
+                                    value={branch.thenSkipTo}
+                                    onChange={(value) => handleUpdateBranch(branch.id, { thenSkipTo: value, thenSkipToIsConfirmed: false })}
+                                    onConfirm={() => handleConfirmBranch(branch.id)}
+                                    isConfirmed={branch.thenSkipToIsConfirmed}
+                                    issue={issues.find(i => i.sourceId === branch.id && i.field === 'skipTo')}
+                                    invalid={validationErrors.has(branch.id)}
+                                    followingQuestions={availableFollowingQuestions}
+                                    futureBlocks={availableFutureBlocks}
+                                    futurePages={availableFuturePages}
+                                    hideNextQuestion={true}
+                                    survey={survey}
                                     currentQuestion={question}
-                                    onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
-                                    onRemoveCondition={undefined}
-                                    previousQuestions={previousQuestions}
-                                    issues={issues.filter(i => i.sourceId === condition.id)}
-                                    invalidFields={validationErrors.get(condition.id)}
+                                    currentBlockId={currentBlockId}
                                 />
-                            ))}
-                        </div>
-                        
-                        <div className="mb-3">
-                           <DestinationRow
-                                label={<span className="font-bold text-primary">THEN</span>}
-                                value={branch.thenSkipTo}
-                                onChange={(value) => handleUpdateBranch(branch.id, { thenSkipTo: value, thenSkipToIsConfirmed: false })}
-                                onConfirm={() => handleConfirmBranch(branch.id)}
-                                isConfirmed={branch.thenSkipToIsConfirmed}
-                                issue={issues.find(i => i.sourceId === branch.id && i.field === 'skipTo')}
-                                invalid={validationErrors.has(branch.id)}
-                                followingQuestions={followingQuestions}
-                                futureBlocks={futureBlocks}
-                                futurePages={futurePages}
-                                hideNextQuestion={true}
-                                survey={survey}
-                                currentQuestion={question}
-                                currentBlockId={currentBlockId}
-                            />
-                        </div>
+                            </div>
 
-                        <div>
-                            <label htmlFor={`path-name-${branch.id}`} className="block text-xs font-medium text-on-surface-variant mb-1">Path Name</label>
-                            <input
-                                type="text"
-                                id={`path-name-${branch.id}`}
-                                value={branch.pathName || `Path ${branchIndex + 1}`}
-                                onChange={e => handleUpdatePathName(branch.id, e.target.value)}
-                                className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-                                placeholder={`e.g., Path ${branchIndex + 1}`}
-                            />
+                            <div>
+                                <label htmlFor={`path-name-${branch.id}`} className="block text-xs font-medium text-on-surface-variant mb-1">Path Name</label>
+                                <input
+                                    type="text"
+                                    id={`path-name-${branch.id}`}
+                                    value={branch.pathName || `Path ${branchIndex + 1}`}
+                                    onChange={e => handleUpdatePathName(branch.id, e.target.value)}
+                                    className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                                    placeholder={`e.g., Path ${branchIndex + 1}`}
+                                />
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             <button onClick={handleAddBranch} className="mt-4 flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-                <PlusIcon className="text-base" /> Add branch
+                <PlusIcon className="text-base" />
+                Add branch
             </button>
 
             <div className="mt-4 pt-4 border-t border-outline-variant">

@@ -1,6 +1,6 @@
 import React, { memo, useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, ActionLogic, Workflow } from '../types';
-import { QuestionType } from '../types';
+import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, ActionLogic, Workflow, Block } from '../types';
+import { QuestionType, QuestionType as QTEnum } from '../types';
 import { generateId, parseChoice, CHOICE_BASED_QUESTION_TYPES, truncate } from '../utils';
 import { PasteChoicesModal } from './PasteChoicesModal';
 import { 
@@ -75,6 +75,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
 
     const allSurveyQuestions = useMemo(() => survey.blocks.flatMap(b => b.questions), [survey]);
     const currentQuestionIndex = useMemo(() => allSurveyQuestions.findIndex(q => q.id === question.id), [allSurveyQuestions, question.id]);
+    const currentBlockId = useMemo(() => survey.blocks.find(b => b.questions.some(q => q.id === question.id))?.id, [survey, question.id]);
 
     const previousQuestions = useMemo(() =>
         allSurveyQuestions
@@ -88,17 +89,122 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
         [allSurveyQuestions, currentQuestionIndex, question.id]
     );
 
-    const followingQuestions = useMemo(() =>
-        allSurveyQuestions
+    const logicDestinationOptions = useMemo(() => {
+        const allQuestions = survey.blocks.flatMap(b => b.questions);
+        const questionIndexMap = new Map(allQuestions.map((q, i) => [q.id, i]));
+        const questionToBlockIdMap = new Map<string, string>();
+        survey.blocks.forEach(block => block.questions.forEach(q => questionToBlockIdMap.set(q.id, block.id)));
+    
+        const currentQuestionId = question.id;
+        const currentQuestionIndex = questionIndexMap.get(currentQuestionId)!;
+        const currentBlockId = questionToBlockIdMap.get(currentQuestionId)!;
+    
+        // 1. Find all blocks that are the start of an exclusive survey path (i.e., destination of a branch rule).
+        const exclusivePathStartBlocks = new Set<string>();
+        for (const q of allQuestions) {
+            // Use draft logic if it exists, otherwise fall back to confirmed logic
+            const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
+            if (branchingLogic) {
+                for (const branch of branchingLogic.branches) {
+                    if (branch.thenSkipToIsConfirmed && branch.thenSkipTo?.startsWith('block:')) {
+                        const blockId = branch.thenSkipTo.substring(6);
+                        exclusivePathStartBlocks.add(blockId);
+                    }
+                }
+            }
+        }
+    
+        // 2. Determine if the current question is within one of these exclusive paths.
+        const isCurrentQuestionInExclusivePath = exclusivePathStartBlocks.has(currentBlockId);
+    
+        // 3. Get all physically following questions as a base list.
+        const allFollowingQuestions = allQuestions
             .slice(currentQuestionIndex + 1)
-            .filter(q =>
-                q.id !== question.id &&
-                q.type !== QuestionType.PageBreak &&
-                q.type !== QuestionType.Description &&
-                !q.isHidden
-            ),
-        [allSurveyQuestions, currentQuestionIndex, question.id]
-    );
+            .filter(q => q.id !== currentQuestionId && q.type !== QuestionType.PageBreak && q.type !== QuestionType.Description && !q.isHidden);
+    
+        // 4. Filter the destination questions based on path rules.
+        const reachableFollowingQuestions = allFollowingQuestions.filter(q => {
+            const destBlockId = questionToBlockIdMap.get(q.id)!;
+            const isDestInExclusivePath = exclusivePathStartBlocks.has(destBlockId);
+    
+            if (isCurrentQuestionInExclusivePath) {
+                // We are in an exclusive path. Can only go to...
+                // 1. the same exclusive block (i.e., other questions in the same block)
+                // 2. a common (non-exclusive) block
+                return destBlockId === currentBlockId || !isDestInExclusivePath;
+            } else {
+                // We are in a common path. Can only go to...
+                // 1. another common block
+                return !isDestInExclusivePath;
+            }
+        });
+        
+        // 5. Derive the available blocks and pages from the now-filtered reachable questions.
+        const reachableFollowingQuestionIds = new Set(reachableFollowingQuestions.map(q => q.id));
+    
+        const reachableFutureBlocks = survey.blocks.filter(b => {
+            // Must be a future block
+            const blockIndex = survey.blocks.findIndex(block => block.id === b.id);
+            const currentQuestionBlockIndex = survey.blocks.findIndex(block => block.id === currentBlockId);
+            if (blockIndex <= currentQuestionBlockIndex) return false;
+    
+            // Must be a "common" block (i.e., not the start of an exclusive path)
+            if (exclusivePathStartBlocks.has(b.id)) return false;
+    
+            // And it must contain at least one of our reachable questions
+            return b.questions.some(q => reachableFollowingQuestionIds.has(q.id));
+        });
+    
+        const reachableFuturePages: { name: string, destinationId: string }[] = [];
+        const seenPageStarts = new Set<string>();
+        let pageCounter = 1;
+    
+        survey.blocks.forEach((block, blockIndex) => {
+            block.questions.forEach((questionInLoop, questionIndexInBlock) => {
+                let isStartOfPage = false;
+                let pageNameSource: 'block' | 'page_break' | null = null;
+                const pageDefiningQuestion = questionInLoop;
+                let firstContentQuestion: Question | undefined;
+                const questionInLoopIndex = questionIndexMap.get(pageDefiningQuestion.id)!;
+    
+                if (blockIndex === 0 && questionIndexInBlock === 0 && questionInLoop.type !== QTEnum.PageBreak) {
+                    isStartOfPage = true; pageNameSource = 'block'; firstContentQuestion = pageDefiningQuestion;
+                } else if (pageDefiningQuestion.type === QTEnum.PageBreak) {
+                    pageCounter++; isStartOfPage = true; pageNameSource = 'page_break'; firstContentQuestion = allQuestions[questionInLoopIndex + 1];
+                } else if (questionIndexInBlock === 0 && blockIndex > 0) {
+                    const prevBlock = survey.blocks[blockIndex - 1];
+                    const lastQuestionOfPrevBlock = prevBlock.questions[prevBlock.questions.length - 1];
+                    if (!lastQuestionOfPrevBlock || lastQuestionOfPrevBlock.type !== QTEnum.PageBreak) {
+                        pageCounter++; isStartOfPage = true; pageNameSource = 'block'; firstContentQuestion = pageDefiningQuestion;
+                    }
+                }
+                
+                if (isStartOfPage && firstContentQuestion && !seenPageStarts.has(firstContentQuestion.id)) {
+                    const pageStartIndex = questionIndexMap.get(firstContentQuestion.id);
+                    
+                    // A page is reachable if its first content question is in our final list of reachable questions.
+                    if (pageStartIndex !== undefined && pageStartIndex > currentQuestionIndex && reachableFollowingQuestionIds.has(firstContentQuestion.id)) {
+                        let storedPageName: string | undefined;
+                        if (pageNameSource === 'block') storedPageName = block.pageName;
+                        else storedPageName = pageDefiningQuestion.pageName;
+                        
+                        const isDefaultName = !storedPageName || /^Page \d+$/.test(storedPageName);
+                        const pageName = isDefaultName ? `Page ${pageCounter}` : storedPageName;
+                        
+                        reachableFuturePages.push({ name: `P${pageCounter}: ${pageName}`, destinationId: firstContentQuestion.id });
+                        seenPageStarts.add(firstContentQuestion.id);
+                    }
+                }
+            });
+        });
+        
+        return {
+            followingQuestions: reachableFollowingQuestions,
+            futureBlocks: reachableFutureBlocks,
+            futurePages: reachableFuturePages,
+        };
+    }, [survey, question]);
+
 
     const isChoiceBased = useMemo(() => CHOICE_BASED_QUESTION_TYPES.has(question.type), [question.type]);
 
@@ -231,7 +337,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
         const currentScalePoints = question.scalePoints || [];
         const newScalePoint: Choice = {
             id: generateId('s'),
-            text: `Column ${currentScalePoints.length + 1}`
+// FIX: Explicitly cast `currentScalePoints.length` to a number to resolve a TypeScript error.
+            text: `Column ${Number(currentScalePoints.length) + 1}`
         };
         handleUpdate({ scalePoints: [...currentScalePoints, newScalePoint] });
     }, [question.scalePoints, handleUpdate]);
@@ -1285,7 +1392,10 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     <div className="py-6 first:pt-0">
                         <SkipLogicEditor
                             question={question}
-                            followingQuestions={followingQuestions}
+                            survey={survey}
+                            followingQuestions={logicDestinationOptions.followingQuestions}
+                            futureBlocks={logicDestinationOptions.futureBlocks}
+                            futurePages={logicDestinationOptions.futurePages}
                             issues={logicIssues.filter(i => i.type === 'skip')}
                             onUpdate={handleUpdate}
                             isChoiceBased={isChoiceBased}
@@ -1349,7 +1459,10 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     question={question}
                     survey={survey}
                     previousQuestions={previousQuestions}
-                    followingQuestions={followingQuestions}
+                    followingQuestions={logicDestinationOptions.followingQuestions}
+                    futureBlocks={logicDestinationOptions.futureBlocks}
+                    futurePages={logicDestinationOptions.futurePages}
+                    currentBlockId={currentBlockId}
                     issues={logicIssues.filter(i => i.type === 'branching')}
                     onUpdate={handleUpdate}
                     onAddLogic={onExpandSidebar}
@@ -1824,10 +1937,12 @@ const WorkflowSectionEditor: React.FC<{
 }> = memo(({ title, description, questionQid, workflows, onUpdateWorkflows, onAddWorkflow }) => {
 
     const handleAddWorkflow = () => {
+// FIX: Explicitly cast workflows.length to a number to resolve a TypeScript error.
+        const newWorkflowNumber = Number(workflows.length) + 1;
         const newWorkflow: Workflow = {
             id: generateId('wf'),
-            wid: `${questionQid}-WF${workflows.length + 1}`,
-            name: `New Workflow ${workflows.length + 1}`,
+            wid: `${questionQid}-WF${newWorkflowNumber}`,
+            name: `New Workflow ${newWorkflowNumber}`,
             actions: [],
         };
         onUpdateWorkflows([...workflows, newWorkflow]);
@@ -2114,19 +2229,17 @@ interface DestinationRowProps {
   issue?: LogicIssue;
   invalid?: boolean;
   followingQuestions: Question[];
+  futureBlocks: Block[];
+  futurePages: { name: string, destinationId: string }[];
   survey?: Survey;
+  currentQuestion?: Question;
   currentBlockId?: string | null;
   className?: string;
   hideNextQuestion?: boolean;
   [key: string]: any; // Allow other props
 }
 
-const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange, onConfirm, onRemove, isConfirmed = true, issue, invalid = false, followingQuestions, survey, currentBlockId, className = '', hideNextQuestion = false, ...rest }) => {
-    const otherBlocks = useMemo(() => {
-        if (!survey || !currentBlockId) return [];
-        return survey.blocks.filter(b => b.id !== currentBlockId);
-    }, [survey, currentBlockId]);
-
+const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange, onConfirm, onRemove, isConfirmed = true, issue, invalid = false, followingQuestions, futureBlocks, futurePages, survey, currentQuestion, currentBlockId, className = '', hideNextQuestion = false, ...rest }) => {
     return (
         <div className={`flex items-center gap-2 ${className}`} {...rest}>
             <span className="text-sm text-on-surface flex-shrink-0">{label}</span>
@@ -2141,9 +2254,9 @@ const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange,
                         {!hideNextQuestion && <option value="next">Next Question</option>}
                         <option value="end">End of Survey</option>
                     </optgroup>
-                    {otherBlocks.length > 0 && (
+                     {futureBlocks.length > 0 && (
                         <optgroup label="Blocks">
-                            {otherBlocks.map(block => (
+                            {futureBlocks.map(block => (
                                 <option key={block.id} value={`block:${block.id}`}>{block.bid}: {truncate(block.title, 50)}</option>
                             ))}
                         </optgroup>
@@ -2151,6 +2264,13 @@ const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange,
                     {followingQuestions.length > 0 && (
                         <optgroup label="Questions">
                             {followingQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}
+                        </optgroup>
+                    )}
+                    {futurePages.length > 0 && (
+                        <optgroup label="Pages">
+                            {futurePages.map(page => (
+                                <option key={page.destinationId} value={page.destinationId}>{truncate(page.name, 50)}</option>
+                            ))}
                         </optgroup>
                     )}
                 </select>
@@ -2420,12 +2540,25 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
     );
 };
 
-const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Question[]; issues: LogicIssue[]; onUpdate: (updates: Partial<Question>) => void; isChoiceBased: boolean; onAddLogic: () => void; onRequestGeminiHelp: (topic: string) => void; focusedLogicSource: string | null; }> = ({ question, followingQuestions, issues, onUpdate, isChoiceBased, onAddLogic, onRequestGeminiHelp, focusedLogicSource }) => {
+const SkipLogicEditor: React.FC<{
+    question: Question;
+    survey: Survey;
+    followingQuestions: Question[];
+    futureBlocks: Block[];
+    futurePages: { name: string, destinationId: string }[];
+    issues: LogicIssue[];
+    onUpdate: (updates: Partial<Question>) => void;
+    isChoiceBased: boolean;
+    onAddLogic: () => void;
+    onRequestGeminiHelp: (topic: string) => void;
+    focusedLogicSource: string | null;
+}> = ({ question, survey, followingQuestions, futureBlocks, futurePages, issues, onUpdate, isChoiceBased, onAddLogic, onRequestGeminiHelp, focusedLogicSource }) => {
     const [isPasting, setIsPasting] = useState(false);
     const [tempErrors, setTempErrors] = useState<Set<string>>(new Set());
     const skipLogic = question.draftSkipLogic ?? question.skipLogic;
     const isEnabled = !!skipLogic;
     const editorRef = useRef<HTMLDivElement>(null);
+    const currentBlockId = useMemo(() => survey.blocks.find(b => b.questions.some(q => q.id === question.id))?.id, [survey, question.id]);
 
     useEffect(() => {
         if (focusedLogicSource && editorRef.current) {
@@ -2629,6 +2762,11 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
                                     issue={issue}
                                     invalid={tempErrors.has(choice.id)}
                                     followingQuestions={followingQuestions}
+                                    futureBlocks={futureBlocks}
+                                    futurePages={futurePages}
+                                    survey={survey}
+                                    currentQuestion={question}
+                                    currentBlockId={currentBlockId}
                                 />
                             );
                         })}
@@ -2644,6 +2782,11 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
                         issue={issues.find(i => i.sourceId === 'simple' && i.field === 'skipTo')}
                         invalid={tempErrors.has('simple')}
                         followingQuestions={followingQuestions}
+                        futureBlocks={futureBlocks}
+                        futurePages={futurePages}
+                        survey={survey}
+                        currentQuestion={question}
+                        currentBlockId={currentBlockId}
                     />
                 )}
             </div>
@@ -2861,19 +3004,18 @@ interface BranchingLogicEditorProps {
     survey: Survey;
     previousQuestions: Question[];
     followingQuestions: Question[];
+    futureBlocks: Block[];
+    futurePages: { name: string, destinationId: string }[];
+    currentBlockId: string | undefined;
     issues: LogicIssue[];
     onUpdate: (updates: Partial<Question>) => void;
     onAddLogic: () => void;
     onRequestGeminiHelp: (topic: string) => void;
 }
 
-const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, survey, previousQuestions, followingQuestions, issues, onUpdate, onAddLogic, onRequestGeminiHelp }) => {
+const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, survey, previousQuestions, followingQuestions, futureBlocks, futurePages, currentBlockId, issues, onUpdate, onAddLogic, onRequestGeminiHelp }) => {
     const branchingLogic = question.draftBranchingLogic ?? question.branchingLogic;
     const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof BranchingLogicCondition | 'skipTo'>>>(new Map());
-
-    const currentBlockId = useMemo(() => {
-        return survey.blocks.find(b => b.questions.some(q => q.id === question.id))?.id || null;
-    }, [survey.blocks, question.id]);
 
     if (!branchingLogic) return null; 
 
@@ -3040,9 +3182,12 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
                                 isConfirmed={branch.thenSkipToIsConfirmed}
                                 issue={issues.find(i => i.sourceId === branch.id && i.field === 'skipTo')}
                                 invalid={validationErrors.has(branch.id)}
-                                followingQuestions={[]}
+                                followingQuestions={followingQuestions}
+                                futureBlocks={futureBlocks}
+                                futurePages={futurePages}
                                 hideNextQuestion={true}
                                 survey={survey}
+                                currentQuestion={question}
                                 currentBlockId={currentBlockId}
                             />
                         </div>
@@ -3077,8 +3222,11 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
                         issue={issues.find(i => i.sourceId === 'otherwise' && i.field === 'skipTo')}
                         invalid={validationErrors.has('otherwise')}
                         followingQuestions={followingQuestions}
+                        futureBlocks={futureBlocks}
+                        futurePages={futurePages}
                         hideNextQuestion={false}
                         survey={survey}
+                        currentQuestion={question}
                         currentBlockId={currentBlockId}
                     />
                 </div>

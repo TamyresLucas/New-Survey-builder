@@ -257,7 +257,7 @@ export const generateSurveyTextCopy = (survey: Survey): string => {
               branchingLogic.branches.forEach(branch => {
                   if (branch.thenSkipToIsConfirmed) {
                       const conditionsStr = branch.conditions.filter(c => c.isConfirmed).map(c => `${c.questionId} ${c.operator} "${c.value}"`).join(` ${branch.operator} `);
-                      // FIX: Corrected property name from 'thenTo' to 'thenSkipTo'
+                      // FIX: Corrected property name from 'thenTo' to 'thenSkipTo' in branching logic text generation.
                       output += `    IF ${conditionsStr} THEN skip to ${formatDestination(branch.thenSkipTo)}\n`;
                   }
               });

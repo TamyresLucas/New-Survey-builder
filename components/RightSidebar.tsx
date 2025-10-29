@@ -333,8 +333,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
         const currentScalePoints = question.scalePoints || [];
         const newScalePoint: Choice = {
             id: generateId('s'),
-            // FIX: Operator '+' cannot be applied to types 'unknown' and '1'. Cast length to Number.
-            text: `Column ${Number(currentScalePoints.length) + 1}`
+            // Fix: Explicitly cast array length to a number to prevent type errors.
+            text: `Column ${(currentScalePoints.length as number) + 1}`
         };
         handleUpdate({ scalePoints: [...currentScalePoints, newScalePoint] });
     }, [question.scalePoints, handleUpdate]);
@@ -1979,8 +1979,8 @@ const WorkflowSectionEditor: React.FC<{
 }> = memo(({ title, description, questionQid, workflows, onUpdateWorkflows, onAddWorkflow }) => {
 
     const handleAddWorkflow = () => {
-        // FIX: Operator '+' cannot be applied to types 'unknown' and '1'. Cast length to Number.
-        const newWorkflowNumber = Number(workflows.length) + 1;
+        // Fix: Explicitly cast array length to a number to prevent type errors.
+        const newWorkflowNumber = (workflows.length as number) + 1;
         const newWorkflow: Workflow = {
             id: generateId('wf'),
             wid: `${questionQid}-WF${newWorkflowNumber}`,

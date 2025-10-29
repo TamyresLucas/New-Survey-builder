@@ -333,7 +333,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
         const currentScalePoints = question.scalePoints || [];
         const newScalePoint: Choice = {
             id: generateId('s'),
-            // FIX: Explicitly cast `currentScalePoints.length` to a number.
+// FIX: Explicitly cast `currentScalePoints.length` to a number to resolve a TypeScript error where it was being inferred as `unknown`.
             text: `Column ${Number(currentScalePoints.length) + 1}`
         };
         handleUpdate({ scalePoints: [...currentScalePoints, newScalePoint] });
@@ -1933,8 +1933,7 @@ const WorkflowSectionEditor: React.FC<{
 }> = memo(({ title, description, questionQid, workflows, onUpdateWorkflows, onAddWorkflow }) => {
 
     const handleAddWorkflow = () => {
-        // FIX: Explicitly cast workflows.length to a number to resolve a TypeScript error where
-        // it was being inferred as 'unknown', preventing arithmetic operations.
+// FIX: Explicitly cast `workflows.length` to a number to resolve a TypeScript error where it was being inferred as `unknown`.
         const newWorkflowNumber = Number(workflows.length) + 1;
         const newWorkflow: Workflow = {
             id: generateId('wf'),

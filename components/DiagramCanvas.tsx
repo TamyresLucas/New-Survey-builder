@@ -24,14 +24,12 @@ import { QuestionType } from '../types';
 import StartNodeComponent from './diagram/nodes/StartNodeComponent';
 import MultipleChoiceNodeComponent from './diagram/nodes/MultipleChoiceNodeComponent';
 import TextEntryNodeComponent from './diagram/nodes/TextEntryNodeComponent';
-import EndNodeComponent from './diagram/nodes/EndNodeComponent';
 import DiagramToolbar from './diagram/DiagramToolbar';
 
 const nodeTypes: NodeTypes = {
   start: StartNodeComponent,
   multiple_choice: MultipleChoiceNodeComponent,
   text_entry: TextEntryNodeComponent,
-  end: EndNodeComponent,
 };
 
 const NODE_WIDTH = 320;
@@ -87,7 +85,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         
         const resolveDestination = (dest: string, currentIndex: number): string | undefined => {
             if (dest === 'next') return findNextQuestion(currentIndex, allQuestions)?.id;
-            if (dest === 'end') return 'end-node';
+            if (dest === 'end') return undefined;
             if (dest.startsWith('block:')) {
                 const blockId = dest.substring(6);
                 const targetBlock = survey.blocks.find(b => b.id === blockId);
@@ -156,15 +154,16 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
 
             if (!hasExplicitLogic) {
                 const targetId = resolveDestination('next', index);
-                if (targetId) {
-                    targets.set(targetId, 'fallthrough');
-                } else {
-                    targets.set('end-node', 'fallthrough');
-                }
+                if (targetId) targets.set(targetId, 'fallthrough');
+            }
+
+            if (targets.size === 0) {
+                 const targetId = resolveDestination('next', index);
+                 if (targetId) targets.set(targetId, 'fallthrough');
             }
 
             targets.forEach((type, targetId) => {
-                if (targetId && (questionMap.has(targetId) || targetId === 'end-node')) {
+                if (targetId && questionMap.has(targetId)) {
                     let shouldAddToLayout = true;
                     if (type === 'fallthrough') {
                         const sourceBlock = questionIdToBlockIdMap.get(q.id);
@@ -175,7 +174,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     }
                     if (shouldAddToLayout) {
                         adj[q.id].push(targetId);
-                        if (!revAdj[targetId]) revAdj[targetId] = [];
                         revAdj[targetId].push(q.id);
                     }
                 }
@@ -195,7 +193,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         while(queue.length > 0) {
             const u = queue.shift()!;
             for(const v of (adj[u] || [])) {
-                if (v === 'end-node') continue; // Don't process end-node in this part
                 const newPathLength = (longestPath.get(u) || 0) + 1;
                 if (newPathLength > (longestPath.get(v) || 0)) {
                     longestPath.set(v, newPathLength);
@@ -221,7 +218,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             const children = (adj[u] || []).sort((a,b) => {
                 const orderA = allQuestionsOrder.get(a) ?? 0;
                 const orderB = allQuestionsOrder.get(b) ?? 0;
-                // FIX: Replaced subtraction with explicit comparison to resolve arithmetic operation error.
+                // FIX: Replaced subtraction with explicit comparison to resolve arithmetic operation error on line 221.
                 return orderA > orderB ? 1 : (orderA < orderB ? -1 : 0);
             });
             const uIsFork = children.length > 1;
@@ -280,7 +277,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 // FIX: Using explicit comparison to avoid potential type inference issues on arithmetic operations.
                 const orderA = allQuestionsOrder.get(a) ?? 0;
                 const orderB = allQuestionsOrder.get(b) ?? 0;
-                // FIX: Replaced subtraction with explicit comparison to resolve arithmetic operation error.
+                // FIX: Replaced subtraction with explicit comparison to resolve arithmetic operation error on line 279.
                 return orderA > orderB ? 1 : (orderA < orderB ? -1 : 0);
             });
             
@@ -325,43 +322,48 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             }
         });
         
-        const maxCol = Math.max(0, ...Array.from(longestPath.values()));
-        flowNodes.push({
-            id: 'end-node',
-            type: 'end',
-            data: { label: 'End of Survey' },
-            position: { x: (maxCol + 1) * X_SPACING, y: 0 },
-            width: 176,
-            height: 60,
-        });
-
         allQuestions.forEach((q, index) => {
             if (q.type === QuestionType.PageBreak || q.type === QuestionType.Description) return;
 
             const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
             const skipLogic: SkipLogic | undefined = q.draftSkipLogic ?? q.skipLogic;
-            let hasExplicitConnectionForAllChoices = false;
 
             if (q.choices && q.choices.length > 0 && (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid)) {
                 const destinations = new Map<string, { targetId?: string, label?: string }>();
 
                 if (branchingLogic) {
-                    // Branching logic is complex and not fully handled here yet
+                    const coveredChoices = new Set<string>();
+                    branchingLogic.branches.forEach(branch => {
+                        if (!branch.thenSkipToIsConfirmed) return;
+                        const condition = branch.conditions.find(c => c.questionId === q.qid && c.isConfirmed);
+                        if (condition) {
+                            const choice = q.choices?.find(c => c.text === condition.value);
+                            if (choice) {
+                                const targetId = resolveDestination(branch.thenSkipTo, index);
+                                destinations.set(choice.id, { targetId, label: branch.pathName || parseChoice(choice.text).variable });
+                                coveredChoices.add(choice.id);
+                            }
+                        }
+                    });
+
+                    const otherwiseTargetId = resolveDestination(branchingLogic.otherwiseSkipTo, index);
+                    q.choices?.forEach(choice => {
+                        if (!coveredChoices.has(choice.id)) {
+                            destinations.set(choice.id, { targetId: otherwiseTargetId, label: branchingLogic.otherwisePathName || 'Otherwise' });
+                        }
+                    });
                 } else if (skipLogic?.type === 'per_choice') {
                     const rulesByChoiceId = new Map(skipLogic.rules.map(r => [r.choiceId, r]));
-                    hasExplicitConnectionForAllChoices = (q.choices || []).every(c => rulesByChoiceId.has(c.id));
-
                     q.choices?.forEach(choice => {
                         const choiceVar = parseChoice(choice.text).variable;
                         const rule = rulesByChoiceId.get(choice.id);
-                        let targetId: string | undefined;
                         if (rule && rule.isConfirmed) {
-                            targetId = resolveDestination(rule.skipTo, index);
+                            const targetId = resolveDestination(rule.skipTo, index);
+                            destinations.set(choice.id, { targetId, label: choiceVar });
                         } else {
-                            targetId = resolveDestination('next', index);
+                            const targetId = resolveDestination('next', index);
+                            destinations.set(choice.id, { targetId, label: choiceVar });
                         }
-                        if (!targetId) targetId = 'end-node';
-                        destinations.set(choice.id, { targetId, label: choiceVar });
                     });
                 } else {
                     let fallthroughTarget: string | undefined;
@@ -370,7 +372,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     } else {
                         fallthroughTarget = resolveDestination('next', index);
                     }
-                    if (!fallthroughTarget) fallthroughTarget = 'end-node';
                     
                     if (fallthroughTarget) {
                         q.choices?.forEach(choice => {
@@ -381,7 +382,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 }
 
                 destinations.forEach(({ targetId, label }, sourceHandleId) => {
-                    if (targetId && (questionMap.has(targetId) || targetId === 'end-node')) {
+                    if (targetId && questionMap.has(targetId)) {
                         flowEdges.push({
                             id: `e-${q.id}-${sourceHandleId}-${targetId}`,
                             source: q.id,
@@ -401,14 +402,11 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 if (skipLogic?.type === 'simple' && skipLogic.isConfirmed) {
                     targetId = resolveDestination(skipLogic.skipTo, index);
                     edgeLabel = "IF answered";
-                    hasExplicitConnectionForAllChoices = true;
                 } else {
                     targetId = resolveDestination('next', index);
                 }
 
-                if (!targetId) targetId = 'end-node';
-
-                if (targetId) {
+                if (targetId && questionMap.has(targetId)) {
                     flowEdges.push({
                         id: `e-${q.id}-output-${targetId}`,
                         source: q.id,
@@ -459,10 +457,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             return false;
         }
 
-        if (connection.target === 'end-node') {
-            return true;
-        }
-
         if (connection.source === connection.target) {
             return false;
         }
@@ -488,7 +482,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             
             const existingLogic = sourceQuestion.draftSkipLogic ?? sourceQuestion.skipLogic;
             let newLogic: Question['skipLogic'];
-            const destination = connection.target === 'end-node' ? 'end' : connection.target;
     
             if (sourceQuestion.type === QuestionType.Radio || sourceQuestion.type === QuestionType.Checkbox) {
                 let newRules: SkipLogicRule[];
@@ -496,24 +489,24 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     newRules = [...existingLogic.rules];
                     const ruleIndex = newRules.findIndex(r => r.choiceId === connection.sourceHandle);
                     if (ruleIndex !== -1) {
-                        newRules[ruleIndex] = { ...newRules[ruleIndex], skipTo: destination, isConfirmed: false };
+                        newRules[ruleIndex] = { ...newRules[ruleIndex], skipTo: connection.target!, isConfirmed: false };
                     } else {
                         newRules.push({
                             choiceId: connection.sourceHandle,
-                            skipTo: destination,
+                            skipTo: connection.target!,
                             isConfirmed: false
                         });
                     }
                 } else {
                     newRules = (sourceQuestion.choices || []).map(choice => ({
                         choiceId: choice.id,
-                        skipTo: choice.id === connection.sourceHandle ? destination : 'next',
+                        skipTo: choice.id === connection.sourceHandle ? connection.target! : 'next',
                         isConfirmed: false,
                     }));
                 }
                 newLogic = { type: 'per_choice', rules: newRules };
             } else if (sourceQuestion.type === QuestionType.TextEntry) {
-                newLogic = { type: 'simple', skipTo: destination, isConfirmed: false };
+                newLogic = { type: 'simple', skipTo: connection.target!, isConfirmed: false };
             }
     
             if (newLogic) {
@@ -525,7 +518,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     );
 
     const onNodeClick = useCallback((_event: React.MouseEvent, node: DiagramNode) => {
-        if (node.type === 'end') return;
         const fullQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === node.id);
         if (fullQuestion) {
             onSelectQuestion(fullQuestion);
@@ -555,7 +547,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     
             const existingLogic = sourceQuestion.draftSkipLogic ?? sourceQuestion.skipLogic;
             let newLogic: Question['skipLogic'];
-            const destination = newConnection.target === 'end-node' ? 'end' : newConnection.target;
     
             if (sourceQuestion.type === QuestionType.Radio || sourceQuestion.type === QuestionType.Checkbox) {
                 let newRules: SkipLogicRule[];
@@ -563,24 +554,24 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     newRules = [...existingLogic.rules];
                     const ruleIndex = newRules.findIndex(r => r.choiceId === newConnection.sourceHandle);
                     if (ruleIndex !== -1) {
-                        newRules[ruleIndex] = { ...newRules[ruleIndex], skipTo: destination, isConfirmed: false };
+                        newRules[ruleIndex] = { ...newRules[ruleIndex], skipTo: newConnection.target!, isConfirmed: false };
                     } else {
                         newRules.push({
                             choiceId: newConnection.sourceHandle,
-                            skipTo: destination,
+                            skipTo: newConnection.target!,
                             isConfirmed: false,
                         });
                     }
                 } else {
                     newRules = (sourceQuestion.choices || []).map(choice => ({
                         choiceId: choice.id,
-                        skipTo: choice.id === newConnection.sourceHandle ? destination : 'next',
+                        skipTo: choice.id === newConnection.sourceHandle ? newConnection.target! : 'next',
                         isConfirmed: false,
                     }));
                 }
                 newLogic = { type: 'per_choice', rules: newRules };
             } else {
-                newLogic = { type: 'simple', skipTo: destination, isConfirmed: false };
+                newLogic = { type: 'simple', skipTo: newConnection.target!, isConfirmed: false };
             }
     
             if (newLogic) {

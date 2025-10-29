@@ -94,71 +94,54 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
         const questionIndexMap = new Map(allQuestions.map((q, i) => [q.id, i]));
         const questionToBlockIdMap = new Map<string, string>();
         survey.blocks.forEach(block => block.questions.forEach(q => questionToBlockIdMap.set(q.id, block.id)));
-    
+
         const currentQuestionId = question.id;
         const currentQuestionIndex = questionIndexMap.get(currentQuestionId)!;
         const currentBlockId = questionToBlockIdMap.get(currentQuestionId)!;
-    
-        // 1. Find all blocks that are the start of an exclusive survey path (i.e., destination of a branch rule).
-        const exclusivePathStartBlocks = new Set<string>();
+
+        // 1. Find all blocks that are destinations of a branch.
+        const branchDestinationBlockIds = new Set<string>();
         for (const q of allQuestions) {
-            // Use draft logic if it exists, otherwise fall back to confirmed logic
             const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
             if (branchingLogic) {
                 for (const branch of branchingLogic.branches) {
-                    if (branch.thenSkipToIsConfirmed && branch.thenSkipTo?.startsWith('block:')) {
+                    if (branch.thenSkipTo?.startsWith('block:')) {
                         const blockId = branch.thenSkipTo.substring(6);
-                        exclusivePathStartBlocks.add(blockId);
+                        branchDestinationBlockIds.add(blockId);
                     }
                 }
             }
         }
-    
-        // 2. Determine if the current question is within one of these exclusive paths.
-        const isCurrentQuestionInExclusivePath = exclusivePathStartBlocks.has(currentBlockId);
-    
-        // 3. Get all physically following questions as a base list.
+        
+        // 2. Determine if we need to filter. We only filter if the current question is NOT in a branch block.
+        const shouldFilter = !branchDestinationBlockIds.has(currentBlockId);
+
+        // 3. Get all physically following questions
         const allFollowingQuestions = allQuestions
             .slice(currentQuestionIndex + 1)
             .filter(q => q.id !== currentQuestionId && q.type !== QuestionType.PageBreak && q.type !== QuestionType.Description && !q.isHidden);
-    
-        // 4. Filter the destination questions based on path rules.
-        const reachableFollowingQuestions = allFollowingQuestions.filter(q => {
-            const destBlockId = questionToBlockIdMap.get(q.id)!;
-            const isDestInExclusivePath = exclusivePathStartBlocks.has(destBlockId);
-    
-            if (isCurrentQuestionInExclusivePath) {
-                // We are in an exclusive path. Can only go to...
-                // 1. the same exclusive block (i.e., other questions in the same block)
-                // 2. a common (non-exclusive) block
-                return destBlockId === currentBlockId || !isDestInExclusivePath;
-            } else {
-                // We are in a common path. Can only go to...
-                // 1. another common block
-                return !isDestInExclusivePath;
-            }
-        });
-        
-        // 5. Derive the available blocks and pages from the now-filtered reachable questions.
+
+        // 4. Filter them if needed
+        const reachableFollowingQuestions = shouldFilter
+            ? allFollowingQuestions.filter(q => !branchDestinationBlockIds.has(questionToBlockIdMap.get(q.id)!))
+            : allFollowingQuestions;
+
         const reachableFollowingQuestionIds = new Set(reachableFollowingQuestions.map(q => q.id));
-    
-        const reachableFutureBlocks = survey.blocks.filter(b => {
-            // Must be a future block
+
+        // 5. Filter future blocks
+        const filteredFutureBlocks = survey.blocks.filter(b => {
+            if (b.id === currentBlockId) return false;
+            // The block must contain at least one reachable question and must appear after the current block
             const blockIndex = survey.blocks.findIndex(block => block.id === b.id);
             const currentQuestionBlockIndex = survey.blocks.findIndex(block => block.id === currentBlockId);
-            if (blockIndex <= currentQuestionBlockIndex) return false;
-    
-            // Must be a "common" block (i.e., not the start of an exclusive path)
-            if (exclusivePathStartBlocks.has(b.id)) return false;
-    
-            // And it must contain at least one of our reachable questions
-            return b.questions.some(q => reachableFollowingQuestionIds.has(q.id));
+            return blockIndex > currentQuestionBlockIndex && b.questions.some(q => reachableFollowingQuestionIds.has(q.id));
         });
-    
-        const reachableFuturePages: { name: string, destinationId: string }[] = [];
+
+        // 6. Filter future pages
+        const filteredFuturePages: { name: string, destinationId: string }[] = [];
         const seenPageStarts = new Set<string>();
         let pageCounter = 1;
-    
+
         survey.blocks.forEach((block, blockIndex) => {
             block.questions.forEach((questionInLoop, questionIndexInBlock) => {
                 let isStartOfPage = false;
@@ -166,32 +149,45 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                 const pageDefiningQuestion = questionInLoop;
                 let firstContentQuestion: Question | undefined;
                 const questionInLoopIndex = questionIndexMap.get(pageDefiningQuestion.id)!;
-    
+
                 if (blockIndex === 0 && questionIndexInBlock === 0 && questionInLoop.type !== QTEnum.PageBreak) {
-                    isStartOfPage = true; pageNameSource = 'block'; firstContentQuestion = pageDefiningQuestion;
+                    isStartOfPage = true;
+                    pageNameSource = 'block';
+                    firstContentQuestion = pageDefiningQuestion;
                 } else if (pageDefiningQuestion.type === QTEnum.PageBreak) {
-                    pageCounter++; isStartOfPage = true; pageNameSource = 'page_break'; firstContentQuestion = allQuestions[questionInLoopIndex + 1];
+                    pageCounter++;
+                    isStartOfPage = true;
+                    pageNameSource = 'page_break';
+                    firstContentQuestion = allQuestions[questionInLoopIndex + 1];
                 } else if (questionIndexInBlock === 0 && blockIndex > 0) {
                     const prevBlock = survey.blocks[blockIndex - 1];
                     const lastQuestionOfPrevBlock = prevBlock.questions[prevBlock.questions.length - 1];
                     if (!lastQuestionOfPrevBlock || lastQuestionOfPrevBlock.type !== QTEnum.PageBreak) {
-                        pageCounter++; isStartOfPage = true; pageNameSource = 'block'; firstContentQuestion = pageDefiningQuestion;
+                        pageCounter++;
+                        isStartOfPage = true;
+                        pageNameSource = 'block';
+                        firstContentQuestion = pageDefiningQuestion;
                     }
                 }
                 
                 if (isStartOfPage && firstContentQuestion && !seenPageStarts.has(firstContentQuestion.id)) {
                     const pageStartIndex = questionIndexMap.get(firstContentQuestion.id);
                     
-                    // A page is reachable if its first content question is in our final list of reachable questions.
                     if (pageStartIndex !== undefined && pageStartIndex > currentQuestionIndex && reachableFollowingQuestionIds.has(firstContentQuestion.id)) {
                         let storedPageName: string | undefined;
-                        if (pageNameSource === 'block') storedPageName = block.pageName;
-                        else storedPageName = pageDefiningQuestion.pageName;
+                        if (pageNameSource === 'block') {
+                            storedPageName = block.pageName;
+                        } else { 
+                            storedPageName = pageDefiningQuestion.pageName;
+                        }
                         
                         const isDefaultName = !storedPageName || /^Page \d+$/.test(storedPageName);
                         const pageName = isDefaultName ? `Page ${pageCounter}` : storedPageName;
                         
-                        reachableFuturePages.push({ name: `P${pageCounter}: ${pageName}`, destinationId: firstContentQuestion.id });
+                        filteredFuturePages.push({
+                            name: `P${pageCounter}: ${pageName}`,
+                            destinationId: firstContentQuestion.id,
+                        });
                         seenPageStarts.add(firstContentQuestion.id);
                     }
                 }
@@ -200,8 +196,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
         
         return {
             followingQuestions: reachableFollowingQuestions,
-            futureBlocks: reachableFutureBlocks,
-            futurePages: reachableFuturePages,
+            futureBlocks: filteredFutureBlocks,
+            futurePages: filteredFuturePages,
         };
     }, [survey, question]);
 
@@ -337,7 +333,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
         const currentScalePoints = question.scalePoints || [];
         const newScalePoint: Choice = {
             id: generateId('s'),
-// FIX: Explicitly cast `currentScalePoints.length` to a number to resolve a TypeScript error.
+            // FIX: Explicitly cast `currentScalePoints.length` to a number.
             text: `Column ${Number(currentScalePoints.length) + 1}`
         };
         handleUpdate({ scalePoints: [...currentScalePoints, newScalePoint] });
@@ -1937,7 +1933,8 @@ const WorkflowSectionEditor: React.FC<{
 }> = memo(({ title, description, questionQid, workflows, onUpdateWorkflows, onAddWorkflow }) => {
 
     const handleAddWorkflow = () => {
-// FIX: Explicitly cast workflows.length to a number to resolve a TypeScript error.
+        // FIX: Explicitly cast workflows.length to a number to resolve a TypeScript error where
+        // it was being inferred as 'unknown', preventing arithmetic operations.
         const newWorkflowNumber = Number(workflows.length) + 1;
         const newWorkflow: Workflow = {
             id: generateId('wf'),

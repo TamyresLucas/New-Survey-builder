@@ -337,9 +337,17 @@ export interface MultipleChoiceNode extends BaseNode {
 }
 
 /**
+ * Represents the end point of a survey path.
+ */
+export interface EndNode extends BaseNode {
+  type: 'end';
+  data: { label: string };
+}
+
+/**
  * A discriminated union of all possible node types for the diagram.
  */
-export type Node = StartNode | TextEntryNode | MultipleChoiceNode;
+export type Node = StartNode | TextEntryNode | MultipleChoiceNode | EndNode;
 
 
 export interface Edge {
@@ -372,3 +380,4 @@ export interface PathAnalysisResult {
 export const isStartNode = (node: Node): node is StartNode => node.type === 'start';
 export const isMultipleChoiceNode = (node: Node): node is MultipleChoiceNode => node.type === 'multiple_choice';
 export const isTextEntryNode = (node: Node): node is TextEntryNode => node.type === 'text_entry';
+export const isEndNode = (node: Node): node is EndNode => node.type === 'end';

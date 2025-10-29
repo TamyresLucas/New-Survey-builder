@@ -333,7 +333,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
         const currentScalePoints = question.scalePoints || [];
         const newScalePoint: Choice = {
             id: generateId('s'),
-// FIX: Explicitly cast `currentScalePoints.length` to a number to resolve a TypeScript error where it was being inferred as `unknown`.
+            // FIX: Operator '+' cannot be applied to types 'unknown' and '1'. Cast length to Number.
             text: `Column ${Number(currentScalePoints.length) + 1}`
         };
         handleUpdate({ scalePoints: [...currentScalePoints, newScalePoint] });
@@ -1279,6 +1279,51 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
     );
   }
 
+  const renderDescriptionSettingsTab = () => (
+    <div className="space-y-6">
+      <div>
+        <label className="block text-sm font-medium text-on-surface-variant mb-1">
+          Question Type
+        </label>
+        <div className="relative" ref={typeMenuRef}>
+          <button
+            onClick={() => setIsTypeMenuOpen(prev => !prev)}
+            className="w-full flex items-center gap-2 text-left bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+            aria-haspopup="true"
+            aria-expanded={isTypeMenuOpen}
+          >
+            {CurrentQuestionTypeInfo ? <CurrentQuestionTypeInfo.icon className="text-base text-primary flex-shrink-0" /> : <div className="w-4 h-4 mr-3 flex-shrink-0" />}
+            <span className="flex-grow">{question.type}</span>
+            <ChevronDownIcon className="text-lg text-on-surface-variant flex-shrink-0" />
+          </button>
+          {isTypeMenuOpen && (
+            <div className="absolute top-full left-0 right-0 mt-1 z-10">
+              <QuestionTypeSelectionMenuContent onSelect={handleTypeSelect} toolboxItems={toolboxItems} />
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
+      </div>
+      
+      <div>
+        <label htmlFor="question-text" className="block text-sm font-medium text-on-surface-variant mb-1">
+          Content
+        </label>
+        <textarea
+          id="question-text"
+          value={questionText}
+          onChange={(e) => setQuestionText(e.target.value)}
+          onBlur={handleTextBlur}
+          onPaste={createPasteHandler(setQuestionText)}
+          rows={4}
+          className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+          placeholder="Enter your description here..."
+        />
+        <p className="text-xs text-on-surface-variant mt-1">Maximum 5000 characters</p>
+      </div>
+    </div>
+  );
+
   const renderGenericSettingsTab = () => (
     <div className="space-y-6">
       <div>
@@ -1513,7 +1558,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
             case 'Settings':
                 if (isChoiceBased) return renderChoiceBasedSettingsTab();
                 if (question.type === QuestionType.TextEntry) return renderTextEntrySettingsTab();
-                if (question.type !== QuestionType.Description && question.type !== QuestionType.PageBreak) {
+                if (question.type === QuestionType.Description) return renderDescriptionSettingsTab();
+                if (question.type !== QuestionType.PageBreak) {
                     return renderGenericSettingsTab();
                 }
                 return <p className="text-sm text-on-surface-variant text-center mt-4">This question type has no editable settings.</p>;
@@ -1933,7 +1979,7 @@ const WorkflowSectionEditor: React.FC<{
 }> = memo(({ title, description, questionQid, workflows, onUpdateWorkflows, onAddWorkflow }) => {
 
     const handleAddWorkflow = () => {
-// FIX: Explicitly cast `workflows.length` to a number to resolve a TypeScript error where it was being inferred as `unknown`.
+        // FIX: Operator '+' cannot be applied to types 'unknown' and '1'. Cast length to Number.
         const newWorkflowNumber = Number(workflows.length) + 1;
         const newWorkflow: Workflow = {
             id: generateId('wf'),
@@ -3279,11 +3325,25 @@ export const RightSidebar: React.FC<{
     toolboxItems,
     onRequestGeminiHelp,
 }) => {
-    const isChoiceBased = useMemo(() => CHOICE_BASED_QUESTION_TYPES.has(question.type), [question.type]);
-    const tabs = ['Settings', 'Behavior', 'Advanced'];
-    if (!['Description', 'Page Break'].includes(question.type)) {
-        tabs.push('Preview');
-    }
+    const isDescription = question.type === QuestionType.Description;
+
+    const tabs = useMemo(() => {
+        if (isDescription) {
+            return ['Settings'];
+        }
+        
+        const defaultTabs = ['Settings', 'Behavior', 'Advanced'];
+        if (!['Description', 'Page Break'].includes(question.type)) {
+            defaultTabs.push('Preview');
+        }
+        return defaultTabs;
+    }, [question.type, isDescription]);
+
+    useEffect(() => {
+        if (isDescription && (activeTab === 'Behavior' || activeTab === 'Advanced')) {
+            onTabChange('Settings');
+        }
+    }, [question.id, isDescription, activeTab, onTabChange]);
 
     return (
         <aside className="w-full h-full bg-surface-container border-l border-outline-variant flex flex-col">

@@ -1306,23 +1306,37 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
     const afterWorkflows = question.draftAfterWorkflows ?? question.afterWorkflows ?? [];
 
     const handleEnableBranching = () => {
+        const remainingChoices = (question.choices || []).filter(c => {
+            return !(question.branchingLogic?.branches.some(b => b.conditions.some(cond => cond.value === c.text)) ?? false);
+        });
+
+        const newBranch: BranchingLogicBranch = {
+            id: generateId('branch'),
+            operator: 'AND',
+            conditions: [{ 
+                id: generateId('cond'), 
+                questionId: question.qid, 
+                operator: 'equals', 
+                // Auto-select the first available choice if it exists
+                value: remainingChoices.length === 1 ? remainingChoices[0].text : '', 
+                isConfirmed: false 
+            }],
+            thenSkipTo: '',
+            thenSkipToIsConfirmed: false,
+        };
+
+        const existingLogic = question.draftBranchingLogic ?? question.branchingLogic;
+        
         handleUpdate({
             branchingLogic: {
-                branches: [
-                    {
-                        id: generateId('branch'),
-                        operator: 'AND',
-                        conditions: [{ id: generateId('cond'), questionId: question.qid, operator: '', value: '', isConfirmed: false }],
-                        thenSkipTo: '',
-                        thenSkipToIsConfirmed: false,
-                    }
-                ],
-                otherwiseSkipTo: 'next',
-                otherwiseIsConfirmed: true,
+                branches: [...(existingLogic?.branches || []), newBranch],
+                otherwiseSkipTo: existingLogic?.otherwiseSkipTo || 'next',
+                otherwiseIsConfirmed: existingLogic?.otherwiseIsConfirmed || true,
             }
         });
         onExpandSidebar();
     };
+
 
     return (
       <div className="space-y-8">
@@ -2997,10 +3011,20 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
     const handleRemoveLogic = () => onUpdate({ branchingLogic: undefined, draftBranchingLogic: undefined });
     
     const handleAddBranch = () => {
+        const remainingChoices = (question.choices || []).filter(c => {
+            return !(branchingLogic.branches.some(b => b.conditions.some(cond => cond.value === c.text)) ?? false);
+        });
+
         const newBranch: BranchingLogicBranch = {
             id: generateId('branch'),
             operator: 'AND',
-            conditions: [{ id: generateId('cond'), questionId: question.qid, operator: '', value: '', isConfirmed: false }],
+            conditions: [{ 
+                id: generateId('cond'), 
+                questionId: question.qid, 
+                operator: 'equals',
+                value: remainingChoices.length === 1 ? remainingChoices[0].text : '', 
+                isConfirmed: false 
+            }],
             thenSkipTo: '',
             thenSkipToIsConfirmed: false,
         };
@@ -3114,34 +3138,36 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
                 </button>
             )}
 
-            <div className="mt-4 pt-4 border-t border-outline-variant">
-                 <div className="mb-3">
-                    <DestinationRow
-                        label="Otherwise"
-                        value={branchingLogic.otherwiseSkipTo}
-                        onChange={handleUpdateOtherwise}
-                        onConfirm={handleConfirmOtherwise}
-                        isConfirmed={branchingLogic.otherwiseIsConfirmed}
-                        issue={issues.find(i => i.sourceId === 'otherwise' && i.field === 'skipTo')}
-                        invalid={validationErrors.has('otherwise')}
-                        followingQuestions={followingQuestions}
-                        hideNextQuestion={false}
-                        survey={survey}
-                        currentBlockId={currentBlockId}
-                    />
+            {canAddBranch && (
+                <div className="mt-4 pt-4 border-t border-outline-variant">
+                    <div className="mb-3">
+                        <DestinationRow
+                            label="Otherwise"
+                            value={branchingLogic.otherwiseSkipTo}
+                            onChange={handleUpdateOtherwise}
+                            onConfirm={handleConfirmOtherwise}
+                            isConfirmed={branchingLogic.otherwiseIsConfirmed}
+                            issue={issues.find(i => i.sourceId === 'otherwise' && i.field === 'skipTo')}
+                            invalid={validationErrors.has('otherwise')}
+                            followingQuestions={followingQuestions}
+                            hideNextQuestion={false}
+                            survey={survey}
+                            currentBlockId={currentBlockId}
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor={`path-name-otherwise`} className="block text-xs font-medium text-on-surface-variant mb-1">Path Name</label>
+                        <input
+                            type="text"
+                            id={`path-name-otherwise`}
+                            value={branchingLogic.otherwisePathName || `Path ${branchingLogic.branches.length + 1}`}
+                            onChange={e => handleUpdateOtherwisePathName(e.target.value)}
+                            className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                            placeholder={`e.g., Path ${branchingLogic.branches.length + 1}`}
+                        />
+                    </div>
                 </div>
-                 <div>
-                    <label htmlFor={`path-name-otherwise`} className="block text-xs font-medium text-on-surface-variant mb-1">Path Name</label>
-                    <input
-                        type="text"
-                        id={`path-name-otherwise`}
-                        value={branchingLogic.otherwisePathName || `Path ${branchingLogic.branches.length + 1}`}
-                        onChange={e => handleUpdateOtherwisePathName(e.target.value)}
-                        className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-                        placeholder={`e.g., Path ${branchingLogic.branches.length + 1}`}
-                    />
-                </div>
-            </div>
+            )}
         </div>
     );
 };

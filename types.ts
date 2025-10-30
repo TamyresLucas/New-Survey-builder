@@ -307,9 +307,8 @@ export interface BaseNode {
   id: string;
   type: string;
   position: Position;
-  // FIX: Made width and height optional to match @xyflow/react's NodeProps type, resolving component type errors.
-  width?: number;
-  height?: number;
+  width: number;
+  height: number;
   data: unknown;
   selected?: boolean; // Add selected property for React Flow
 }

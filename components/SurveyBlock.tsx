@@ -19,7 +19,7 @@ interface SurveyBlockProps {
     selectedQuestion: Question | null;
     checkedQuestions: Set<string>;
     logicIssues: LogicIssue[];
-    // FIX: Updated onSelectQuestion signature to accept an options object to match parent components.
+    // FIX: Updated prop signature to be consistent with App.tsx and child components.
     onSelectQuestion: (question: Question | null, options?: { tab?: string; focusOn?: string }) => void;
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
     onUpdateBlock: (blockId: string, updates: Partial<Block>) => void;

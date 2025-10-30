@@ -1,6 +1,6 @@
 import React, { memo, useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, ActionLogic, Workflow, Block } from '../types';
-import { QuestionType, QuestionType as QTEnum } from '../types';
+import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, ActionLogic, Workflow } from '../types';
+import { QuestionType } from '../types';
 import { generateId, parseChoice, CHOICE_BASED_QUESTION_TYPES, truncate } from '../utils';
 import { PasteChoicesModal } from './PasteChoicesModal';
 import { 
@@ -75,7 +75,6 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
 
     const allSurveyQuestions = useMemo(() => survey.blocks.flatMap(b => b.questions), [survey]);
     const currentQuestionIndex = useMemo(() => allSurveyQuestions.findIndex(q => q.id === question.id), [allSurveyQuestions, question.id]);
-    const currentBlockId = useMemo(() => survey.blocks.find(b => b.questions.some(q => q.id === question.id))?.id, [survey, question.id]);
 
     const previousQuestions = useMemo(() =>
         allSurveyQuestions
@@ -89,118 +88,17 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
         [allSurveyQuestions, currentQuestionIndex, question.id]
     );
 
-    const logicDestinationOptions = useMemo(() => {
-        const allQuestions = survey.blocks.flatMap(b => b.questions);
-        const questionIndexMap = new Map(allQuestions.map((q, i) => [q.id, i]));
-        const questionToBlockIdMap = new Map<string, string>();
-        survey.blocks.forEach(block => block.questions.forEach(q => questionToBlockIdMap.set(q.id, block.id)));
-
-        const currentQuestionId = question.id;
-        const currentQuestionIndex = questionIndexMap.get(currentQuestionId)!;
-        const currentBlockId = questionToBlockIdMap.get(currentQuestionId)!;
-
-        // 1. Find all blocks that are destinations of a branch.
-        const branchDestinationBlockIds = new Set<string>();
-        for (const q of allQuestions) {
-            const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
-            if (branchingLogic) {
-                for (const branch of branchingLogic.branches) {
-                    if (branch.thenSkipTo?.startsWith('block:')) {
-                        const blockId = branch.thenSkipTo.substring(6);
-                        branchDestinationBlockIds.add(blockId);
-                    }
-                }
-            }
-        }
-        
-        // 2. Determine if we need to filter. We only filter if the current question is NOT in a branch block.
-        const shouldFilter = !branchDestinationBlockIds.has(currentBlockId);
-
-        // 3. Get all physically following questions
-        const allFollowingQuestions = allQuestions
+    const followingQuestions = useMemo(() =>
+        allSurveyQuestions
             .slice(currentQuestionIndex + 1)
-            .filter(q => q.id !== currentQuestionId && q.type !== QuestionType.PageBreak && q.type !== QuestionType.Description && !q.isHidden);
-
-        // 4. Filter them if needed
-        const reachableFollowingQuestions = shouldFilter
-            ? allFollowingQuestions.filter(q => !branchDestinationBlockIds.has(questionToBlockIdMap.get(q.id)!))
-            : allFollowingQuestions;
-
-        const reachableFollowingQuestionIds = new Set(reachableFollowingQuestions.map(q => q.id));
-
-        // 5. Filter future blocks
-        const filteredFutureBlocks = survey.blocks.filter(b => {
-            if (b.id === currentBlockId) return false;
-            // The block must contain at least one reachable question and must appear after the current block
-            const blockIndex = survey.blocks.findIndex(block => block.id === b.id);
-            const currentQuestionBlockIndex = survey.blocks.findIndex(block => block.id === currentBlockId);
-            return blockIndex > currentQuestionBlockIndex && b.questions.some(q => reachableFollowingQuestionIds.has(q.id));
-        });
-
-        // 6. Filter future pages
-        const filteredFuturePages: { name: string, destinationId: string }[] = [];
-        const seenPageStarts = new Set<string>();
-        let pageCounter = 1;
-
-        survey.blocks.forEach((block, blockIndex) => {
-            block.questions.forEach((questionInLoop, questionIndexInBlock) => {
-                let isStartOfPage = false;
-                let pageNameSource: 'block' | 'page_break' | null = null;
-                const pageDefiningQuestion = questionInLoop;
-                let firstContentQuestion: Question | undefined;
-                const questionInLoopIndex = questionIndexMap.get(pageDefiningQuestion.id)!;
-
-                if (blockIndex === 0 && questionIndexInBlock === 0 && questionInLoop.type !== QTEnum.PageBreak) {
-                    isStartOfPage = true;
-                    pageNameSource = 'block';
-                    firstContentQuestion = pageDefiningQuestion;
-                } else if (pageDefiningQuestion.type === QTEnum.PageBreak) {
-                    pageCounter++;
-                    isStartOfPage = true;
-                    pageNameSource = 'page_break';
-                    firstContentQuestion = allQuestions[questionInLoopIndex + 1];
-                } else if (questionIndexInBlock === 0 && blockIndex > 0) {
-                    const prevBlock = survey.blocks[blockIndex - 1];
-                    const lastQuestionOfPrevBlock = prevBlock.questions[prevBlock.questions.length - 1];
-                    if (!lastQuestionOfPrevBlock || lastQuestionOfPrevBlock.type !== QTEnum.PageBreak) {
-                        pageCounter++;
-                        isStartOfPage = true;
-                        pageNameSource = 'block';
-                        firstContentQuestion = pageDefiningQuestion;
-                    }
-                }
-                
-                if (isStartOfPage && firstContentQuestion && !seenPageStarts.has(firstContentQuestion.id)) {
-                    const pageStartIndex = questionIndexMap.get(firstContentQuestion.id);
-                    
-                    if (pageStartIndex !== undefined && pageStartIndex > currentQuestionIndex && reachableFollowingQuestionIds.has(firstContentQuestion.id)) {
-                        let storedPageName: string | undefined;
-                        if (pageNameSource === 'block') {
-                            storedPageName = block.pageName;
-                        } else { 
-                            storedPageName = pageDefiningQuestion.pageName;
-                        }
-                        
-                        const isDefaultName = !storedPageName || /^Page \d+$/.test(storedPageName);
-                        const pageName = isDefaultName ? `Page ${pageCounter}` : storedPageName;
-                        
-                        filteredFuturePages.push({
-                            name: `P${pageCounter}: ${pageName}`,
-                            destinationId: firstContentQuestion.id,
-                        });
-                        seenPageStarts.add(firstContentQuestion.id);
-                    }
-                }
-            });
-        });
-        
-        return {
-            followingQuestions: reachableFollowingQuestions,
-            futureBlocks: filteredFutureBlocks,
-            futurePages: filteredFuturePages,
-        };
-    }, [survey, question]);
-
+            .filter(q =>
+                q.id !== question.id &&
+                q.type !== QuestionType.PageBreak &&
+                q.type !== QuestionType.Description &&
+                !q.isHidden
+            ),
+        [allSurveyQuestions, currentQuestionIndex, question.id]
+    );
 
     const isChoiceBased = useMemo(() => CHOICE_BASED_QUESTION_TYPES.has(question.type), [question.type]);
 
@@ -333,8 +231,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
         const currentScalePoints = question.scalePoints || [];
         const newScalePoint: Choice = {
             id: generateId('s'),
-            // FIX: Explicitly convert array length to a number to handle potential 'unknown' type.
-            text: `Column ${Number(currentScalePoints.length) + 1}`
+            text: `Column ${currentScalePoints.length + 1}`
         };
         handleUpdate({ scalePoints: [...currentScalePoints, newScalePoint] });
     }, [question.scalePoints, handleUpdate]);
@@ -1279,51 +1176,6 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
     );
   }
 
-  const renderDescriptionSettingsTab = () => (
-    <div className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-on-surface-variant mb-1">
-          Question Type
-        </label>
-        <div className="relative" ref={typeMenuRef}>
-          <button
-            onClick={() => setIsTypeMenuOpen(prev => !prev)}
-            className="w-full flex items-center gap-2 text-left bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-            aria-haspopup="true"
-            aria-expanded={isTypeMenuOpen}
-          >
-            {CurrentQuestionTypeInfo ? <CurrentQuestionTypeInfo.icon className="text-base text-primary flex-shrink-0" /> : <div className="w-4 h-4 mr-3 flex-shrink-0" />}
-            <span className="flex-grow">{question.type}</span>
-            <ChevronDownIcon className="text-lg text-on-surface-variant flex-shrink-0" />
-          </button>
-          {isTypeMenuOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1 z-10">
-              <QuestionTypeSelectionMenuContent onSelect={handleTypeSelect} toolboxItems={toolboxItems} />
-            </div>
-          )}
-        </div>
-        <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
-      </div>
-      
-      <div>
-        <label htmlFor="question-text" className="block text-sm font-medium text-on-surface-variant mb-1">
-          Content
-        </label>
-        <textarea
-          id="question-text"
-          value={questionText}
-          onChange={(e) => setQuestionText(e.target.value)}
-          onBlur={handleTextBlur}
-          onPaste={createPasteHandler(setQuestionText)}
-          rows={4}
-          className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-          placeholder="Enter your description here..."
-        />
-        <p className="text-xs text-on-surface-variant mt-1">Maximum 5000 characters</p>
-      </div>
-    </div>
-  );
-
   const renderGenericSettingsTab = () => (
     <div className="space-y-6">
       <div>
@@ -1433,10 +1285,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     <div className="py-6 first:pt-0">
                         <SkipLogicEditor
                             question={question}
-                            survey={survey}
-                            followingQuestions={logicDestinationOptions.followingQuestions}
-                            futureBlocks={logicDestinationOptions.futureBlocks}
-                            futurePages={logicDestinationOptions.futurePages}
+                            followingQuestions={followingQuestions}
                             issues={logicIssues.filter(i => i.type === 'skip')}
                             onUpdate={handleUpdate}
                             isChoiceBased={isChoiceBased}
@@ -1500,10 +1349,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     question={question}
                     survey={survey}
                     previousQuestions={previousQuestions}
-                    followingQuestions={logicDestinationOptions.followingQuestions}
-                    futureBlocks={logicDestinationOptions.futureBlocks}
-                    futurePages={logicDestinationOptions.futurePages}
-                    currentBlockId={currentBlockId}
+                    followingQuestions={followingQuestions}
                     issues={logicIssues.filter(i => i.type === 'branching')}
                     onUpdate={handleUpdate}
                     onAddLogic={onExpandSidebar}
@@ -1558,8 +1404,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
             case 'Settings':
                 if (isChoiceBased) return renderChoiceBasedSettingsTab();
                 if (question.type === QuestionType.TextEntry) return renderTextEntrySettingsTab();
-                if (question.type === QuestionType.Description) return renderDescriptionSettingsTab();
-                if (question.type !== QuestionType.PageBreak) {
+                if (question.type !== QuestionType.Description && question.type !== QuestionType.PageBreak) {
                     return renderGenericSettingsTab();
                 }
                 return <p className="text-sm text-on-surface-variant text-center mt-4">This question type has no editable settings.</p>;
@@ -1979,12 +1824,10 @@ const WorkflowSectionEditor: React.FC<{
 }> = memo(({ title, description, questionQid, workflows, onUpdateWorkflows, onAddWorkflow }) => {
 
     const handleAddWorkflow = () => {
-        // FIX: Explicitly convert array length to a number to handle potential 'unknown' type.
-        const newWorkflowNumber = Number(workflows.length) + 1;
         const newWorkflow: Workflow = {
             id: generateId('wf'),
-            wid: `${questionQid}-WF${newWorkflowNumber}`,
-            name: `New Workflow ${newWorkflowNumber}`,
+            wid: `${questionQid}-WF${workflows.length + 1}`,
+            name: `New Workflow ${workflows.length + 1}`,
             actions: [],
         };
         onUpdateWorkflows([...workflows, newWorkflow]);
@@ -2271,17 +2114,19 @@ interface DestinationRowProps {
   issue?: LogicIssue;
   invalid?: boolean;
   followingQuestions: Question[];
-  futureBlocks: Block[];
-  futurePages: { name: string, destinationId: string }[];
   survey?: Survey;
-  currentQuestion?: Question;
   currentBlockId?: string | null;
   className?: string;
   hideNextQuestion?: boolean;
   [key: string]: any; // Allow other props
 }
 
-const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange, onConfirm, onRemove, isConfirmed = true, issue, invalid = false, followingQuestions, futureBlocks, futurePages, survey, currentQuestion, currentBlockId, className = '', hideNextQuestion = false, ...rest }) => {
+const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange, onConfirm, onRemove, isConfirmed = true, issue, invalid = false, followingQuestions, survey, currentBlockId, className = '', hideNextQuestion = false, ...rest }) => {
+    const otherBlocks = useMemo(() => {
+        if (!survey || !currentBlockId) return [];
+        return survey.blocks.filter(b => b.id !== currentBlockId);
+    }, [survey, currentBlockId]);
+
     return (
         <div className={`flex items-center gap-2 ${className}`} {...rest}>
             <span className="text-sm text-on-surface flex-shrink-0">{label}</span>
@@ -2296,9 +2141,9 @@ const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange,
                         {!hideNextQuestion && <option value="next">Next Question</option>}
                         <option value="end">End of Survey</option>
                     </optgroup>
-                     {futureBlocks.length > 0 && (
+                    {otherBlocks.length > 0 && (
                         <optgroup label="Blocks">
-                            {futureBlocks.map(block => (
+                            {otherBlocks.map(block => (
                                 <option key={block.id} value={`block:${block.id}`}>{block.bid}: {truncate(block.title, 50)}</option>
                             ))}
                         </optgroup>
@@ -2306,13 +2151,6 @@ const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange,
                     {followingQuestions.length > 0 && (
                         <optgroup label="Questions">
                             {followingQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}
-                        </optgroup>
-                    )}
-                    {futurePages.length > 0 && (
-                        <optgroup label="Pages">
-                            {futurePages.map(page => (
-                                <option key={page.destinationId} value={page.destinationId}>{truncate(page.name, 50)}</option>
-                            ))}
                         </optgroup>
                     )}
                 </select>
@@ -2582,25 +2420,12 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
     );
 };
 
-const SkipLogicEditor: React.FC<{
-    question: Question;
-    survey: Survey;
-    followingQuestions: Question[];
-    futureBlocks: Block[];
-    futurePages: { name: string, destinationId: string }[];
-    issues: LogicIssue[];
-    onUpdate: (updates: Partial<Question>) => void;
-    isChoiceBased: boolean;
-    onAddLogic: () => void;
-    onRequestGeminiHelp: (topic: string) => void;
-    focusedLogicSource: string | null;
-}> = ({ question, survey, followingQuestions, futureBlocks, futurePages, issues, onUpdate, isChoiceBased, onAddLogic, onRequestGeminiHelp, focusedLogicSource }) => {
+const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Question[]; issues: LogicIssue[]; onUpdate: (updates: Partial<Question>) => void; isChoiceBased: boolean; onAddLogic: () => void; onRequestGeminiHelp: (topic: string) => void; focusedLogicSource: string | null; }> = ({ question, followingQuestions, issues, onUpdate, isChoiceBased, onAddLogic, onRequestGeminiHelp, focusedLogicSource }) => {
     const [isPasting, setIsPasting] = useState(false);
     const [tempErrors, setTempErrors] = useState<Set<string>>(new Set());
     const skipLogic = question.draftSkipLogic ?? question.skipLogic;
     const isEnabled = !!skipLogic;
     const editorRef = useRef<HTMLDivElement>(null);
-    const currentBlockId = useMemo(() => survey.blocks.find(b => b.questions.some(q => q.id === question.id))?.id, [survey, question.id]);
 
     useEffect(() => {
         if (focusedLogicSource && editorRef.current) {
@@ -2804,11 +2629,6 @@ const SkipLogicEditor: React.FC<{
                                     issue={issue}
                                     invalid={tempErrors.has(choice.id)}
                                     followingQuestions={followingQuestions}
-                                    futureBlocks={futureBlocks}
-                                    futurePages={futurePages}
-                                    survey={survey}
-                                    currentQuestion={question}
-                                    currentBlockId={currentBlockId}
                                 />
                             );
                         })}
@@ -2824,11 +2644,6 @@ const SkipLogicEditor: React.FC<{
                         issue={issues.find(i => i.sourceId === 'simple' && i.field === 'skipTo')}
                         invalid={tempErrors.has('simple')}
                         followingQuestions={followingQuestions}
-                        futureBlocks={futureBlocks}
-                        futurePages={futurePages}
-                        survey={survey}
-                        currentQuestion={question}
-                        currentBlockId={currentBlockId}
                     />
                 )}
             </div>
@@ -3046,18 +2861,19 @@ interface BranchingLogicEditorProps {
     survey: Survey;
     previousQuestions: Question[];
     followingQuestions: Question[];
-    futureBlocks: Block[];
-    futurePages: { name: string, destinationId: string }[];
-    currentBlockId: string | undefined;
     issues: LogicIssue[];
     onUpdate: (updates: Partial<Question>) => void;
     onAddLogic: () => void;
     onRequestGeminiHelp: (topic: string) => void;
 }
 
-const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, survey, previousQuestions, followingQuestions, futureBlocks, futurePages, currentBlockId, issues, onUpdate, onAddLogic, onRequestGeminiHelp }) => {
+const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, survey, previousQuestions, followingQuestions, issues, onUpdate, onAddLogic, onRequestGeminiHelp }) => {
     const branchingLogic = question.draftBranchingLogic ?? question.branchingLogic;
     const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof BranchingLogicCondition | 'skipTo'>>>(new Map());
+
+    const currentBlockId = useMemo(() => {
+        return survey.blocks.find(b => b.questions.some(q => q.id === question.id))?.id || null;
+    }, [survey.blocks, question.id]);
 
     if (!branchingLogic) return null; 
 
@@ -3190,113 +3006,64 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
             </div>
             
             <div className="space-y-4">
-                {branchingLogic.branches.map((branch, branchIndex) => {
-                    // Calculate destinations used by other branches in this same logic block.
-                    const otherUsedDestinations = new Set(
-                        branchingLogic.branches
-                            .filter(b => b.id !== branch.id)
-                            .map(b => b.thenSkipTo)
-                            .filter(Boolean)
-                    );
-
-                    // Create filtered lists of available destinations for this specific branch.
-                    let availableFollowingQuestions = followingQuestions.filter(q => !otherUsedDestinations.has(q.id));
-                    let availableFutureBlocks = futureBlocks.filter(b => !otherUsedDestinations.has(`block:${b.id}`));
-                    let availableFuturePages = futurePages.filter(p => !otherUsedDestinations.has(p.destinationId));
-
-                    // Ensure the current branch's own destination is present in the lists,
-                    // so it can be selected in the dropdown even if used by another branch.
-                    const currentDestination = branch.thenSkipTo;
-                    if (currentDestination) {
-                        if (currentDestination.startsWith('block:')) {
-                            const blockId = currentDestination.substring(6);
-                            if (!availableFutureBlocks.some(b => b.id === blockId)) {
-                                const blockToAdd = survey.blocks.find(b => b.id === blockId);
-                                if (blockToAdd) {
-                                    availableFutureBlocks.push(blockToAdd);
-                                    const blockOrder = new Map(survey.blocks.map((b, i) => [b.id, i]));
-                                    // FIX: The result of Map.get can be undefined. Subtraction with Infinity might not be type-safe in all TS configs.
-                                    availableFutureBlocks.sort((a, b) => (blockOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (blockOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER));
-                                }
-                            }
-                        } else if (currentDestination !== 'next' && currentDestination !== 'end') {
-                            if (!availableFollowingQuestions.some(q => q.id === currentDestination)) {
-                                const questionToAdd = survey.blocks.flatMap(b => b.questions).find(q => q.id === currentDestination);
-                                if (questionToAdd) {
-                                    availableFollowingQuestions.push(questionToAdd);
-                                    // FIX: `allSurveyQuestions` was not defined in this scope.
-                                    const allSurveyQuestions = survey.blocks.flatMap(b => b.questions);
-                                    const questionOrder = new Map(allSurveyQuestions.map((q, i) => [q.id, i]));
-                                    // FIX: The result of Map.get can be undefined. Subtraction with Infinity might not be type-safe in all TS configs.
-                                    availableFollowingQuestions.sort((a, b) => (questionOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (questionOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER));
-                                }
-                            }
-                        }
-                    }
-
-                    return (
-                        <div key={branch.id} className="p-3 border border-outline-variant rounded-md bg-surface-container">
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-2">
-                                    <span className="font-bold text-primary">IF</span>
-                                </div>
-                                <button onClick={() => handleRemoveBranch(branch.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Remove branch"><XIcon className="text-lg"/></button>
+                {branchingLogic.branches.map((branch, branchIndex) => (
+                    <div key={branch.id} className="p-3 border border-outline-variant rounded-md bg-surface-container">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <span className="font-bold text-primary">IF</span>
                             </div>
-
-                            <div className="space-y-2 mb-3">
-                                {branch.conditions.map((condition, condIndex) => (
-                                    <LogicConditionRow
-                                        key={condition.id}
-                                        condition={condition}
-                                        isFirstCondition={condIndex === 0}
-                                        currentQuestion={question}
-                                        onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
-                                        onRemoveCondition={undefined}
-                                        previousQuestions={previousQuestions}
-                                        issues={issues.filter(i => i.sourceId === condition.id)}
-                                        invalidFields={validationErrors.get(condition.id)}
-                                    />
-                                ))}
-                            </div>
-                            
-                            <div className="mb-3">
-                               <DestinationRow
-                                    label={<span className="font-bold text-primary">THEN</span>}
-                                    value={branch.thenSkipTo}
-                                    onChange={(value) => handleUpdateBranch(branch.id, { thenSkipTo: value, thenSkipToIsConfirmed: false })}
-                                    onConfirm={() => handleConfirmBranch(branch.id)}
-                                    isConfirmed={branch.thenSkipToIsConfirmed}
-                                    issue={issues.find(i => i.sourceId === branch.id && i.field === 'skipTo')}
-                                    invalid={validationErrors.has(branch.id)}
-                                    followingQuestions={availableFollowingQuestions}
-                                    futureBlocks={availableFutureBlocks}
-                                    futurePages={availableFuturePages}
-                                    hideNextQuestion={true}
-                                    survey={survey}
-                                    currentQuestion={question}
-                                    currentBlockId={currentBlockId}
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor={`path-name-${branch.id}`} className="block text-xs font-medium text-on-surface-variant mb-1">Path Name</label>
-                                <input
-                                    type="text"
-                                    id={`path-name-${branch.id}`}
-                                    value={branch.pathName || `Path ${branchIndex + 1}`}
-                                    onChange={e => handleUpdatePathName(branch.id, e.target.value)}
-                                    className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-                                    placeholder={`e.g., Path ${branchIndex + 1}`}
-                                />
-                            </div>
+                            <button onClick={() => handleRemoveBranch(branch.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Remove branch"><XIcon className="text-lg"/></button>
                         </div>
-                    );
-                })}
+
+                        <div className="space-y-2 mb-3">
+                            {branch.conditions.map((condition, condIndex) => (
+                                <LogicConditionRow
+                                    key={condition.id}
+                                    condition={condition}
+                                    isFirstCondition={condIndex === 0}
+                                    currentQuestion={question}
+                                    onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
+                                    onRemoveCondition={undefined}
+                                    previousQuestions={previousQuestions}
+                                    issues={issues.filter(i => i.sourceId === condition.id)}
+                                    invalidFields={validationErrors.get(condition.id)}
+                                />
+                            ))}
+                        </div>
+                        
+                        <div className="mb-3">
+                           <DestinationRow
+                                label={<span className="font-bold text-primary">THEN</span>}
+                                value={branch.thenSkipTo}
+                                onChange={(value) => handleUpdateBranch(branch.id, { thenSkipTo: value, thenSkipToIsConfirmed: false })}
+                                onConfirm={() => handleConfirmBranch(branch.id)}
+                                isConfirmed={branch.thenSkipToIsConfirmed}
+                                issue={issues.find(i => i.sourceId === branch.id && i.field === 'skipTo')}
+                                invalid={validationErrors.has(branch.id)}
+                                followingQuestions={[]}
+                                hideNextQuestion={true}
+                                survey={survey}
+                                currentBlockId={currentBlockId}
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor={`path-name-${branch.id}`} className="block text-xs font-medium text-on-surface-variant mb-1">Path Name</label>
+                            <input
+                                type="text"
+                                id={`path-name-${branch.id}`}
+                                value={branch.pathName || `Path ${branchIndex + 1}`}
+                                onChange={e => handleUpdatePathName(branch.id, e.target.value)}
+                                className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                                placeholder={`e.g., Path ${branchIndex + 1}`}
+                            />
+                        </div>
+                    </div>
+                ))}
             </div>
 
             <button onClick={handleAddBranch} className="mt-4 flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-                <PlusIcon className="text-base" />
-                Add branch
+                <PlusIcon className="text-base" /> Add branch
             </button>
 
             <div className="mt-4 pt-4 border-t border-outline-variant">
@@ -3310,11 +3077,8 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
                         issue={issues.find(i => i.sourceId === 'otherwise' && i.field === 'skipTo')}
                         invalid={validationErrors.has('otherwise')}
                         followingQuestions={followingQuestions}
-                        futureBlocks={futureBlocks}
-                        futurePages={futurePages}
                         hideNextQuestion={false}
                         survey={survey}
-                        currentQuestion={question}
                         currentBlockId={currentBlockId}
                     />
                 </div>
@@ -3371,25 +3135,11 @@ export const RightSidebar: React.FC<{
     toolboxItems,
     onRequestGeminiHelp,
 }) => {
-    const isDescription = question.type === QuestionType.Description;
-
-    const tabs = useMemo(() => {
-        if (isDescription) {
-            return ['Settings'];
-        }
-        
-        const defaultTabs = ['Settings', 'Behavior', 'Advanced'];
-        if (!['Description', 'Page Break'].includes(question.type)) {
-            defaultTabs.push('Preview');
-        }
-        return defaultTabs;
-    }, [question.type, isDescription]);
-
-    useEffect(() => {
-        if (isDescription && (activeTab === 'Behavior' || activeTab === 'Advanced')) {
-            onTabChange('Settings');
-        }
-    }, [question.id, isDescription, activeTab, onTabChange]);
+    const isChoiceBased = useMemo(() => CHOICE_BASED_QUESTION_TYPES.has(question.type), [question.type]);
+    const tabs = ['Settings', 'Behavior', 'Advanced'];
+    if (!['Description', 'Page Break'].includes(question.type)) {
+        tabs.push('Preview');
+    }
 
     return (
         <aside className="w-full h-full bg-surface-container border-l border-outline-variant flex flex-col">

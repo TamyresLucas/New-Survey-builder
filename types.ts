@@ -321,27 +321,11 @@ export interface StartNode extends BaseNode {
 }
 
 /**
- * Represents the end point of the survey logic.
- */
-export interface EndNode extends BaseNode {
-  type: 'end';
-  data: { label: string };
-}
-
-/**
  * Represents an open-text question.
  */
 export interface TextEntryNode extends BaseNode {
   type: 'text_entry';
   data: { variableName: string; question: string; validationType?: string };
-}
-
-/**
- * Represents a description/info block.
- */
-export interface DescriptionNode extends BaseNode {
-  type: 'description_node';
-  data: { question: string; };
 }
 
 /**
@@ -355,7 +339,7 @@ export interface MultipleChoiceNode extends BaseNode {
 /**
  * A discriminated union of all possible node types for the diagram.
  */
-export type Node = StartNode | EndNode | TextEntryNode | MultipleChoiceNode | DescriptionNode;
+export type Node = StartNode | TextEntryNode | MultipleChoiceNode;
 
 
 export interface Edge {
@@ -386,7 +370,5 @@ export interface PathAnalysisResult {
 // --- TYPE GUARDS FOR DIAGRAM NODES ---
 
 export const isStartNode = (node: Node): node is StartNode => node.type === 'start';
-export const isEndNode = (node: Node): node is EndNode => node.type === 'end';
 export const isMultipleChoiceNode = (node: Node): node is MultipleChoiceNode => node.type === 'multiple_choice';
 export const isTextEntryNode = (node: Node): node is TextEntryNode => node.type === 'text_entry';
-export const isDescriptionNode = (node: Node): node is DescriptionNode => node.type === 'description_node';

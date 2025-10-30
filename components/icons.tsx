@@ -98,7 +98,6 @@ export const ToggleOffIcon: React.FC<IconProps> = ({ className, style }) => <Mat
 
 export const ChevronRightIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="chevron_right" className={className} style={style} />;
 export const MoreVertIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="more_vert" className={className} style={style} />;
-export const CheckCircleIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="check_circle" className={className} style={style} />;
 
 // Preview Icons
 export const ComputerIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="computer" className={className} style={style} />;

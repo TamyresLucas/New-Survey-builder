@@ -2134,14 +2134,19 @@ interface DestinationRowProps {
   currentBlockId?: string | null;
   className?: string;
   hideNextQuestion?: boolean;
+  usedDestinations?: Set<string>;
   [key: string]: any; // Allow other props
 }
 
-const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange, onConfirm, onRemove, isConfirmed = true, issue, invalid = false, followingQuestions, survey, currentBlockId, className = '', hideNextQuestion = false, ...rest }) => {
+const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange, onConfirm, onRemove, isConfirmed = true, issue, invalid = false, followingQuestions, survey, currentBlockId, className = '', hideNextQuestion = false, usedDestinations, ...rest }) => {
     const otherBlocks = useMemo(() => {
         if (!survey || !currentBlockId) return [];
-        return survey.blocks.filter(b => b.id !== currentBlockId);
-    }, [survey, currentBlockId]);
+        return survey.blocks.filter(b => {
+            if (b.id === currentBlockId) return false;
+            if (usedDestinations?.has(`block:${b.id}`)) return false;
+            return true;
+        });
+    }, [survey, currentBlockId, usedDestinations]);
 
     return (
         <div className={`flex items-center gap-2 ${className}`} {...rest}>
@@ -2910,13 +2915,14 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
 
     const canAddBranch = useMemo(() => {
         if (!question.choices || question.choices.length === 0) {
-            return true;
+            return true; // Always allow adding branches for non-choice questions
         }
     
         const usedChoiceTexts = new Set<string>();
         if (branchingLogic) {
             for (const branch of branchingLogic.branches) {
                 for (const condition of branch.conditions) {
+                    // This logic is specific to the first condition being the current question.
                     if (condition.questionId === question.qid && condition.value) {
                         usedChoiceTexts.add(condition.value);
                     }
@@ -3069,67 +3075,75 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
             </div>
             
             <div className="space-y-4">
-                {branchingLogic.branches.map((branch, branchIndex) => (
-                    <div key={branch.id} className="p-3 border border-outline-variant rounded-md bg-surface-container">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                                <span className="font-bold text-primary">IF</span>
+                {branchingLogic.branches.map((branch, branchIndex) => {
+                    const usedBranchDestinations = new Set(
+                        branchingLogic.branches
+                            .filter(b => b.id !== branch.id)
+                            .map(b => b.thenSkipTo)
+                    );
+                    return (
+                        <div key={branch.id} className="p-3 border border-outline-variant rounded-md bg-surface-container">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-bold text-primary">IF</span>
+                                </div>
+                                <button onClick={() => handleRemoveBranch(branch.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Remove branch"><XIcon className="text-lg"/></button>
                             </div>
-                            <button onClick={() => handleRemoveBranch(branch.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Remove branch"><XIcon className="text-lg"/></button>
-                        </div>
 
-                        <div className="space-y-2 mb-3">
-                            {branch.conditions.map((condition, condIndex) => {
-                                const usedValuesForThisQid = new Set(allUsedValuesByQid.get(condition.questionId) || []);
-                                // The current condition's own value should not be considered "used" for its own dropdown
-                                usedValuesForThisQid.delete(condition.value);
+                            <div className="space-y-2 mb-3">
+                                {branch.conditions.map((condition, condIndex) => {
+                                    const usedValuesForThisQid = new Set(allUsedValuesByQid.get(condition.questionId) || []);
+                                    // The current condition's own value should not be considered "used" for its own dropdown
+                                    usedValuesForThisQid.delete(condition.value);
 
-                                return (
-                                    <LogicConditionRow
-                                        key={condition.id}
-                                        condition={condition}
-                                        isFirstCondition={condIndex === 0}
-                                        currentQuestion={question}
-                                        onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
-                                        onRemoveCondition={undefined}
-                                        previousQuestions={previousQuestions}
-                                        issues={issues.filter(i => i.sourceId === condition.id)}
-                                        invalidFields={validationErrors.get(condition.id)}
-                                        usedValues={usedValuesForThisQid}
-                                    />
-                                );
-                            })}
-                        </div>
-                        
-                        <div className="mb-3">
-                           <DestinationRow
-                                label={<span className="font-bold text-primary">THEN</span>}
-                                value={branch.thenSkipTo}
-                                onChange={(value) => handleUpdateBranch(branch.id, { thenSkipTo: value, thenSkipToIsConfirmed: false })}
-                                onConfirm={() => handleConfirmBranch(branch.id)}
-                                isConfirmed={branch.thenSkipToIsConfirmed}
-                                issue={issues.find(i => i.sourceId === branch.id && i.field === 'skipTo')}
-                                invalid={validationErrors.has(branch.id)}
-                                followingQuestions={[]}
-                                hideNextQuestion={true}
-                                survey={survey}
-                                currentBlockId={currentBlockId}
-                            />
-                        </div>
+                                    return (
+                                        <LogicConditionRow
+                                            key={condition.id}
+                                            condition={condition}
+                                            isFirstCondition={condIndex === 0}
+                                            currentQuestion={question}
+                                            onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
+                                            onRemoveCondition={undefined}
+                                            previousQuestions={previousQuestions}
+                                            issues={issues.filter(i => i.sourceId === condition.id)}
+                                            invalidFields={validationErrors.get(condition.id)}
+                                            usedValues={usedValuesForThisQid}
+                                        />
+                                    );
+                                })}
+                            </div>
+                            
+                            <div className="mb-3">
+                               <DestinationRow
+                                    label={<span className="font-bold text-primary">THEN</span>}
+                                    value={branch.thenSkipTo}
+                                    onChange={(value) => handleUpdateBranch(branch.id, { thenSkipTo: value, thenSkipToIsConfirmed: false })}
+                                    onConfirm={() => handleConfirmBranch(branch.id)}
+                                    isConfirmed={branch.thenSkipToIsConfirmed}
+                                    issue={issues.find(i => i.sourceId === branch.id && i.field === 'skipTo')}
+                                    invalid={validationErrors.has(branch.id)}
+                                    followingQuestions={[]}
+                                    hideNextQuestion={true}
+                                    survey={survey}
+                                    currentBlockId={currentBlockId}
+                                    usedDestinations={usedBranchDestinations}
+                                />
+                            </div>
 
-                        <div>
-                            <label htmlFor={`path-name-${branch.id}`} className="block text-xs font-medium text-on-surface-variant mb-1">Path Name</label>
-                            <input
-                                type="text"
-                                id={`path-name-${branch.id}`}
-                                value={branch.pathName || `Path ${branchIndex + 1}`}
-                                onChange={e => handleUpdatePathName(branch.id, e.target.value)}
-                                className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-                                placeholder={`e.g., Path ${branchIndex + 1}`}
-                            />
+                            <div>
+                                <label htmlFor={`path-name-${branch.id}`} className="block text-xs font-medium text-on-surface-variant mb-1">Path Name</label>
+                                <input
+                                    type="text"
+                                    id={`path-name-${branch.id}`}
+                                    value={branch.pathName || `Path ${branchIndex + 1}`}
+                                    onChange={e => handleUpdatePathName(branch.id, e.target.value)}
+                                    className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                                    placeholder={`e.g., Path ${branchIndex + 1}`}
+                                />
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {canAddBranch && (

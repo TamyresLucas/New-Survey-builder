@@ -2894,6 +2894,26 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
         return map;
     }, [branchingLogic]);
 
+    const canAddBranch = useMemo(() => {
+        if (!question.choices || question.choices.length === 0) {
+            return true;
+        }
+    
+        const usedChoiceTexts = new Set<string>();
+        if (branchingLogic) {
+            for (const branch of branchingLogic.branches) {
+                for (const condition of branch.conditions) {
+                    if (condition.questionId === question.qid && condition.value) {
+                        usedChoiceTexts.add(condition.value);
+                    }
+                }
+            }
+        }
+    
+        return usedChoiceTexts.size < question.choices.length;
+    }, [branchingLogic, question.qid, question.choices]);
+
+
     if (!branchingLogic) return null; 
 
     const handleUpdateBranch = (branchId: string, updates: Partial<BranchingLogicBranch>) => {
@@ -3088,9 +3108,11 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
                 ))}
             </div>
 
-            <button onClick={handleAddBranch} className="mt-4 flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-                <PlusIcon className="text-base" /> Add branch
-            </button>
+            {canAddBranch && (
+                <button onClick={handleAddBranch} className="mt-4 flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                    <PlusIcon className="text-base" /> Add branch
+                </button>
+            )}
 
             <div className="mt-4 pt-4 border-t border-outline-variant">
                  <div className="mb-3">

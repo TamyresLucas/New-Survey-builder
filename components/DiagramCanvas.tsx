@@ -50,9 +50,9 @@ interface DiagramCanvasProps {
 }
 
 const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab }) => {
-    // FIX: Explicitly type the initial empty array for useNodesState and useEdgesState to prevent type inference issues.
-    const [nodes, setNodes, onNodesChange] = useNodesState([] as DiagramNode[]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState([] as DiagramEdge[]);
+    // FIX: Pass an initial empty array to useNodesState and useEdgesState to fix "Expected 1 arguments, but got 0" error.
+    const [nodes, setNodes, onNodesChange] = useNodesState<DiagramNode>([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState<DiagramEdge>([]);
     const reactFlowInstance = useReactFlow();
     const prevActiveTabRef = useRef<string>();
     const prevSelectedQuestionRef = useRef<Question | null>(null);

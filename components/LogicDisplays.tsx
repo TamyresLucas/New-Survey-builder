@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { Survey, Question, DisplayLogic, SkipLogic, BranchingLogic, DisplayLogicCondition, BranchingLogicCondition } from '../types';
 import { EyeIcon, ArrowRightAltIcon, CallSplitIcon } from './icons';
 import { truncate, parseChoice } from '../utils';
@@ -134,10 +134,37 @@ export const SkipLogicDisplay: React.FC<{ logic: SkipLogic; currentQuestion: Que
 
 
 // --- Branching Logic Component ---
-export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Survey; onClick: () => void }> = ({ logic, survey, onClick }) => {
+export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Survey; onClick: () => void; question: Question; }> = ({ logic, survey, onClick, question }) => {
+    
+    const showOtherwise = useMemo(() => {
+        // If it's not a choice-based question, 'otherwise' is always relevant.
+        if (!question.choices || question.choices.length === 0) {
+            return true;
+        }
+
+        const usedChoiceTexts = new Set<string>();
+        // We check the confirmed logic here, as this is what the display card shows.
+        if (logic) {
+            for (const branch of logic.branches) {
+                // Only consider confirmed branches for the summary view
+                if (branch.thenSkipToIsConfirmed) {
+                    for (const condition of branch.conditions) {
+                        // Only consider conditions on the current question that are confirmed
+                        if (condition.questionId === question.qid && condition.isConfirmed && condition.value) {
+                            usedChoiceTexts.add(condition.value);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 'Otherwise' is shown only if there are choices left over that aren't covered by a branch.
+        return usedChoiceTexts.size < question.choices.length;
+    }, [logic, question.qid, question.choices]);
+    
     const hasAnyConfirmedLogic = logic.branches.some(branch =>
         (branch.thenSkipToIsConfirmed && branch.conditions.some(c => c.isConfirmed === true))
-    ) || logic.otherwiseIsConfirmed;
+    ) || (showOtherwise && logic.otherwiseIsConfirmed);
     
     if (!hasAnyConfirmedLogic) {
         return null;
@@ -165,7 +192,7 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
                         </div>
                     );
                 })}
-                {logic.otherwiseIsConfirmed && (
+                {showOtherwise && logic.otherwiseIsConfirmed && (
                      <div className="p-2 bg-surface rounded-md">
                         <span className="font-bold text-on-surface-variant">OTHERWISE </span>
                         <span>skip to <span className="font-semibold">{formatDestination(logic.otherwiseSkipTo, survey)}</span>.</span>

@@ -1922,9 +1922,10 @@ interface LogicConditionRowProps {
     invalidFields?: Set<keyof (DisplayLogicCondition | BranchingLogicCondition) | 'skipTo'>;
     isFirstCondition?: boolean;
     currentQuestion?: Question;
+    usedValues?: Set<string>;
 }
 
-const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpdateCondition, onRemoveCondition, onConfirm, previousQuestions, issues, invalidFields = new Set(), isFirstCondition = false, currentQuestion }) => {
+const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpdateCondition, onRemoveCondition, onConfirm, previousQuestions, issues, invalidFields = new Set(), isFirstCondition = false, currentQuestion, usedValues }) => {
     const referencedQuestion = useMemo(() => {
         if (isFirstCondition && currentQuestion) {
             return currentQuestion;
@@ -2055,7 +2056,7 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
                             disabled={valueIsDisabled}
                         >
                             <option value="">select answer</option>
-                            {referencedQuestion.choices.map(choice => (
+                            {referencedQuestion.choices.filter(choice => !usedValues?.has(choice.text)).map(choice => (
                                 <option key={choice.id} value={choice.text}>{parseChoice(choice.text).label}</option>
                             ))}
                         </select>
@@ -2877,6 +2878,22 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
         return survey.blocks.find(b => b.questions.some(q => q.id === question.id))?.id || null;
     }, [survey.blocks, question.id]);
 
+    const allUsedValuesByQid = useMemo(() => {
+        const map = new Map<string, string[]>();
+        if (!branchingLogic) return map;
+        branchingLogic.branches.forEach(b => {
+            b.conditions.forEach(c => {
+                if (c.questionId && c.value) {
+                    if (!map.has(c.questionId)) {
+                        map.set(c.questionId, []);
+                    }
+                    map.get(c.questionId)!.push(c.value);
+                }
+            });
+        });
+        return map;
+    }, [branchingLogic]);
+
     if (!branchingLogic) return null; 
 
     const handleUpdateBranch = (branchId: string, updates: Partial<BranchingLogicBranch>) => {
@@ -3018,19 +3035,26 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
                         </div>
 
                         <div className="space-y-2 mb-3">
-                            {branch.conditions.map((condition, condIndex) => (
-                                <LogicConditionRow
-                                    key={condition.id}
-                                    condition={condition}
-                                    isFirstCondition={condIndex === 0}
-                                    currentQuestion={question}
-                                    onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
-                                    onRemoveCondition={undefined}
-                                    previousQuestions={previousQuestions}
-                                    issues={issues.filter(i => i.sourceId === condition.id)}
-                                    invalidFields={validationErrors.get(condition.id)}
-                                />
-                            ))}
+                            {branch.conditions.map((condition, condIndex) => {
+                                const usedValuesForThisQid = new Set(allUsedValuesByQid.get(condition.questionId) || []);
+                                // The current condition's own value should not be considered "used" for its own dropdown
+                                usedValuesForThisQid.delete(condition.value);
+
+                                return (
+                                    <LogicConditionRow
+                                        key={condition.id}
+                                        condition={condition}
+                                        isFirstCondition={condIndex === 0}
+                                        currentQuestion={question}
+                                        onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
+                                        onRemoveCondition={undefined}
+                                        previousQuestions={previousQuestions}
+                                        issues={issues.filter(i => i.sourceId === condition.id)}
+                                        invalidFields={validationErrors.get(condition.id)}
+                                        usedValues={usedValuesForThisQid}
+                                    />
+                                );
+                            })}
                         </div>
                         
                         <div className="mb-3">

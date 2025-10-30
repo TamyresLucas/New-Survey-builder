@@ -50,7 +50,9 @@ interface DiagramCanvasProps {
 }
 
 const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab }) => {
+    // FIX: Initialized useNodesState with an empty array to satisfy the hook's requirement for an initial value.
     const [nodes, setNodes, onNodesChange] = useNodesState<DiagramNode>([]);
+    // FIX: Initialized useEdgesState with an empty array for consistency and to prevent potential errors.
     const [edges, setEdges, onEdgesChange] = useEdgesState<DiagramEdge>([]);
     const reactFlowInstance = useReactFlow();
     const prevActiveTabRef = useRef<string>();
@@ -598,7 +600,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     }, [survey, onSelectQuestion]);
 
     const onEdgeUpdate = useCallback(
-        (oldEdge: DiagramEdge, newConnection: Connection) => {
+        (oldEdge: XyflowEdge, newConnection: Connection) => {
             if (!newConnection.source || !newConnection.target || !newConnection.sourceHandle) {
                 return;
             }

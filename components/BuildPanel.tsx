@@ -75,7 +75,11 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
             >
                 <div className="flex items-center flex-shrink-0">
                     <TypeIcon className={`text-base mr-2 ${isSelected ? 'text-on-primary' : 'text-primary'}`} />
-                    <span className={`font-semibold text-sm ${isSelected ? 'text-on-primary' : 'text-on-surface'}`}>{question.qid}</span>
+                    {question.type === QTEnum.Description ? (
+                        <span className={`font-normal text-sm ${isSelected ? 'text-on-primary' : 'text-on-surface-variant'}`}>{question.label || 'Description'}</span>
+                    ) : (
+                        <span className={`font-semibold text-sm ${isSelected ? 'text-on-primary' : 'text-on-surface'}`}>{question.qid}</span>
+                    )}
                 </div>
                 <span className={`font-normal truncate flex-grow ${isSelected ? 'text-on-primary' : 'text-on-surface'}`}>{question.text}</span>
                 
@@ -195,6 +199,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                 ...block,
                 questions: block.questions.filter(question =>
                     question.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    (question.label && question.label.toLowerCase().includes(searchTerm.toLowerCase())) ||
                     question.qid.toLowerCase().includes(searchTerm.toLowerCase())
                 ),
             }))
@@ -428,17 +433,24 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
               <ul className="absolute top-full left-0 right-0 mt-1 w-full max-h-60 overflow-y-auto bg-surface-container border border-outline-variant rounded-md shadow-lg z-20 py-1">
                 {questionTypeFilterOptions.map(option => {
                   const IconComponent = questionTypeIconMap.get(option);
+                  const isEnabled = option === 'All content' || option === 'All question types' || enabledToolboxItems.has(option);
                   return (
                     <li key={option}>
                       <button
                         onClick={() => {
+                          if (!isEnabled) return;
                           setQuestionTypeFilter(option);
                           setIsFilterDropdownOpen(false);
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high flex items-center"
+                        disabled={!isEnabled}
+                        className={`w-full text-left px-4 py-2 text-sm flex items-center ${
+                          isEnabled
+                            ? 'text-on-surface hover:bg-surface-container-high'
+                            : 'text-on-surface-variant opacity-70 cursor-not-allowed'
+                        }`}
                       >
                         {IconComponent ? (
-                          <IconComponent className="text-base mr-2 text-primary flex-shrink-0" />
+                          <IconComponent className={`text-base mr-2 flex-shrink-0 ${isEnabled ? 'text-primary' : 'text-on-surface-variant'}`} />
                         ) : (
                           <div className="w-4 mr-2 flex-shrink-0" />
                         )}

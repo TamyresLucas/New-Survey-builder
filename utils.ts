@@ -60,7 +60,16 @@ export const renumberSurveyVariables = (survey: Survey): Survey => {
   // 3. Renumber block/question QIDs and choice variables, and create a map from ID to the new QID.
   let questionCounter = 1;
   let blockCounter = 1;
+  let descriptionCounter = 1;
   const idToNewQidMap = new Map<string, string>();
+  
+  // Get all labels that were set by the user (i.e., not the default "Description X" pattern)
+  const customLabels = new Set(
+    newSurvey.blocks
+        .flatMap((b: Block) => b.questions)
+        .filter((q: Question) => q.type === QuestionType.Description && q.label && !/^Description \d+$/.test(q.label))
+        .map((q: Question) => q.label!)
+  );
 
   for (const block of newSurvey.blocks) {
     block.bid = `BL${blockCounter}`;
@@ -68,7 +77,23 @@ export const renumberSurveyVariables = (survey: Survey): Survey => {
     for (const question of block.questions) {
       if (question.type === QuestionType.PageBreak) {
         question.qid = '';
-        idToNewQidMap.set(question.id, ''); // Store empty QID for page breaks
+        idToNewQidMap.set(question.id, '');
+        continue;
+      }
+      if (question.type === QuestionType.Description) {
+        question.qid = '';
+        idToNewQidMap.set(question.id, '');
+        // Only assign a default label if the question doesn't have a custom one
+        if (!question.label || /^Description \d+$/.test(question.label)) {
+            let newLabel = `Description ${descriptionCounter}`;
+            // If a user manually created a label like "Description 1", skip it
+            while (customLabels.has(newLabel)) {
+                descriptionCounter++;
+                newLabel = `Description ${descriptionCounter}`;
+            }
+            question.label = newLabel;
+        }
+        descriptionCounter++;
         continue;
       }
 
@@ -200,6 +225,10 @@ export const generateSurveyTextCopy = (survey: Survey): string => {
     block.questions.forEach(q => {
       if (q.type === 'Page Break') {
         output += `[PAGE BREAK]\n\n`;
+        return;
+      }
+      if (q.type === 'Description') {
+        output += `${q.label || 'Description'}: ${stripHtml(q.text)}\n\n`;
         return;
       }
 

@@ -52,7 +52,7 @@ export const initialSurveyData: Survey = {
       questions: [
         {
           id: 'q-welcome',
-          qid: 'WELCOME',
+          qid: '',
           text: 'Welcome to our feedback survey! Your opinion is important to us.',
           type: QuestionType.Description,
         },

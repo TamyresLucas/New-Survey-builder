@@ -445,6 +445,33 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 choices: questionToCopy.choices?.map((c: Choice) => ({ ...c, id: generateId('c') }))
             };
 
+            // Add logic to handle unique description labels on copy
+            const allOtherLabels = new Set(
+                newState.blocks
+                    .flatMap((b: Block) => b.questions)
+                    .filter((q: Question) => q.type === QTEnum.Description && q.label)
+                    .map((q: Question) => q.label!)
+            );
+
+            if (newQuestion.type === QTEnum.Description && newQuestion.label) {
+                let finalLabel = newQuestion.label;
+                if (allOtherLabels.has(finalLabel)) {
+                    // If it's a default numbered label, clear it and let renumbering handle it.
+                    if (/^Description \d+$/.test(finalLabel)) {
+                        newQuestion.label = undefined;
+                    } else {
+                        // It's a custom label, so find a unique name.
+                        let copyNum = 1;
+                        let newAttempt = `${newQuestion.label} (Copy)`;
+                        while (allOtherLabels.has(newAttempt)) {
+                            copyNum++;
+                            newAttempt = `${newQuestion.label} (Copy ${copyNum})`;
+                        }
+                        newQuestion.label = newAttempt;
+                    }
+                }
+            }
+
             newState.blocks[blockIndex].questions.splice(questionIndex + 1, 0, newQuestion);
             return renumberSurveyVariables(newState);
         }
@@ -499,7 +526,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
             if (targetQuestion) {
                 if (!targetQuestion.choices) targetQuestion.choices = [];
-                const choiceNum = targetQuestion.choices.length + 1;
+                const choiceNum = Number(targetQuestion.choices.length) + 1;
                 
                 const defaultText = targetQuestion.type === QTEnum.ChoiceGrid 
                     ? `Row ${choiceNum}` 
@@ -584,6 +611,41 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                     choices: q.choices?.map((c: Choice) => ({ ...c, id: generateId('c') }))
                 }))
             };
+
+            // Add logic to handle unique description labels on copy
+            const allOtherLabels = new Set(
+                newState.blocks
+                    .flatMap((b: Block) => b.questions)
+                    .filter((q: Question) => q.type === QTEnum.Description && q.label)
+                    .map((q: Question) => q.label!)
+            );
+
+            // This set will track labels as we make them unique *within* the new block
+            const labelsInNewBlock = new Set<string>();
+
+            newBlock.questions.forEach((q: Question) => {
+                if (q.type === QTEnum.Description && q.label) {
+                    let finalLabel = q.label;
+                    if (allOtherLabels.has(finalLabel) || labelsInNewBlock.has(finalLabel)) {
+                        if (/^Description \d+$/.test(finalLabel)) {
+                            q.label = undefined; // Let renumbering handle it
+                        } else {
+                            let copyNum = 1;
+                            let newAttempt = `${q.label} (Copy)`;
+                            while (allOtherLabels.has(newAttempt) || labelsInNewBlock.has(newAttempt)) {
+                                copyNum++;
+                                newAttempt = `${q.label} (Copy ${copyNum})`;
+                            }
+                            finalLabel = newAttempt;
+                        }
+                    }
+                    q.label = finalLabel;
+                    if (q.label) {
+                        labelsInNewBlock.add(q.label);
+                    }
+                }
+            });
+            
             newState.blocks.splice(blockToCopyIndex + 1, 0, newBlock);
             return renumberSurveyVariables(newState);
         }

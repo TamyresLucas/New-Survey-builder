@@ -4,6 +4,7 @@ import SubHeader from './components/SubHeader';
 import LeftSidebar from './components/LeftSidebar';
 import BuildPanel from './components/BuildPanel';
 import SurveyCanvas from './components/SurveyCanvas';
+// FIX: Changed import to named import as RightSidebar is now a named export.
 import { RightSidebar } from './components/RightSidebar';
 import SurveyStructureWidget from './components/SurveyStructureWidget';
 import GeminiPanel from './components/GeminiPanel';

@@ -19,7 +19,8 @@ interface SurveyBlockProps {
     selectedQuestion: Question | null;
     checkedQuestions: Set<string>;
     logicIssues: LogicIssue[];
-    onSelectQuestion: (question: Question | null, tab?: string) => void;
+    // FIX: Updated onSelectQuestion signature to accept an options object to match parent components.
+    onSelectQuestion: (question: Question | null, options?: { tab?: string; focusOn?: string }) => void;
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
     onUpdateBlock: (blockId: string, updates: Partial<Block>) => void;
     onDeleteQuestion: (questionId: string) => void;

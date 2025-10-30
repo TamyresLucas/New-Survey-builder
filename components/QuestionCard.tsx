@@ -133,6 +133,10 @@ const QuestionCard: React.FC<{
     const [pageNameValue, setPageNameValue] = useState('');
     const pageNameInputRef = useRef<HTMLInputElement>(null);
 
+    const [isEditingLabel, setIsEditingLabel] = useState(false);
+    const [labelValue, setLabelValue] = useState(question.label || '');
+    const [labelError, setLabelError] = useState<string | null>(null);
+
     const isAnyMenuOpen = isTypeMenuOpen || isActionsMenuOpen;
 
     const questionTypeOptions = useMemo(() => toolboxItems
@@ -155,6 +159,12 @@ const QuestionCard: React.FC<{
             pageNameInputRef.current.select();
         }
     }, [isEditingPageName]);
+
+    useEffect(() => {
+        setIsEditingLabel(false);
+        setLabelValue(question.label || '');
+        setLabelError(null);
+    }, [question.id, question.label]);
 
 
     useEffect(() => {
@@ -247,7 +257,7 @@ const QuestionCard: React.FC<{
         const currentScalePoints = question.scalePoints || [];
         const newScalePoint: Choice = {
             id: generateId('s'),
-            text: `Column ${currentScalePoints.length + 1}`
+            text: `Column ${Number(currentScalePoints.length) + 1}`
         };
         onUpdateQuestion(question.id, { scalePoints: [...currentScalePoints, newScalePoint] });
     }, [question.id, question.scalePoints, onUpdateQuestion]);
@@ -278,6 +288,55 @@ const QuestionCard: React.FC<{
             if (pageInfo) setPageNameValue(pageInfo.pageName);
         }
     }, [handleSavePageName, pageInfo]);
+
+    const handleLabelEditClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setLabelValue(question.label || '');
+        setIsEditingLabel(true);
+    };
+    
+    const saveLabel = () => {
+        const trimmedValue = labelValue.trim();
+    
+        if (!trimmedValue && !question.label) {
+            setIsEditingLabel(false);
+            return;
+        }
+    
+        if (trimmedValue) {
+            const isDuplicate = survey.blocks
+                .flatMap(b => b.questions)
+                .some(q => 
+                    q.id !== question.id && 
+                    q.type === QuestionType.Description &&
+                    q.label?.trim().toLowerCase() === trimmedValue.toLowerCase()
+                );
+    
+            if (isDuplicate) {
+                setLabelError(`Label "${trimmedValue}" is already in use.`);
+                return;
+            }
+        }
+    
+        const newLabel = trimmedValue ? trimmedValue : undefined;
+        if (newLabel !== question.label) {
+            onUpdateQuestion(question.id, { label: newLabel });
+        }
+    
+        setIsEditingLabel(false);
+        setLabelError(null);
+    };
+    
+    const handleLabelKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveLabel();
+        } else if (e.key === 'Escape') {
+            setIsEditingLabel(false);
+            setLabelValue(question.label || '');
+            setLabelError(null);
+        }
+    };
 
     const pageIndicator = useMemo(() => {
         if (!pageInfo) return null;
@@ -397,7 +456,38 @@ const QuestionCard: React.FC<{
                 {/* Grid Cell 2: Header */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center text-sm text-on-surface-variant">
-                        <span className="font-bold text-on-surface mr-2">{question.qid}</span>
+                        {question.type === QuestionType.Description ? (
+                            <div className="relative mr-2">
+                                {isEditingLabel ? (
+                                    <div>
+                                        <input
+                                            type="text"
+                                            value={labelValue}
+                                            onChange={(e) => {
+                                                setLabelValue(e.target.value);
+                                                if (labelError) setLabelError(null);
+                                            }}
+                                            onBlur={saveLabel}
+                                            onKeyDown={handleLabelKeyDown}
+                                            onClick={e => e.stopPropagation()}
+                                            className={`font-semibold text-on-surface bg-transparent border-b-2 -mb-px focus:outline-none w-32 ${labelError ? 'border-error' : 'border-primary'}`}
+                                            autoFocus
+                                            placeholder="Description Label"
+                                        />
+                                    </div>
+                                ) : (
+                                    <span 
+                                        onClick={handleLabelEditClick}
+                                        className="font-semibold text-on-surface-variant cursor-pointer hover:underline"
+                                    >
+                                        {question.label || 'Description'}
+                                    </span>
+                                )}
+                                {labelError && <div className="absolute top-full mt-1 text-xs text-error bg-error-container p-1 rounded shadow-lg z-10">{labelError}</div>}
+                            </div>
+                        ) : (
+                            <span className="font-bold text-on-surface mr-2">{question.qid}</span>
+                        )}
                         {question.forceResponse && (
                             <span className="px-2 py-0.5 text-xs font-medium bg-primary-container text-on-primary-container rounded-full">
                                 Required

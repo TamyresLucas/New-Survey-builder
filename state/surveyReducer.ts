@@ -526,6 +526,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
             if (targetQuestion) {
                 if (!targetQuestion.choices) targetQuestion.choices = [];
+                // FIX: Added Number() casting to prevent potential type errors when adding to length. This may be the source of the error reported for RightSidebar.tsx.
                 const choiceNum = Number(targetQuestion.choices.length) + 1;
                 
                 const defaultText = targetQuestion.type === QTEnum.ChoiceGrid 

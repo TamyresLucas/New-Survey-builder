@@ -46,6 +46,10 @@ export const QuestionTypeSelectionMenuContent: React.FC<{
 
 // Shared Block Actions Menu
 interface BlockActionsMenuProps {
+  onMoveUp?: () => void;
+  canMoveUp?: boolean;
+  onMoveDown?: () => void;
+  canMoveDown?: boolean;
   onDuplicate?: () => void;
   onAddSimpleQuestion?: () => void;
   onAddFromLibrary?: () => void;
@@ -62,9 +66,18 @@ interface BlockActionsMenuProps {
   onDelete?: () => void;
 }
 
-export const BlockActionsMenu: React.FC<BlockActionsMenuProps> = ({ onDuplicate, onAddSimpleQuestion, onAddFromLibrary, onAddBlockAbove, onAddBlockBelow, onSelectAll, canSelectAll = true, onUnselectAll, canUnselectAll = true, onExpand, canExpand = true, onCollapse, canCollapse = true, onDelete }) => {
+export const BlockActionsMenu: React.FC<BlockActionsMenuProps> = ({ onMoveUp, canMoveUp = true, onMoveDown, canMoveDown = true, onDuplicate, onAddSimpleQuestion, onAddFromLibrary, onAddBlockAbove, onAddBlockBelow, onSelectAll, canSelectAll = true, onUnselectAll, canUnselectAll = true, onExpand, canExpand = true, onCollapse, canCollapse = true, onDelete }) => {
   return (
     <div className="absolute top-full right-0 mt-2 w-48 bg-surface-container border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+      {(onMoveUp || onMoveDown) && (
+        <>
+            <div className="py-1">
+                {onMoveUp && <button onClick={onMoveUp} disabled={!canMoveUp} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high disabled:opacity-50 disabled:cursor-not-allowed">Move up</button>}
+                {onMoveDown && <button onClick={onMoveDown} disabled={!canMoveDown} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high disabled:opacity-50 disabled:cursor-not-allowed">Move down</button>}
+            </div>
+            <div className="border-t border-dotted border-outline-variant mx-2" />
+        </>
+      )}
       {onDuplicate && (
         <>
           <div className="py-1">

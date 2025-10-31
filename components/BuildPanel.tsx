@@ -15,6 +15,8 @@ interface BuildPanelProps {
   onReorderToolbox: (items: ToolboxItemData[]) => void;
   onReorderQuestion: (draggedQuestionId: string, targetQuestionId: string | null, targetBlockId: string) => void;
   onReorderBlock: (draggedBlockId: string, targetBlockId: string | null) => void;
+  onMoveBlockUp: (blockId: string) => void;
+  onMoveBlockDown: (blockId: string) => void;
   onAddBlock: (blockId: string, position: 'above' | 'below') => void;
   onCopyBlock: (blockId: string) => void;
   onAddQuestionToBlock: (blockId: string, questionType: QuestionType) => void;
@@ -110,7 +112,7 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
 
 const BuildPanel: React.FC<BuildPanelProps> = memo(({ 
   onClose, survey, onSelectQuestion, selectedQuestion, checkedQuestions, collapsedBlocks, toolboxItems, onReorderToolbox, onReorderQuestion, onReorderBlock,
-  onAddBlock, onCopyBlock, onAddQuestionToBlock, onExpandAllBlocks, onCollapseAllBlocks, onDeleteBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock,
+  onMoveBlockUp, onMoveBlockDown, onAddBlock, onCopyBlock, onAddQuestionToBlock, onExpandAllBlocks, onCollapseAllBlocks, onDeleteBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock,
   onMoveQuestionToExistingBlock, onAddPageBreakAfterQuestion, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock
 }) => {
   const [activeTab, setActiveTab] = useState('Content');
@@ -503,11 +505,15 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             onDrop={!isSearching ? handleBlockDrop : undefined}
             onDragLeave={!isSearching ? () => setDropBlockTargetId(null) : undefined}
           >
-            {filteredSurveyBlocks.map(block => {
+            {filteredSurveyBlocks.map((block, index) => {
               const isBlockDragged = draggedBlockId === block.id;
               const showBlockDropIndicator = dropBlockTargetId === block.id;
 
               // Contextual menu logic
+              const originalIndex = survey.blocks.findIndex(b => b.id === block.id);
+              const canMoveUp = !isSearching && originalIndex > 0;
+              const canMoveDown = !isSearching && originalIndex < survey.blocks.length - 1;
+
               const isCollapsed = collapsedBlocks.has(block.id);
               const selectableQuestions = block.questions.filter(q => q.type !== QTEnum.PageBreak);
               const selectedQuestionsInBlock = selectableQuestions.filter(q => checkedQuestions.has(q.id));
@@ -545,6 +551,10 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                           </button>
                           {openMenuBlockId === block.id && (
                               <BlockActionsMenu
+                                  onMoveUp={() => { onMoveBlockUp(block.id); setOpenMenuBlockId(null); }}
+                                  canMoveUp={canMoveUp}
+                                  onMoveDown={() => { onMoveBlockDown(block.id); setOpenMenuBlockId(null); }}
+                                  canMoveDown={canMoveDown}
                                   onDuplicate={() => { onCopyBlock(block.id); setOpenMenuBlockId(null); }}
                                   onAddSimpleQuestion={() => { onAddQuestionToBlock(block.id, QTEnum.Checkbox); setOpenMenuBlockId(null); }}
                                   onAddFromLibrary={() => { alert('Add from library functionality not implemented.'); setOpenMenuBlockId(null); }}

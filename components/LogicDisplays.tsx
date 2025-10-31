@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import type { Survey, Question, DisplayLogic, SkipLogic, BranchingLogic, DisplayLogicCondition, BranchingLogicCondition } from '../types';
-import { EyeIcon, ArrowRightAltIcon, CallSplitIcon } from './icons';
+import { EyeIcon, ArrowRightAltIcon, CallSplitIcon, DoubleArrowRightIcon } from './icons';
 import { truncate, parseChoice } from '../utils';
 
 // Helper to find a question by its QID
@@ -105,7 +105,7 @@ export const SkipLogicDisplay: React.FC<{ logic: SkipLogic; currentQuestion: Que
         >
             <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
-                    <ArrowRightAltIcon className="text-lg text-primary" />
+                    <DoubleArrowRightIcon className="text-lg text-primary" />
                     <h4 className="text-sm font-bold text-on-surface">Skip Logic</h4>
                 </div>
                 <button
@@ -195,9 +195,34 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
                 {showOtherwise && logic.otherwiseIsConfirmed && (
                      <div className="p-2 bg-surface rounded-md">
                         <span className="font-bold text-on-surface-variant">OTHERWISE </span>
+                        {/* FIX: Corrected typo from logic.otherwiseTo to logic.otherwiseSkipTo */}
                         <span>skip to <span className="font-semibold">{formatDestination(logic.otherwiseSkipTo, survey)}</span>.</span>
                      </div>
                 )}
+            </div>
+        </div>
+    );
+};
+
+// --- Survey Flow Display ---
+export const SurveyFlowDisplay: React.FC<{ logic: SkipLogic; survey: Survey; onClick: () => void; }> = ({ logic, survey, onClick }) => {
+    if (logic.type !== 'simple' || logic.isConfirmed !== true) {
+        return null;
+    }
+
+    return (
+        <div 
+            onClick={onClick}
+            className="p-3 border-2 border-dashed border-outline-variant rounded-md bg-surface-container-high cursor-pointer hover:border-primary"
+        >
+            <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                    <ArrowRightAltIcon className="text-lg text-primary" />
+                    <h4 className="text-sm font-bold text-on-surface">Survey Flow</h4>
+                </div>
+            </div>
+            <div className="pl-2 space-y-1 text-sm text-on-surface-variant">
+                <p>Default path → <span className="font-semibold text-on-surface">{formatDestination(logic.skipTo, survey)}</span>.</p>
             </div>
         </div>
     );

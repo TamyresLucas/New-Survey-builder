@@ -21,6 +21,8 @@ export enum SurveyActionType {
     DELETE_BLOCK = 'DELETE_BLOCK',
     COPY_BLOCK = 'COPY_BLOCK',
     REORDER_BLOCK = 'REORDER_BLOCK',
+    MOVE_BLOCK_UP = 'MOVE_BLOCK_UP',
+    MOVE_BLOCK_DOWN = 'MOVE_BLOCK_DOWN',
     ADD_BLOCK_FROM_TOOLBOX = 'ADD_BLOCK_FROM_TOOLBOX',
     BULK_DELETE_QUESTIONS = 'BULK_DELETE_QUESTIONS',
     BULK_DUPLICATE_QUESTIONS = 'BULK_DUPLICATE_QUESTIONS',
@@ -669,6 +671,30 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 }
             }
             return renumberSurveyVariables(newState);
+        }
+
+        case SurveyActionType.MOVE_BLOCK_UP: {
+            const { blockId } = action.payload;
+            const blockIndex = newState.blocks.findIndex((b: Block) => b.id === blockId);
+            if (blockIndex > 0) {
+                const temp = newState.blocks[blockIndex - 1];
+                newState.blocks[blockIndex - 1] = newState.blocks[blockIndex];
+                newState.blocks[blockIndex] = temp;
+                return renumberSurveyVariables(newState);
+            }
+            return state;
+        }
+
+        case SurveyActionType.MOVE_BLOCK_DOWN: {
+            const { blockId } = action.payload;
+            const blockIndex = newState.blocks.findIndex((b: Block) => b.id === blockId);
+            if (blockIndex !== -1 && blockIndex < newState.blocks.length - 1) {
+                const temp = newState.blocks[blockIndex + 1];
+                newState.blocks[blockIndex + 1] = newState.blocks[blockIndex];
+                newState.blocks[blockIndex] = temp;
+                return renumberSurveyVariables(newState);
+            }
+            return state;
         }
 
         case SurveyActionType.ADD_BLOCK_FROM_TOOLBOX: {

@@ -175,6 +175,9 @@ const App: React.FC = () => {
       SurveyActionType.BULK_MOVE_TO_NEW_BLOCK,
       SurveyActionType.DELETE_CHOICE,
       SurveyActionType.SET_PAGING_MODE,
+      SurveyActionType.REORDER_BLOCK,
+      SurveyActionType.MOVE_BLOCK_UP,
+      SurveyActionType.MOVE_BLOCK_DOWN,
   ]), []);
 
   const dispatchAndRecord = useCallback((action: Action) => {
@@ -338,6 +341,14 @@ const App: React.FC = () => {
 
   const handleReorderBlock = useCallback((draggedBlockId: string, targetBlockId: string | null) => {
     dispatchAndRecord({ type: SurveyActionType.REORDER_BLOCK, payload: { draggedBlockId, targetBlockId } });
+  }, [dispatchAndRecord]);
+
+  const handleMoveBlockUp = useCallback((blockId: string) => {
+    dispatchAndRecord({ type: SurveyActionType.MOVE_BLOCK_UP, payload: { blockId } });
+  }, [dispatchAndRecord]);
+  
+  const handleMoveBlockDown = useCallback((blockId: string) => {
+    dispatchAndRecord({ type: SurveyActionType.MOVE_BLOCK_DOWN, payload: { blockId } });
   }, [dispatchAndRecord]);
 
   const handleAddBlockFromToolbox = useCallback((targetBlockId: string | null) => {
@@ -711,6 +722,8 @@ const App: React.FC = () => {
                 onReorderToolbox={handleReorderToolbox}
                 onReorderQuestion={handleReorderQuestion}
                 onReorderBlock={handleReorderBlock}
+                onMoveBlockUp={handleMoveBlockUp}
+                onMoveBlockDown={handleMoveBlockDown}
                 onAddBlock={handleAddBlock}
                 onCopyBlock={handleCopyBlock}
                 onAddQuestionToBlock={handleAddQuestionToBlock}
@@ -810,7 +823,7 @@ const App: React.FC = () => {
     handleDeleteQuestion, handleCopyQuestion, handleAddPageBreakAfterQuestion, handleExpandBlock, handleCollapseBlock,
     handleSelectAllInBlock, handleUnselectAllInBlock, handleUpdateQuestion, handleUpdateBlock, handleAddBlockFromToolbox, handleAddQuestion,
     handleToggleQuestionCheck, handleToggleBlockCollapse, handleAddChoice, handleUpdateBlockTitle, handleUpdateSurveyTitle,
-    handleAddToLibrary, isGeminiPanelOpen, showBulkEditPanel, activeCanvasTab, handleMoveQuestionToNewBlock, handleMoveQuestionToExistingBlock
+    handleAddToLibrary, isGeminiPanelOpen, showBulkEditPanel, activeCanvasTab, handleMoveQuestionToNewBlock, handleMoveQuestionToExistingBlock, handleMoveBlockUp, handleMoveBlockDown
   ]);
   
   return (

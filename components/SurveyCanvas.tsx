@@ -61,6 +61,35 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
   const [dropTargetBlockId, setDropTargetBlockId] = useState<string | null>(null);
   const [isDraggingNewBlock, setIsDraggingNewBlock] = useState(false);
 
+  const hasBranchingLogicInSurvey = useMemo(() => 
+    survey.blocks.flatMap(b => b.questions).some(q => q.branchingLogic), 
+    [survey]
+  );
+
+  const branchedToBlockIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!hasBranchingLogicInSurvey) {
+      return ids;
+    }
+
+    for (const block of survey.blocks) {
+      for (const question of block.questions) {
+        const branchingLogic = question.draftBranchingLogic ?? question.branchingLogic;
+        if (branchingLogic) {
+          for (const branch of branchingLogic.branches) {
+            if (branch.thenSkipToIsConfirmed && branch.thenSkipTo.startsWith('block:')) {
+              ids.add(branch.thenSkipTo.substring(6));
+            }
+          }
+          if (branchingLogic.otherwiseIsConfirmed && branchingLogic.otherwiseSkipTo.startsWith('block:')) {
+            ids.add(branchingLogic.otherwiseSkipTo.substring(6));
+          }
+        }
+      }
+    }
+    return ids;
+  }, [survey, hasBranchingLogicInSurvey]);
+
   const pageInfoMap = useMemo(() => {
     const map = new Map<string, PageInfo>();
     let pageCounter = 1;
@@ -217,6 +246,8 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
               selectedQuestion={selectedQuestion} 
               checkedQuestions={checkedQuestions}
               logicIssues={logicIssues}
+              hasBranchingLogicInSurvey={hasBranchingLogicInSurvey}
+              branchedToBlockIds={branchedToBlockIds}
               onSelectQuestion={onSelectQuestion}
               onUpdateQuestion={onUpdateQuestion}
               onUpdateBlock={onUpdateBlock}

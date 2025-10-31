@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef, memo, useCallback, useMemo } from 'react';
-import type { Block, Question, ToolboxItemData, QuestionType, Choice, Survey, LogicIssue } from '../types';
+import type { Block, Question, ToolboxItemData, QuestionType, Choice, Survey, LogicIssue, SkipLogic } from '../types';
 import QuestionCard from './QuestionCard';
 import { ChevronDownIcon, DotsHorizontalIcon, DragIndicatorIcon } from './icons';
 import { BlockActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
 import { QuestionType as QTEnum } from '../types';
 import type { PageInfo } from './SurveyCanvas';
+import { SurveyFlowDisplay } from './LogicDisplays';
 
 const DropIndicator = () => (
     <div className="relative h-px w-full bg-primary my-2">
@@ -19,6 +20,8 @@ interface SurveyBlockProps {
     selectedQuestion: Question | null;
     checkedQuestions: Set<string>;
     logicIssues: LogicIssue[];
+    hasBranchingLogicInSurvey: boolean;
+    branchedToBlockIds: Set<string>;
     // FIX: Updated prop signature to be consistent with App.tsx and child components.
     onSelectQuestion: (question: Question | null, options?: { tab?: string; focusOn?: string }) => void;
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
@@ -54,7 +57,7 @@ interface SurveyBlockProps {
 }
 
 const SurveyBlock: React.FC<SurveyBlockProps> = memo(({ 
-  block, survey, selectedQuestion, checkedQuestions, logicIssues, onSelectQuestion, onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
+  block, survey, selectedQuestion, checkedQuestions, logicIssues, hasBranchingLogicInSurvey, branchedToBlockIds, onSelectQuestion, onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
   isBlockDragging, onBlockDragStart, onBlockDragEnd, isCollapsed, onToggleCollapse,
   onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onAddFromLibrary,
   pageInfoMap
@@ -114,6 +117,37 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
 
   const canCollapse = !isCollapsed;
   const canExpand = isCollapsed;
+
+  const isPathTargetBlock = branchedToBlockIds.has(block.id);
+  const lastContentQuestion = useMemo(() =>
+    [...block.questions].reverse().find(q => q.type !== QTEnum.PageBreak),
+    [block.questions]
+  );
+
+  const surveyFlowLogic = useMemo(() => {
+    let surveyFlowDestination: string | null = null;
+
+    if (lastContentQuestion?.skipLogic?.type === 'simple' && lastContentQuestion.skipLogic.isConfirmed) {
+      surveyFlowDestination = lastContentQuestion.skipLogic.skipTo;
+    } else {
+      const currentBlockIndex = survey.blocks.findIndex(b => b.id === block.id);
+      if (currentBlockIndex !== -1 && currentBlockIndex < survey.blocks.length - 1) {
+        const nextBlock = survey.blocks[currentBlockIndex + 1];
+        surveyFlowDestination = `block:${nextBlock.id}`;
+      } else {
+        surveyFlowDestination = 'end';
+      }
+    }
+
+    return surveyFlowDestination ? {
+      type: 'simple' as const,
+      skipTo: surveyFlowDestination,
+      isConfirmed: true,
+    } : null;
+  }, [block.id, lastContentQuestion, survey.blocks]);
+
+  const showSurveyFlow = hasBranchingLogicInSurvey && isPathTargetBlock && surveyFlowLogic;
+
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -308,41 +342,49 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
           {block.questions.length > 0 ? (
             <>
               {block.questions.map((question, index) => (
-                    <React.Fragment key={question.id}>
-                    {dropTargetId === question.id && <DropIndicator />}
-                    <div className={index > 0 || pageInfoMap.has(question.id) ? "mt-4" : ""}>
-                        <QuestionCard
-                          question={question}
-                          survey={survey}
-                          currentBlockId={block.id}
-                          logicIssues={logicIssues.filter(issue => issue.questionId === question.id)}
-                          id={`question-card-${question.id}`}
-                          isSelected={selectedQuestion?.id === question.id}
-                          isChecked={checkedQuestions.has(question.id)}
-                          onSelect={onSelectQuestion}
-                          onUpdateQuestion={onUpdateQuestion}
-                          onUpdateBlock={onUpdateBlock}
-                          onDeleteQuestion={onDeleteQuestion}
-                          onCopyQuestion={onCopyQuestion}
-                          onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
-                          onMoveQuestionToExistingBlock={onMoveQuestionToExistingBlock}
-                          onToggleCheck={onToggleQuestionCheck}
-                          toolboxItems={toolboxItems}
-                          isDragging={draggedQuestionId === question.id}
-                          onDragStart={() => {
-                            setDraggedQuestionId(question.id);
-                            onSelectQuestion(question);
-                          }}
-                          onDragEnd={() => setDraggedQuestionId(null)}
-                          onAddChoice={onAddChoice}
-                          onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
-                          pageInfo={pageInfoMap.get(question.id)}
-                        />
-                    </div>
-                    </React.Fragment>
-                )
-              )}
+                <React.Fragment key={question.id}>
+                {dropTargetId === question.id && <DropIndicator />}
+                <div className={index > 0 || pageInfoMap.has(question.id) ? "mt-4" : ""}>
+                    <QuestionCard
+                      question={question}
+                      survey={survey}
+                      currentBlockId={block.id}
+                      logicIssues={logicIssues.filter(issue => issue.questionId === question.id)}
+                      id={`question-card-${question.id}`}
+                      isSelected={selectedQuestion?.id === question.id}
+                      isChecked={checkedQuestions.has(question.id)}
+                      onSelect={onSelectQuestion}
+                      onUpdateQuestion={onUpdateQuestion}
+                      onUpdateBlock={onUpdateBlock}
+                      onDeleteQuestion={onDeleteQuestion}
+                      onCopyQuestion={onCopyQuestion}
+                      onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
+                      onMoveQuestionToExistingBlock={onMoveQuestionToExistingBlock}
+                      onToggleCheck={onToggleQuestionCheck}
+                      toolboxItems={toolboxItems}
+                      isDragging={draggedQuestionId === question.id}
+                      onDragStart={() => {
+                        setDraggedQuestionId(question.id);
+                        onSelectQuestion(question);
+                      }}
+                      onDragEnd={() => setDraggedQuestionId(null)}
+                      onAddChoice={onAddChoice}
+                      onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
+                      pageInfo={pageInfoMap.get(question.id)}
+                    />
+                </div>
+                </React.Fragment>
+              ))}
               {dropTargetId === null && (draggedQuestionId || isToolboxDragOver) && <DropIndicator />}
+              {showSurveyFlow && surveyFlowLogic && lastContentQuestion && (
+                <div className="mt-4">
+                  <SurveyFlowDisplay
+                    logic={surveyFlowLogic as SkipLogic}
+                    survey={survey}
+                    onClick={() => onSelectQuestion(lastContentQuestion, { tab: 'Behavior' })}
+                  />
+                </div>
+              )}
             </>
           ) : (
             <div className="text-center py-8">

@@ -75,6 +75,10 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
 
     const allSurveyQuestions = useMemo(() => survey.blocks.flatMap(b => b.questions), [survey]);
     const currentQuestionIndex = useMemo(() => allSurveyQuestions.findIndex(q => q.id === question.id), [allSurveyQuestions, question.id]);
+    
+    const currentBlockId = useMemo(() => {
+        return survey.blocks.find(b => b.questions.some(q => q.id === question.id))?.id || null;
+    }, [survey.blocks, question.id]);
 
     const previousQuestions = useMemo(() =>
         allSurveyQuestions
@@ -1292,6 +1296,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                             onAddLogic={onExpandSidebar}
                             onRequestGeminiHelp={onRequestGeminiHelp}
                             focusedLogicSource={focusedLogicSource}
+                            survey={survey}
+                            currentBlockId={currentBlockId}
                         />
                     </div>
                 </div>
@@ -1967,6 +1973,15 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
         }
 
         switch(referencedQuestion.type) {
+            case QuestionType.ChoiceGrid:
+                return [
+                    { value: 'equals', label: 'equals' }, 
+                    { value: 'not_equals', label: 'not equals' },
+                    { value: 'greater_than', label: 'is more' },
+                    { value: 'less_than', label: 'is less' },
+                    { value: 'is_empty', label: 'is empty' },
+                    { value: 'is_not_empty', label: 'is not empty' },
+                ];
             case QuestionType.Radio:
             case QuestionType.Checkbox:
             case QuestionType.DropDownList: {
@@ -2016,6 +2031,7 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
         onUpdateCondition('operator', newOperator);
         if (['is_empty', 'is_not_empty'].includes(newOperator)) {
             onUpdateCondition('value', '');
+            onUpdateCondition('gridValue', '');
         }
     };
 
@@ -2060,7 +2076,38 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
 
             {/* 2. Value / Answer */}
             <div className="relative group/tooltip flex-1 min-w-[150px]">
-                {isChoiceBasedInput && referencedQuestion?.choices ? (
+                {referencedQuestion?.type === QuestionType.ChoiceGrid && referencedQuestion.choices && referencedQuestion.scalePoints ? (
+                    <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                            <select
+                                value={(condition as BranchingLogicCondition).value}
+                                onChange={(e) => onUpdateCondition('value', e.target.value)}
+                                className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                                aria-label="Condition row"
+                                disabled={valueIsDisabled}
+                            >
+                                <option value="">select row</option>
+                                {referencedQuestion.choices.map(choice => (
+                                    <option key={choice.id} value={choice.text}>{parseChoice(choice.text).label}</option>
+                                ))}
+                            </select>
+                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                        </div>
+                        <div className="relative flex-1">
+                            <select
+                                value={(condition as BranchingLogicCondition).gridValue || ''}
+                                onChange={(e) => onUpdateCondition('gridValue', e.target.value)}
+                                className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                                aria-label="Condition scale point value"
+                                disabled={valueIsDisabled}
+                            >
+                                <option value="">select value...</option>
+                                {referencedQuestion.scalePoints.map((sp, index) => <option key={sp.id} value={sp.id}>{index + 1} - {sp.text}</option>)}
+                            </select>
+                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                        </div>
+                    </div>
+                ) : isChoiceBasedInput && referencedQuestion?.choices ? (
                      <div className="relative">
                         <select
                             value={(condition as BranchingLogicCondition).value}
@@ -2441,7 +2488,7 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
     );
 };
 
-const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Question[]; issues: LogicIssue[]; onUpdate: (updates: Partial<Question>) => void; isChoiceBased: boolean; onAddLogic: () => void; onRequestGeminiHelp: (topic: string) => void; focusedLogicSource: string | null; }> = ({ question, followingQuestions, issues, onUpdate, isChoiceBased, onAddLogic, onRequestGeminiHelp, focusedLogicSource }) => {
+const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Question[]; issues: LogicIssue[]; onUpdate: (updates: Partial<Question>) => void; isChoiceBased: boolean; onAddLogic: () => void; onRequestGeminiHelp: (topic: string) => void; focusedLogicSource: string | null; survey: Survey; currentBlockId: string | null; }> = ({ question, followingQuestions, issues, onUpdate, isChoiceBased, onAddLogic, onRequestGeminiHelp, focusedLogicSource, survey, currentBlockId }) => {
     const [isPasting, setIsPasting] = useState(false);
     const [tempErrors, setTempErrors] = useState<Set<string>>(new Set());
     const skipLogic = question.draftSkipLogic ?? question.skipLogic;
@@ -2485,7 +2532,7 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
                     return { success: false, error: `Line ${i + 1}: Destination "${lines[i]}" is not valid. Please use a question that comes after this one (like Q5), or the words "next" or "end".` };
                 }
                 const skipTo = targetQ ? targetQ.id : dest;
-                newRules.push({ choiceId: choice.id, skipTo, isConfirmed: true });
+                newRules.push({ id: generateId('slr'), choiceId: choice.id, skipTo, isConfirmed: true });
             }
             onUpdate({ skipLogic: { type: 'per_choice', rules: newRules } });
         } else {
@@ -2508,8 +2555,10 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
 
     const handleToggle = (enabled: boolean) => {
         if (enabled) {
-            const defaultLogic = isChoiceBased
-                ? { type: 'per_choice' as const, rules: (question.choices || []).map(c => ({ choiceId: c.id, skipTo: '', isConfirmed: false })) }
+            const defaultLogic = (isChoiceBased && question.type === QuestionType.ChoiceGrid)
+                ? { type: 'per_choice' as const, rules: [] }
+                : isChoiceBased
+                ? { type: 'per_choice' as const, rules: (question.choices || []).map(c => ({ id: generateId('slr'), choiceId: c.id, skipTo: '', isConfirmed: false })) }
                 : { type: 'simple' as const, skipTo: '', isConfirmed: false };
             onUpdate({ skipLogic: defaultLogic });
             onAddLogic();
@@ -2530,7 +2579,7 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
                 setTempErrors((prev: Set<string>) => new Set(prev).add('simple'));
             }
         } else if (skipLogic.type === 'per_choice') {
-            const rule = skipLogic.rules.find(r => r.choiceId === sourceId);
+            const rule = skipLogic.rules.find(r => r.id === sourceId);
             if (!rule?.skipTo) {
                 hasTempError = true;
                 setTempErrors((prev: Set<string>) => new Set(prev).add(sourceId));
@@ -2545,7 +2594,7 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
             onUpdate({ skipLogic: { ...skipLogic, isConfirmed: true } });
         } else if (skipLogic.type === 'per_choice') {
             const newRules = skipLogic.rules.map(r => 
-                r.choiceId === sourceId ? { ...r, isConfirmed: true } : r
+                r.id === sourceId ? { ...r, isConfirmed: true } : r
             );
             onUpdate({ skipLogic: { ...skipLogic, rules: newRules } });
         }
@@ -2564,17 +2613,18 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         }
     };
 
-    const handleChoiceSkipChange = (choiceId: string, skipTo: string) => {
-        if(skipLogic?.type !== 'per_choice') return;
-
+    const handleRuleUpdate = (ruleId: string, updates: Partial<SkipLogicRule>) => {
+        if (skipLogic?.type !== 'per_choice') return;
+        
         const newRules = skipLogic.rules.map(r => 
-            r.choiceId === choiceId ? { ...r, skipTo, isConfirmed: false } : r
+            r.id === ruleId ? { ...r, ...updates, isConfirmed: false } : r
         );
         onUpdate({ skipLogic: { type: 'per_choice', rules: newRules } });
-        if (tempErrors.has(choiceId)) {
+
+        if (tempErrors.has(ruleId)) {
             setTempErrors((prev: Set<string>) => {
                 const newErrors = new Set(prev);
-                newErrors.delete(choiceId);
+                newErrors.delete(ruleId);
                 return newErrors;
             });
         }
@@ -2633,28 +2683,150 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
             </div>
             
             <div>
-                {isChoiceBased ? (
+                {isChoiceBased && question.type !== QuestionType.ChoiceGrid && (
                     <div className="space-y-2">
                         {(question.choices || []).map((choice) => {
                             const rule = getChoiceRule(choice.id);
                             const issue = issues.find(i => i.sourceId === choice.id && i.field === 'skipTo');
                             return (
                                 <DestinationRow
-                                    key={choice.id}
+                                    key={rule?.id || choice.id}
                                     data-logic-source-id={choice.id}
                                     label={truncate(parseChoice(choice.text).label, 20)}
                                     value={rule?.skipTo || ''}
-                                    onChange={(value) => handleChoiceSkipChange(choice.id, value)}
-                                    onConfirm={() => handleConfirm(choice.id)}
+                                    onChange={(value) => handleRuleUpdate(rule!.id, { skipTo: value })}
+                                    onConfirm={() => handleConfirm(rule!.id)}
                                     isConfirmed={rule?.isConfirmed}
                                     issue={issue}
-                                    invalid={tempErrors.has(choice.id)}
+                                    invalid={tempErrors.has(rule!.id)}
                                     followingQuestions={followingQuestions}
+                                    survey={survey}
+                                    currentBlockId={currentBlockId}
                                 />
                             );
                         })}
                     </div>
-                ) : (
+                )}
+
+                {isChoiceBased && question.type === QuestionType.ChoiceGrid && (() => {
+                    const rules = skipLogic?.type === 'per_choice' ? skipLogic.rules : [];
+                    const usedChoiceIds = new Set(rules.map(r => r.choiceId));
+                    
+                    const handleAddRule = () => {
+                        const availableChoices = (question.choices || []).filter(c => !usedChoiceIds.has(c.id));
+                        if (availableChoices.length > 0) {
+                            const newRule: SkipLogicRule = { 
+                                id: generateId('slr'),
+                                choiceId: availableChoices[0].id, 
+                                skipTo: '', 
+                                isConfirmed: false,
+                                operator: 'is_answered_with',
+                                valueChoiceId: '',
+                            };
+                            onUpdate({ skipLogic: { type: 'per_choice', rules: [...rules, newRule] } });
+                        }
+                    };
+
+                    const handleRemoveRule = (ruleId: string) => {
+                        const newRules = rules.filter(r => r.id !== ruleId);
+                        onUpdate({ skipLogic: { type: 'per_choice', rules: newRules } });
+                    };
+
+                    const operators = [
+                        { value: 'is_answered_with', label: 'equals' },
+                        { value: 'is_not_answered_with', label: 'not equals' },
+                        { value: 'is_answered_after', label: 'is more' },
+                        { value: 'is_answered_before', label: 'is less' },
+                    ];
+                    const scalePoints = question.scalePoints || [];
+
+                    return (
+                        <div className="space-y-3">
+                            {rules.map(rule => {
+                                const currentChoiceForRule = (question.choices || []).find(c => c.id === rule.choiceId);
+                                const availableChoicesForRule = (question.choices || []).filter(c => !usedChoiceIds.has(c.id));
+                                const dropdownChoices = currentChoiceForRule ? [currentChoiceForRule, ...availableChoicesForRule] : availableChoicesForRule;
+
+                                const issue = issues.find(i => i.sourceId === rule.id && i.field === 'skipTo');
+                                const showValueSelect = !['is_answered', 'is_not_answered'].includes(rule.operator || '');
+
+                                return (
+                                    <div key={rule.id} data-logic-source-id={rule.id} className="grid grid-cols-[1.5fr,1fr,1.5fr,1.5fr,auto,auto] items-center gap-2">
+                                        {/* Row Select */}
+                                        <div className="relative">
+                                            <select 
+                                                value={rule.choiceId}
+                                                onChange={e => handleRuleUpdate(rule.id, { choiceId: e.target.value })}
+                                                className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                                            >
+                                                {dropdownChoices.map(c => (
+                                                    <option key={c.id} value={c.id}>{truncate(parseChoice(c.text).label, 20)}</option>
+                                                ))}
+                                            </select>
+                                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                                        </div>
+                                        {/* Operator Select */}
+                                        <div className="relative">
+                                            <select 
+                                                value={rule.operator || 'is_answered_with'}
+                                                onChange={e => handleRuleUpdate(rule.id, { operator: e.target.value as SkipLogicRule['operator'] })}
+                                                className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                                            >
+                                                {operators.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+                                            </select>
+                                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                                        </div>
+                                        {/* Value Select */}
+                                        <div className="relative">
+                                            <select 
+                                                value={rule.valueChoiceId || ''}
+                                                onChange={e => handleRuleUpdate(rule.id, { valueChoiceId: e.target.value })}
+                                                disabled={!showValueSelect}
+                                                className="w-full bg-surface border border-outline rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed"
+                                            >
+                                                <option value="">select value...</option>
+                                                {scalePoints.map((sp, index) => <option key={sp.id} value={sp.id}>{index + 1} - {sp.text}</option>)}
+                                            </select>
+                                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                                        </div>
+                                        {/* Destination Select */}
+                                        <div className="relative group/tooltip">
+                                            <select 
+                                                value={rule.skipTo || ''} 
+                                                onChange={e => handleRuleUpdate(rule.id, { skipTo: e.target.value })} 
+                                                className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none ${(issue || tempErrors.has(rule.id)) ? 'border-error' : 'border-outline'}`}
+                                            >
+                                                <option value="">Select destination...</option>
+                                                <optgroup label="Default"><option value="next">Next Question</option><option value="end">End of Survey</option></optgroup>
+                                                <optgroup label="Questions">{followingQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}</optgroup>
+                                            </select>
+                                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                                            {issue && (
+                                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max max-w-xs bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
+                                                    {issue.message}
+                                                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {/* Buttons */}
+                                        <button onClick={() => handleRemoveRule(rule.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-colors flex-shrink-0" aria-label="Remove rule"><XIcon className="text-lg" /></button>
+                                        {!rule.isConfirmed && <button onClick={() => handleConfirm(rule.id)} className="p-1.5 bg-primary text-on-primary rounded-full hover:opacity-90 transition-colors flex-shrink-0" aria-label="Confirm rule"><CheckmarkIcon className="text-lg" /></button>}
+                                    </div>
+                                );
+                            })}
+                            <button 
+                                onClick={handleAddRule}
+                                disabled={usedChoiceIds.size === (question.choices || []).length}
+                                className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors disabled:text-on-surface-variant disabled:no-underline disabled:cursor-not-allowed"
+                            >
+                                <PlusIcon className="text-base" />
+                                Add Skip Rule
+                            </button>
+                        </div>
+                    );
+                })()}
+
+                {!isChoiceBased && (
                     <DestinationRow
                         data-logic-source-id="output"
                         label="If answered, then"
@@ -2665,6 +2837,8 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
                         issue={issues.find(i => i.sourceId === 'simple' && i.field === 'skipTo')}
                         invalid={tempErrors.has('simple')}
                         followingQuestions={followingQuestions}
+                        survey={survey}
+                        currentBlockId={currentBlockId}
                     />
                 )}
             </div>
@@ -2930,6 +3104,7 @@ const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, s
             }
         }
     
+        // 'Otherwise' is shown only if there are choices left over that aren't covered by a branch.
         return usedChoiceTexts.size < question.choices.length;
     }, [branchingLogic, question.qid, question.choices]);
 

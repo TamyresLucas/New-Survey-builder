@@ -2074,84 +2074,111 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
                 <Tooltip issue={questionIssue} />
             </div>
 
-            {/* 2. Value / Answer */}
-            <div className="relative group/tooltip flex-1 min-w-[150px]">
-                {referencedQuestion?.type === QuestionType.ChoiceGrid && referencedQuestion.choices && referencedQuestion.scalePoints ? (
-                    <div className="flex items-center gap-2">
-                        <div className="relative flex-1">
-                            <select
-                                value={(condition as BranchingLogicCondition).value}
-                                onChange={(e) => onUpdateCondition('value', e.target.value)}
-                                className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
-                                aria-label="Condition row"
-                                disabled={valueIsDisabled}
-                            >
-                                <option value="">select row</option>
-                                {referencedQuestion.choices.map(choice => (
-                                    <option key={choice.id} value={choice.text}>{parseChoice(choice.text).label}</option>
-                                ))}
-                            </select>
-                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-                        </div>
-                        <div className="relative flex-1">
-                            <select
-                                value={(condition as BranchingLogicCondition).gridValue || ''}
-                                onChange={(e) => onUpdateCondition('gridValue', e.target.value)}
-                                className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
-                                aria-label="Condition scale point value"
-                                disabled={valueIsDisabled}
-                            >
-                                <option value="">select value...</option>
-                                {referencedQuestion.scalePoints.map((sp, index) => <option key={sp.id} value={sp.id}>{index + 1} - {sp.text}</option>)}
-                            </select>
-                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-                        </div>
-                    </div>
-                ) : isChoiceBasedInput && referencedQuestion?.choices ? (
-                     <div className="relative">
+            {referencedQuestion?.type === QuestionType.ChoiceGrid && referencedQuestion.choices && referencedQuestion.scalePoints ? (
+            <>
+                {/* 2. Row Select (for ChoiceGrid) */}
+                <div className="relative group/tooltip flex-1 min-w-[150px]">
+                    <div className="relative">
                         <select
                             value={(condition as BranchingLogicCondition).value}
                             onChange={(e) => onUpdateCondition('value', e.target.value)}
                             className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
-                            aria-label="Condition value"
+                            aria-label="Condition row"
                             disabled={valueIsDisabled}
                         >
-                            <option value="">select answer</option>
-                            {referencedQuestion.choices.filter(choice => !usedValues?.has(choice.text)).map(choice => (
+                            <option value="">select row</option>
+                            {referencedQuestion.choices.map(choice => (
                                 <option key={choice.id} value={choice.text}>{parseChoice(choice.text).label}</option>
                             ))}
                         </select>
                         <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-                     </div>
-                ) : (
-                    <input 
-                        type={isNumericInput ? "number" : "text"} 
-                        value={(condition as BranchingLogicCondition).value} 
-                        onChange={(e) => onUpdateCondition('value', e.target.value)} 
-                        placeholder="select answer"
-                        className={`w-full bg-surface border rounded-md px-2 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
-                        aria-label="Condition value" 
-                        disabled={valueIsDisabled}
-                    />
-                )}
-                 <Tooltip issue={valueIssue} />
-            </div>
+                    </div>
+                    <Tooltip issue={valueIssue} />
+                </div>
 
-            {/* 3. Operator / Interaction */}
-            <div className="relative group/tooltip w-40 flex-shrink-0">
-                <select 
-                    value={condition.operator} 
-                    onChange={handleOperatorChange} 
-                    className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`} 
-                    aria-label="Select interaction"
-                    disabled={!referencedQuestion}
-                >
-                    <option value="">select interaction</option>
-                    {availableOperators.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
-                </select>
-                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-                <Tooltip issue={operatorIssue} />
-            </div>
+                {/* 3. Operator (for ChoiceGrid) */}
+                <div className="relative group/tooltip w-40 flex-shrink-0">
+                    <select 
+                        value={condition.operator} 
+                        onChange={handleOperatorChange} 
+                        className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`} 
+                        aria-label="Select interaction"
+                        disabled={!referencedQuestion}
+                    >
+                        <option value="">select interaction</option>
+                        {availableOperators.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+                    </select>
+                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                    <Tooltip issue={operatorIssue} />
+                </div>
+
+                {/* 4. Value Select (for ChoiceGrid) */}
+                <div className="relative group/tooltip flex-1 min-w-[150px]">
+                    <div className="relative">
+                        <select
+                            value={(condition as BranchingLogicCondition).gridValue || ''}
+                            onChange={(e) => onUpdateCondition('gridValue', e.target.value)}
+                            className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                            aria-label="Condition scale point value"
+                            disabled={valueIsDisabled}
+                        >
+                            <option value="">select value...</option>
+                            {referencedQuestion.scalePoints.map((sp, index) => <option key={sp.id} value={sp.id}>{index + 1} - {sp.text}</option>)}
+                        </select>
+                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                    </div>
+                </div>
+            </>
+            ) : (
+            <>
+                {/* 3. Operator / Interaction */}
+                <div className="relative group/tooltip w-40 flex-shrink-0">
+                    <select 
+                        value={condition.operator} 
+                        onChange={handleOperatorChange} 
+                        className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`} 
+                        aria-label="Select interaction"
+                        disabled={!referencedQuestion}
+                    >
+                        <option value="">select interaction</option>
+                        {availableOperators.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+                    </select>
+                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                    <Tooltip issue={operatorIssue} />
+                </div>
+                {/* 2. Value / Answer */}
+                <div className="relative group/tooltip flex-1 min-w-[150px]">
+                    {isChoiceBasedInput && referencedQuestion?.choices ? (
+                         <div className="relative">
+                            <select
+                                value={(condition as BranchingLogicCondition).value}
+                                onChange={(e) => onUpdateCondition('value', e.target.value)}
+                                className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                                aria-label="Condition value"
+                                disabled={valueIsDisabled}
+                            >
+                                <option value="">select answer</option>
+                                {referencedQuestion.choices.filter(choice => !usedValues?.has(choice.text)).map(choice => (
+                                    <option key={choice.id} value={choice.text}>{parseChoice(choice.text).label}</option>
+                                ))}
+                            </select>
+                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                         </div>
+                    ) : (
+                        <input 
+                            type={isNumericInput ? "number" : "text"} 
+                            value={(condition as BranchingLogicCondition).value} 
+                            onChange={(e) => onUpdateCondition('value', e.target.value)} 
+                            placeholder="select answer"
+                            className={`w-full bg-surface border rounded-md px-2 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                            aria-label="Condition value" 
+                            disabled={valueIsDisabled}
+                        />
+                    )}
+                     <Tooltip issue={valueIssue} />
+                </div>
+            </>
+        )}
             
             {onRemoveCondition && (
                 <button onClick={onRemoveCondition} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-colors flex-shrink-0" aria-label="Remove condition">
@@ -2555,11 +2582,28 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
 
     const handleToggle = (enabled: boolean) => {
         if (enabled) {
-            const defaultLogic = (isChoiceBased && question.type === QuestionType.ChoiceGrid)
-                ? { type: 'per_choice' as const, rules: [] }
-                : isChoiceBased
-                ? { type: 'per_choice' as const, rules: (question.choices || []).map(c => ({ id: generateId('slr'), choiceId: c.id, skipTo: '', isConfirmed: false })) }
-                : { type: 'simple' as const, skipTo: '', isConfirmed: false };
+            let defaultLogic;
+            if (isChoiceBased && question.type === QuestionType.ChoiceGrid) {
+                const firstChoiceId = question.choices?.[0]?.id || '';
+                defaultLogic = {
+                    type: 'per_choice' as const,
+                    rules: [{
+                        id: generateId('slr'),
+                        choiceId: firstChoiceId,
+                        skipTo: '',
+                        isConfirmed: false,
+                        operator: 'is_answered_with',
+                        valueChoiceId: '',
+                    }],
+                };
+            } else if (isChoiceBased) {
+                defaultLogic = {
+                    type: 'per_choice' as const,
+                    rules: (question.choices || []).map(c => ({ id: generateId('slr'), choiceId: c.id, skipTo: '', isConfirmed: false })),
+                };
+            } else {
+                defaultLogic = { type: 'simple' as const, skipTo: '', isConfirmed: false };
+            }
             onUpdate({ skipLogic: defaultLogic });
             onAddLogic();
         } else {

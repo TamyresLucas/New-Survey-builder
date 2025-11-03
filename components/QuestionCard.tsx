@@ -784,15 +784,6 @@ const QuestionCard: React.FC<{
                             onClick={() => onSelect(question, { tab: 'Behavior' })}
                         />
                     )}
-                    {question.skipLogic && (
-                        <SkipLogicDisplay
-                            logic={question.skipLogic}
-                            currentQuestion={question}
-                            survey={survey}
-                            onClick={() => onSelect(question, { tab: 'Behavior' })}
-                            onRemove={() => onUpdateQuestion(question.id, { skipLogic: undefined, draftSkipLogic: undefined })}
-                        />
-                    )}
                     {question.branchingLogic && question.branchingLogic.branches.length > 0 && (
                         <BranchingLogicDisplay
                             logic={question.branchingLogic}

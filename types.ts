@@ -53,6 +53,7 @@ export interface DisplayLogicCondition {
   questionId: string; // This is the QID, e.g., "Q1"
   operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty' | '';
   value: string;
+  gridValue?: string; // For ChoiceGrid, this will be the scale point's ID.
   isConfirmed?: boolean;
 }
 
@@ -62,9 +63,14 @@ export interface DisplayLogic {
 }
 
 export interface SkipLogicRule {
-  choiceId: string;
-  skipTo: string; // 'next' | question ID (internal id) | 'end'
+  id: string; // A unique ID for the rule itself.
+  choiceId: string; // For ChoiceGrid, this is the rowId. For Radio, the choiceId.
+  skipTo: string;
   isConfirmed?: boolean;
+
+  // Fields for advanced conditions, primarily for Choice Grids
+  operator?: 'is_answered_with' | 'is_not_answered_with' | 'is_answered_after' | 'is_answered_before' | 'is_answered' | 'is_not_answered';
+  valueChoiceId?: string; // The ID of the scale point to compare against.
 }
 
 export type SkipLogic = {
@@ -104,6 +110,7 @@ export interface BranchingLogicCondition {
   questionId: string; // This is the QID, e.g., "Q1"
   operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty' | '';
   value: string;
+  gridValue?: string; // For ChoiceGrid, this will be the scale point's ID.
   isConfirmed?: boolean;
 }
 

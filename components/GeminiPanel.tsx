@@ -574,7 +574,8 @@ If the user confirms, call the exact same function again, but for a reposition, 
                     if (choice) {
                         const destQ = survey.blocks.flatMap(b => b.questions).find(q => q.qid.toLowerCase() === rule.destinationQid.toLowerCase());
                         const skipTo = ['next', 'end'].includes(rule.destinationQid.toLowerCase()) ? rule.destinationQid.toLowerCase() : destQ?.id || '';
-                        if (skipTo) skipRules.push({ choiceId: choice.id, skipTo, isConfirmed: true });
+                        // FIX: Added the required 'id' property when creating a new SkipLogicRule.
+                        if (skipTo) skipRules.push({ id: generateId('slr'), choiceId: choice.id, skipTo, isConfirmed: true });
                     }
                 }
                 if (skipRules.length > 0) newSkipLogic = { type: 'per_choice', rules: skipRules };
@@ -602,7 +603,8 @@ const validateLogicChange = useCallback((name: string, args: any): { ok: boolean
             if (rules.length === 1 && !rules[0].choiceText) { // Simple logic
                 questionInDryRun.skipLogic = { type: 'simple', skipTo: rules[0].destinationQid, isConfirmed: true };
             } else { // Per-choice
-                questionInDryRun.skipLogic = { type: 'per_choice', rules: (questionInDryRun.choices || []).map(() => ({ choiceId: '', skipTo: '', isConfirmed: true })) };
+                // FIX: Added the required 'id' property to the mapped SkipLogicRule objects.
+                questionInDryRun.skipLogic = { type: 'per_choice', rules: (questionInDryRun.choices || []).map(() => ({ id: generateId('slr'), choiceId: '', skipTo: '', isConfirmed: true })) };
             }
             break;
         }

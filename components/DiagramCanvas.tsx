@@ -552,14 +552,18 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     if (ruleIndex !== -1) {
                         newRules[ruleIndex] = { ...newRules[ruleIndex], skipTo: target, isConfirmed: false };
                     } else {
+                        // FIX: Added the required 'id' property when creating a new SkipLogicRule.
                         newRules.push({
+                            id: generateId('slr'),
                             choiceId: connection.sourceHandle,
                             skipTo: target,
                             isConfirmed: false
                         });
                     }
                 } else {
+                    // FIX: Added the required 'id' property to the mapped SkipLogicRule objects.
                     newRules = (sourceQuestion.choices || []).map(choice => ({
+                        id: generateId('slr'),
                         choiceId: choice.id,
                         skipTo: choice.id === connection.sourceHandle ? target : 'next',
                         isConfirmed: false,
@@ -620,14 +624,18 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     if (ruleIndex !== -1) {
                         newRules[ruleIndex] = { ...newRules[ruleIndex], skipTo: target, isConfirmed: false };
                     } else {
+                        // FIX: Added the required 'id' property when creating a new SkipLogicRule.
                         newRules.push({
+                            id: generateId('slr'),
                             choiceId: newConnection.sourceHandle,
                             skipTo: target,
                             isConfirmed: false,
                         });
                     }
                 } else {
+                    // FIX: Added the required 'id' property to the mapped SkipLogicRule objects.
                     newRules = (sourceQuestion.choices || []).map(choice => ({
+                        id: generateId('slr'),
                         choiceId: choice.id,
                         skipTo: choice.id === newConnection.sourceHandle ? target : 'next',
                         isConfirmed: false,

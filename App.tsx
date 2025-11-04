@@ -937,6 +937,7 @@ const App: React.FC = () => {
                     onUpdateBlock={handleUpdateBlock}
                     isExpanded={isRightSidebarExpanded}
                     onToggleExpand={handleToggleRightSidebarExpand}
+                    onExpandSidebar={handleExpandRightSidebar}
                 />
             ) : (activeMainTab === 'Flow' && !isAnyRightPanelOpen) ? (
                 <PathAnalysisPanel survey={survey} />

@@ -262,6 +262,10 @@ export interface Block {
   loopingEnabled?: boolean;
   maxLoopSize?: number;
   questionRandomization?: QuestionRandomizationRule[];
+  branchingLogic?: BranchingLogic;
+  draftBranchingLogic?: BranchingLogic;
+  displayLogic?: DisplayLogic;
+  draftDisplayLogic?: DisplayLogic;
 }
 
 export interface Survey {

@@ -175,6 +175,7 @@ export interface Question {
   forceResponse?: boolean;
   isAutomatic?: boolean; // For automatic page breaks
   pageName?: string; // For editable page names on PageBreak questions
+  groupName?: string;
 
   // New property for choice-based validation
   choiceValidation?: {
@@ -239,6 +240,16 @@ export interface Question {
   draftAfterWorkflows?: Workflow[];
 }
 
+export type RandomizationPattern = 'rotation' | 'permutation' | 'synchronized' | 'reverse_order';
+
+export interface QuestionRandomizationRule {
+  id: string;
+  startQuestionId: string;
+  endQuestionId: string;
+  pattern: RandomizationPattern;
+  questionGroupId?: string;
+}
+
 export interface Block {
   id: string;
   bid?: string;
@@ -246,6 +257,11 @@ export interface Block {
   questions: Question[];
   branchName?: string;
   pageName?: string; // For editable page names on implicit pages
+  isSurveySection?: boolean;
+  sectionName?: string;
+  loopingEnabled?: boolean;
+  maxLoopSize?: number;
+  questionRandomization?: QuestionRandomizationRule[];
 }
 
 export interface Survey {

@@ -6,6 +6,7 @@ import BuildPanel from './components/BuildPanel';
 import SurveyCanvas from './components/SurveyCanvas';
 // FIX: Changed import to named import as RightSidebar is now a named export.
 import { RightSidebar } from './components/RightSidebar';
+import { BlockSidebar } from './components/BlockSidebar';
 import SurveyStructureWidget from './components/SurveyStructureWidget';
 import GeminiPanel from './components/GeminiPanel';
 import { BulkEditPanel } from './components/BulkEditPanel';
@@ -74,6 +75,7 @@ const App: React.FC = () => {
   const [history, setHistory] = useState<Survey[]>([]);
   const [toolboxItems, setToolboxItems] = useState<ToolboxItemData[]>(initialToolboxItems);
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
+  const [selectedBlock, setSelectedBlock] = useState<Block | null>(null);
   const [checkedQuestions, setCheckedQuestions] = useState<Set<string>>(new Set());
   const [activeMainTab, setActiveMainTab] = useState<string>('Build');
   const [activeCanvasTab, setActiveCanvasTab] = useState<'Online' | 'Phone'>('Online');
@@ -102,7 +104,7 @@ const App: React.FC = () => {
   }, [history]);
 
   const isDiagramView = activeMainTab === 'Flow';
-  const isAnyRightPanelOpen = isGeminiPanelOpen || showBulkEditPanel || !!selectedQuestion;
+  const isAnyRightPanelOpen = isGeminiPanelOpen || showBulkEditPanel || !!selectedQuestion || !!selectedBlock;
 
   // On first load, dispatch an action to apply the default paging mode and insert automatic page breaks.
   useEffect(() => {
@@ -131,7 +133,15 @@ const App: React.FC = () => {
         setSelectedQuestion(null);
       }
     }
-  }, [survey, selectedQuestion]);
+    if (selectedBlock) {
+        const updatedBlock = survey.blocks.find(b => b.id === selectedBlock.id);
+        if (updatedBlock && JSON.stringify(updatedBlock) !== JSON.stringify(selectedBlock)) {
+            setSelectedBlock(updatedBlock);
+        } else if (!updatedBlock) {
+            setSelectedBlock(null);
+        }
+    }
+  }, [survey, selectedQuestion, selectedBlock]);
 
   // When the selected question changes, clean up any unconfirmed logic from the *previous* question.
   useEffect(() => {
@@ -193,47 +203,58 @@ const App: React.FC = () => {
     canvasContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  const handleSelectQuestion = useCallback((question: Question | null, options?: { tab?: string; focusOn?: string }) => {
-    if (question === null) {
+  const handleSelectBlock = useCallback((block: Block | null) => {
+    if (block) {
       setSelectedQuestion(null);
+    } else {
+        setIsRightSidebarExpanded(false); // Reset on close
+    }
+    setSelectedBlock(block);
+  }, []);
+
+  const handleSelectQuestion = useCallback((question: Question | null, options?: { tab?: string; focusOn?: string }) => {
+    if (question) {
+        setSelectedBlock(null);
+    }
+    
+    if (question === null) {
       setIsRightSidebarExpanded(false); // Reset on close
       setFocusedLogicSource(null);
-      return;
-    }
-    if (question.type === QTEnum.PageBreak) {
-      setSelectedQuestion(null);
-      return;
+    } else {
+        if (question.type === QTEnum.PageBreak) {
+          setSelectedQuestion(null);
+          return;
+        }
+
+        // If Gemini panel is open, keep it open but update the context.
+        // If user was viewing a help topic, switch back to chat.
+        if (isGeminiPanelOpen && geminiHelpTopic) {
+          setGeminiHelpTopic(null);
+        }
+      
+        // If a tab was explicitly passed, set it as active.
+        // Otherwise, the active tab remains unchanged, preserving the "sticky" tab behavior.
+        if (options?.tab) {
+          setActiveRightSidebarTab(options.tab);
+        }
+        
+        setFocusedLogicSource(options?.focusOn ?? null);
     }
 
-    // If Gemini panel is open, keep it open but update the context.
-    // If user was viewing a help topic, switch back to chat.
-    if (isGeminiPanelOpen && geminiHelpTopic) {
-      setGeminiHelpTopic(null);
-    }
-  
     setSelectedQuestion(question);
-
-    // If a tab was explicitly passed, set it as active.
-    // Otherwise, the active tab remains unchanged, preserving the "sticky" tab behavior.
-    if (options?.tab) {
-      setActiveRightSidebarTab(options.tab);
-    }
-    
-    setFocusedLogicSource(options?.focusOn ?? null);
-    
   }, [isGeminiPanelOpen, geminiHelpTopic]);
 
   // Effect to handle clicks outside of the selected question card and right panel to deselect.
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-        if (selectedQuestion) {
+        if (selectedQuestion || selectedBlock) {
             const target = event.target as HTMLElement;
 
-            // Clicks that control the build panel should not deselect the question.
+            // Clicks that control the build panel should not deselect.
             const isClickOnLeftSidebar = target.closest('nav.w-20');
             const isClickOnBuildPanelToggle = target.closest('[aria-label="Collapse build panel"], [aria-label="Open build panel"]');
             
-            // Clicks on the Gemini panel toggle should not deselect the question.
+            // Clicks on the Gemini panel toggle should not deselect.
             const isClickOnGeminiToggle = target.closest('[aria-label="AI Features"]');
 
             if (isClickOnLeftSidebar || isClickOnBuildPanelToggle || isClickOnGeminiToggle) {
@@ -242,11 +263,13 @@ const App: React.FC = () => {
 
             const isClickInRightPanel = rightPanelRef.current?.contains(target);
             const isClickInQuestionCard = target.closest('[data-question-id]');
+            const isClickInBlock = target.closest('[data-block-id]');
             const isClickInDiagramNode = target.closest('.react-flow__node');
             const isClickInDiagramEdge = target.closest('.react-flow__edge');
             
-            if (!isClickInRightPanel && !isClickInQuestionCard && !isClickInDiagramNode && !isClickInDiagramEdge) {
+            if (!isClickInRightPanel && !isClickInQuestionCard && !isClickInBlock && !isClickInDiagramNode && !isClickInDiagramEdge) {
                 handleSelectQuestion(null);
+                handleSelectBlock(null);
             }
         }
     };
@@ -254,7 +277,7 @@ const App: React.FC = () => {
     return () => {
         document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [selectedQuestion, handleSelectQuestion]); // handleSelectQuestion is memoized
+  }, [selectedQuestion, selectedBlock, handleSelectQuestion, handleSelectBlock]);
 
   const handleToggleCollapseAll = useCallback(() => {
     setCollapsedBlocks(prev => {
@@ -510,6 +533,10 @@ const App: React.FC = () => {
         setSelectedQuestion(null);
     }
 
+    if (selectedBlock?.id === blockId) {
+        setSelectedBlock(null);
+    }
+
     const questionIdsToDelete = new Set(blockToDelete.questions.map(q => q.id));
     setCheckedQuestions(prev => {
         const newSet = new Set(prev);
@@ -518,7 +545,7 @@ const App: React.FC = () => {
     });
 
     dispatchAndRecord({ type: SurveyActionType.DELETE_BLOCK, payload: { blockId } });
-  }, [survey, selectedQuestion, dispatchAndRecord]);
+  }, [survey, selectedQuestion, selectedBlock, dispatchAndRecord]);
   
   const handleToggleQuestionCheck = useCallback((questionId: string) => {
     setCheckedQuestions(prev => {
@@ -686,7 +713,10 @@ const App: React.FC = () => {
     if (checkedQuestions.size >= 2 && selectedQuestion) {
       handleSelectQuestion(null);
     }
-  }, [checkedQuestions.size, selectedQuestion, handleSelectQuestion]);
+    if (checkedQuestions.size >= 2 && selectedBlock) {
+      handleSelectBlock(null);
+    }
+  }, [checkedQuestions.size, selectedQuestion, selectedBlock, handleSelectQuestion, handleSelectBlock]);
 
   // Memoize selected question objects for performance
   const selectedQuestionObjects = useMemo(() => {
@@ -743,13 +773,15 @@ const App: React.FC = () => {
             )}
             
             <div className="relative flex-1 flex flex-col min-w-0">
-              <div ref={canvasContainerRef} className={`relative flex-1 overflow-y-auto pt-16 px-4 pb-4 transition-all duration-300 ${selectedQuestion || isGeminiPanelOpen || showBulkEditPanel ? 'pr-0' : ''}`}>
+              <div ref={canvasContainerRef} className={`relative flex-1 overflow-y-auto pt-16 px-4 pb-4 transition-all duration-300 ${isAnyRightPanelOpen ? 'pr-0' : ''}`}>
                 <SurveyCanvas 
                   survey={survey} 
-                  selectedQuestion={selectedQuestion} 
+                  selectedQuestion={selectedQuestion}
+                  selectedBlock={selectedBlock}
                   checkedQuestions={checkedQuestions}
                   logicIssues={logicIssues}
                   onSelectQuestion={handleSelectQuestion}
+                  onSelectBlock={handleSelectBlock}
                   onUpdateQuestion={handleUpdateQuestion}
                   onUpdateBlock={handleUpdateBlock}
                   onDeleteQuestion={handleDeleteQuestion}
@@ -817,15 +849,17 @@ const App: React.FC = () => {
         );
     }
   }, [
-    activeMainTab, isBuildPanelOpen, survey, selectedQuestion, checkedQuestions, collapsedBlocks, toolboxItems, logicIssues,
-    handleSelectQuestion, handleReorderToolbox, handleReorderQuestion, handleReorderBlock, handleAddBlock,
+    activeMainTab, isBuildPanelOpen, survey, selectedQuestion, selectedBlock, checkedQuestions, collapsedBlocks, toolboxItems, logicIssues, isAnyRightPanelOpen,
+    handleSelectQuestion, handleSelectBlock, handleReorderToolbox, handleReorderQuestion, handleReorderBlock, handleAddBlock,
     handleCopyBlock, handleAddQuestionToBlock, handleExpandAllBlocks, handleCollapseAllBlocks, handleDeleteBlock,
     handleDeleteQuestion, handleCopyQuestion, handleAddPageBreakAfterQuestion, handleExpandBlock, handleCollapseBlock,
     handleSelectAllInBlock, handleUnselectAllInBlock, handleUpdateQuestion, handleUpdateBlock, handleAddBlockFromToolbox, handleAddQuestion,
     handleToggleQuestionCheck, handleToggleBlockCollapse, handleAddChoice, handleUpdateBlockTitle, handleUpdateSurveyTitle,
-    handleAddToLibrary, isGeminiPanelOpen, showBulkEditPanel, activeCanvasTab, handleMoveQuestionToNewBlock, handleMoveQuestionToExistingBlock, handleMoveBlockUp, handleMoveBlockDown
+    handleAddToLibrary, activeCanvasTab, handleMoveQuestionToNewBlock, handleMoveQuestionToExistingBlock, handleMoveBlockUp, handleMoveBlockDown
   ]);
   
+  const isPanelExpanded = isRightSidebarExpanded && (!!selectedQuestion || !!selectedBlock);
+
   return (
     <div className={`flex flex-col h-screen bg-surface text-on-surface ${isDiagramView ? 'dark' : ''}`}>
       <Header 
@@ -845,8 +879,8 @@ const App: React.FC = () => {
               isDiagramView
                 ? `absolute top-0 right-0 h-full shadow-lg transform transition-transform duration-300 ease-in-out
                   ${isAnyRightPanelOpen ? 'translate-x-0' : 'translate-x-full'}
-                  ${isRightSidebarExpanded && selectedQuestion ? 'w-1/2' : 'w-96'}`
-                : `flex-shrink-0 transition-all duration-300 ease-in-out ${isRightSidebarExpanded && selectedQuestion ? 'w-[50%]' : 'w-96'}`
+                  ${isPanelExpanded ? 'w-1/2' : 'w-96'}`
+                : `flex-shrink-0 transition-all duration-300 ease-in-out ${isPanelExpanded ? 'w-[50%]' : 'w-96'}`
             }
           >
             {isGeminiPanelOpen ? (
@@ -894,6 +928,15 @@ const App: React.FC = () => {
                   onExpandSidebar={handleExpandRightSidebar}
                   toolboxItems={toolboxItems}
                   onRequestGeminiHelp={handleRequestGeminiHelp}
+                />
+            ) : selectedBlock ? (
+                <BlockSidebar
+                    block={selectedBlock}
+                    survey={survey}
+                    onClose={() => handleSelectBlock(null)}
+                    onUpdateBlock={handleUpdateBlock}
+                    isExpanded={isRightSidebarExpanded}
+                    onToggleExpand={handleToggleRightSidebarExpand}
                 />
             ) : (activeMainTab === 'Flow' && !isAnyRightPanelOpen) ? (
                 <PathAnalysisPanel survey={survey} />

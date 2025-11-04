@@ -18,12 +18,14 @@ interface SurveyBlockProps {
     block: Block;
     survey: Survey;
     selectedQuestion: Question | null;
+    selectedBlock: Block | null;
     checkedQuestions: Set<string>;
     logicIssues: LogicIssue[];
     hasBranchingLogicInSurvey: boolean;
     branchedToBlockIds: Set<string>;
     // FIX: Updated prop signature to be consistent with App.tsx and child components.
     onSelectQuestion: (question: Question | null, options?: { tab?: string; focusOn?: string }) => void;
+    onSelectBlock: (block: Block | null) => void;
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
     onUpdateBlock: (blockId: string, updates: Partial<Block>) => void;
     onDeleteQuestion: (questionId: string) => void;
@@ -57,7 +59,7 @@ interface SurveyBlockProps {
 }
 
 const SurveyBlock: React.FC<SurveyBlockProps> = memo(({ 
-  block, survey, selectedQuestion, checkedQuestions, logicIssues, hasBranchingLogicInSurvey, branchedToBlockIds, onSelectQuestion, onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
+  block, survey, selectedQuestion, selectedBlock, checkedQuestions, logicIssues, hasBranchingLogicInSurvey, branchedToBlockIds, onSelectQuestion, onSelectBlock, onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
   isBlockDragging, onBlockDragStart, onBlockDragEnd, isCollapsed, onToggleCollapse,
   onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onAddFromLibrary,
   pageInfoMap
@@ -73,6 +75,8 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
   
   const [isAddQuestionMenuOpen, setIsAddQuestionMenuOpen] = useState(false);
   const addQuestionMenuRef = useRef<HTMLDivElement>(null);
+
+  const isSelected = selectedBlock?.id === block.id;
 
   const createPasteHandler = useCallback(<T extends HTMLInputElement | HTMLTextAreaElement>(
     onChange: (newValue: string) => void
@@ -124,12 +128,28 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
     [block.questions]
   );
 
-  const surveyFlowLogic = useMemo(() => {
+  const { surveyFlowLogic, logicSource } = useMemo(() => {
     let surveyFlowDestination: string | null = null;
+    let source: 'branching' | 'skip' | 'fallthrough' = 'fallthrough';
 
-    if (lastContentQuestion?.skipLogic?.type === 'simple' && lastContentQuestion.skipLogic.isConfirmed) {
-      surveyFlowDestination = lastContentQuestion.skipLogic.skipTo;
-    } else {
+    const lastQ = lastContentQuestion;
+    if (lastQ) {
+        const branching = lastQ.draftBranchingLogic ?? lastQ.branchingLogic;
+        // Check for unconditional branching first (otherwise logic with no branches)
+        if (branching && branching.otherwiseIsConfirmed && (!branching.branches || branching.branches.length === 0)) {
+            surveyFlowDestination = branching.otherwiseSkipTo;
+            source = 'branching';
+        } else {
+            const skip = lastQ.skipLogic;
+            if (skip?.type === 'simple' && skip.isConfirmed) {
+                surveyFlowDestination = skip.skipTo;
+                source = 'skip';
+            }
+        }
+    }
+
+    // Fallback if no explicit logic was found on the last question
+    if (!surveyFlowDestination) {
       const currentBlockIndex = survey.blocks.findIndex(b => b.id === block.id);
       if (currentBlockIndex !== -1 && currentBlockIndex < survey.blocks.length - 1) {
         const nextBlock = survey.blocks[currentBlockIndex + 1];
@@ -137,13 +157,16 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
       } else {
         surveyFlowDestination = 'end';
       }
+      source = 'fallthrough';
     }
 
-    return surveyFlowDestination ? {
+    const logic = surveyFlowDestination ? {
       type: 'simple' as const,
       skipTo: surveyFlowDestination,
       isConfirmed: true,
     } : null;
+
+    return { surveyFlowLogic: logic, logicSource: source };
   }, [block.id, lastContentQuestion, survey.blocks]);
 
   const showSurveyFlow = hasBranchingLogicInSurvey && isPathTargetBlock && surveyFlowLogic;
@@ -252,11 +275,13 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
 
   return (
     <div 
-      className={`bg-surface-container border border-outline-variant rounded-lg mb-8 transition-opacity ${isBlockDragging ? 'opacity-50' : ''}`}
+      className={`bg-surface-container border rounded-lg mb-8 transition-all ${
+        isBlockDragging ? 'opacity-50' : ''
+      } ${isSelected ? 'border-2 border-primary shadow-md' : 'border-outline-variant'}`}
       data-block-id={block.id}
     >
       <div 
-        className="flex items-center justify-between p-4 bg-surface-container-high rounded-t-lg"
+        className={`flex items-center justify-between p-4 rounded-t-lg transition-colors ${isSelected ? 'bg-primary-container' : 'bg-surface-container-high'}`}
         draggable="true"
         onDragStart={(e) => {
             if ((e.target as HTMLElement).closest('.collapse-toggle-area, .actions-menu-area, input')) {
@@ -268,10 +293,16 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
             onBlockDragStart();
         }}
         onDragEnd={onBlockDragEnd}
+        onClick={(e) => {
+            if ((e.target as HTMLElement).closest('button, input')) {
+                return;
+            }
+            onSelectBlock(block);
+        }}
       >
         <div className="flex items-center cursor-grab flex-grow min-w-0 mr-2">
           <DragIndicatorIcon className="text-xl text-on-surface-variant mr-2 flex-shrink-0" />
-          <div className="flex items-center cursor-pointer collapse-toggle-area w-full" onClick={onToggleCollapse}>
+          <div className="flex items-center cursor-pointer collapse-toggle-area w-full" onClick={(e) => { e.stopPropagation(); onToggleCollapse(); }}>
             <ChevronDownIcon className={`text-xl mr-2 text-on-surface transition-transform duration-200 flex-shrink-0 ${isCollapsed ? '-rotate-90' : ''}`} />
             {isEditingTitle ? (
                 <input
@@ -337,14 +368,22 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           onDragLeave={handleDragLeave}
-          className="p-4"
+          className="p-4 cursor-pointer"
+          onClick={() => onSelectBlock(block)}
         >
+          {block.isSurveySection && (
+            <div className="pb-4 mb-4 border-b-2 border-primary">
+                <h3 className="text-xl font-bold text-on-surface">
+                    {block.sectionName || block.title}
+                </h3>
+            </div>
+          )}
           {block.questions.length > 0 ? (
             <>
               {block.questions.map((question, index) => (
                 <React.Fragment key={question.id}>
                 {dropTargetId === question.id && <DropIndicator />}
-                <div className={index > 0 || pageInfoMap.has(question.id) ? "mt-4" : ""}>
+                <div className={index > 0 || pageInfoMap.has(question.id) || (index === 0 && block.isSurveySection) ? "mt-4" : ""}>
                     <QuestionCard
                       question={question}
                       survey={survey}
@@ -381,7 +420,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                   <SurveyFlowDisplay
                     logic={surveyFlowLogic as SkipLogic}
                     survey={survey}
-                    onClick={() => onSelectQuestion(lastContentQuestion, { tab: 'Behavior' })}
+                    onClick={() => onSelectQuestion(lastContentQuestion, { tab: logicSource === 'branching' ? 'Advanced' : 'Behavior' })}
                   />
                 </div>
               )}

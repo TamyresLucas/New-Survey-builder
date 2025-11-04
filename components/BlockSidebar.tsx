@@ -1,14 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { Block, Survey, Question, QuestionRandomizationRule, RandomizationPattern, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, DisplayLogic, DisplayLogicCondition } from '../types';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import type { Block, Survey, QuestionRandomizationRule, RandomizationPattern } from '../types';
 import { QuestionType } from '../types';
-import { XIcon, ChevronDownIcon, PlusIcon, InfoIcon, ExpandIcon, CollapseIcon } from './icons';
-import { Toggle } from './Toggle';
-import { generateId, truncate, parseChoice, isBranchingLogicExhaustive } from '../utils';
-import { CollapsibleSection } from './logic-editor/shared';
-import { BlockDisplayLogicEditor } from './logic-editor/BlockDisplayLogicEditor';
-import { BlockSkipLogicEditor } from './logic-editor/BlockSkipLogicEditor';
-import { Button } from './Button';
-
+import { XIcon, ChevronDownIcon, PlusIcon, ExpandIcon, CollapseIcon } from './icons';
+import { generateId, truncate } from '../utils';
 
 interface BlockSidebarProps {
   block: Block;
@@ -17,70 +11,14 @@ interface BlockSidebarProps {
   onUpdateBlock: (blockId: string, updates: Partial<Block>) => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onExpandSidebar: () => void;
-  focusTarget: { type: string; id: string; tab: string; element: string } | null;
-  onFocusHandled: () => void;
 }
 
-// ====================================================================================
-// MAIN SIDEBAR COMPONENT
-// ====================================================================================
-
-export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClose, onUpdateBlock, isExpanded, onToggleExpand, onExpandSidebar, focusTarget, onFocusHandled }) => {
+export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClose, onUpdateBlock, isExpanded, onToggleExpand }) => {
   const [activeTab, setActiveTab] = useState('Settings');
   const [title, setTitle] = useState(block.title);
   const [sectionName, setSectionName] = useState(block.sectionName || block.title);
-  const continueToRef = useRef<HTMLSelectElement>(null);
-  const randomizationRef = useRef<HTMLDivElement>(null);
 
-  const tabs = ['Settings', 'Behavior', 'Advanced'];
-
-  const lastInteractiveQuestion = useMemo(() => {
-    // Find the last question in the block that is not a Page Break or Description
-    return [...block.questions]
-      .reverse()
-      .find(
-        (q) =>
-          q.type !== QuestionType.PageBreak &&
-          q.type !== QuestionType.Description
-      );
-  }, [block.questions]);
-
-  const isDefaultPathDisabled = useMemo(
-    () => isBranchingLogicExhaustive(lastInteractiveQuestion),
-    [lastInteractiveQuestion]
-  );
-
-  useEffect(() => {
-    if (focusTarget?.type === 'block' && focusTarget.id === block.id) {
-      setActiveTab(focusTarget.tab);
-
-      // Use a timeout to ensure the tab has rendered and the element is visible
-      setTimeout(() => {
-        let elementToHighlight: HTMLElement | null = null;
-        let elementToFocus: HTMLElement | null = null;
-
-        if (focusTarget.element === 'continueTo' && continueToRef.current) {
-          elementToFocus = continueToRef.current;
-          elementToHighlight = continueToRef.current.closest('div.relative');
-        } else if (focusTarget.element === 'questionRandomization' && randomizationRef.current) {
-          elementToFocus = randomizationRef.current;
-          elementToHighlight = randomizationRef.current;
-        }
-
-        if (elementToFocus && elementToHighlight) {
-          elementToHighlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          elementToFocus.focus({ preventScroll: true });
-
-          elementToHighlight.classList.add('logic-highlight');
-          setTimeout(() => {
-            elementToHighlight?.classList.remove('logic-highlight');
-          }, 2500);
-        }
-        onFocusHandled();
-      }, 100);
-    }
-  }, [focusTarget, block.id, onFocusHandled]);
+  const tabs = ['Settings', 'Behavior'];
 
   useEffect(() => {
     setTitle(block.title);
@@ -104,40 +42,17 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
     return Array.from(paths);
   }, [survey]);
 
-  const localQuestionGroups = useMemo(() => {
+  const questionGroups = useMemo(() => {
     const groups = new Set<string>();
-    block.questions.forEach(q => {
-      if (q.groupName) {
-        groups.add(q.groupName);
-      }
+    survey.blocks.forEach(b => {
+        b.questions.forEach(q => {
+            if (q.groupName) {
+                groups.add(q.groupName);
+            }
+        });
     });
     return Array.from(groups).sort();
-  }, [block.questions]);
-
-  const globalQuestionGroups = useMemo(() => {
-    const allGroups = new Set<string>();
-    survey.blocks.forEach(b => {
-      if (b.id !== block.id) { // only other blocks
-        b.questions.forEach(q => {
-          if (q.groupName) {
-            allGroups.add(q.groupName);
-          }
-        });
-      }
-    });
-    return Array.from(allGroups).sort();
-  }, [survey.blocks, block.id]);
-
-  const currentBlockIndex = useMemo(() => survey.blocks.findIndex(b => b.id === block.id), [survey.blocks, block.id]);
-
-  const compatibleBlocks = useMemo(() => {
-    if (currentBlockIndex === -1) return [];
-
-    return survey.blocks.filter((b, index) =>
-      index > currentBlockIndex && // Must come after
-      b.branchName === block.branchName // Must be in the same path
-    );
-  }, [survey.blocks, block.id, block.branchName, currentBlockIndex]);
+  }, [survey]);
 
   const handleTitleBlur = () => {
     if (title.trim() && title.trim() !== block.title) {
@@ -162,25 +77,21 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
 
   const handleSectionNameKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      (e.target as HTMLInputElement).blur();
+        (e.target as HTMLInputElement).blur();
     } else if (e.key === 'Escape') {
-      setSectionName(block.sectionName || block.title);
-      (e.target as HTMLInputElement).blur();
+        setSectionName(block.sectionName || block.title);
+        (e.target as HTMLInputElement).blur();
     }
   };
 
-  const handleIsSectionToggle = (checked: boolean) => {
-    onUpdateBlock(block.id, {
-      isSurveySection: checked,
+  const handleIsSectionToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isChecked = e.target.checked;
+    onUpdateBlock(block.id, { 
+      isSurveySection: isChecked,
       // If turning on and no custom name exists, default it to block title
-      sectionName: checked && !block.sectionName ? block.title : block.sectionName
+      sectionName: isChecked && !block.sectionName ? block.title : block.sectionName
     });
   };
-
-  const questionCount = useMemo(() =>
-    block.questions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak).length,
-    [block.questions]
-  );
 
   const renderSettingsTab = () => (
     <div className="space-y-6">
@@ -195,7 +106,7 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
           onBlur={handleTitleBlur}
           onKeyDown={handleTitleKeyDown}
           rows={2}
-          className="w-full bg-transparent border border-outline rounded-md p-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary transition-colors"
+          className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
           placeholder="Enter block title..."
         />
       </div>
@@ -208,30 +119,29 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
             id="survey-path"
             value={block.branchName || ''}
             onChange={e => onUpdateBlock(block.id, { branchName: e.target.value || undefined })}
-            className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none transition-colors"
+            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
           >
             <option value="">None</option>
             {surveyPaths.map(path => (
               <option key={path} value={path}>{path}</option>
             ))}
           </select>
-          <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-lg" />
+          <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
         </div>
         <p className="text-xs text-on-surface-variant mt-1">Associate this block with a survey path.</p>
       </div>
       <div>
         <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <label htmlFor="set-as-section" className="text-sm font-medium text-on-surface block">
-              Set as survey section
+            <div className="flex-1">
+                <label htmlFor="set-as-section" className="text-sm font-medium text-on-surface block">
+                    Set as survey section
+                </label>
+                <p className="text-xs text-on-surface-variant mt-0.5">Display a section header for this block.</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="set-as-section" checked={block.isSurveySection || false} onChange={handleIsSectionToggle} className="sr-only peer" />
+                <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
             </label>
-            <p className="text-xs text-on-surface-variant mt-0.5">Display a section header for this block.</p>
-          </div>
-          <Toggle
-            id="set-as-section"
-            checked={block.isSurveySection || false}
-            onChange={handleIsSectionToggle}
-          />
         </div>
         {block.isSurveySection && (
           <div className="mt-4 pl-4 border-l-2 border-outline-variant">
@@ -245,182 +155,29 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
               onChange={(e) => setSectionName(e.target.value)}
               onBlur={handleSectionNameBlur}
               onKeyDown={handleSectionNameKeyDown}
-              className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary transition-colors"
+              className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
               placeholder="Enter section name..."
             />
           </div>
         )}
       </div>
-      {survey.pagingMode === 'multi-per-page' && (
-        <div className="flex items-start gap-3 pt-6 border-t border-outline-variant">
-          <div className='flex items-center'>
-            <Toggle
-              id="block-auto-page-breaks"
-              checked={!!block.automaticPageBreaks}
-              onChange={(checked) => onUpdateBlock(block.id, { automaticPageBreaks: checked })}
-              size="small"
-            />
-          </div>
-          <div>
-            <label htmlFor="block-auto-page-breaks" className="text-sm font-medium text-on-surface block">
-              Automatic page break between questions
-            </label>
-            <p className="text-xs text-on-surface-variant mt-0.5">Applies page breaks between each question within this block.</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 
-  const renderBehaviorTab = () => (
-    <div className="space-y-8">
-      <CollapsibleSection title="Navigation" defaultExpanded={true}>
-        <div className="space-y-6">
-          <div>
-            {!isDefaultPathDisabled && (
-              <>
-                <label htmlFor="continue-to" className="block text-sm font-medium text-on-surface-variant mb-1">
-                  Continue to
-                </label>
-                <div className="relative">
-                  <select
-                    id="continue-to"
-                    ref={continueToRef}
-                    value={block.continueTo || 'next'}
-                    onChange={e => onUpdateBlock(block.id, { continueTo: e.target.value })}
-                    className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none transition-colors"
-                  >
-                    <option value="next">Default (next block)</option>
-                    <option value="end">End of Survey</option>
-                    {compatibleBlocks.length > 0 && (
-                      <optgroup label="Blocks in this path">
-                        {compatibleBlocks.map(b => (
-                          <option key={b.id} value={`block:${b.id}`}>
-                            {b.bid}: {truncate(b.title, 50)}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                  </select>
-                  <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-lg" />
-                </div>
-                <p className="text-xs text-on-surface-variant mt-1">Define the block's default exit path.</p>
-              </>
-            )}
-
-          </div>
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <label htmlFor="enable-looping" className="text-sm font-medium text-on-surface block">
-                  Enable question looping
-                </label>
-                <p className="text-xs text-on-surface-variant mt-0.5">Repeat the questions in this block.</p>
-              </div>
-              <Toggle
-                id="enable-looping"
-                checked={block.loopingEnabled || false}
-                onChange={(checked) => onUpdateBlock(block.id, { loopingEnabled: checked })}
-              />
-            </div>
-            {block.loopingEnabled && (
-              <div className="mt-4 pl-4 border-l-2 border-outline-variant">
-                <label htmlFor="max-loop-size" className="block text-sm font-medium text-on-surface-variant mb-1">
-                  Max. Loop Size
-                </label>
-                <input
-                  type="number"
-                  id="max-loop-size"
-                  value={block.maxLoopSize || ''}
-                  onChange={(e) => {
-                    const value = e.target.value ? parseInt(e.target.value, 10) : undefined;
-                    onUpdateBlock(block.id, { maxLoopSize: value });
-                  }}
-                  className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary transition-colors"
-                  placeholder="e.g., 5"
-                  min="1"
-                />
-              </div>
-            )}
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="flex-1 pr-4">
-                <label htmlFor="block-auto-advance" className="text-sm font-medium text-on-surface block">
-                  Autoadvance
-                </label>
-                <p className="text-xs text-on-surface-variant mt-0.5">Automatically moves to the next page when a question in this block is answered.</p>
-              </div>
-              <Toggle
-                id="block-auto-advance"
-                checked={!!block.autoAdvance}
-                onChange={(checked) => onUpdateBlock(block.id, { autoAdvance: checked })}
-              />
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="flex-1 pr-4">
-                <label htmlFor="block-hide-back-button" className="text-sm font-medium text-on-surface block">
-                  Hide back button
-                </label>
-                <p className="text-xs text-on-surface-variant mt-0.5">Prevent respondent from going back from any question in this block.</p>
-              </div>
-              <Toggle
-                id="block-hide-back-button"
-                checked={!!block.hideBackButton}
-                onChange={(checked) => onUpdateBlock(block.id, { hideBackButton: checked })}
-              />
-            </div>
-          </div>
-        </div>
-      </CollapsibleSection>
-      <CollapsibleSection title="Logic" defaultExpanded={true}>
-        <div className="divide-y divide-outline-variant">
-          <div className="py-6 first:pt-0">
-            <BlockDisplayLogicEditor
-              block={block}
-              survey={survey}
-              onUpdateBlock={onUpdateBlock}
-              onExpandSidebar={onExpandSidebar}
-            />
-          </div>
-          <div className="py-6 first:pt-0">
-            <h3 className="text-sm font-medium text-on-surface mb-1">Skip Logic</h3>
-            <BlockSkipLogicEditor
-              block={block}
-              survey={survey}
-              onUpdateBlock={onUpdateBlock}
-              onExpandSidebar={onExpandSidebar}
-            />
-          </div>
-        </div>
-      </CollapsibleSection>
-    </div>
-  );
-
-  const renderAdvancedTab = () => {
+  const renderBehaviorTab = () => {
     // Handlers for Question Randomization
     const handleToggleRandomization = (enabled: boolean) => {
-      if (enabled) {
-        onExpandSidebar();
-        // If turning on and there are no rules, add a default rule.
-        if (!block.questionRandomization || block.questionRandomization.length === 0) {
-          const newRule: QuestionRandomizationRule = {
-            id: generateId('rand'),
-            startQuestionId: '',
-            endQuestionId: '',
-            pattern: 'permutation',
-            isConfirmed: false,
-          };
-          onUpdateBlock(block.id, {
-            questionRandomization: [newRule],
-          });
-        }
-      } else {
-        // Turning off
+      if (enabled && (!block.questionRandomization || block.questionRandomization.length === 0)) {
+        const newRule: QuestionRandomizationRule = {
+          id: generateId('rand'),
+          startQuestionId: '',
+          endQuestionId: '',
+          pattern: 'permutation',
+        };
+        onUpdateBlock(block.id, {
+          questionRandomization: [newRule],
+        });
+      } else if (!enabled) {
         onUpdateBlock(block.id, {
           questionRandomization: undefined,
         });
@@ -428,149 +185,224 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
     };
 
     const handleAddRandomizationRule = () => {
-      const newRule: QuestionRandomizationRule = {
-        id: generateId('rand'),
-        startQuestionId: '',
-        endQuestionId: '',
-        pattern: 'permutation',
-        isConfirmed: false,
-      };
-      onUpdateBlock(block.id, {
-        questionRandomization: [...(block.questionRandomization || []), newRule],
-      });
+        const newRule: QuestionRandomizationRule = {
+            id: generateId('rand'),
+            startQuestionId: '',
+            endQuestionId: '',
+            pattern: 'permutation',
+        };
+        onUpdateBlock(block.id, {
+            questionRandomization: [...(block.questionRandomization || []), newRule],
+        });
     };
-
+    
     const handleUpdateRandomizationRule = (ruleId: string, updates: Partial<QuestionRandomizationRule>) => {
-      const newRules = (block.questionRandomization || []).map(rule => {
-        if (rule.id === ruleId) {
-          const updatedRule = { ...rule, ...updates, isConfirmed: false };
-
-          // When changing the pattern, reset the group if it's no longer valid.
-          if ('pattern' in updates) {
-            const newIsSync = updates.pattern === 'synchronized';
-            const oldIsSync = rule.pattern === 'synchronized';
-
-            if (newIsSync && !oldIsSync) { // Switched to sync
-              // if current group is a local group, reset it
-              if (localQuestionGroups.includes(rule.questionGroupId || '')) {
-                updatedRule.questionGroupId = undefined;
-              }
-            } else if (!newIsSync && oldIsSync) { // Switched from sync
-              // if current group is a global group, reset it
-              if (globalQuestionGroups.includes(rule.questionGroupId || '')) {
-                updatedRule.questionGroupId = undefined;
-              }
-            }
-          }
-          return updatedRule;
-        }
-        return rule;
-      });
-      onUpdateBlock(block.id, { questionRandomization: newRules });
-    };
-
-    const handleConfirmRandomizationRule = (ruleId: string) => {
-      const newRules = (block.questionRandomization || []).map(rule =>
-        rule.id === ruleId ? { ...rule, isConfirmed: true } : rule
-      );
-      onUpdateBlock(block.id, { questionRandomization: newRules });
+        const newRules = (block.questionRandomization || []).map(rule =>
+            rule.id === ruleId ? { ...rule, ...updates } : rule
+        );
+        onUpdateBlock(block.id, { questionRandomization: newRules });
     };
 
     const handleRemoveRandomizationRule = (ruleId: string) => {
-      const newRules = (block.questionRandomization || []).filter(rule => rule.id !== ruleId);
-      onUpdateBlock(block.id, { questionRandomization: newRules.length > 0 ? newRules : undefined });
+        const newRules = (block.questionRandomization || []).filter(rule => rule.id !== ruleId);
+        onUpdateBlock(block.id, { questionRandomization: newRules.length > 0 ? newRules : undefined });
     };
 
     return (
-      <div className="space-y-6">
-        {/* Question Randomization Section */}
-        <div ref={randomizationRef} tabIndex={-1} className="focus:outline-none rounded-md">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <label htmlFor="enable-randomization" className="text-sm font-medium text-on-surface block">
-                Enable question randomization
-              </label>
-              <p className="text-xs text-on-surface-variant mt-0.5">Randomize the order of questions in this block.</p>
-            </div>
-            <Toggle
-              id="enable-randomization"
-              checked={!!block.questionRandomization}
-              onChange={handleToggleRandomization}
-            />
-          </div>
-          {block.questionRandomization && (
-            <div className="mt-4 space-y-4">
-              <button onClick={handleAddRandomizationRule} className="flex items-center gap-1 text-sm font-button-text text-primary hover:underline">
-                <PlusIcon className="text-base" /> Add randomization
-              </button>
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  {block.questionRandomization.map((rule) => {
-                    const availableQuestions = block.questions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak);
-                    const isSync = rule.pattern === 'synchronized';
-                    return (
-                      <div key={rule.id}>
-                        {/* Rule content placeholder */}
-                      </div>
-                    );
-                  })}
+        <div className="space-y-6">
+            {/* Question Looping Section */}
+            <div>
+                <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                        <label htmlFor="enable-looping" className="text-sm font-medium text-on-surface block">
+                            Enable question looping
+                        </label>
+                        <p className="text-xs text-on-surface-variant mt-0.5">Repeat the questions in this block.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                        type="checkbox"
+                        id="enable-looping"
+                        checked={block.loopingEnabled || false}
+                        onChange={e => onUpdateBlock(block.id, { loopingEnabled: e.target.checked })}
+                        className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
                 </div>
-              </div>
+                {block.loopingEnabled && (
+                <div className="mt-4 pl-4 border-l-2 border-outline-variant">
+                    <label htmlFor="max-loop-size" className="block text-sm font-medium text-on-surface-variant mb-1">
+                    Max. Loop Size
+                    </label>
+                    <input
+                    type="number"
+                    id="max-loop-size"
+                    value={block.maxLoopSize || ''}
+                    onChange={(e) => {
+                        const value = e.target.value ? parseInt(e.target.value, 10) : undefined;
+                        onUpdateBlock(block.id, { maxLoopSize: value });
+                    }}
+                    className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                    placeholder="e.g., 5"
+                    min="1"
+                    />
+                </div>
+                )}
             </div>
-          )}
-        </div>
-      </div>
-    );
-  };
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'Settings':
-        return renderSettingsTab();
-      case 'Behavior':
-        return renderBehaviorTab();
-      case 'Advanced':
-        return renderAdvancedTab();
-      default:
-        return null;
-    }
+            <div className="border-t border-outline-variant"></div>
+
+            {/* Question Randomization Section */}
+            <div>
+                <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                        <label htmlFor="enable-randomization" className="text-sm font-medium text-on-surface block">
+                            Enable question randomization
+                        </label>
+                        <p className="text-xs text-on-surface-variant mt-0.5">Randomize the order of questions in this block.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                        type="checkbox"
+                        id="enable-randomization"
+                        checked={!!block.questionRandomization}
+                        onChange={e => handleToggleRandomization(e.target.checked)}
+                        className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                </div>
+                {block.questionRandomization && (
+                    <div className="mt-4 space-y-4">
+                        <button onClick={handleAddRandomizationRule} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                            <PlusIcon className="text-base" /> Add randomization
+                        </button>
+                        <div className="space-y-2">
+                            {block.questionRandomization.map((rule) => {
+                                const questionsInBlock = block.questions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak);
+                                const startQuestionIndex = questionsInBlock.findIndex(q => q.id === rule.startQuestionId);
+                                const endQuestionOptions = startQuestionIndex !== -1
+                                    ? questionsInBlock.slice(startQuestionIndex + 1)
+                                    : [];
+                                
+                                const showGroupSelect = rule.pattern === 'permutation';
+                                const gridCols = showGroupSelect ? 'grid-cols-[1fr,1fr,1fr,1fr,auto]' : 'grid-cols-[1fr,1fr,1fr,auto]';
+
+                                return (
+                                    <div key={rule.id} className={`grid ${gridCols} items-center gap-2`}>
+                                        {/* Start Question */}
+                                        <div className="relative">
+                                            <select
+                                                value={rule.startQuestionId}
+                                                onChange={e => handleUpdateRandomizationRule(rule.id, { startQuestionId: e.target.value, endQuestionId: '' })}
+                                                className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                                            >
+                                                <option value="">Start Q</option>
+                                                {questionsInBlock.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 20)}</option>)}
+                                            </select>
+                                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                                        </div>
+                                        {/* End Question */}
+                                        <div className="relative">
+                                            <select
+                                                value={rule.endQuestionId}
+                                                onChange={e => handleUpdateRandomizationRule(rule.id, { endQuestionId: e.target.value })}
+                                                disabled={!rule.startQuestionId}
+                                                className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none disabled:bg-surface-container-highest"
+                                            >
+                                                <option value="">End Q</option>
+                                                {endQuestionOptions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 20)}</option>)}
+                                            </select>
+                                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                                        </div>
+                                        {/* Pattern */}
+                                        <div className="relative">
+                                            <select
+                                                value={rule.pattern}
+                                                onChange={e => {
+                                                    const newPattern = e.target.value as RandomizationPattern;
+                                                    const updates: Partial<QuestionRandomizationRule> = { pattern: newPattern };
+                                                    if (newPattern !== 'permutation') {
+                                                        updates.questionGroupId = undefined;
+                                                    }
+                                                    handleUpdateRandomizationRule(rule.id, updates);
+                                                }}
+                                                className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                                            >
+                                                <option value="permutation">Permutation</option>
+                                                <option value="rotation">Rotation</option>
+                                                <option value="synchronized">Synchronized</option>
+                                                <option value="reverse_order">Reverse order</option>
+                                            </select>
+                                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                                        </div>
+                                        {/* Question Group (Conditional) */}
+                                        {showGroupSelect && (
+                                            <div className="relative">
+                                                <select
+                                                    value={rule.questionGroupId || ''}
+                                                    onChange={e => handleUpdateRandomizationRule(rule.id, { questionGroupId: e.target.value || undefined })}
+                                                    className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                                                >
+                                                    <option value="">Select Question Group</option>
+                                                    {questionGroups.map(group => <option key={group} value={group}>{group}</option>)}
+                                                </select>
+                                                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                                            </div>
+                                        )}
+                                        {/* Remove Button */}
+                                        <button onClick={() => handleRemoveRandomizationRule(rule.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full">
+                                            <XIcon className="text-lg" />
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
   };
 
   return (
     <aside className="w-full h-full bg-surface-container border-l border-outline-variant flex flex-col">
       <header className="p-4 border-b border-outline-variant flex items-center justify-between flex-shrink-0">
-        <h2 className="text-lg font-medium text-on-surface" style={{ fontFamily: "'Outfit', sans-serif" }}>
+        <h2 className="text-lg font-bold text-on-surface" style={{ fontFamily: "'Open Sans', sans-serif" }}>
           Edit Block {block.bid}
         </h2>
         <div className="flex items-center gap-2">
-          <Button variant="tertiary" iconOnly onClick={onToggleExpand} aria-label={isExpanded ? 'Collapse panel' : 'Expand panel'}>
-            {isExpanded ? <CollapseIcon className="text-xl" /> : <ExpandIcon className="text-xl" />}
-          </Button>
-          <Button variant="tertiary" iconOnly onClick={onClose} aria-label="Close panel">
+            <button onClick={onToggleExpand} className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high" aria-label={isExpanded ? 'Collapse panel' : 'Expand panel'}>
+                {isExpanded ? <CollapseIcon className="text-xl" /> : <ExpandIcon className="text-xl" />}
+            </button>
+            <button onClick={onClose} className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high" aria-label="Close panel">
             <XIcon className="text-xl" />
-          </Button>
+            </button>
         </div>
       </header>
 
       <div className="border-b border-outline-variant px-4">
-        <nav className="-mb-px flex space-x-4">
-          {tabs.map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab
-                ? 'border-primary text-primary'
-                : 'border-transparent text-on-surface-variant hover:text-on-surface'
-                }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </nav>
+          <nav className="-mb-px flex space-x-4">
+              {tabs.map(tab => (
+                  <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                          activeTab === tab
+                          ? 'border-primary text-primary'
+                          : 'border-transparent text-on-surface-variant hover:text-on-surface'
+                      }`}
+                  >
+                      {tab}
+                  </button>
+              ))}
+          </nav>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
-        {renderContent()}
+        {activeTab === 'Settings' && renderSettingsTab()}
+        {activeTab === 'Behavior' && renderBehaviorTab()}
       </div>
     </aside>
   );

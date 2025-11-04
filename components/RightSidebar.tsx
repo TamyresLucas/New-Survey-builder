@@ -372,6 +372,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                 </div>
                 <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
             </div>
+
+            <QuestionGroupEditor question={question} survey={survey} onUpdateQuestion={onUpdateQuestion} />
     
             <ForceResponseSection question={question} handleUpdate={handleUpdate} />
             
@@ -938,6 +940,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                 <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
             </div>
             
+            <QuestionGroupEditor question={question} survey={survey} onUpdateQuestion={onUpdateQuestion} />
+
             <ForceResponseSection question={question} handleUpdate={handleUpdate} />
 
             <div>
@@ -1206,6 +1210,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
         <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
       </div>
 
+      <QuestionGroupEditor question={question} survey={survey} onUpdateQuestion={onUpdateQuestion} />
+
       <ForceResponseSection question={question} handleUpdate={handleUpdate} />
       
       <div>
@@ -1468,6 +1474,118 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
 // SHARED SUB-COMPONENTS & HELPERS
 // These are used by the QuestionEditor component above.
 // ====================================================================================
+
+const QuestionGroupEditor: React.FC<{
+  question: Question;
+  survey: Survey;
+  onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
+}> = ({ question, survey, onUpdateQuestion }) => {
+  const [isCreating, setIsCreating] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const existingGroups = useMemo(() => {
+    const groups = new Set<string>();
+    survey.blocks.forEach(block => {
+      block.questions.forEach(q => {
+        if (q.groupName) {
+          groups.add(q.groupName);
+        }
+      });
+    });
+    return Array.from(groups).sort();
+  }, [survey]);
+
+  useEffect(() => {
+    if (isCreating) {
+      inputRef.current?.focus();
+    }
+  }, [isCreating]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === '__CREATE_NEW__') {
+      setIsCreating(true);
+    } else {
+      setIsCreating(false);
+      onUpdateQuestion(question.id, { groupName: value === '__NONE__' ? undefined : value });
+    }
+  };
+
+  const handleCreateGroup = () => {
+    const trimmedName = newGroupName.trim();
+    if (trimmedName) {
+      onUpdateQuestion(question.id, { groupName: trimmedName });
+    }
+    setNewGroupName('');
+    setIsCreating(false);
+  };
+
+  const handleCancelCreate = () => {
+    setNewGroupName('');
+    setIsCreating(false);
+  };
+
+  const handleCreateKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleCreateGroup();
+    } else if (e.key === 'Escape') {
+      handleCancelCreate();
+    }
+  };
+
+  return (
+    <div>
+      <label htmlFor="question-group" className="block text-sm font-medium text-on-surface-variant mb-1">
+        Question Group
+      </label>
+      {isCreating ? (
+        <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+              onKeyDown={handleCreateKeyDown}
+              className="w-full bg-surface border border-primary rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+              placeholder="Enter new group name..."
+            />
+            <button 
+                onClick={handleCreateGroup} 
+                className="p-2 text-on-surface-variant hover:text-success hover:bg-success-container rounded-full"
+                aria-label="Confirm new group"
+            >
+                <CheckmarkIcon className="text-xl" />
+            </button>
+            <button 
+                onClick={handleCancelCreate} 
+                className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full"
+                aria-label="Cancel new group"
+            >
+                <XIcon className="text-xl" />
+            </button>
+        </div>
+      ) : (
+        <div className="relative">
+          <select
+            id="question-group"
+            value={question.groupName || '__NONE__'}
+            onChange={handleChange}
+            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+          >
+            <option value="__NONE__">No Group</option>
+            {existingGroups.map(group => (
+              <option key={group} value={group}>{group}</option>
+            ))}
+            <option value="__CREATE_NEW__">Create new group...</option>
+          </select>
+          <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 const ChoiceDropIndicator = () => <div className="h-px bg-primary w-full my-1" />;
 
@@ -3487,8 +3605,8 @@ export const RightSidebar: React.FC<{
                     question={question}
                     survey={survey}
                     logicIssues={logicIssues}
-                    activeTab={activeTab}
                     focusedLogicSource={focusedLogicSource}
+                    activeTab={activeTab}
                     onUpdateQuestion={onUpdateQuestion}
                     onAddChoice={onAddChoice}
                     onDeleteChoice={onDeleteChoice}

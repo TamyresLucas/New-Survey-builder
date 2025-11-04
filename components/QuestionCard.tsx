@@ -393,7 +393,7 @@ const QuestionCard: React.FC<{
                     }}
                     onDragEnd={onDragEnd}
                     className={`relative py-4 group cursor-grab ${isDragging ? 'opacity-50' : ''}`}
-                    onClick={() => onSelect(question)}
+                    onClick={(e) => { e.stopPropagation(); onSelect(question); }}
                 >
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <DragIndicatorIcon className="text-xl text-on-surface-variant" />
@@ -437,7 +437,7 @@ const QuestionCard: React.FC<{
                 draggable={true}
                 onDragStart={onDragStart}
                 onDragEnd={onDragEnd}
-                onClick={() => onSelect(question)}
+                onClick={(e) => { e.stopPropagation(); onSelect(question); }}
                 className={`p-4 rounded-lg border-2 transition-all cursor-grab group grid grid-cols-[auto_1fr] items-start gap-x-3 relative ${
                     isSelected ? 'border-primary bg-surface-container-high shadow-md' : 'border-outline-variant hover:border-outline'
                 } ${isDragging ? 'opacity-50' : ''} ${isAnyMenuOpen ? 'z-10' : ''}`}

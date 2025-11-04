@@ -94,6 +94,7 @@ export const initialSurveyData: Survey = {
       id: 'block2',
       title: 'Purchase Details',
       pageName: 'Page 2',
+      branchName: 'Purchaser Path',
       questions: [
         {
           id: 'q2',
@@ -123,10 +124,10 @@ export const initialSurveyData: Survey = {
             { id: 'q3s4', text: 'Satisfied' },
             { id: 'q3s5', text: 'Very Satisfied' },
           ],
-          skipLogic: {
-            type: 'simple',
-            skipTo: 'block:block4',
-            isConfirmed: true,
+          branchingLogic: {
+            branches: [],
+            otherwiseSkipTo: 'block:block4',
+            otherwiseIsConfirmed: true,
           },
         },
       ],
@@ -135,6 +136,7 @@ export const initialSurveyData: Survey = {
       id: 'block3',
       title: 'Feedback for Non-Purchasers',
       pageName: 'Page 3',
+      branchName: 'Non-Purchaser Path',
       questions: [
         {
           id: 'q4',
@@ -152,6 +154,11 @@ export const initialSurveyData: Survey = {
           qid: 'Q5',
           text: 'What could we do to encourage you to visit?',
           type: QuestionType.TextEntry,
+          branchingLogic: {
+            branches: [],
+            otherwiseSkipTo: 'block:block4',
+            otherwiseIsConfirmed: true,
+          },
         },
       ],
     },

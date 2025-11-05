@@ -770,28 +770,28 @@ export const calculateQuestionPoints = (question: Question): number => {
         case QuestionType.DropDownList:
         case QuestionType.NetPromoterNPS:
         case QuestionType.StarRating:
-            return 1;
+            return 2;
         case QuestionType.Checkbox:
         case QuestionType.ImageSelector:
-            return (question.choices?.length || 0) * 0.5;
+            return Math.max(2, question.choices?.length || 0);
         case QuestionType.ChoiceGrid:
         case QuestionType.HybridGrid:
         case QuestionType.ImageChoiceGrid:
-            return question.choices?.length || 1;
+            return (question.choices?.length || 1) * 2;
         case QuestionType.TextEntry:
         case QuestionType.EmailAddressAnswer:
         case QuestionType.NumericAnswer:
         case QuestionType.Signature:
-            return 3;
+            return 8;
         case QuestionType.CardSort:
         case QuestionType.DragAndDropRanking:
         case QuestionType.TextHighlighter:
-            return 4;
+            return 10;
         case QuestionType.Description:
         case QuestionType.PageBreak:
             return 0;
         default:
-            return 1;
+            return 2;
     }
 };
 

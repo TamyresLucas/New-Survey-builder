@@ -124,6 +124,87 @@ const validateAndCleanLogicAfterMove = (
     }
 };
 
+const applyPagingRules = (survey: Survey, oldPagingMode?: Survey['pagingMode']): Survey => {
+    const newSurvey = JSON.parse(JSON.stringify(survey));
+    const newPagingMode = survey.pagingMode;
+
+    // SPECIAL TRANSITION: one-per-page -> multi-per-page
+    if (oldPagingMode === 'one-per-page' && newPagingMode === 'multi-per-page') {
+        // Convert automatic page breaks to manual ones by just removing the flag
+        newSurvey.blocks.forEach((block: Block) => {
+            block.questions.forEach((q: Question) => {
+                if (q.isAutomatic) {
+                    delete q.isAutomatic;
+                }
+            });
+        });
+    } else {
+        // STANDARD BEHAVIOR for all other cases (e.g., adding a question in one-per-page mode)
+        // Remove all automatic breaks before recalculating, to handle question moves/deletes correctly.
+        newSurvey.blocks.forEach((block: Block) => {
+            block.questions = block.questions.filter((q: Question) => !(q.type === QTEnum.PageBreak && q.isAutomatic));
+        });
+    }
+
+    // ALWAYS clean up any consecutive page breaks (manual or just-converted ones)
+    newSurvey.blocks.forEach((block: Block) => {
+        const cleanedQuestions: Question[] = [];
+        for (let i = 0; i < block.questions.length; i++) {
+            const currentQuestion = block.questions[i];
+            const prevQuestion = cleanedQuestions[cleanedQuestions.length - 1];
+            
+            if (currentQuestion.type === QTEnum.PageBreak && prevQuestion?.type === QTEnum.PageBreak) {
+                continue;
+            }
+            cleanedQuestions.push(currentQuestion);
+        }
+        block.questions = cleanedQuestions;
+    });
+
+    // If the final mode is one-per-page, add the automatic page breaks.
+    if (newPagingMode === 'one-per-page') {
+        newSurvey.blocks.forEach((block: Block) => {
+            const newQuestionsForBlock: Question[] = [];
+            let hasSeenInteractiveQuestionInPage = false;
+
+            block.questions.forEach((question: Question) => {
+                const isInteractive = question.type !== QTEnum.PageBreak && question.type !== QTEnum.Description;
+
+                if (isInteractive) {
+                    if (hasSeenInteractiveQuestionInPage) {
+                        newQuestionsForBlock.push({
+                            id: generateId('pb'),
+                            qid: '',
+                            text: 'Page Break',
+                            type: QTEnum.PageBreak,
+                            isAutomatic: true,
+                        });
+                        hasSeenInteractiveQuestionInPage = false;
+                    }
+                }
+                
+                if (question.type === QTEnum.PageBreak) {
+                    hasSeenInteractiveQuestionInPage = false;
+                }
+
+                newQuestionsForBlock.push(question);
+                
+                if (isInteractive) {
+                    hasSeenInteractiveQuestionInPage = true;
+                }
+            });
+            block.questions = newQuestionsForBlock;
+        });
+    }
+    
+    return newSurvey;
+};
+
+const applyPagingAndRenumber = (survey: Survey): Survey => {
+    const surveyWithPagingRules = applyPagingRules(survey);
+    return renumberSurveyVariables(surveyWithPagingRules);
+};
+
 export function surveyReducer(state: Survey, action: Action): Survey {
     const newState = JSON.parse(JSON.stringify(state));
 
@@ -349,7 +430,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
             action.payload.onQuestionAdded?.(newQuestion.id);
 
-            return renumberSurveyVariables(newState);
+            return applyPagingAndRenumber(newState);
         }
 
         case SurveyActionType.ADD_QUESTION_FROM_AI: {
@@ -405,7 +486,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 lastBlock.questions.push(newQuestion);
             }
 
-            return renumberSurveyVariables(newState);
+            return applyPagingAndRenumber(newState);
         }
 
         case SurveyActionType.DELETE_QUESTION: {
@@ -421,7 +502,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 }
             }
 
-            return questionFoundAndRemoved ? renumberSurveyVariables(newState) : state;
+            return questionFoundAndRemoved ? applyPagingAndRenumber(newState) : state;
         }
 
         case SurveyActionType.COPY_QUESTION: {
@@ -476,7 +557,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             }
 
             newState.blocks[blockIndex].questions.splice(questionIndex + 1, 0, newQuestion);
-            return renumberSurveyVariables(newState);
+            return applyPagingAndRenumber(newState);
         }
 
         case SurveyActionType.REORDER_QUESTION: {
@@ -516,7 +597,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
             validateAndCleanLogicAfterMove(newState, onLogicRemoved);
             
-            return renumberSurveyVariables(newState);
+            return applyPagingAndRenumber(newState);
         }
 
         case SurveyActionType.ADD_CHOICE: {
@@ -569,7 +650,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                         type: QTEnum.PageBreak,
                     };
                     block.questions.splice(questionIndex + 1, 0, newPageBreak);
-                    return renumberSurveyVariables(newState);
+                    return applyPagingAndRenumber(newState);
                 }
             }
             return state;
@@ -724,7 +805,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             });
             // remove empty blocks
             newState.blocks = newState.blocks.filter((block: Block) => block.questions.length > 0 || newState.blocks.length === 1);
-            return renumberSurveyVariables(newState);
+            return applyPagingAndRenumber(newState);
         }
 
         case SurveyActionType.BULK_UPDATE_QUESTIONS: {
@@ -772,7 +853,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
             newState.blocks[lastQuestionBlockIndex].questions.splice(lastQuestionIndex + 1, 0, ...duplicatedQuestions);
 
-            return renumberSurveyVariables(newState);
+            return applyPagingAndRenumber(newState);
         }
 
         case SurveyActionType.BULK_MOVE_TO_NEW_BLOCK: {
@@ -815,6 +896,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             let questionToMove: Question | undefined;
             let originalBlock: Block | undefined;
             let originalBlockIndex = -1;
+            let questionsToMoveWithPageBreak: Question[] = [];
 
             // Find and remove the question from its original block
             for (let i = 0; i < newState.blocks.length; i++) {
@@ -824,6 +906,23 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                     [questionToMove] = block.questions.splice(questionIndex, 1);
                     originalBlock = block;
                     originalBlockIndex = i;
+
+                    if (questionToMove && questionToMove.type === QTEnum.PageBreak) {
+                        questionsToMoveWithPageBreak.push(questionToMove);
+                        // Start looking for questions to move from the index where the page break was
+                        let nextQuestionIndex = questionIndex;
+                        // The array has shifted, so the item at `questionIndex` is now the one after the page break
+                        while (nextQuestionIndex < block.questions.length) {
+                            const nextQuestion = block.questions[nextQuestionIndex];
+                            if (nextQuestion.type === QTEnum.PageBreak) {
+                                break; // Stop at the next page break
+                            }
+                            // Splice the question out and add it to our list
+                            const [movedQuestion] = block.questions.splice(nextQuestionIndex, 1);
+                            questionsToMoveWithPageBreak.push(movedQuestion);
+                            // Do not increment nextQuestionIndex because splice shortens the array in place
+                        }
+                    }
                     break;
                 }
             }
@@ -835,12 +934,11 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             const newBlock: Block = {
                 id: generateId('block'),
                 title: 'New Block',
-                questions: [questionToMove],
+                questions: questionsToMoveWithPageBreak.length > 0 ? questionsToMoveWithPageBreak : [questionToMove],
             };
 
             newState.blocks.splice(originalBlockIndex + 1, 0, newBlock);
 
-            // Clean up original block if it becomes empty
             if (originalBlock.questions.length === 0 && newState.blocks.length > 1) {
                 newState.blocks = newState.blocks.filter((b: Block) => b.id !== originalBlock.id);
             }
@@ -849,7 +947,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             
             validateAndCleanLogicAfterMove(newState, onLogicRemoved);
             
-            return renumberSurveyVariables(newState);
+            return applyPagingAndRenumber(newState);
         }
 
         case SurveyActionType.MOVE_QUESTION_TO_EXISTING_BLOCK: {
@@ -890,7 +988,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
             validateAndCleanLogicAfterMove(newState, onLogicRemoved);
             
-            return renumberSurveyVariables(newState);
+            return applyPagingAndRenumber(newState);
         }
 
 
@@ -949,7 +1047,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             
             validateAndCleanLogicAfterMove(newState, onLogicRemoved);
             
-            return renumberSurveyVariables(newState);
+            return applyPagingAndRenumber(newState);
         }
 
         case SurveyActionType.CLEANUP_UNCONFIRMED_LOGIC: {
@@ -983,45 +1081,17 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
         case SurveyActionType.SET_PAGING_MODE: {
             const { pagingMode } = action.payload;
-            newState.pagingMode = pagingMode;
-    
-            // Create a clean version of the survey without any automatic page breaks
-            const surveyWithoutAutoPageBreaks = JSON.parse(JSON.stringify(newState));
-            surveyWithoutAutoPageBreaks.blocks.forEach((block: Block) => {
-                block.questions = block.questions.filter((q: Question) => !(q.type === QTEnum.PageBreak && q.isAutomatic));
-            });
-    
-            // If mode is one-per-page, add breaks back to the clean version
-            if (pagingMode === 'one-per-page') {
-                surveyWithoutAutoPageBreaks.blocks.forEach((block: Block) => {
-                    const newQuestionsForBlock: Question[] = [];
-                    block.questions.forEach((question: Question, index: number) => {
-                        newQuestionsForBlock.push(question);
-    
-                        const isLastQuestionInBlock = index === block.questions.length - 1;
-                        const nextQuestionIsPageBreak = !isLastQuestionInBlock && block.questions[index + 1].type === QTEnum.PageBreak;
-                        
-                        if (question.type !== QTEnum.PageBreak && !isLastQuestionInBlock && !nextQuestionIsPageBreak) {
-                            newQuestionsForBlock.push({
-                                id: generateId('pb'),
-                                qid: '',
-                                text: 'Page Break',
-                                type: QTEnum.PageBreak,
-                                isAutomatic: true,
-                            });
-                        }
-                    });
-                    block.questions = newQuestionsForBlock;
-                });
-            }
-            
-            newState.blocks = surveyWithoutAutoPageBreaks.blocks;
-            
-            return renumberSurveyVariables(newState);
+            const oldPagingMode = state.pagingMode;
+
+            const nextState = JSON.parse(JSON.stringify(state));
+            nextState.pagingMode = pagingMode;
+
+            const surveyWithPaging = applyPagingRules(nextState, oldPagingMode);
+            return renumberSurveyVariables(surveyWithPaging);
         }
 
         case SurveyActionType.REPLACE_SURVEY: {
-            return renumberSurveyVariables(action.payload);
+            return applyPagingAndRenumber(action.payload);
         }
 
         default:

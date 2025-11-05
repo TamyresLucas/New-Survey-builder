@@ -8,7 +8,7 @@ import {
     WarningIcon,
     VisibilityOffIcon
 } from './icons';
-import { QuestionActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
+import { PageBreakActionsMenu, QuestionActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
 import { generateId, parseChoice } from '../utils';
 import { DisplayLogicDisplay, SkipLogicDisplay, BranchingLogicDisplay } from './LogicDisplays';
 import type { PageInfo } from './SurveyCanvas';
@@ -138,6 +138,7 @@ const QuestionCard: React.FC<{
     const [labelError, setLabelError] = useState<string | null>(null);
 
     const isAnyMenuOpen = isTypeMenuOpen || isActionsMenuOpen;
+    const isOnePerPage = survey.pagingMode === 'one-per-page';
 
     const questionTypeOptions = useMemo(() => toolboxItems
         .filter(item => item.name !== 'Block' && item.name !== 'Page Break')
@@ -399,14 +400,20 @@ const QuestionCard: React.FC<{
                         <DragIndicatorIcon className="text-xl text-on-surface-variant" />
                     </div>
                     {content}
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div ref={actionsMenuContainerRef} className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                            onClick={(e) => { e.stopPropagation(); onDeleteQuestion(question.id); }}
+                            onClick={(e) => { e.stopPropagation(); setIsActionsMenuOpen(prev => !prev); }}
                             className="p-1.5 rounded-full hover:bg-surface-container-high"
-                            aria-label="Delete page break"
+                            aria-label="Page break actions"
                         >
-                            <XIcon className="text-lg" />
+                            <DotsHorizontalIcon className="text-xl" />
                         </button>
+                        {isActionsMenuOpen && (
+                            <PageBreakActionsMenu
+                                onMoveToNewBlock={() => { onMoveQuestionToNewBlock(question.id); setIsActionsMenuOpen(false); }}
+                                onDelete={!question.isAutomatic ? () => { onDeleteQuestion(question.id); setIsActionsMenuOpen(false); } : undefined}
+                            />
+                        )}
                     </div>
                 </div>
             );
@@ -419,7 +426,7 @@ const QuestionCard: React.FC<{
                 </div>
             );
         }
-    }, [pageInfo, isEditingPageName, pageNameValue, handleSavePageName, handlePageNameKeyDown, question.type, question.id, id, onDragStart, onDragEnd, isDragging, onSelect, onDeleteQuestion]);
+    }, [pageInfo, isEditingPageName, pageNameValue, handleSavePageName, handlePageNameKeyDown, question, id, onDragStart, onDragEnd, isDragging, onSelect, onDeleteQuestion, isActionsMenuOpen, onMoveQuestionToNewBlock]);
     
     if (question.type === QuestionType.PageBreak) {
         return pageIndicator;
@@ -548,10 +555,11 @@ const QuestionCard: React.FC<{
                             </button>
                             {isActionsMenuOpen && (
                                 <QuestionActionsMenu
-                                    onDuplicate={() => { onCopyQuestion(question.id); setIsActionsMenuOpen(false); }}
+                                    onDuplicate={!isOnePerPage ? () => { onCopyQuestion(question.id); setIsActionsMenuOpen(false); } : undefined}
                                     onDelete={() => { onDeleteQuestion(question.id); setIsActionsMenuOpen(false); }}
-                                    onAddPageBreak={() => { onAddPageBreakAfterQuestion(question.id); setIsActionsMenuOpen(false); }}
-                                    onMoveToNewBlock={() => { onMoveQuestionToNewBlock(question.id); setIsActionsMenuOpen(false); }}
+                                    onAddPageBreak={!isOnePerPage ? () => { onAddPageBreakAfterQuestion(question.id); setIsActionsMenuOpen(false); } : undefined}
+                                    onMoveToNewBlock={!isOnePerPage ? () => { onMoveQuestionToNewBlock(question.id); setIsActionsMenuOpen(false); } : undefined}
+                                    onReplaceFromLibrary={!isOnePerPage ? () => { alert('Not implemented'); setIsActionsMenuOpen(false); } : undefined}
                                 />
                             )}
                         </div>

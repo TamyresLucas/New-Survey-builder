@@ -46,6 +46,7 @@ export const QuestionTypeSelectionMenuContent: React.FC<{
 
 // Shared Block Actions Menu
 interface BlockActionsMenuProps {
+  onEdit?: () => void;
   onMoveUp?: () => void;
   canMoveUp?: boolean;
   onMoveDown?: () => void;
@@ -66,9 +67,17 @@ interface BlockActionsMenuProps {
   onDelete?: () => void;
 }
 
-export const BlockActionsMenu: React.FC<BlockActionsMenuProps> = ({ onMoveUp, canMoveUp = true, onMoveDown, canMoveDown = true, onDuplicate, onAddSimpleQuestion, onAddFromLibrary, onAddBlockAbove, onAddBlockBelow, onSelectAll, canSelectAll = true, onUnselectAll, canUnselectAll = true, onExpand, canExpand = true, onCollapse, canCollapse = true, onDelete }) => {
+export const BlockActionsMenu: React.FC<BlockActionsMenuProps> = ({ onEdit, onMoveUp, canMoveUp = true, onMoveDown, canMoveDown = true, onDuplicate, onAddSimpleQuestion, onAddFromLibrary, onAddBlockAbove, onAddBlockBelow, onSelectAll, canSelectAll = true, onUnselectAll, canUnselectAll = true, onExpand, canExpand = true, onCollapse, canCollapse = true, onDelete }) => {
   return (
     <div className="absolute top-full right-0 mt-2 w-48 bg-surface-container border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+      {onEdit && (
+        <>
+            <div className="py-1">
+                <button onClick={onEdit} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Edit block</button>
+            </div>
+            <div className="border-t border-dotted border-outline-variant mx-2" />
+        </>
+      )}
       {(onMoveUp || onMoveDown) && (
         <>
             <div className="py-1">
@@ -123,9 +132,10 @@ interface QuestionActionsMenuProps {
   onDelete?: () => void;
   onAddPageBreak?: () => void;
   onMoveToNewBlock?: () => void;
+  onReplaceFromLibrary?: () => void;
 }
 
-export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ onDuplicate, onDelete, onAddPageBreak, onMoveToNewBlock }) => {
+export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ onDuplicate, onDelete, onAddPageBreak, onMoveToNewBlock, onReplaceFromLibrary }) => {
     return (
         <div className="absolute top-full right-0 mt-2 w-56 bg-surface-container-high border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
             <ul className="py-1">
@@ -140,10 +150,48 @@ export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ onDupl
                     </li>
                 )}
                 {onDuplicate && <li><button onClick={(e) => { e.stopPropagation(); onDuplicate(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Duplicate</button></li>}
-                <li><button onClick={(e) => { e.stopPropagation(); alert('Not implemented'); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Replace from library</button></li>
+                {onReplaceFromLibrary && <li><button onClick={(e) => { e.stopPropagation(); onReplaceFromLibrary(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Replace from library</button></li>}
                 <li><button onClick={(e) => { e.stopPropagation(); alert('Not implemented'); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Add to library</button></li>
                 {onAddPageBreak && <li><button onClick={(e) => { e.stopPropagation(); onAddPageBreak(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Add page break</button></li>}
                 <li><button onClick={(e) => { e.stopPropagation(); alert('Not implemented'); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Add note</button></li>
+            </ul>
+            {onDelete && (
+                <>
+                    <div className="border-t border-dotted border-outline-variant mx-2" />
+                    <div className="py-1">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                            className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container"
+                        >
+                            Delete
+                        </button>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+};
+
+// Simplified menu for Page Break elements
+interface PageBreakActionsMenuProps {
+  onMoveToNewBlock?: () => void;
+  onDelete?: () => void;
+}
+
+export const PageBreakActionsMenu: React.FC<PageBreakActionsMenuProps> = ({ onMoveToNewBlock, onDelete }) => {
+    return (
+        <div className="absolute top-full right-0 mt-2 w-56 bg-surface-container-high border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+            <ul className="py-1">
+                {onMoveToNewBlock && (
+                    <li>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onMoveToNewBlock(); }}
+                            className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest"
+                        >
+                            Move to new block
+                        </button>
+                    </li>
+                )}
             </ul>
             {onDelete && (
                 <>

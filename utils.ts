@@ -770,166 +770,141 @@ export const calculateQuestionPoints = (question: Question): number => {
         case QuestionType.DropDownList:
         case QuestionType.NetPromoterNPS:
         case QuestionType.StarRating:
-            return 2;
+            return 8; // More realistic time
         case QuestionType.Checkbox:
         case QuestionType.ImageSelector:
-            return Math.max(2, question.choices?.length || 0);
+            return Math.max(8, (question.choices?.length || 0) * 2); // Increased base time
         case QuestionType.ChoiceGrid:
         case QuestionType.HybridGrid:
         case QuestionType.ImageChoiceGrid:
-            return (question.choices?.length || 1) * 2;
+            return (question.choices?.length || 1) * 5; // Increased time per row
         case QuestionType.TextEntry:
         case QuestionType.EmailAddressAnswer:
         case QuestionType.NumericAnswer:
         case QuestionType.Signature:
-            return 8;
+            return 15; // Significantly more time for text entry
         case QuestionType.CardSort:
         case QuestionType.DragAndDropRanking:
         case QuestionType.TextHighlighter:
-            return 10;
+            return 20; // More time for complex interactions
         case QuestionType.Description:
         case QuestionType.PageBreak:
             return 0;
         default:
-            return 2;
+            return 8; // Increased default
     }
 };
 
 export const analyzeSurveyPaths = (survey: Survey): PathAnalysisResult[] => {
     const allBlocks = survey.blocks;
     if (allBlocks.length === 0) return [];
-    
+
     const blockMap = new Map(allBlocks.map(b => [b.id, b]));
     const blockIndexMap = new Map(allBlocks.map((b, i) => [b.id, i]));
-    const results: Omit<PathAnalysisResult, 'id'>[] = [];
+    const finalResults: Omit<PathAnalysisResult, 'id'>[] = [];
 
-    const dfs = (currentBlockId: string | undefined, path: { blocks: Block[], name: string }, visited: Set<string>) => {
-        // Base case: end of path
-        if (!currentBlockId || visited.has(currentBlockId)) {
-            if (path.blocks.length > 0) {
-                const pathQuestions = path.blocks.flatMap(b => b.questions);
-                const countablePathQuestions = pathQuestions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak);
-                
-                const totalPoints = countablePathQuestions.reduce((sum, q) => sum + calculateQuestionPoints(q), 0);
-                const estimatedTimeInMinutes = Math.round(totalPoints / 8);
-                const completionTimeString = estimatedTimeInMinutes < 1 ? (countablePathQuestions.length > 0 ? "<1 min" : "0 min") : `${estimatedTimeInMinutes} min`;
+    // Identify all unique, named branches to trace
+    const namedBranches: { pathName: string; sourceQuestionId: string; targetBlockId: string }[] = [];
+    const uniqueBranchCheck = new Set<string>();
 
-                let pageCount = 0;
-                if (survey.pagingMode === 'one-per-page') {
-                    pageCount = countablePathQuestions.length;
-                } else {
-                    const blockIdsInPath = new Set(path.blocks.map(b => b.id));
-                    let pageStarts = 0;
-                    
-                    // The first block of a path always starts a page
-                    if (path.blocks.length > 0) {
-                        pageStarts = 1;
-                    }
-
-                    // Count page breaks and implicit block breaks within the path
-                    for (let i = 0; i < allBlocks.length -1; i++) {
-                        const currentBlock = allBlocks[i];
-                        const nextBlock = allBlocks[i+1];
-                        
-                        // Only consider blocks that are part of the current path
-                        if (!blockIdsInPath.has(currentBlock.id)) continue;
-
-                        const lastQuestion = currentBlock.questions[currentBlock.questions.length - 1];
-
-                        // If the next block in the physical survey is also in our path, check for a page break
-                        if (blockIdsInPath.has(nextBlock.id) && path.blocks.some(b => b.id === nextBlock.id)) {
-                             if (!lastQuestion || lastQuestion.type !== QuestionType.PageBreak) {
-                                pageStarts++;
-                             }
+    survey.blocks.forEach(block => {
+        block.questions.forEach(q => {
+            const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
+            if (branchingLogic) {
+                branchingLogic.branches.forEach(branch => {
+                    if (branch.pathName && branch.thenSkipToIsConfirmed && branch.thenSkipTo.startsWith('block:')) {
+                        const targetBlockId = branch.thenSkipTo.substring(6);
+                        const uniqueKey = `${branch.pathName}::${targetBlockId}`;
+                        if (blockMap.has(targetBlockId) && !uniqueBranchCheck.has(uniqueKey)) {
+                            namedBranches.push({ pathName: branch.pathName, sourceQuestionId: q.id, targetBlockId });
+                            uniqueBranchCheck.add(uniqueKey);
                         }
                     }
-                    // Count explicit page breaks within blocks that are in the path
-                    path.blocks.forEach(b => {
-                        b.questions.forEach(q => {
-                           if (q.type === QuestionType.PageBreak && !q.isAutomatic) {
-                               pageStarts++;
-                           }
-                        });
-                    });
-
-                    pageCount = pageStarts;
-                }
-
-                results.push({
-                    name: path.name,
-                    questionCount: countablePathQuestions.length,
-                    completionTimeString,
-                    pageCount,
                 });
             }
-            return;
-        }
+        });
+    });
 
-        const currentBlock = blockMap.get(currentBlockId)!;
-        const newPath = { blocks: [...path.blocks, currentBlock], name: path.name };
-        const newVisited = new Set(visited).add(currentBlockId);
+    if (namedBranches.length === 0) {
+        return [];
+    }
 
-        let logicFound = false;
-        // Search for branching logic first, as it takes precedence
-        for (const question of currentBlock.questions) {
-            if (question.branchingLogic) {
-                logicFound = true;
-                const logic = question.branchingLogic;
+    // Trace each named path from the beginning of the survey
+    for (const { pathName, sourceQuestionId, targetBlockId } of namedBranches) {
+        const pathBlocks: Block[] = [];
+        const visitedInPath = new Set<string>();
+        let currentBlockId: string | undefined = allBlocks[0].id;
+        let tracingBranch = false;
 
-                logic.branches.forEach(branch => {
-                    if (branch.thenSkipToIsConfirmed && branch.thenSkipTo.startsWith('block:')) {
-                        const nextBlockId = branch.thenSkipTo.substring(6);
-                        dfs(nextBlockId, { ...newPath, name: branch.pathName || `Path for ${nextBlockId}` }, newVisited);
-                    }
-                });
+        while (currentBlockId && !visitedInPath.has(currentBlockId)) {
+            const currentBlock = blockMap.get(currentBlockId);
+            if (!currentBlock) break;
 
-                if (logic.otherwiseIsConfirmed && logic.otherwiseSkipTo.startsWith('block:')) {
-                    const nextBlockId = logic.otherwiseSkipTo.substring(6);
-                    dfs(nextBlockId, { ...newPath, name: logic.otherwisePathName || `Otherwise Path` }, newVisited);
-                } else if (logic.otherwiseIsConfirmed && logic.otherwiseSkipTo === 'end') {
-                    dfs(undefined, { ...newPath, name: logic.otherwisePathName || `Otherwise Path` }, newVisited);
+            pathBlocks.push(currentBlock);
+            visitedInPath.add(currentBlockId);
+
+            // Determine the next block
+            let nextBlockId: string | undefined;
+
+            // If we are currently tracing the specific branch, subsequent logic is fallthrough
+            if (tracingBranch) {
+                // Find default "otherwise" or skip logic to continue the path
+                let logicFound = false;
+                for (const q of [...currentBlock.questions].reverse()) {
+                     const branching = q.draftBranchingLogic ?? q.branchingLogic;
+                     if (branching && branching.otherwiseIsConfirmed) {
+                         const dest = branching.otherwiseSkipTo;
+                         if (dest.startsWith('block:')) nextBlockId = dest.substring(6);
+                         else if (dest === 'end') nextBlockId = undefined;
+                         logicFound = true;
+                         break;
+                     }
                 }
-                
-                // If branching logic exists, it's assumed to be exhaustive for this question.
-                return;
+                 if (logicFound) {
+                    currentBlockId = nextBlockId;
+                    continue;
+                }
             }
-        }
-
-        // If no branching, check for skip logic on the last question of the block
-        const lastQuestion = currentBlock.questions[currentBlock.questions.length - 1];
-        if (lastQuestion?.skipLogic?.type === 'simple' && lastQuestion.skipLogic.isConfirmed) {
-            const skipTo = lastQuestion.skipLogic.skipTo;
-            if (skipTo.startsWith('block:')) {
-                logicFound = true;
-                const nextBlockId = skipTo.substring(6);
-                dfs(nextBlockId, newPath, newVisited);
-                return;
-            } else if (skipTo === 'end') {
-                logicFound = true;
-                dfs(undefined, newPath, newVisited);
-                return;
-            }
-        }
-        
-        // If no logic directs flow, fall through to the next physical block
-        if (!logicFound) {
-            const currentBlockIndex = blockIndexMap.get(currentBlockId)!;
-            if (currentBlockIndex < allBlocks.length - 1) {
-                const nextBlock = allBlocks[currentBlockIndex + 1];
-                dfs(nextBlock.id, newPath, newVisited);
+            
+            // Check if the current block contains the source of our target branch
+            const isForkBlock = currentBlock.questions.some(q => q.id === sourceQuestionId);
+            if (isForkBlock) {
+                nextBlockId = targetBlockId;
+                tracingBranch = true;
             } else {
-                // End of survey
-                dfs(undefined, newPath, newVisited);
+                // Follow default fallthrough logic
+                const currentBlockIndex = blockIndexMap.get(currentBlockId)!;
+                if (currentBlockIndex < allBlocks.length - 1) {
+                    nextBlockId = allBlocks[currentBlockIndex + 1].id;
+                } else {
+                    nextBlockId = undefined; // End of survey
+                }
             }
+            currentBlockId = nextBlockId;
         }
-    };
 
-    dfs(allBlocks[0].id, { blocks: [], name: 'Initial Path' }, new Set());
+        // Calculate stats for the traced path
+        const pathQuestions = pathBlocks.flatMap(b => b.questions);
+        const countablePathQuestions = pathQuestions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak);
+        const totalPoints = countablePathQuestions.reduce((sum, q) => sum + calculateQuestionPoints(q), 0);
+        const estimatedTimeInMinutes = Math.round(totalPoints / 8);
+        const completionTimeString = estimatedTimeInMinutes < 1 ? (countablePathQuestions.length > 0 ? "<1 min" : "0 min") : `${estimatedTimeInMinutes} min`;
+        
+        const pageCount = pathBlocks.length; // Simplified for now
 
-    // Deduplicate results based on a composite key
+        finalResults.push({
+            name: pathName,
+            questionCount: countablePathQuestions.length,
+            completionTimeString,
+            pageCount,
+            blockIds: pathBlocks.map(b => b.id),
+        });
+    }
+
+    // Deduplicate results in case different logic leads to the same path name and stats
     const uniqueResults = new Map<string, Omit<PathAnalysisResult, 'id'>>();
-    results.forEach(res => {
-        const key = `${res.name}-${res.questionCount}-${res.completionTimeString}-${res.pageCount}`;
+    finalResults.forEach(res => {
+        const key = `${res.name}-${res.blockIds.join(',')}`;
         if (!uniqueResults.has(key)) {
             uniqueResults.set(key, res);
         }

@@ -185,6 +185,7 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
                     if (confirmedConditions.length === 0 || !branch.thenSkipToIsConfirmed) return null;
                     return (
                         <div key={branch.id} className="p-2 bg-surface rounded-md">
+                            {branch.pathName && <span className="font-bold text-on-surface">{branch.pathName}: </span>}
                             <span className="font-bold text-primary">IF </span>
                             <span>{confirmedConditions.map(c => formatCondition(c, survey)).join(` ${branch.operator} `)}</span>
                             <span className="font-bold text-primary"> THEN </span>
@@ -194,8 +195,8 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
                 })}
                 {showOtherwise && logic.otherwiseIsConfirmed && (
                      <div className="p-2 bg-surface rounded-md">
+                        {logic.otherwisePathName && <span className="font-bold text-on-surface">{logic.otherwisePathName}: </span>}
                         <span className="font-bold text-on-surface-variant">OTHERWISE </span>
-                        {/* FIX: Corrected typo from logic.otherwiseTo to logic.otherwiseSkipTo */}
                         <span>skip to <span className="font-semibold">{formatDestination(logic.otherwiseSkipTo, survey)}</span>.</span>
                      </div>
                 )}

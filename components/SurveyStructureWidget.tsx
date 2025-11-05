@@ -1,8 +1,8 @@
-import React, { memo, useMemo, useState } from 'react';
-import type { Survey } from '../types';
+import React, { memo, useMemo } from 'react';
+import type { Survey, PathAnalysisResult } from '../types';
 import { QuestionIcon, PageIcon, ClockSolidIcon, ChevronDownIcon } from './icons';
 import { QuestionType as QTEnum } from '../types';
-import { calculateQuestionPoints, analyzeSurveyPaths } from '../utils';
+import { calculateQuestionPoints } from '../utils';
 
 interface DataCardProps {
     icon: React.ComponentType<{ className?: string }>;
@@ -27,16 +27,17 @@ const DataCard: React.FC<DataCardProps> = ({ icon: Icon, label, value }) => (
 
 interface SurveyStructureWidgetProps {
   survey: Survey;
+  paths: PathAnalysisResult[];
+  selectedPathId: string;
+  onPathChange: (pathId: string) => void;
   onBackToTop: () => void;
   onToggleCollapseAll: () => void;
   allBlocksCollapsed: boolean;
   onPagingModeChange: (mode: Survey['pagingMode']) => void;
 }
 
-const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ survey, onBackToTop, onToggleCollapseAll, allBlocksCollapsed, onPagingModeChange }) => {
+const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ survey, paths, selectedPathId, onPathChange, onBackToTop, onToggleCollapseAll, allBlocksCollapsed, onPagingModeChange }) => {
   
-  const [selectedPathId, setSelectedPathId] = useState<string>('all-paths');
-  const paths = useMemo(() => analyzeSurveyPaths(survey), [survey]);
   const pathOptions = useMemo(() => [
       { id: 'all-paths', name: 'All Paths' },
       ...paths,
@@ -137,7 +138,7 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
                 id="path-selector"
                 aria-label="Survey Path"
                 value={selectedPathId}
-                onChange={e => setSelectedPathId(e.target.value)}
+                onChange={e => onPathChange(e.target.value)}
                 className="w-full bg-surface border border-outline rounded-md py-2 px-3 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-2 focus:outline-primary appearance-none"
                 disabled={paths.length === 0}
             >

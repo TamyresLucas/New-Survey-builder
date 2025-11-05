@@ -22,6 +22,8 @@ import PathAnalysisPanel from './components/diagram/PathAnalysisPanel';
 import { SurveyPreview } from './components/SurveyPreview';
 import CanvasTabs from './components/CanvasTabs';
 
+const LOCAL_STORAGE_KEY = 'surveyBuilderAppState';
+
 type ToastType = 'error' | 'success';
 
 const Toast: React.FC<{ message: string; type: ToastType; onDismiss: () => void; onUndo?: () => void }> = ({ message, type, onDismiss, onUndo }) => {
@@ -70,8 +72,24 @@ const Toast: React.FC<{ message: string; type: ToastType; onDismiss: () => void;
   );
 };
 
+const getInitialSurveyState = (): Survey => {
+  try {
+    const savedStateJSON = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (savedStateJSON) {
+      const savedState = JSON.parse(savedStateJSON);
+      // A simple check to ensure it's not totally invalid data
+      if (savedState && savedState.title && Array.isArray(savedState.blocks)) {
+        return savedState;
+      }
+    }
+  } catch (error) {
+    console.error("Failed to load or parse survey from localStorage:", error);
+  }
+  return initialSurveyData;
+};
+
 const App: React.FC = () => {
-  const [survey, dispatch] = useReducer(surveyReducer, initialSurveyData, renumberSurveyVariables);
+  const [survey, dispatch] = useReducer(surveyReducer, getInitialSurveyState(), renumberSurveyVariables);
   const [history, setHistory] = useState<Survey[]>([]);
   const [toolboxItems, setToolboxItems] = useState<ToolboxItemData[]>(initialToolboxItems);
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
@@ -708,6 +726,17 @@ const App: React.FC = () => {
     }
   }, [showToast]);
 
+  const handleSaveSurvey = useCallback(async () => {
+    try {
+      const surveyStateString = JSON.stringify(surveyRef.current);
+      window.localStorage.setItem(LOCAL_STORAGE_KEY, surveyStateString);
+      showToast('Survey saved successfully!', 'success');
+    } catch (err) {
+      console.error('Failed to save survey state: ', err);
+      showToast('Failed to save survey. See console for details.', 'error');
+    }
+  }, [showToast]);
+
   // Deselect single question when bulk selecting
   useEffect(() => {
     if (checkedQuestions.size >= 2 && selectedQuestion) {
@@ -868,7 +897,7 @@ const App: React.FC = () => {
         onToggleGeminiPanel={handleToggleGeminiPanel} 
         onUpdateSurveyName={handleUpdateSurveyTitle}
       />
-      <SubHeader onTogglePreview={handleTogglePreviewMode} onCopySurvey={handleCopySurvey} />
+      <SubHeader onTogglePreview={handleTogglePreviewMode} onCopySurvey={handleCopySurvey} onSaveSurvey={handleSaveSurvey} />
       <div className="flex flex-1 overflow-hidden">
         <LeftSidebar activeTab={activeMainTab} onTabSelect={handleTabSelect} />
         <main className={`flex flex-1 bg-surface overflow-hidden ${isDiagramView ? 'relative' : ''}`}>

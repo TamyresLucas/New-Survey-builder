@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useCallback, useReducer, useEffect, useMemo } from 'react';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
@@ -810,6 +811,8 @@ const App: React.FC = () => {
                 onClose={() => setIsBuildPanelOpen(false)}
                 onSelectQuestion={handleSelectQuestion}
                 selectedQuestion={selectedQuestion}
+                selectedBlock={selectedBlock}
+                onSelectBlock={handleSelectBlock}
                 checkedQuestions={checkedQuestions}
                 collapsedBlocks={collapsedBlocks}
                 toolboxItems={toolboxItems}

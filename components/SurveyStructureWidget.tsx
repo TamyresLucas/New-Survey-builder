@@ -49,58 +49,64 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
       if (selectedPath) {
         return {
           totalQuestions: selectedPath.questionCount,
-          requiredQuestions: selectedPath.questionCount, // Approximation: We don't have per-path 'forceResponse' data
+          requiredQuestions: 'N/A', // Cannot be accurately determined for a specific path
           totalPages: String(selectedPath.pageCount),
           completionTimeString: selectedPath.completionTimeString,
         };
       }
     }
 
-    // "All Paths" is selected (default case)
+    // "All Paths" is selected: show totals for the entire survey.
     const allQuestionsList = survey.blocks.flatMap(block => block.questions);
     const countableQuestions = allQuestionsList.filter(q => q.type !== QTEnum.Description && q.type !== QTEnum.PageBreak);
     const totalQuestionsValue = countableQuestions.length;
-    const requiredQuestionsValue = countableQuestions.filter(q => q.forceResponse).length;
 
-    // If there's only one or zero paths, display single, more accurate values
-    if (paths.length <= 1) {
-        const totalPoints = allQuestionsList.reduce((sum, question) => sum + calculateQuestionPoints(question), 0);
-        const estimatedTimeInMinutes = Math.round(totalPoints / 8);
-        const timeString = estimatedTimeInMinutes < 1 ? (totalQuestionsValue > 0 ? "<1 min" : "0 min") : `${estimatedTimeInMinutes} min`;
+    const requiredQuestionsList = countableQuestions.filter(q => q.forceResponse);
+    const requiredQuestionsValue = requiredQuestionsList.length;
+
+    let timeString: string;
+
+    const calculateAndFormatTimeValue = (points: number, questionCount: number): string => {
+        if (questionCount === 0) return "0";
+        const minutes = Math.round(points / 8);
+        return minutes < 1 ? "<1" : `${minutes}`;
+    };
+
+    if (requiredQuestionsValue > 0) {
+        const minPoints = requiredQuestionsList.reduce((sum, q) => sum + calculateQuestionPoints(q), 0);
+        const maxPoints = countableQuestions.reduce((sum, q) => sum + calculateQuestionPoints(q), 0);
+
+        const minTimeStr = calculateAndFormatTimeValue(minPoints, requiredQuestionsValue);
+        const maxTimeStr = calculateAndFormatTimeValue(maxPoints, totalQuestionsValue);
         
-        let pages;
-        if (survey.pagingMode === 'one-per-page') {
-            pages = countableQuestions.length;
+        if (minTimeStr === maxTimeStr) {
+            timeString = `${maxTimeStr} min`;
         } else {
-            pages = (survey.blocks.length > 0 ? 1 : 0) + allQuestionsList.filter(q => q.type === QTEnum.PageBreak).length;
+            timeString = `${minTimeStr} - ${maxTimeStr} min`;
         }
-
-        return {
-            totalQuestions: totalQuestionsValue,
-            requiredQuestions: requiredQuestionsValue,
-            totalPages: String(pages),
-            completionTimeString: timeString,
-        };
+    } else {
+        // No required questions, just calculate max time
+        const maxPoints = countableQuestions.reduce((sum, q) => sum + calculateQuestionPoints(q), 0);
+        const maxTime = Math.round(maxPoints / 8);
+        if (maxTime < 1) {
+            timeString = totalQuestionsValue > 0 ? "<1 min" : "0 min";
+        } else {
+            timeString = `${maxTime} min`;
+        }
     }
-    
-    // If there are multiple paths, calculate and display ranges for metrics
-    const questionCounts = paths.map(p => p.questionCount);
-    const minQs = Math.min(...questionCounts);
-    const maxQs = Math.max(...questionCounts);
 
-    const completionTimes = paths.map(p => parseFloat(p.completionTimeString.replace('<', '')) || 0);
-    const minTime = Math.min(...completionTimes);
-    const maxTime = Math.max(...completionTimes);
-    
-    const pageCounts = paths.map(p => p.pageCount);
-    const minPages = Math.min(...pageCounts);
-    const maxPages = Math.max(...pageCounts);
+    let pages;
+    if (survey.pagingMode === 'one-per-page') {
+        pages = countableQuestions.length;
+    } else {
+        pages = (survey.blocks.length > 0 ? 1 : 0) + allQuestionsList.filter(q => q.type === QTEnum.PageBreak && !q.isAutomatic).length;
+    }
 
     return {
-        totalQuestions: minQs === maxQs ? String(maxQs) : `${minQs}-${maxQs}`,
-        requiredQuestions: 'N/A', // Cannot be determined accurately for multiple paths
-        totalPages: minPages === maxPages ? String(maxPages) : `${minPages}-${maxPages}`,
-        completionTimeString: minTime === maxTime ? `${maxTime} min` : `${minTime}-${maxTime} min`,
+        totalQuestions: totalQuestionsValue,
+        requiredQuestions: requiredQuestionsValue,
+        totalPages: String(pages),
+        completionTimeString: timeString,
     };
   }, [survey, selectedPathId, paths]);
 

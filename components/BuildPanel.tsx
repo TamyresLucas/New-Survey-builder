@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect, memo, useCallback } from 'react';
 import { SearchIcon, PanelLeftIcon, RadioIcon, WarningIcon, DragIndicatorIcon, ChevronDownIcon, DotsHorizontalIcon } from './icons';
-import type { Survey, Question, ToolboxItemData, QuestionType } from '../types';
+import type { Survey, Question, ToolboxItemData, QuestionType, Block } from '../types';
 import { QuestionType as QTEnum } from '../types';
 import { BlockActionsMenu, QuestionActionsMenu } from './ActionMenus';
 
@@ -9,6 +9,8 @@ interface BuildPanelProps {
   survey: Survey;
   onSelectQuestion: (question: Question | null) => void;
   selectedQuestion: Question | null;
+  selectedBlock: Block | null;
+  onSelectBlock: (block: Block) => void;
   checkedQuestions: Set<string>;
   collapsedBlocks: Set<string>;
   toolboxItems: ToolboxItemData[];
@@ -111,7 +113,7 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
 
 
 const BuildPanel: React.FC<BuildPanelProps> = memo(({ 
-  onClose, survey, onSelectQuestion, selectedQuestion, checkedQuestions, collapsedBlocks, toolboxItems, onReorderToolbox, onReorderQuestion, onReorderBlock,
+  onClose, survey, onSelectQuestion, selectedQuestion, selectedBlock, onSelectBlock, checkedQuestions, collapsedBlocks, toolboxItems, onReorderToolbox, onReorderQuestion, onReorderBlock,
   onMoveBlockUp, onMoveBlockDown, onAddBlock, onCopyBlock, onAddQuestionToBlock, onExpandAllBlocks, onCollapseAllBlocks, onDeleteBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock,
   onMoveQuestionToExistingBlock, onAddPageBreakAfterQuestion, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock
 }) => {
@@ -508,6 +510,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             {filteredSurveyBlocks.map((block, index) => {
               const isBlockDragged = draggedBlockId === block.id;
               const showBlockDropIndicator = dropBlockTargetId === block.id;
+              const isSelected = selectedBlock?.id === block.id;
 
               // Contextual menu logic
               const originalIndex = survey.blocks.findIndex(b => b.id === block.id);
@@ -533,7 +536,8 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                       draggable={!isSearching}
                       onDragStart={!isSearching ? (e) => handleBlockDragStart(e, block.id) : undefined}
                       onDragEnd={!isSearching ? handleBlockDragEnd : undefined}
-                      className="px-4 py-2 bg-surface-container-high border-b border-t border-outline-variant flex items-center justify-between"
+                      onClick={() => onSelectBlock(block)}
+                      className={`px-4 py-2 cursor-pointer border-b border-t border-outline-variant flex items-center justify-between ${isSelected ? 'bg-primary-container' : 'bg-surface-container-high'}`}
                     >
                       <div className="flex items-center cursor-grab flex-grow truncate">
                         <DragIndicatorIcon className="text-base mr-2 text-on-surface-variant flex-shrink-0" />
@@ -551,6 +555,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                           </button>
                           {openMenuBlockId === block.id && (
                               <BlockActionsMenu
+                                  onEdit={() => { onSelectBlock(block); setOpenMenuBlockId(null); }}
                                   onMoveUp={() => { onMoveBlockUp(block.id); setOpenMenuBlockId(null); }}
                                   canMoveUp={canMoveUp}
                                   onMoveDown={() => { onMoveBlockDown(block.id); setOpenMenuBlockId(null); }}

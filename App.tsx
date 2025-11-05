@@ -12,9 +12,9 @@ import { BlockSidebar } from './components/BlockSidebar';
 import SurveyStructureWidget from './components/SurveyStructureWidget';
 import GeminiPanel from './components/GeminiPanel';
 import { BulkEditPanel } from './components/BulkEditPanel';
-import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssue, Block } from './types';
+import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssue, Block, PathAnalysisResult } from './types';
 import { initialSurveyData, toolboxItems as initialToolboxItems } from './constants';
-import { renumberSurveyVariables, generateId, generateSurveyTextCopy, generateSurveyCsv, parseSurveyCsv } from './utils';
+import { renumberSurveyVariables, generateId, generateSurveyTextCopy, generateSurveyCsv, parseSurveyCsv, analyzeSurveyPaths } from './utils';
 import { QuestionType as QTEnum } from './types';
 import { surveyReducer, SurveyActionType, type Action } from './state/surveyReducer';
 import { PanelRightIcon, WarningIcon, XIcon, CheckmarkIcon } from './components/icons';
@@ -110,6 +110,7 @@ const App: React.FC = () => {
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [toasts, setToasts] = useState<{ id: number; message: string; type: ToastType; onUndo?: () => void }[]>([]);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [selectedPathId, setSelectedPathId] = useState<string>('all-paths');
 
   const showBulkEditPanel = checkedQuestions.size >= 2;
 
@@ -219,6 +220,40 @@ const App: React.FC = () => {
       }
       dispatch(action);
   }, [survey, undoableActionTypes]);
+
+  const paths = useMemo(() => analyzeSurveyPaths(survey), [survey]);
+
+  // When survey changes, ensure the selected path still exists.
+  useEffect(() => {
+    if (selectedPathId !== 'all-paths' && !paths.some(p => p.id === selectedPathId)) {
+        setSelectedPathId('all-paths');
+    }
+  }, [paths, selectedPathId]);
+
+  const displaySurvey = useMemo(() => {
+    if (selectedPathId === 'all-paths') {
+      return survey;
+    }
+
+    const selectedPath = paths.find(p => p.id === selectedPathId);
+
+    if (!selectedPath) {
+      return survey; // Fallback to showing everything
+    }
+
+    const blockIdsToShow = new Set(selectedPath.blockIds);
+
+    const filteredBlocks = survey.blocks
+      .filter(block => blockIdsToShow.has(block.id));
+    
+    // Make sure we don't end up with an empty view if filtering goes wrong
+    if (filteredBlocks.length === 0) return survey;
+
+    return {
+      ...survey,
+      blocks: filteredBlocks,
+    };
+  }, [survey, paths, selectedPathId]);
 
 
   const handleBackToTop = useCallback(() => {
@@ -807,7 +842,7 @@ const App: React.FC = () => {
           <>
             {isBuildPanelOpen && (
               <BuildPanel
-                survey={survey}
+                survey={displaySurvey}
                 onClose={() => setIsBuildPanelOpen(false)}
                 onSelectQuestion={handleSelectQuestion}
                 selectedQuestion={selectedQuestion}
@@ -842,7 +877,7 @@ const App: React.FC = () => {
             <div className="relative flex-1 flex flex-col min-w-0">
               <div ref={canvasContainerRef} className={`relative flex-1 overflow-y-auto pt-16 px-4 pb-4 transition-all duration-300 ${isAnyRightPanelOpen ? 'pr-0' : ''}`}>
                 <SurveyCanvas 
-                  survey={survey} 
+                  survey={displaySurvey} 
                   selectedQuestion={selectedQuestion}
                   selectedBlock={selectedBlock}
                   checkedQuestions={checkedQuestions}
@@ -916,7 +951,7 @@ const App: React.FC = () => {
         );
     }
   }, [
-    activeMainTab, isBuildPanelOpen, survey, selectedQuestion, selectedBlock, checkedQuestions, collapsedBlocks, toolboxItems, logicIssues, isAnyRightPanelOpen,
+    activeMainTab, isBuildPanelOpen, survey, displaySurvey, selectedQuestion, selectedBlock, checkedQuestions, collapsedBlocks, toolboxItems, logicIssues, isAnyRightPanelOpen,
     handleSelectQuestion, handleSelectBlock, handleReorderToolbox, handleReorderQuestion, handleReorderBlock, handleAddBlock,
     handleCopyBlock, handleAddQuestionToBlock, handleExpandAllBlocks, handleCollapseAllBlocks, handleDeleteBlock,
     handleDeleteQuestion, handleCopyQuestion, handleAddPageBreakAfterQuestion, handleExpandBlock, handleCollapseBlock,
@@ -1012,6 +1047,9 @@ const App: React.FC = () => {
                 <div className="pt-4 pr-4 pb-8 pl-4">
                     <SurveyStructureWidget 
                         survey={survey} 
+                        paths={paths}
+                        selectedPathId={selectedPathId}
+                        onPathChange={setSelectedPathId}
                         onBackToTop={handleBackToTop}
                         onToggleCollapseAll={handleToggleCollapseAll}
                         allBlocksCollapsed={allBlocksCollapsed}

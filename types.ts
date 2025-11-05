@@ -408,6 +408,7 @@ export interface PathAnalysisResult {
   questionCount: number;
   completionTimeString: string;
   pageCount: number;
+  blockIds: string[];
 }
 
 

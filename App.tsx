@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback, useReducer, useEffect, useMemo } from 'react';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
@@ -12,7 +13,7 @@ import GeminiPanel from './components/GeminiPanel';
 import { BulkEditPanel } from './components/BulkEditPanel';
 import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssue, Block } from './types';
 import { initialSurveyData, toolboxItems as initialToolboxItems } from './constants';
-import { renumberSurveyVariables, generateId, generateSurveyTextCopy } from './utils';
+import { renumberSurveyVariables, generateId, generateSurveyTextCopy, generateSurveyCsv, parseSurveyCsv } from './utils';
 import { QuestionType as QTEnum } from './types';
 import { surveyReducer, SurveyActionType, type Action } from './state/surveyReducer';
 import { PanelRightIcon, WarningIcon, XIcon, CheckmarkIcon } from './components/icons';
@@ -21,6 +22,7 @@ import DiagramCanvas from './components/DiagramCanvas';
 import PathAnalysisPanel from './components/diagram/PathAnalysisPanel';
 import { SurveyPreview } from './components/SurveyPreview';
 import CanvasTabs from './components/CanvasTabs';
+import { ImportSurveyModal } from './components/ImportSurveyModal';
 
 const LOCAL_STORAGE_KEY = 'surveyBuilderAppState';
 
@@ -106,6 +108,7 @@ const App: React.FC = () => {
   const [focusedLogicSource, setFocusedLogicSource] = useState<string | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [toasts, setToasts] = useState<{ id: number; message: string; type: ToastType; onUndo?: () => void }[]>([]);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const showBulkEditPanel = checkedQuestions.size >= 2;
 
@@ -737,6 +740,38 @@ const App: React.FC = () => {
     }
   }, [showToast]);
 
+  const handleExportCsv = useCallback(() => {
+    try {
+        const csvContent = generateSurveyCsv(surveyRef.current);
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            const fileName = `${surveyRef.current.title.replace(/\s+/g, '_')}_export.csv`;
+            link.setAttribute("download", fileName);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        showToast('Survey exported as CSV!', 'success');
+    } catch (err) {
+        console.error('Failed to export survey as CSV: ', err);
+        showToast('Failed to export survey. See console for details.', 'error');
+    }
+  }, [showToast]);
+
+  const handleImportSurvey = useCallback((csvContent: string, fileName: string) => {
+    const importedSurvey = parseSurveyCsv(csvContent, fileName);
+    if (importedSurvey) {
+      dispatch({ type: SurveyActionType.REPLACE_SURVEY, payload: importedSurvey });
+      showToast('Survey imported successfully!', 'success');
+    } else {
+      showToast('Failed to parse the imported survey file. Please check the format.', 'error');
+    }
+  }, [showToast]);
+
   // Deselect single question when bulk selecting
   useEffect(() => {
     if (checkedQuestions.size >= 2 && selectedQuestion) {
@@ -897,7 +932,7 @@ const App: React.FC = () => {
         onToggleGeminiPanel={handleToggleGeminiPanel} 
         onUpdateSurveyName={handleUpdateSurveyTitle}
       />
-      <SubHeader onTogglePreview={handleTogglePreviewMode} onCopySurvey={handleCopySurvey} onSaveSurvey={handleSaveSurvey} />
+      <SubHeader onTogglePreview={handleTogglePreviewMode} onCopySurvey={handleCopySurvey} onExportCsv={handleExportCsv} onImportSurvey={() => setIsImportModalOpen(true)} />
       <div className="flex flex-1 overflow-hidden">
         <LeftSidebar activeTab={activeMainTab} onTabSelect={handleTabSelect} />
         <main className={`flex flex-1 bg-surface overflow-hidden ${isDiagramView ? 'relative' : ''}`}>
@@ -986,6 +1021,13 @@ const App: React.FC = () => {
       </div>
       {isPreviewMode && (
         <SurveyPreview survey={survey} onClose={handleTogglePreviewMode} />
+      )}
+      {isImportModalOpen && (
+        <ImportSurveyModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          onImport={handleImportSurvey}
+        />
       )}
       <div className="fixed bottom-8 right-8 z-50 flex flex-col-reverse items-end gap-2">
         {toasts.map((toast) => (

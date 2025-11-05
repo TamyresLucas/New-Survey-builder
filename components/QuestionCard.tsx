@@ -581,7 +581,7 @@ const QuestionCard: React.FC<{
                     {question.type === QuestionType.ChoiceGrid && (
                         <div className="mt-4">
                             <div className="overflow-x-auto">
-                                <table className="border-collapse">
+                                <table className="w-full border-collapse">
                                     <thead>
                                         <tr className="border-b border-outline-variant">
                                             <th className="py-2 pr-2 text-left"></th>

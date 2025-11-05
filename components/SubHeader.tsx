@@ -4,9 +4,10 @@ import { ChevronDownIcon, EyeIcon } from './icons';
 interface SubHeaderProps {
   onTogglePreview: () => void;
   onCopySurvey: () => void;
+  onSaveSurvey: () => void;
 }
 
-const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurvey }) => {
+const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurvey, onSaveSurvey }) => {
   const navItems = ['Design', 'Test', 'Distribute', 'Results', 'Analyze'];
   const activeItem = 'Design';
 
@@ -61,6 +62,15 @@ const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurve
             {isActionsOpen && (
                 <div className="absolute top-full right-0 mt-2 w-56 bg-surface-container border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
                     <ul className="py-1">
+                        <li>
+                            <button
+                                onClick={() => { onSaveSurvey(); setIsActionsOpen(false); }}
+                                className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high"
+                            >
+                                Save survey
+                            </button>
+                        </li>
+                        <div className="border-t border-dotted border-outline-variant mx-2 my-1" />
                         <li>
                             <button
                                 onClick={() => { alert('Import not implemented.'); setIsActionsOpen(false); }}

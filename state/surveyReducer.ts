@@ -34,6 +34,7 @@ export enum SurveyActionType {
     CLEANUP_UNCONFIRMED_LOGIC = 'CLEANUP_UNCONFIRMED_LOGIC',
     RESTORE_STATE = 'RESTORE_STATE',
     SET_PAGING_MODE = 'SET_PAGING_MODE',
+    REPLACE_SURVEY = 'REPLACE_SURVEY',
 }
 
 export interface Action {
@@ -1017,6 +1018,10 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             newState.blocks = surveyWithoutAutoPageBreaks.blocks;
             
             return renumberSurveyVariables(newState);
+        }
+
+        case SurveyActionType.REPLACE_SURVEY: {
+            return renumberSurveyVariables(action.payload);
         }
 
         default:

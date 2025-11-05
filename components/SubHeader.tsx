@@ -4,10 +4,11 @@ import { ChevronDownIcon, EyeIcon } from './icons';
 interface SubHeaderProps {
   onTogglePreview: () => void;
   onCopySurvey: () => void;
-  onSaveSurvey: () => void;
+  onExportCsv: () => void;
+  onImportSurvey: () => void;
 }
 
-const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurvey, onSaveSurvey }) => {
+const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurvey, onExportCsv, onImportSurvey }) => {
   const navItems = ['Design', 'Test', 'Distribute', 'Results', 'Analyze'];
   const activeItem = 'Design';
 
@@ -64,27 +65,16 @@ const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurve
                     <ul className="py-1">
                         <li>
                             <button
-                                onClick={() => { onSaveSurvey(); setIsActionsOpen(false); }}
+                                onClick={() => { onImportSurvey(); setIsActionsOpen(false); }}
                                 className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high"
-                            >
-                                Save survey
-                            </button>
-                        </li>
-                        <div className="border-t border-dotted border-outline-variant mx-2 my-1" />
-                        <li>
-                            <button
-                                onClick={() => { alert('Import not implemented.'); setIsActionsOpen(false); }}
-                                className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high disabled:opacity-50 disabled:cursor-not-allowed"
-                                disabled
                             >
                                 Import survey
                             </button>
                         </li>
                         <li>
                             <button
-                                onClick={() => { alert('Export not implemented.'); setIsActionsOpen(false); }}
-                                className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high disabled:opacity-50 disabled:cursor-not-allowed"
-                                disabled
+                                onClick={() => { onExportCsv(); setIsActionsOpen(false); }}
+                                className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high"
                             >
                                 Export survey as CSV
                             </button>

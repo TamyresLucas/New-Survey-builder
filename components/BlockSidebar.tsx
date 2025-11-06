@@ -300,7 +300,7 @@ const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = ({ block
     };
 
     const handlePasteLogic = (text: string): { success: boolean; error?: string } => {
-        const lines = text.split('\n').filter(line => line.trim());
+        const lines = text.split('\n').filter(line => line.trim() !== '');
         const newConditions: DisplayLogicCondition[] = [];
         const validOperators = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than', 'is_empty', 'is_not_empty'];
     
@@ -500,7 +500,7 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
     };
     
     const handlePasteLogic = (text: string): { success: boolean; error?: string } => {
-        const lines = text.split('\n').filter(line => line.trim());
+        const lines = text.split('\n').filter(line => line.trim() !== '');
         const newBranches: BranchingLogicBranch[] = [];
         const validOperators = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than', 'is_empty', 'is_not_empty'];
     
@@ -785,17 +785,29 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
     return Array.from(paths);
   }, [survey]);
 
-  const questionGroups = useMemo(() => {
+  const localQuestionGroups = useMemo(() => {
     const groups = new Set<string>();
-    survey.blocks.forEach(b => {
-        b.questions.forEach(q => {
-            if (q.groupName) {
-                groups.add(q.groupName);
-            }
-        });
+    block.questions.forEach(q => {
+        if (q.groupName) {
+            groups.add(q.groupName);
+        }
     });
     return Array.from(groups).sort();
-  }, [survey]);
+  }, [block.questions]);
+
+  const globalQuestionGroups = useMemo(() => {
+    const allGroups = new Set<string>();
+    survey.blocks.forEach(b => {
+        if (b.id !== block.id) { // only other blocks
+            b.questions.forEach(q => {
+                if (q.groupName) {
+                    allGroups.add(q.groupName);
+                }
+            });
+        }
+    });
+    return Array.from(allGroups).sort();
+  }, [survey.blocks, block.id]);
 
   const handleTitleBlur = () => {
     if (title.trim() && title.trim() !== block.title) {
@@ -984,6 +996,7 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
                 startQuestionId: '',
                 endQuestionId: '',
                 pattern: 'permutation',
+                isConfirmed: false,
             };
             onUpdateBlock(block.id, {
                 questionRandomization: [newRule],
@@ -1003,6 +1016,7 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
             startQuestionId: '',
             endQuestionId: '',
             pattern: 'permutation',
+            isConfirmed: false,
         };
         onUpdateBlock(block.id, {
             questionRandomization: [...(block.questionRandomization || []), newRule],
@@ -1010,8 +1024,37 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
     };
     
     const handleUpdateRandomizationRule = (ruleId: string, updates: Partial<QuestionRandomizationRule>) => {
+        const newRules = (block.questionRandomization || []).map(rule => {
+            if (rule.id === ruleId) {
+                const updatedRule = { ...rule, ...updates, isConfirmed: false };
+
+                // When changing the pattern, reset the group if it's no longer valid.
+                if ('pattern' in updates) {
+                    const newIsSync = updates.pattern === 'synchronized';
+                    const oldIsSync = rule.pattern === 'synchronized';
+
+                    if (newIsSync && !oldIsSync) { // Switched to sync
+                        // if current group is a local group, reset it
+                        if (localQuestionGroups.includes(rule.questionGroupId || '')) {
+                            updatedRule.questionGroupId = undefined;
+                        }
+                    } else if (!newIsSync && oldIsSync) { // Switched from sync
+                        // if current group is a global group, reset it
+                        if (globalQuestionGroups.includes(rule.questionGroupId || '')) {
+                            updatedRule.questionGroupId = undefined;
+                        }
+                    }
+                }
+                return updatedRule;
+            }
+            return rule;
+        });
+        onUpdateBlock(block.id, { questionRandomization: newRules });
+    };
+
+    const handleConfirmRandomizationRule = (ruleId: string) => {
         const newRules = (block.questionRandomization || []).map(rule =>
-            rule.id === ruleId ? { ...rule, ...updates } : rule
+            rule.id === ruleId ? { ...rule, isConfirmed: true } : rule
         );
         onUpdateBlock(block.id, { questionRandomization: newRules });
     };
@@ -1049,14 +1092,6 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
                             <PlusIcon className="text-base" /> Add randomization
                         </button>
                         <div className="space-y-3">
-                            {isExpanded && (
-                                <div className="grid grid-cols-[1fr,1fr,1fr,1fr,auto] gap-2 text-xs font-medium text-on-surface-variant px-2">
-                                    <label>Start question</label>
-                                    <label>End question</label>
-                                    <label>Pattern</label>
-                                    <label>Question Group</label>
-                                </div>
-                            )}
                             <div className="space-y-2">
                                 {block.questionRandomization.map((rule) => {
                                     const questionsInBlock = block.questions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak);
@@ -1065,75 +1100,96 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
                                         ? questionsInBlock.slice(startQuestionIndex + 1)
                                         : [];
                                     
+                                    const isSynchronized = rule.pattern === 'synchronized';
+                                    const groupLabel = isSynchronized ? 'Global groups' : 'Local groups';
+                                    const availableGroups = isSynchronized ? globalQuestionGroups : localQuestionGroups;
                                     const showGroupSelect = rule.pattern === 'permutation' || rule.pattern === 'rotation' || rule.pattern === 'synchronized';
-                                    const gridCols = isExpanded 
-                                        ? 'grid-cols-[1fr,1fr,1fr,1fr,auto]' 
-                                        : (showGroupSelect ? 'grid-cols-[1fr,1fr,1fr,1fr,auto]' : 'grid-cols-[1fr,1fr,1fr,auto]');
+                                    
+                                    const gridCols = `grid-cols-[1fr,1fr,1fr,${showGroupSelect ? '1fr,' : ''}auto]`;
+                                    const isConfirmed = rule.isConfirmed ?? true;
 
                                     return (
-                                        <div key={rule.id} className={`grid ${gridCols} items-center gap-2`}>
+                                        <div key={rule.id} className={`grid ${gridCols} items-end gap-2`}>
                                             {/* Start Question */}
-                                            <div className="relative">
-                                                <select
-                                                    value={rule.startQuestionId}
-                                                    onChange={e => handleUpdateRandomizationRule(rule.id, { startQuestionId: e.target.value, endQuestionId: '' })}
-                                                    className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                                                >
-                                                    <option value="">{isExpanded ? 'Select start...' : 'Start Q'}</option>
-                                                    {questionsInBlock.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 20)}</option>)}
-                                                </select>
-                                                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                                            <div>
+                                                {isExpanded && <label htmlFor={`rand-start-${rule.id}`} className="block text-xs font-medium text-on-surface-variant mb-1 text-left">Start question</label>}
+                                                <div className="relative">
+                                                    <select
+                                                        id={`rand-start-${rule.id}`}
+                                                        value={rule.startQuestionId}
+                                                        onChange={e => handleUpdateRandomizationRule(rule.id, { startQuestionId: e.target.value, endQuestionId: '' })}
+                                                        className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                                                    >
+                                                        <option value="">{isExpanded ? 'Select start...' : 'Start Q'}</option>
+                                                        {questionsInBlock.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 20)}</option>)}
+                                                    </select>
+                                                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                                                </div>
                                             </div>
                                             {/* End Question */}
-                                            <div className="relative">
-                                                <select
-                                                    value={rule.endQuestionId}
-                                                    onChange={e => handleUpdateRandomizationRule(rule.id, { endQuestionId: e.target.value })}
-                                                    disabled={!rule.startQuestionId}
-                                                    className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none disabled:bg-surface-container-highest"
-                                                >
-                                                    <option value="">{isExpanded ? 'Select end...' : 'End Q'}</option>
-                                                    {endQuestionOptions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 20)}</option>)}
-                                                </select>
-                                                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                                            <div>
+                                                {isExpanded && <label htmlFor={`rand-end-${rule.id}`} className="block text-xs font-medium text-on-surface-variant mb-1 text-left">End question</label>}
+                                                <div className="relative">
+                                                    <select
+                                                        id={`rand-end-${rule.id}`}
+                                                        value={rule.endQuestionId}
+                                                        onChange={e => handleUpdateRandomizationRule(rule.id, { endQuestionId: e.target.value })}
+                                                        disabled={!rule.startQuestionId}
+                                                        className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none disabled:bg-surface-container-highest"
+                                                    >
+                                                        <option value="">{isExpanded ? 'Select end...' : 'End Q'}</option>
+                                                        {endQuestionOptions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 20)}</option>)}
+                                                    </select>
+                                                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                                                </div>
                                             </div>
                                             {/* Pattern */}
-                                            <div className="relative">
-                                                <select
-                                                    value={rule.pattern}
-                                                    onChange={e => {
-                                                        const newPattern = e.target.value as RandomizationPattern;
-                                                        const updates: Partial<QuestionRandomizationRule> = { pattern: newPattern };
-                                                        if (newPattern !== 'permutation' && newPattern !== 'rotation' && newPattern !== 'synchronized') {
-                                                            updates.questionGroupId = undefined;
-                                                        }
-                                                        handleUpdateRandomizationRule(rule.id, updates);
-                                                    }}
-                                                    className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                                                >
-                                                    <option value="permutation">Permutation</option>
-                                                    <option value="rotation">Rotation</option>
-                                                    <option value="synchronized">Synchronized</option>
-                                                    <option value="reverse_order">Reverse order</option>
-                                                </select>
-                                                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                                            <div>
+                                                {isExpanded && <label htmlFor={`rand-pattern-${rule.id}`} className="block text-xs font-medium text-on-surface-variant mb-1 text-left">Pattern</label>}
+                                                <div className="relative">
+                                                    <select
+                                                        id={`rand-pattern-${rule.id}`}
+                                                        value={rule.pattern}
+                                                        onChange={e => handleUpdateRandomizationRule(rule.id, { pattern: e.target.value as RandomizationPattern })}
+                                                        className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                                                    >
+                                                        <option value="permutation">Permutation</option>
+                                                        <option value="rotation">Rotation</option>
+                                                        <option value="synchronized">Synchronized</option>
+                                                        <option value="reverse_order">Reverse order</option>
+                                                    </select>
+                                                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                                                </div>
                                             </div>
                                             {/* Question Group (Conditional) */}
-                                            <div className={`relative ${!showGroupSelect && 'hidden'} ${isExpanded && 'col-start-4'}`}>
-                                                <select
-                                                    value={rule.questionGroupId || ''}
-                                                    onChange={e => handleUpdateRandomizationRule(rule.id, { questionGroupId: e.target.value || undefined })}
-                                                    className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                                                >
-                                                    <option value="">{isExpanded ? 'Select group...' : 'Group'}</option>
-                                                    {questionGroups.map(group => <option key={group} value={group}>{group}</option>)}
-                                                </select>
-                                                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                                            {showGroupSelect && (
+                                                <div>
+                                                    {isExpanded && <label htmlFor={`rand-group-${rule.id}`} className="block text-xs font-medium text-on-surface-variant mb-1 text-left">{groupLabel}</label>}
+                                                    <div className="relative">
+                                                        <select
+                                                            id={`rand-group-${rule.id}`}
+                                                            value={rule.questionGroupId || ''}
+                                                            onChange={e => handleUpdateRandomizationRule(rule.id, { questionGroupId: e.target.value || undefined })}
+                                                            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                                                        >
+                                                            <option value="">{isExpanded ? 'Select group...' : 'Group'}</option>
+                                                            {availableGroups.map(group => <option key={group} value={group}>{group}</option>)}
+                                                        </select>
+                                                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {/* Buttons */}
+                                            <div className="flex items-center gap-1">
+                                                <button onClick={() => handleRemoveRandomizationRule(rule.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full">
+                                                    <XIcon className="text-lg" />
+                                                </button>
+                                                {!isConfirmed && (
+                                                    <button onClick={() => handleConfirmRandomizationRule(rule.id)} className="p-1.5 bg-primary text-on-primary rounded-full hover:opacity-90">
+                                                        <CheckmarkIcon className="text-lg" />
+                                                    </button>
+                                                )}
                                             </div>
-                                            {/* Remove Button */}
-                                            <button onClick={() => handleRemoveRandomizationRule(rule.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full">
-                                                <XIcon className="text-lg" />
-                                            </button>
                                         </div>
                                     );
                                 })}

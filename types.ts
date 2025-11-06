@@ -248,6 +248,7 @@ export interface QuestionRandomizationRule {
   endQuestionId: string;
   pattern: RandomizationPattern;
   questionGroupId?: string;
+  isConfirmed?: boolean;
 }
 
 export interface Block {

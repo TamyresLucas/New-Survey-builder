@@ -1,3 +1,4 @@
+
 import React, { memo, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, ActionLogic, Workflow } from '../types';
 import { QuestionType } from '../types';
@@ -372,8 +373,6 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                 </div>
                 <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
             </div>
-
-            <QuestionGroupEditor question={question} survey={survey} onUpdateQuestion={onUpdateQuestion} />
     
             <ForceResponseSection question={question} handleUpdate={handleUpdate} />
             
@@ -940,8 +939,6 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                 <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
             </div>
             
-            <QuestionGroupEditor question={question} survey={survey} onUpdateQuestion={onUpdateQuestion} />
-
             <ForceResponseSection question={question} handleUpdate={handleUpdate} />
 
             <div>
@@ -1210,8 +1207,6 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
         <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
       </div>
 
-      <QuestionGroupEditor question={question} survey={survey} onUpdateQuestion={onUpdateQuestion} />
-
       <ForceResponseSection question={question} handleUpdate={handleUpdate} />
       
       <div>
@@ -1352,6 +1347,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
 
     return (
       <div className="space-y-8">
+        <QuestionGroupEditor question={question} survey={survey} onUpdateQuestion={onUpdateQuestion} />
+        
         <CollapsibleSection title="Branching Logic" defaultExpanded={true}>
             <div className="py-6 first:pt-0">
               {!branchingLogic ? (
@@ -1485,16 +1482,19 @@ const QuestionGroupEditor: React.FC<{
   const inputRef = useRef<HTMLInputElement>(null);
 
   const existingGroups = useMemo(() => {
+    const currentBlock = survey.blocks.find(b => b.questions.some(q => q.id === question.id));
+    if (!currentBlock) {
+      return [];
+    }
+
     const groups = new Set<string>();
-    survey.blocks.forEach(block => {
-      block.questions.forEach(q => {
-        if (q.groupName) {
-          groups.add(q.groupName);
-        }
-      });
+    currentBlock.questions.forEach(q => {
+      if (q.groupName) {
+        groups.add(q.groupName);
+      }
     });
     return Array.from(groups).sort();
-  }, [survey]);
+  }, [survey, question.id]);
 
   useEffect(() => {
     if (isCreating) {
@@ -1551,18 +1551,18 @@ const QuestionGroupEditor: React.FC<{
               placeholder="Enter new group name..."
             />
             <button 
-                onClick={handleCreateGroup} 
-                className="p-2 text-on-surface-variant hover:text-success hover:bg-success-container rounded-full"
-                aria-label="Confirm new group"
-            >
-                <CheckmarkIcon className="text-xl" />
-            </button>
-            <button 
                 onClick={handleCancelCreate} 
                 className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full"
                 aria-label="Cancel new group"
             >
                 <XIcon className="text-xl" />
+            </button>
+            <button 
+                onClick={handleCreateGroup} 
+                className="p-2 text-on-surface-variant hover:text-success hover:bg-success-container rounded-full"
+                aria-label="Confirm new group"
+            >
+                <CheckmarkIcon className="text-xl" />
             </button>
         </div>
       ) : (

@@ -1,15 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import type { QuestionType, ToolboxItemData, Survey } from '../types';
+import type { Question, QuestionType, ToolboxItemData, Survey } from '../types';
 import { ChevronRightIcon } from './icons';
 
 export const QuestionTypeSelectionMenuContent: React.FC<{ 
   onSelect: (type: QuestionType) => void;
   toolboxItems: ToolboxItemData[];
 }> = ({ onSelect, toolboxItems }) => {
-    const enabledTypes = new Set(['Page Break', 'Description', 'Checkbox', 'Radio Button', 'Text Entry', 'Choice Grid']);
+    const enabledTypes = new Set(['Description', 'Checkbox', 'Radio Button', 'Text Entry', 'Choice Grid']);
 
     const questionTypeOptions = toolboxItems
-      .filter(item => item.name !== 'Block')
+      .filter(item => item.name !== 'Block' && item.name !== 'Page Break')
       .map(item => ({
         type: item.name as QuestionType,
         label: item.name,
@@ -128,14 +128,18 @@ export const BlockActionsMenu: React.FC<BlockActionsMenuProps> = ({ onEdit, onMo
 
 // Shared Question Actions Menu
 interface QuestionActionsMenuProps {
+  question: Question;
   onDuplicate?: () => void;
   onDelete?: () => void;
   onAddPageBreak?: () => void;
   onMoveToNewBlock?: () => void;
   onReplaceFromLibrary?: () => void;
+  onPreview?: () => void;
+  onActivate?: () => void;
+  onDeactivate?: () => void;
 }
 
-export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ onDuplicate, onDelete, onAddPageBreak, onMoveToNewBlock, onReplaceFromLibrary }) => {
+export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ question, onDuplicate, onDelete, onAddPageBreak, onMoveToNewBlock, onReplaceFromLibrary, onPreview, onActivate, onDeactivate }) => {
     return (
         <div className="absolute top-full right-0 mt-2 w-56 bg-surface-container-high border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
             <ul className="py-1">
@@ -153,8 +157,27 @@ export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ onDupl
                 {onReplaceFromLibrary && <li><button onClick={(e) => { e.stopPropagation(); onReplaceFromLibrary(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Replace from library</button></li>}
                 <li><button onClick={(e) => { e.stopPropagation(); alert('Not implemented'); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Add to library</button></li>
                 {onAddPageBreak && <li><button onClick={(e) => { e.stopPropagation(); onAddPageBreak(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Add page break</button></li>}
-                <li><button onClick={(e) => { e.stopPropagation(); alert('Not implemented'); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Add note</button></li>
             </ul>
+            {onPreview && (
+                <>
+                    <div className="border-t border-dotted border-outline-variant mx-2" />
+                    <ul className="py-1">
+                        <li><button onClick={(e) => { e.stopPropagation(); onPreview(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Preview</button></li>
+                    </ul>
+                </>
+            )}
+            {(onActivate || onDeactivate) && (
+                <>
+                    <div className="border-t border-dotted border-outline-variant mx-2" />
+                    <ul className="py-1">
+                        {question.isHidden ? (
+                            onActivate && <li><button onClick={(e) => { e.stopPropagation(); onActivate(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Activate</button></li>
+                        ) : (
+                            onDeactivate && <li><button onClick={(e) => { e.stopPropagation(); onDeactivate(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Deactivate</button></li>
+                        )}
+                    </ul>
+                </>
+            )}
             {onDelete && (
                 <>
                     <div className="border-t border-dotted border-outline-variant mx-2" />

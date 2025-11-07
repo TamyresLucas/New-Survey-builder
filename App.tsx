@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useRef, useCallback, useReducer, useEffect, useMemo } from 'react';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
@@ -871,6 +873,7 @@ const App: React.FC = () => {
                 onCollapseBlock={handleCollapseBlock}
                 onSelectAllInBlock={handleSelectAllInBlock}
                 onUnselectAllInBlock={handleUnselectAllInBlock}
+                onUpdateQuestion={handleUpdateQuestion}
               />
             )}
             

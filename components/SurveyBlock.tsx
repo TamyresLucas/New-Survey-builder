@@ -130,7 +130,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
 
   const { surveyFlowLogic, logicSource } = useMemo(() => {
     let surveyFlowDestination: string | null = null;
-    let source: 'branching' | 'skip' | 'fallthrough' = 'fallthrough';
+    let source: 'branching' | 'skip' | 'block' | 'fallthrough' = 'fallthrough';
 
     const lastQ = lastContentQuestion;
     if (lastQ) {
@@ -148,8 +148,13 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
         }
     }
 
+    if (!surveyFlowDestination && block.continueTo && block.continueTo !== 'next') {
+        surveyFlowDestination = block.continueTo;
+        source = 'block';
+    }
+
     // Fallback if no explicit logic was found on the last question
-    if (!surveyFlowDestination) {
+    if (!surveyFlowDestination || surveyFlowDestination === 'next') {
       const currentBlockIndex = survey.blocks.findIndex(b => b.id === block.id);
       if (currentBlockIndex !== -1 && currentBlockIndex < survey.blocks.length - 1) {
         const nextBlock = survey.blocks[currentBlockIndex + 1];
@@ -167,7 +172,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
     } : null;
 
     return { surveyFlowLogic: logic, logicSource: source };
-  }, [block.id, lastContentQuestion, survey.blocks]);
+  }, [block.id, block.continueTo, lastContentQuestion, survey.blocks]);
 
   const showSurveyFlow = hasBranchingLogicInSurvey && isPathTargetBlock && surveyFlowLogic;
 
@@ -318,18 +323,25 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                     style={{ fontFamily: "'Open Sans', sans-serif" }}
                 />
             ) : (
-                <div 
-                    className="truncate" 
-                    onClick={handleTitleClick}
-                >
-                    <span className="font-bold text-base text-on-surface mr-2">{block.bid}</span>
-                    <span 
-                        className="font-semibold text-base text-on-surface"
-                        style={{ fontFamily: "'Open Sans', sans-serif" }}
+                <>
+                    <div 
+                        className="truncate" 
+                        onClick={handleTitleClick}
                     >
-                        {block.title}
-                    </span>
-                </div>
+                        <span className="font-bold text-base text-on-surface mr-2">{block.bid}</span>
+                        <span 
+                            className="font-semibold text-base text-on-surface"
+                            style={{ fontFamily: "'Open Sans', sans-serif" }}
+                        >
+                            {block.title}
+                        </span>
+                    </div>
+                    {block.autoAdvance && (
+                        <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-primary-container text-on-primary-container rounded-full flex-shrink-0">
+                            Autoadvance
+                        </span>
+                    )}
+                </>
             )}
           </div>
         </div>
@@ -345,6 +357,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
             </button>
             {isActionsMenuOpen && (
                 <BlockActionsMenu
+                    onEdit={() => { onSelectBlock(block); setIsActionsMenuOpen(false); }}
                     onDuplicate={() => { onCopyBlock(block.id); setIsActionsMenuOpen(false); }}
                     onAddSimpleQuestion={() => { onAddQuestionToBlock(block.id, QTEnum.Checkbox); setIsActionsMenuOpen(false); }}
                     onAddFromLibrary={() => { onAddFromLibrary(); setIsActionsMenuOpen(false); }}
@@ -387,6 +400,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                     <QuestionCard
                       question={question}
                       survey={survey}
+                      parentBlock={block}
                       currentBlockId={block.id}
                       logicIssues={logicIssues.filter(issue => issue.questionId === question.id)}
                       id={`question-card-${question.id}`}

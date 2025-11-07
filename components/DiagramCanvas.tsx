@@ -170,8 +170,19 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             }
 
             if (!hasExplicitLogic) {
-                const targetId = resolveDestination('next', index);
-                if (targetId) targets.set(targetId, 'fallthrough');
+                const blockOfQuestion = survey.blocks.find(b => b.questions.some(bq => bq.id === q.id));
+                const interactiveQuestionsInBlock = blockOfQuestion?.questions.filter(iq => iq.type !== QuestionType.PageBreak && iq.type !== QuestionType.Description);
+                const lastInteractiveInBlock = interactiveQuestionsInBlock?.[interactiveQuestionsInBlock.length - 1];
+                
+                if (blockOfQuestion && lastInteractiveInBlock?.id === q.id && blockOfQuestion.continueTo && blockOfQuestion.continueTo !== 'next') {
+                    const targetId = resolveDestination(blockOfQuestion.continueTo, index);
+                    if (targetId) {
+                        targets.set(targetId, 'explicit');
+                    }
+                } else {
+                    const targetId = resolveDestination('next', index);
+                    if (targetId) targets.set(targetId, 'fallthrough');
+                }
             }
 
             if (targets.size === 0) {

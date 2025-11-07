@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import type { Survey, Question, DisplayLogicCondition, BranchingLogicCondition } from '../types';
+// FIX: Added 'useCallback' to the import from 'react' to resolve the 'Cannot find name' error.
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import type { Survey, Question, DisplayLogicCondition, BranchingLogicCondition, Block } from '../types';
 import { QuestionType } from '../types';
 import { XIcon, ArrowRightAltIcon, SignalIcon, BatteryIcon } from './icons';
 import { PreviewQuestion } from './PreviewQuestion';
@@ -21,6 +22,7 @@ interface PreviewContentProps {
   currentPage: number;
   onBack: () => void;
   onNext: () => void;
+  questionIdToBlockMap: Map<string, Block>;
 }
 
 // Helper functions for display logic evaluation
@@ -83,6 +85,10 @@ const evaluateDisplayLogic = (
   survey: Survey,
   questionMapByQid: Map<string, Question>
 ): boolean => {
+  if (question.isHidden) {
+    return false;
+  }
+
   if (!question.displayLogic || question.displayLogic.conditions.length === 0) {
     return true; // Always visible if no logic
   }
@@ -113,8 +119,14 @@ const PreviewContent: React.FC<PreviewContentProps> = ({
   currentPage,
   onBack,
   onNext,
-  device
+  device,
+  questionIdToBlockMap,
 }) => {
+  const shouldShowBackButton = currentPage > 0 && !questions.some(q => {
+      const parentBlock = questionIdToBlockMap.get(q.id);
+      return q.hideBackButton || parentBlock?.hideBackButton;
+  });
+
   return (
     <>
       <header className="mb-4">
@@ -131,8 +143,8 @@ const PreviewContent: React.FC<PreviewContentProps> = ({
           isInvalid={validationErrors.has(question.id)}
         />
       ))}
-      <div className={`mt-8 flex items-center gap-4 ${currentPage > 0 ? 'justify-between' : 'justify-end'}`}>
-        {currentPage > 0 && (
+      <div className={`mt-8 flex items-center gap-4 ${shouldShowBackButton ? 'justify-between' : 'justify-end'}`}>
+        {shouldShowBackButton && (
           <button
             onClick={onBack}
             className={`px-6 py-3 text-sm font-semibold text-primary rounded-full hover:bg-primary-container ${device === 'mobile' ? 'flex-1' : ''}`}
@@ -162,11 +174,22 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
   const desktopPaneRef = useRef<HTMLDivElement>(null);
   const mobilePaneRef = useRef<HTMLDivElement>(null);
   const scrollLockRef = useRef(false);
+  const lastAnsweredQIdRef = useRef<string | null>(null);
 
   const questionMapByQid = useMemo(() => {
     const allQuestions = survey.blocks.flatMap(b => b.questions);
     return new Map(allQuestions.filter(q => q.qid).map(q => [q.qid, q]));
   }, [survey]);
+
+  const questionIdToBlockMap = useMemo(() => {
+    const map = new Map<string, Block>();
+    survey.blocks.forEach(block => {
+      block.questions.forEach(question => {
+        map.set(question.id, block);
+      });
+    });
+    return map;
+  }, [survey.blocks]);
 
   const pages = useMemo(() => {
     const finalPages: Question[][] = [];
@@ -285,6 +308,20 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
         }
     }
 
+    // 3. If no question logic, check block-level logic
+    if (destination === null) {
+        const lastQuestionOnPage = questionsOnPage[questionsOnPage.length - 1];
+        if (lastQuestionOnPage) {
+            const blockOfLastQuestion = survey.blocks.find(b => b.questions.some(q => q.id === lastQuestionOnPage.id));
+            const interactiveQuestionsInBlock = blockOfLastQuestion?.questions.filter(q => q.type !== QuestionType.PageBreak && q.type !== QuestionType.Description);
+            const lastInteractiveInBlock = interactiveQuestionsInBlock?.[interactiveQuestionsInBlock.length - 1];
+
+            if (blockOfLastQuestion && lastInteractiveInBlock?.id === lastQuestionOnPage.id && blockOfLastQuestion.continueTo && blockOfLastQuestion.continueTo !== 'next') {
+                destination = blockOfLastQuestion.continueTo;
+            }
+        }
+    }
+
     if (destination === 'end') {
         return { action: 'submit' as const };
     }
@@ -346,17 +383,6 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
   const currentQuestions = pages[currentPage] || [];
   const isEffectivelyLastPage = nextStepInfo.action === 'submit';
 
-  const handleAnswerChange = (questionId: string, answer: any) => {
-    setAnswers(prev => new Map(prev).set(questionId, answer));
-    if (validationErrors.has(questionId)) {
-      setValidationErrors(prev => {
-        const newErrors = new Set(prev);
-        newErrors.delete(questionId);
-        return newErrors;
-      });
-    }
-  };
-
   const validatePage = (): boolean => {
     const errors = new Set<string>();
     for (const q of currentQuestions) {
@@ -397,7 +423,7 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
       onClose();
   }
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (!validatePage()) {
       return;
     }
@@ -409,7 +435,56 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
     } else {
       setCurrentPage(nextStepInfo.pageIndex);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [validatePage, currentPage, nextStepInfo]);
+
+  const handleAnswerChange = (questionId: string, answer: any) => {
+    setAnswers(prev => new Map(prev).set(questionId, answer));
+    lastAnsweredQIdRef.current = questionId;
+    if (validationErrors.has(questionId)) {
+      setValidationErrors(prev => {
+        const newErrors = new Set(prev);
+        newErrors.delete(questionId);
+        return newErrors;
+      });
+    }
   };
+
+  useEffect(() => {
+    if (!lastAnsweredQIdRef.current) return;
+
+    const questionId = lastAnsweredQIdRef.current;
+    const question = survey.blocks.flatMap(b => b.questions).find(q => q.id === questionId);
+    if (question) {
+        const parentBlock = survey.blocks.find(b => b.questions.some(q => q.id === questionId));
+        
+        // Determine if auto-advance is enabled for this question
+        let autoAdvanceEnabled = question.autoAdvance;
+        if (autoAdvanceEnabled === undefined) { // If not set on question, check block
+            autoAdvanceEnabled = parentBlock?.autoAdvance;
+        }
+
+        const isAutoAdvanceType = question.type === QuestionType.Radio || question.type === QuestionType.ChoiceGrid;
+
+        if (autoAdvanceEnabled && isAutoAdvanceType) {
+            // For ChoiceGrid, only advance if all rows are answered.
+            if (question.type === QuestionType.ChoiceGrid) {
+                const answer = answers.get(question.id) as Map<string, string> | undefined;
+                const allRowsAnswered = (question.choices?.length || 0) === (answer?.size || 0);
+                if (!allRowsAnswered) {
+                    lastAnsweredQIdRef.current = null; // Reset ref
+                    return; // Don't advance yet
+                }
+            }
+            
+            setTimeout(() => {
+                handleNext();
+            }, 300);
+        }
+    }
+
+    lastAnsweredQIdRef.current = null; // Reset ref after check
+  }, [answers, survey, handleNext]);
 
   const handleBack = () => {
     if (pageHistory.length > 0) {
@@ -429,56 +504,52 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
     currentPage: currentPage,
     onBack: handleBack,
     onNext: handleNext,
+    questionIdToBlockMap,
   };
 
 
   return (
     <div className="fixed inset-0 bg-surface z-50 flex flex-col font-sans">
       <header className="flex-shrink-0 bg-surface-container border-b border-outline-variant p-4 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-on-surface">Survey Preview</h2>
-        <button onClick={onClose} className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high">
+        <h2 className="text-lg font-bold text-on-surface">Preview</h2>
+        <button onClick={onClose} className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high">
           <XIcon className="text-xl" />
-          <span className="sr-only">Close Preview</span>
         </button>
       </header>
-      <main className="flex-1 overflow-hidden flex items-stretch divide-x divide-outline-variant">
-        {/* Desktop Pane */}
-        <div className="flex-1 flex justify-center items-center p-4 sm:p-8">
+      <main className="flex-1 bg-surface-container-high/50 grid grid-cols-1 md:grid-cols-2 gap-8 p-8 overflow-y-auto">
+        {/* Desktop Preview */}
+        <div className="hidden md:flex flex-col items-center">
             <div
-              ref={desktopPaneRef}
-              onScroll={() => syncScroll('desktop')}
-              className="w-full h-full max-w-3xl bg-surface-container rounded-lg border border-outline-variant p-6 sm:p-10 shadow-sm overflow-y-auto"
+                ref={desktopPaneRef}
+                onScroll={() => syncScroll('desktop')}
+                className="w-full max-w-3xl bg-surface rounded-lg shadow-lg p-8 overflow-y-auto"
             >
               <PreviewContent device="desktop" {...commonContentProps} />
             </div>
         </div>
-        {/* Mobile Pane */}
-        <div className="flex-shrink-0 flex justify-center items-center p-4 sm:p-8 bg-surface-container-high w-[400px]">
-            <div
-              className="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[calc(100vh-240px)] min-h-[500px] max-h-[700px] w-[300px] shadow-2xl"
-            >
-              <div className="w-[140px] h-[18px] bg-gray-800 top-0 rounded-b-[1rem] left-1/2 -translate-x-1/2 absolute"></div>
-              <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[124px] rounded-l-lg"></div>
-              <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[178px] rounded-l-lg"></div>
-              <div className="h-[64px] w-[3px] bg-gray-800 absolute -right-[17px] top-[142px] rounded-r-lg"></div>
-              <div className="rounded-[2rem] overflow-hidden w-full h-full bg-surface">
-                <div className="px-4 py-2 flex justify-between items-center text-xs text-on-surface-variant font-sans font-bold">
-                  <span>12:29</span>
-                  <div className="flex items-center gap-1">
-                    <SignalIcon className="text-base" />
-                    <BatteryIcon className="text-base" />
-                  </div>
+        {/* Mobile Preview */}
+        <div className="flex flex-col items-center">
+             <div className="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[700px] w-[350px] shadow-xl">
+                <div className="w-[140px] h-[18px] bg-gray-800 top-0 rounded-b-[1rem] left-1/2 -translate-x-1/2 absolute"></div>
+                <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[124px] rounded-l-lg"></div>
+                <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[178px] rounded-l-lg"></div>
+                <div className="h-[64px] w-[3px] bg-gray-800 absolute -right-[17px] top-[142px] rounded-r-lg"></div>
+                <div className="rounded-[2rem] overflow-hidden w-full h-full bg-surface flex flex-col">
+                    <div className="px-4 py-2 flex justify-between items-center text-xs text-on-surface-variant font-sans font-bold flex-shrink-0">
+                        <span>12:29</span>
+                        <div className="flex items-center gap-1">
+                            <SignalIcon className="text-base" />
+                            <BatteryIcon className="text-base" />
+                        </div>
+                    </div>
+                    <div
+                        ref={mobilePaneRef}
+                        onScroll={() => syncScroll('mobile')}
+                        className="flex-1 p-4 overflow-y-auto"
+                    >
+                        <PreviewContent device="mobile" {...commonContentProps} />
+                    </div>
                 </div>
-                <div 
-                  ref={mobilePaneRef} 
-                  onScroll={() => syncScroll('mobile')}
-                  className="overflow-y-auto h-[calc(100%-32px)]"
-                >
-                  <div className="p-4">
-                    <PreviewContent device="mobile" {...commonContentProps} />
-                  </div>
-                </div>
-              </div>
             </div>
         </div>
       </main>

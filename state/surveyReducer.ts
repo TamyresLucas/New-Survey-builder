@@ -128,23 +128,10 @@ const applyPagingRules = (survey: Survey, oldPagingMode?: Survey['pagingMode']):
     const newSurvey = JSON.parse(JSON.stringify(survey));
     const newPagingMode = survey.pagingMode;
 
-    // SPECIAL TRANSITION: one-per-page -> multi-per-page
-    if (oldPagingMode === 'one-per-page' && newPagingMode === 'multi-per-page') {
-        // Convert automatic page breaks to manual ones by just removing the flag
-        newSurvey.blocks.forEach((block: Block) => {
-            block.questions.forEach((q: Question) => {
-                if (q.isAutomatic) {
-                    delete q.isAutomatic;
-                }
-            });
-        });
-    } else {
-        // STANDARD BEHAVIOR for all other cases (e.g., adding a question in one-per-page mode)
-        // Remove all automatic breaks before recalculating, to handle question moves/deletes correctly.
-        newSurvey.blocks.forEach((block: Block) => {
-            block.questions = block.questions.filter((q: Question) => !(q.type === QTEnum.PageBreak && q.isAutomatic));
-        });
-    }
+    // Remove all automatic breaks before recalculating, to handle question moves/deletes correctly.
+    newSurvey.blocks.forEach((block: Block) => {
+        block.questions = block.questions.filter((q: Question) => !(q.type === QTEnum.PageBreak && q.isAutomatic));
+    });
 
     // ALWAYS clean up any consecutive page breaks (manual or just-converted ones)
     newSurvey.blocks.forEach((block: Block) => {
@@ -161,9 +148,10 @@ const applyPagingRules = (survey: Survey, oldPagingMode?: Survey['pagingMode']):
         block.questions = cleanedQuestions;
     });
 
-    // If the final mode is one-per-page, add the automatic page breaks.
-    if (newPagingMode === 'one-per-page') {
-        newSurvey.blocks.forEach((block: Block) => {
+    newSurvey.blocks.forEach((block: Block) => {
+        const shouldApplyBreaks = newPagingMode === 'one-per-page' || (newPagingMode === 'multi-per-page' && block.automaticPageBreaks);
+
+        if (shouldApplyBreaks) {
             const newQuestionsForBlock: Question[] = [];
             let hasSeenInteractiveQuestionInPage = false;
 
@@ -179,11 +167,11 @@ const applyPagingRules = (survey: Survey, oldPagingMode?: Survey['pagingMode']):
                             type: QTEnum.PageBreak,
                             isAutomatic: true,
                         });
-                        hasSeenInteractiveQuestionInPage = false;
+                        hasSeenInteractiveQuestionInPage = false; // Reset for the *new* page
                     }
                 }
                 
-                if (question.type === QTEnum.PageBreak) {
+                if (question.type === QTEnum.PageBreak && !question.isAutomatic) { // Only manual page breaks reset the counter
                     hasSeenInteractiveQuestionInPage = false;
                 }
 
@@ -194,14 +182,14 @@ const applyPagingRules = (survey: Survey, oldPagingMode?: Survey['pagingMode']):
                 }
             });
             block.questions = newQuestionsForBlock;
-        });
-    }
+        }
+    });
     
     return newSurvey;
 };
 
-const applyPagingAndRenumber = (survey: Survey): Survey => {
-    const surveyWithPagingRules = applyPagingRules(survey);
+const applyPagingAndRenumber = (survey: Survey, oldPagingMode?: Survey['pagingMode']): Survey => {
+    const surveyWithPagingRules = applyPagingRules(survey, oldPagingMode);
     return renumberSurveyVariables(surveyWithPagingRules);
 };
 
@@ -229,7 +217,11 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             if (block) {
                 Object.assign(block, updates);
             }
-            return newState;
+            // If the update affects paging, we need to re-apply rules.
+            if ('automaticPageBreaks' in updates) {
+                return applyPagingAndRenumber(newState, state.pagingMode);
+            }
+            return newState; // Renumbering not needed for other block updates like title change.
         }
 
         case SurveyActionType.UPDATE_QUESTION: {
@@ -1085,11 +1077,10 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
             const nextState = JSON.parse(JSON.stringify(state));
             nextState.pagingMode = pagingMode;
-
-            const surveyWithPaging = applyPagingRules(nextState, oldPagingMode);
-            return renumberSurveyVariables(surveyWithPaging);
+            
+            return applyPagingAndRenumber(nextState, oldPagingMode);
         }
-
+        
         case SurveyActionType.REPLACE_SURVEY: {
             return applyPagingAndRenumber(action.payload);
         }

@@ -100,7 +100,15 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
     if (survey.pagingMode === 'one-per-page') {
         pages = countableQuestions.length;
     } else {
-        pages = (survey.blocks.length > 0 ? 1 : 0) + allQuestionsList.filter(q => q.type === QTEnum.PageBreak && !q.isAutomatic).length;
+        let pageCount = 0;
+        survey.blocks.forEach(block => {
+            if (block.automaticPageBreaks) {
+                pageCount += block.questions.filter(q => q.type !== QTEnum.Description && q.type !== QTEnum.PageBreak).length;
+            } else {
+                pageCount += (block.questions.length > 0 ? 1 : 0) + block.questions.filter(q => q.type === QTEnum.PageBreak && !q.isAutomatic).length;
+            }
+        });
+        pages = pageCount || (survey.blocks.length > 0 ? 1 : 0);
     }
 
     return {

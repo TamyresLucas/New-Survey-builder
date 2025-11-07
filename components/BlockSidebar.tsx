@@ -356,7 +356,9 @@ const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = ({ block
         if (!condition.operator) tempErrors.add('operator');
         
         const requiresValue = !['is_empty', 'is_not_empty'].includes(condition.operator);
-        if (requiresValue && !String(condition.value).trim()) tempErrors.add('value');
+        if (!String(condition.value).trim() && requiresValue) {
+            tempErrors.add('value');
+        }
 
         if (tempErrors.size > 0) {
             setValidationErrors(prev => new Map(prev).set(conditionId, tempErrors));
@@ -808,6 +810,17 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
     });
     return Array.from(allGroups).sort();
   }, [survey.blocks, block.id]);
+  
+  const currentBlockIndex = useMemo(() => survey.blocks.findIndex(b => b.id === block.id), [survey.blocks, block.id]);
+
+  const compatibleBlocks = useMemo(() => {
+      if (currentBlockIndex === -1) return [];
+      
+      return survey.blocks.filter((b, index) => 
+          index > currentBlockIndex && // Must come after
+          b.branchName === block.branchName // Must be in the same path
+      );
+  }, [survey.blocks, block.id, block.branchName, currentBlockIndex]);
 
   const handleTitleBlur = () => {
     if (title.trim() && title.trim() !== block.title) {
@@ -885,6 +898,33 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
         </div>
         <p className="text-xs text-on-surface-variant mt-1">Associate this block with a survey path.</p>
       </div>
+       <div>
+        <label htmlFor="continue-to" className="block text-sm font-medium text-on-surface-variant mb-1">
+          Continue to
+        </label>
+        <div className="relative">
+          <select
+            id="continue-to"
+            value={block.continueTo || 'next'}
+            onChange={e => onUpdateBlock(block.id, { continueTo: e.target.value })}
+            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+          >
+            <option value="next">Default (next block)</option>
+            <option value="end">End of Survey</option>
+            {compatibleBlocks.length > 0 && (
+                <optgroup label="Blocks in this path">
+                    {compatibleBlocks.map(b => (
+                        <option key={b.id} value={`block:${b.id}`}>
+                            {b.bid}: {truncate(b.title, 50)}
+                        </option>
+                    ))}
+                </optgroup>
+            )}
+          </select>
+          <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+        </div>
+        <p className="text-xs text-on-surface-variant mt-1">Define the block's default exit path.</p>
+      </div>
       <div>
         <div className="flex items-center justify-between">
             <div className="flex-1">
@@ -916,49 +956,112 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
           </div>
         )}
       </div>
+        {survey.pagingMode === 'multi-per-page' && (
+            <div className="flex items-start gap-3 pt-6 border-t border-outline-variant">
+                <input
+                    type="checkbox"
+                    id="block-auto-page-breaks"
+                    className="w-4 h-4 rounded border-outline text-primary focus:ring-primary accent-primary mt-0.5"
+                    checked={!!block.automaticPageBreaks}
+                    onChange={(e) => onUpdateBlock(block.id, { automaticPageBreaks: e.target.checked })}
+                />
+                <div>
+                    <label htmlFor="block-auto-page-breaks" className="text-sm font-medium text-on-surface block">
+                        Automatic page break between questions
+                    </label>
+                    <p className="text-xs text-on-surface-variant mt-0.5">Applies page breaks between each question within this block.</p>
+                </div>
+            </div>
+        )}
     </div>
   );
 
   const renderBehaviorTab = () => (
     <div className="space-y-8">
-        <CollapsibleSection title="Looping" defaultExpanded={true}>
-            <div className="flex items-center justify-between">
-                <div className="flex-1">
-                    <label htmlFor="enable-looping" className="text-sm font-medium text-on-surface block">
-                        Enable question looping
-                    </label>
-                    <p className="text-xs text-on-surface-variant mt-0.5">Repeat the questions in this block.</p>
+        <CollapsibleSection title="Navigation" defaultExpanded={true}>
+            <div className="space-y-6">
+                <div>
+                    <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                            <label htmlFor="enable-looping" className="text-sm font-medium text-on-surface block">
+                                Enable question looping
+                            </label>
+                            <p className="text-xs text-on-surface-variant mt-0.5">Repeat the questions in this block.</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                            type="checkbox"
+                            id="enable-looping"
+                            checked={block.loopingEnabled || false}
+                            onChange={e => onUpdateBlock(block.id, { loopingEnabled: e.target.checked })}
+                            className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                    </div>
+                    {block.loopingEnabled && (
+                    <div className="mt-4 pl-4 border-l-2 border-outline-variant">
+                        <label htmlFor="max-loop-size" className="block text-sm font-medium text-on-surface-variant mb-1">
+                        Max. Loop Size
+                        </label>
+                        <input
+                        type="number"
+                        id="max-loop-size"
+                        value={block.maxLoopSize || ''}
+                        onChange={(e) => {
+                            const value = e.target.value ? parseInt(e.target.value, 10) : undefined;
+                            onUpdateBlock(block.id, { maxLoopSize: value });
+                        }}
+                        className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                        placeholder="e.g., 5"
+                        min="1"
+                        />
+                    </div>
+                    )}
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                    type="checkbox"
-                    id="enable-looping"
-                    checked={block.loopingEnabled || false}
-                    onChange={e => onUpdateBlock(block.id, { loopingEnabled: e.target.checked })}
-                    className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                </label>
+
+                <div>
+                    <div className="flex items-center justify-between">
+                        <div className="flex-1 pr-4">
+                            <label htmlFor="block-auto-advance" className="text-sm font-medium text-on-surface block">
+                                Autoadvance
+                            </label>
+                            <p className="text-xs text-on-surface-variant mt-0.5">Automatically moves to the next page when a question in this block is answered.</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                id="block-auto-advance"
+                                checked={!!block.autoAdvance}
+                                onChange={(e) => onUpdateBlock(block.id, { autoAdvance: e.target.checked })}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <div className="flex items-center justify-between">
+                        <div className="flex-1 pr-4">
+                            <label htmlFor="block-hide-back-button" className="text-sm font-medium text-on-surface block">
+                                Hide back button
+                            </label>
+                            <p className="text-xs text-on-surface-variant mt-0.5">Prevent respondent from going back from any question in this block.</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                id="block-hide-back-button"
+                                checked={!!block.hideBackButton}
+                                onChange={(e) => onUpdateBlock(block.id, { hideBackButton: e.target.checked })}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                    </div>
+                </div>
             </div>
-            {block.loopingEnabled && (
-            <div className="mt-4 pl-4 border-l-2 border-outline-variant">
-                <label htmlFor="max-loop-size" className="block text-sm font-medium text-on-surface-variant mb-1">
-                Max. Loop Size
-                </label>
-                <input
-                type="number"
-                id="max-loop-size"
-                value={block.maxLoopSize || ''}
-                onChange={(e) => {
-                    const value = e.target.value ? parseInt(e.target.value, 10) : undefined;
-                    onUpdateBlock(block.id, { maxLoopSize: value });
-                }}
-                className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-                placeholder="e.g., 5"
-                min="1"
-                />
-            </div>
-            )}
         </CollapsibleSection>
         <CollapsibleSection title="Logic" defaultExpanded={true}>
             <div className="divide-y divide-outline-variant">

@@ -7,7 +7,7 @@ import { BlockActionsMenu, QuestionActionsMenu } from './ActionMenus';
 interface BuildPanelProps {
   onClose: () => void;
   survey: Survey;
-  onSelectQuestion: (question: Question | null) => void;
+  onSelectQuestion: (question: Question | null, options?: { tab?: string; focusOn?: string }) => void;
   selectedQuestion: Question | null;
   selectedBlock: Block | null;
   onSelectBlock: (block: Block) => void;
@@ -34,6 +34,7 @@ interface BuildPanelProps {
   onAddPageBreakAfterQuestion: (questionId: string) => void;
   onSelectAllInBlock: (blockId: string) => void;
   onUnselectAllInBlock: (blockId: string) => void;
+  onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
 }
 
 const enabledToolboxItems = new Set(['Block', 'Page Break', 'Description', 'Checkbox', 'Radio Button', 'Text Entry', 'Choice Grid']);
@@ -47,7 +48,7 @@ const DropIndicator = ({ small = false }: { small?: boolean }) => (
     </div>
 );
 
-const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, showDropIndicator, onSelectQuestion, onDragStart, onDragEnd, TypeIcon, onCopyQuestion, onDeleteQuestion, onAddPageBreakAfterQuestion, onMoveQuestionToNewBlock }: any) => {
+const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, showDropIndicator, onSelectQuestion, onDragStart, onDragEnd, TypeIcon, onCopyQuestion, onDeleteQuestion, onAddPageBreakAfterQuestion, onMoveQuestionToNewBlock, onUpdateQuestion }: any) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -64,6 +65,21 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
     const handleOpenMenu = (e: React.MouseEvent) => {
         e.stopPropagation();
         setIsMenuOpen(prev => !prev);
+    };
+
+    const handleActivate = () => {
+        onUpdateQuestion(question.id, { isHidden: false });
+        setIsMenuOpen(false);
+    };
+
+    const handleDeactivate = () => {
+        onUpdateQuestion(question.id, { isHidden: true });
+        setIsMenuOpen(false);
+    };
+    
+    const handlePreview = () => {
+        onSelectQuestion(question, { tab: 'Preview' });
+        setIsMenuOpen(false);
     };
 
     return (
@@ -99,10 +115,14 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
                     </button>
                     {isMenuOpen && (
                         <QuestionActionsMenu
+                            question={question}
                             onDelete={() => { onDeleteQuestion(question.id); setIsMenuOpen(false); }}
                             onDuplicate={() => { onCopyQuestion(question.id); setIsMenuOpen(false); }}
                             onAddPageBreak={() => { onAddPageBreakAfterQuestion(question.id); setIsMenuOpen(false); }}
                             onMoveToNewBlock={() => { onMoveQuestionToNewBlock(question.id); setIsMenuOpen(false); }}
+                            onPreview={handlePreview}
+                            onActivate={handleActivate}
+                            onDeactivate={handleDeactivate}
                         />
                     )}
                 </div>
@@ -115,7 +135,7 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
 const BuildPanel: React.FC<BuildPanelProps> = memo(({ 
   onClose, survey, onSelectQuestion, selectedQuestion, selectedBlock, onSelectBlock, checkedQuestions, collapsedBlocks, toolboxItems, onReorderToolbox, onReorderQuestion, onReorderBlock,
   onMoveBlockUp, onMoveBlockDown, onAddBlock, onCopyBlock, onAddQuestionToBlock, onExpandAllBlocks, onCollapseAllBlocks, onDeleteBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock,
-  onMoveQuestionToExistingBlock, onAddPageBreakAfterQuestion, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock
+  onMoveQuestionToExistingBlock, onAddPageBreakAfterQuestion, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock, onUpdateQuestion
 }) => {
   const [activeTab, setActiveTab] = useState('Content');
   const [searchTerm, setSearchTerm] = useState('');
@@ -599,6 +619,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                             onCopyQuestion={onCopyQuestion}
                             onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
                             onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
+                            onUpdateQuestion={onUpdateQuestion}
                         />
                       ))}
                       {!isSearching && dropContentTarget?.blockId === block.id && dropContentTarget.questionId === null && <DropIndicator small />}

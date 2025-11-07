@@ -176,6 +176,7 @@ export interface Question {
   isAutomatic?: boolean; // For automatic page breaks
   pageName?: string; // For editable page names on PageBreak questions
   groupName?: string;
+  autoAdvance?: boolean;
 
   // New property for choice-based validation
   choiceValidation?: {
@@ -267,6 +268,10 @@ export interface Block {
   draftBranchingLogic?: BranchingLogic;
   displayLogic?: DisplayLogic;
   draftDisplayLogic?: DisplayLogic;
+  continueTo?: string; // 'next', 'end', or 'block:<id>'
+  autoAdvance?: boolean;
+  automaticPageBreaks?: boolean;
+  hideBackButton?: boolean;
 }
 
 export interface Survey {

@@ -95,6 +95,7 @@ const TableDropIndicator: React.FC<{ colSpan: number }> = ({ colSpan }) => (
 const QuestionCard: React.FC<{ 
     question: Question, 
     survey: Survey,
+    parentBlock: Block,
     currentBlockId: string,
     logicIssues: LogicIssue[],
     isSelected: boolean,
@@ -116,7 +117,7 @@ const QuestionCard: React.FC<{
     onAddPageBreakAfterQuestion: (questionId: string) => void;
     pageInfo?: PageInfo;
 }> = memo(({ 
-    question, survey, currentBlockId, logicIssues, isSelected, isChecked, onSelect, onToggleCheck, id, 
+    question, survey, parentBlock, currentBlockId, logicIssues, isSelected, isChecked, onSelect, onToggleCheck, id, 
     onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, toolboxItems,
     isDragging, onDragStart, onDragEnd, onAddChoice, onAddPageBreakAfterQuestion, pageInfo
 }) => {
@@ -340,6 +341,34 @@ const QuestionCard: React.FC<{
         }
     };
 
+    const willAutoadvance = useMemo(() => {
+        const isCompatibleType = [QuestionType.Radio, QuestionType.ChoiceGrid].includes(question.type);
+        if (!isCompatibleType) {
+            return false;
+        }
+        // Question-level setting takes precedence
+        if (typeof question.autoAdvance === 'boolean') {
+            return question.autoAdvance;
+        }
+        // If question-level is undefined, inherit from block
+        return !!parentBlock.autoAdvance;
+    }, [question.type, question.autoAdvance, parentBlock.autoAdvance]);
+
+    const handleActivate = () => {
+        onUpdateQuestion(question.id, { isHidden: false });
+        setIsActionsMenuOpen(false);
+    };
+
+    const handleDeactivate = () => {
+        onUpdateQuestion(question.id, { isHidden: true });
+        setIsActionsMenuOpen(false);
+    };
+
+    const handlePreview = () => {
+        onSelect(question, { tab: 'Preview' });
+        setIsActionsMenuOpen(false);
+    };
+
     const pageIndicator = useMemo(() => {
         if (!pageInfo) return null;
 
@@ -446,7 +475,11 @@ const QuestionCard: React.FC<{
                 onDragEnd={onDragEnd}
                 onClick={(e) => { e.stopPropagation(); onSelect(question); }}
                 className={`p-4 rounded-lg border-2 transition-all cursor-grab group grid grid-cols-[auto_1fr] items-start gap-x-3 relative ${
-                    isSelected ? 'border-primary bg-surface-container-high shadow-md' : 'border-outline-variant hover:border-outline'
+                    isSelected
+                        ? 'border-primary bg-surface-container-high shadow-md'
+                        : question.isHidden
+                            ? 'border-outline-variant bg-surface-container opacity-60'
+                            : 'border-outline-variant hover:border-outline'
                 } ${isDragging ? 'opacity-50' : ''} ${isAnyMenuOpen ? 'z-10' : ''}`}
             >
                 {/* Grid Cell 1: Checkbox */}
@@ -501,8 +534,13 @@ const QuestionCard: React.FC<{
                                 Required
                             </span>
                         )}
+                        {willAutoadvance && (
+                            <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-primary-container text-on-primary-container rounded-full">
+                                Autoadvance
+                            </span>
+                        )}
                         {question.isHidden && (
-                            <div className={`relative group/tooltip ${question.forceResponse ? 'ml-2' : ''}`}>
+                            <div className={`relative group/tooltip ${question.forceResponse || willAutoadvance ? 'ml-2' : ''}`}>
                                 <VisibilityOffIcon className="text-on-surface-variant text-lg" />
                                 <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
                                     This question is hidden
@@ -511,7 +549,7 @@ const QuestionCard: React.FC<{
                             </div>
                         )}
                         {hasLogicIssues && (
-                            <div className={`relative group/tooltip ${question.forceResponse || question.isHidden ? 'ml-2' : ''}`}>
+                            <div className={`relative group/tooltip ${question.forceResponse || question.isHidden || willAutoadvance ? 'ml-2' : ''}`}>
                                 <WarningIcon className="text-error" />
                                 <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
                                     <h4 className="font-bold mb-1">Logic Issues:</h4>
@@ -555,11 +593,15 @@ const QuestionCard: React.FC<{
                             </button>
                             {isActionsMenuOpen && (
                                 <QuestionActionsMenu
+                                    question={question}
                                     onDuplicate={!isOnePerPage ? () => { onCopyQuestion(question.id); setIsActionsMenuOpen(false); } : undefined}
                                     onDelete={() => { onDeleteQuestion(question.id); setIsActionsMenuOpen(false); }}
                                     onAddPageBreak={!isOnePerPage ? () => { onAddPageBreakAfterQuestion(question.id); setIsActionsMenuOpen(false); } : undefined}
                                     onMoveToNewBlock={!isOnePerPage ? () => { onMoveQuestionToNewBlock(question.id); setIsActionsMenuOpen(false); } : undefined}
                                     onReplaceFromLibrary={!isOnePerPage ? () => { alert('Not implemented'); setIsActionsMenuOpen(false); } : undefined}
+                                    onPreview={handlePreview}
+                                    onActivate={handleActivate}
+                                    onDeactivate={handleDeactivate}
                                 />
                             )}
                         </div>

@@ -1,14 +1,14 @@
-
 import React, { memo, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, ActionLogic, Workflow } from '../types';
 import { QuestionType } from '../types';
 import { generateId, parseChoice, CHOICE_BASED_QUESTION_TYPES, truncate } from '../utils';
 import { PasteChoicesModal } from './PasteChoicesModal';
+// FIX: Add aliases for checked radio and checkbox icons to match usage in the component.
 import { 
     XIcon, PlusIcon, ExpandIcon, CollapseIcon, ChevronDownIcon, DragIndicatorIcon,
     MoreVertIcon, ArrowRightAltIcon,
     SignalIcon, BatteryIcon, RadioButtonUncheckedIcon, CheckboxOutlineIcon,
-    RadioIcon, CheckboxFilledIcon, ShuffleIcon,
+    RadioIcon as RadioButtonCheckedIcon, CheckboxFilledIcon as CheckboxCheckedIcon, ShuffleIcon,
     InfoIcon, EyeIcon, ContentPasteIcon, CarryForwardIcon, CallSplitIcon,
     WarningIcon, CheckmarkIcon, ContentCopyIcon
 } from './icons';
@@ -33,6 +33,36 @@ interface QuestionEditorProps {
     toolboxItems: ToolboxItemData[];
     onRequestGeminiHelp: (topic: string) => void;
 }
+
+const ActivateQuestionSection: React.FC<{
+    question: Question;
+    handleUpdate: (updates: Partial<Question>) => void;
+}> = ({ question, handleUpdate }) => {
+    const isActivated = !question.isHidden;
+
+    return (
+        <div>
+            <div className="flex items-center justify-between">
+                <div className="flex-1">
+                    <label htmlFor="activate-question" className="text-sm font-medium text-on-surface block">
+                        Activate question
+                    </label>
+                    <p className="text-xs text-on-surface-variant mt-0.5">When deactivated, the question will be hidden from all respondents.</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                        type="checkbox" 
+                        id="activate-question" 
+                        checked={isActivated} 
+                        onChange={(e) => handleUpdate({ isHidden: !e.target.checked })} 
+                        className="sr-only peer" 
+                    />
+                    <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+            </div>
+        </div>
+    );
+};
 
 const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
     question, survey, logicIssues, activeTab, focusedLogicSource, onUpdateQuestion, onAddChoice, onDeleteChoice,
@@ -345,6 +375,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
 
     const CurrentQuestionTypeInfo = toolboxItems.find(item => item.name === question.type);
     const initialChoicesText = (question.choices || []).map(c => parseChoice(c.text).label).join('\n');
+    const isAutoadvanceable = useMemo(() => [QuestionType.Radio, QuestionType.ChoiceGrid].includes(question.type), [question.type]);
 
     // ... All render functions and sub-components from RightSidebar.tsx go here ...
     const renderChoiceBasedSettingsTab = () => {
@@ -373,7 +404,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                 </div>
                 <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
             </div>
-    
+            
+            <ActivateQuestionSection question={question} handleUpdate={handleUpdate} />
             <ForceResponseSection question={question} handleUpdate={handleUpdate} />
             
             {(question.type === QuestionType.Radio || question.type === QuestionType.Checkbox) && (
@@ -742,7 +774,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                                                                             className="flex items-center gap-3 cursor-pointer"
                                                                         >
                                                                             {isSelected ? 
-                                                                                <RadioIcon className="text-2xl text-primary flex-shrink-0" /> : 
+                                                                                <RadioButtonCheckedIcon className="text-2xl text-primary flex-shrink-0" /> : 
                                                                                 <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
                                                                             }
                                                                             <span className={`text-sm ${isSelected ? 'text-primary font-medium' : 'text-on-surface'}`}>
@@ -784,7 +816,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                                                                 return (
                                                                 <td key={sp.id} className="p-1 text-center align-middle">
                                                                     <button onClick={() => handlePreviewGridClick(choice.id, sp.id)} className="p-1 rounded-full cursor-pointer">
-                                                                        {isSelected ? <RadioIcon className="text-xl text-primary" /> : <RadioButtonUncheckedIcon className="text-xl text-on-surface-variant" />}
+                                                                        {isSelected ? <RadioButtonCheckedIcon className="text-xl text-primary" /> : <RadioButtonUncheckedIcon className="text-xl text-on-surface-variant" />}
                                                                     </button>
                                                                 </td>
                                                                 )
@@ -808,11 +840,11 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                                             >
                                                 {question.type === QuestionType.Radio ? (
                                                     isSelected ? 
-                                                        <RadioIcon className="text-2xl text-primary flex-shrink-0" /> : 
+                                                        <RadioButtonCheckedIcon className="text-2xl text-primary flex-shrink-0" /> : 
                                                         <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
                                                 ) : (
                                                     isSelected ?
-                                                        <CheckboxFilledIcon className="text-2xl text-primary flex-shrink-0" /> :
+                                                        <CheckboxCheckedIcon className="text-2xl text-primary flex-shrink-0" /> :
                                                         <CheckboxOutlineIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
                                                 )}
                                                 <span className={`text-sm ${isSelected ? 'text-on-primary-container font-medium' : 'text-on-surface'}`} dangerouslySetInnerHTML={{ __html: parseChoice(choice.text).label }} />
@@ -858,7 +890,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                                                 return (
                                                 <td key={sp.id} className="p-2 text-center align-middle">
                                                     <button onClick={() => handlePreviewGridClick(choice.id, sp.id)} className="p-1 rounded-full cursor-pointer">
-                                                        {isSelected ? <RadioIcon className="text-2xl text-primary" /> : <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant" />}
+                                                        {isSelected ? <RadioButtonCheckedIcon className="text-2xl text-primary" /> : <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant" />}
                                                     </button>
                                                 </td>
                                                 )
@@ -881,11 +913,11 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                                 >
                                 {question.type === QuestionType.Radio ? (
                                     isSelected ?
-                                        <RadioIcon className="text-2xl text-primary flex-shrink-0" /> :
+                                        <RadioButtonCheckedIcon className="text-2xl text-primary flex-shrink-0" /> :
                                         <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
                                 ) : (
                                     isSelected ?
-                                        <CheckboxFilledIcon className="text-2xl text-primary flex-shrink-0" /> :
+                                        <CheckboxCheckedIcon className="text-2xl text-primary flex-shrink-0" /> :
                                         <CheckboxOutlineIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
                                 )}
                                 <span className={`text-base ${isSelected ? 'text-on-primary-container font-medium' : 'text-on-surface'}`} dangerouslySetInnerHTML={{ __html: parseChoice(choice.text).label }} />
@@ -939,6 +971,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                 <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
             </div>
             
+            <ActivateQuestionSection question={question} handleUpdate={handleUpdate} />
             <ForceResponseSection question={question} handleUpdate={handleUpdate} />
 
             <div>
@@ -1207,6 +1240,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
         <p className="text-xs text-on-surface-variant mt-1">Changing type may reset some settings</p>
       </div>
 
+      <ActivateQuestionSection question={question} handleUpdate={handleUpdate} />
       <ForceResponseSection question={question} handleUpdate={handleUpdate} />
       
       <div>
@@ -1229,8 +1263,6 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
   );
 
   const renderBehaviorTab = () => {
-    // This is a placeholder for the actual implementation, which is quite large
-    // All behavior-related components (DisplayLogicEditor, etc.) should be here
     return (
         <div className="space-y-8">
             <CollapsibleSection title="Choices" defaultExpanded={true}>
@@ -1273,20 +1305,56 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     )}
                 </div>
             </CollapsibleSection>
-            <CollapsibleSection title="Logic" defaultExpanded={true}>
-                <div className="divide-y divide-outline-variant">
-                    {previousQuestions.length > 0 && (
-                        <div className="py-6 first:pt-0">
-                            <DisplayLogicEditor
-                                question={question}
-                                previousQuestions={previousQuestions}
-                                issues={logicIssues.filter(i => i.type === 'display')}
-                                onUpdate={handleUpdate}
-                                onAddLogic={onExpandSidebar}
-                                onRequestGeminiHelp={onRequestGeminiHelp}
-                            />
+            
+            <CollapsibleSection title="Navigation" defaultExpanded={true}>
+                <div className="py-6 first:pt-0 space-y-6">
+                    {isAutoadvanceable && (
+                        <div>
+                            <div className="flex items-center justify-between">
+                                <div className="flex-1 pr-4">
+                                    <label htmlFor="question-auto-advance" className="text-sm font-medium text-on-surface block">
+                                        Autoadvance
+                                    </label>
+                                    <p className="text-xs text-on-surface-variant mt-0.5">Automatically move to the next page when this question is answered.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        id="question-auto-advance"
+                                        checked={question.autoAdvance ?? false}
+                                        onChange={(e) => handleUpdate({ autoAdvance: e.target.checked })}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                </label>
+                            </div>
                         </div>
                     )}
+                    <div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex-1 pr-4">
+                                <label htmlFor="hide-back-button" className="text-sm font-medium text-on-surface block">
+                                    Hide back button
+                                </label>
+                                <p className="text-xs text-on-surface-variant mt-0.5">Prevent respondent from going back from this question.</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    id="hide-back-button"
+                                    checked={!!question.hideBackButton}
+                                    onChange={(e) => handleUpdate({ hideBackButton: e.target.checked })}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Logic" defaultExpanded={true}>
+                <div className="divide-y divide-outline-variant">
                     <div className="py-6 first:pt-0">
                         <SkipLogicEditor
                             question={question}
@@ -1299,6 +1367,16 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                             focusedLogicSource={focusedLogicSource}
                             survey={survey}
                             currentBlockId={currentBlockId}
+                        />
+                    </div>
+                    <div className="py-6 first:pt-0">
+                        <DisplayLogicEditor
+                            question={question}
+                            previousQuestions={previousQuestions}
+                            issues={logicIssues.filter(i => i.type === 'display')}
+                            onUpdate={handleUpdate}
+                            onAddLogic={onExpandSidebar}
+                            onRequestGeminiHelp={onRequestGeminiHelp}
                         />
                     </div>
                 </div>
@@ -2449,7 +2527,7 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
     };
 
     const handlePasteLogic = (text: string): { success: boolean; error?: string } => {
-        const lines = text.split('\n').filter(line => line.trim());
+        const lines = text.split('\n').filter(line => line.trim() !== '');
         const newConditions: DisplayLogicCondition[] = [];
         const validOperators = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than', 'is_empty', 'is_not_empty'];
     

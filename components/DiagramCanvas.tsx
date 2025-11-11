@@ -18,7 +18,7 @@ import {
 import type { Survey, Question, SkipLogicRule, SkipLogic, EndNode } from '../types';
 import type { Node as DiagramNode, Edge as DiagramEdge } from '../types';
 
-import { generateId, parseChoice } from '../utils';
+import { generateId, parseChoice, isBranchingLogicExhaustive } from '../utils';
 import { QuestionType } from '../types';
 
 import StartNodeComponent from './diagram/nodes/StartNodeComponent';
@@ -363,7 +363,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         
         allQuestions.forEach((q, index) => {
             if (q.type === QuestionType.PageBreak) return;
-
+        
             if (q.type === QuestionType.Description) {
                 const targetId = resolveDestination('next', index);
                 if (targetId && (questionMap.has(targetId) || targetId === 'end-node')) {
@@ -373,108 +373,146 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                         sourceHandle: 'output',
                         target: targetId,
                         targetHandle: 'input',
-                        label: '',
-                        markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--color-outline))' },
+                        label: q.qid,
+                        className: 'structural',
+                        markerEnd: { type: MarkerType.ArrowClosed },
                     });
                 }
                 return;
             }
-
+        
             const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
             const skipLogic: SkipLogic | undefined = q.draftSkipLogic ?? q.skipLogic;
-
-            if (q.choices && q.choices.length > 0 && (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid)) {
-                const destinations = new Map<string, { targetId?: string, label?: string }>();
-
-                if (branchingLogic) {
-                    const coveredChoices = new Set<string>();
-                    branchingLogic.branches.forEach(branch => {
-                        if (!branch.thenSkipToIsConfirmed) return;
-                        const condition = branch.conditions.find(c => c.questionId === q.qid && c.isConfirmed);
-                        if (condition) {
-                            const choice = q.choices?.find(c => c.text === condition.value);
-                            if (choice) {
-                                const targetId = resolveDestination(branch.thenSkipTo, index);
-                                destinations.set(choice.id, { targetId, label: branch.pathName || parseChoice(choice.text).variable });
-                                coveredChoices.add(choice.id);
+            let logicHandled = false;
+            const hasChoices = q.choices && q.choices.length > 0;
+        
+            if (branchingLogic) {
+                logicHandled = true;
+                const hasConfirmedBranches = branchingLogic.branches.some(b => b.thenSkipToIsConfirmed);
+        
+                // 1. Create edges for explicit 'IF' branches
+                branchingLogic.branches.forEach(branch => {
+                    if (!branch.thenSkipToIsConfirmed) return;
+                    const condition = branch.conditions.find(c => c.questionId === q.qid && c.isConfirmed);
+                    if (condition) {
+                        const choice = q.choices?.find(c => c.text === condition.value);
+                        if (choice) {
+                            const targetId = resolveDestination(branch.thenSkipTo, index);
+                            if (targetId) {
+                                flowEdges.push({
+                                    id: `e-${branch.id}-${targetId}`,
+                                    source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
+                                    label: branch.pathName || parseChoice(choice.text).variable,
+                                    markerEnd: { type: MarkerType.ArrowClosed }
+                                });
                             }
                         }
-                    });
-
-                    const otherwiseTargetId = resolveDestination(branchingLogic.otherwiseSkipTo, index);
-                    q.choices?.forEach(choice => {
-                        if (!coveredChoices.has(choice.id)) {
-                            destinations.set(choice.id, { targetId: otherwiseTargetId, label: branchingLogic.otherwisePathName || 'Otherwise' });
-                        }
-                    });
-                } else if (skipLogic?.type === 'per_choice') {
-                    const rulesByChoiceId = new Map(skipLogic.rules.map(r => [r.choiceId, r]));
-                    q.choices?.forEach(choice => {
-                        const choiceVar = parseChoice(choice.text).variable;
-                        const rule = rulesByChoiceId.get(choice.id);
-                        if (rule && rule.isConfirmed) {
-                            const targetId = resolveDestination(rule.skipTo, index);
-                            destinations.set(choice.id, { targetId, label: choiceVar });
-                        } else {
-                            const targetId = resolveDestination('next', index);
-                            destinations.set(choice.id, { targetId, label: choiceVar });
-                        }
-                    });
-                } else {
-                    let fallthroughTarget: string | undefined;
-                    if (skipLogic?.type === 'simple' && skipLogic.isConfirmed) {
-                        fallthroughTarget = resolveDestination(skipLogic.skipTo, index);
-                    } else {
-                        fallthroughTarget = resolveDestination('next', index);
-                    }
-                    
-                    if (fallthroughTarget) {
-                        q.choices?.forEach(choice => {
-                            const choiceVar = parseChoice(choice.text).variable;
-                            destinations.set(choice.id, { targetId: fallthroughTarget, label: choiceVar });
-                        });
-                    }
-                }
-
-                destinations.forEach(({ targetId, label }, sourceHandleId) => {
-                    if (targetId && (questionMap.has(targetId) || targetId === 'end-node')) {
-                        flowEdges.push({
-                            id: `e-${q.id}-${sourceHandleId}-${targetId}`,
-                            source: q.id,
-                            sourceHandle: sourceHandleId,
-                            target: targetId,
-                            targetHandle: 'input',
-                            label,
-                            markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--color-outline))' },
-                        });
                     }
                 });
-
-            } else {
-                let targetId: string | undefined;
-                let edgeLabel: string | undefined;
-
-                if (skipLogic?.type === 'simple' && skipLogic.isConfirmed) {
-                    targetId = resolveDestination(skipLogic.skipTo, index);
-                    edgeLabel = "IF answered";
-                } else {
-                    targetId = resolveDestination('next', index);
+        
+                // 2. Create a single edge for the 'otherwise' case
+                const isExhaustive = isBranchingLogicExhaustive(q);
+                if (branchingLogic.otherwiseIsConfirmed && branchingLogic.otherwiseSkipTo && !isExhaustive) {
+                    const isStructural = !hasConfirmedBranches;
+                    const targetId = resolveDestination(branchingLogic.otherwiseSkipTo, index);
+                    if (targetId) {
+                        if (hasChoices && isStructural) {
+                             q.choices!.forEach(choice => {
+                                flowEdges.push({
+                                    id: `e-${q.id}-${choice.id}-otherwise-${targetId}`,
+                                    source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
+                                    label: parseChoice(choice.text).variable,
+                                    markerEnd: { type: MarkerType.ArrowClosed }
+                                });
+                            });
+                        } else {
+                            flowEdges.push({
+                                id: `e-${q.id}-otherwise-${targetId}`,
+                                source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
+                                label: isStructural ? q.qid : (branchingLogic.otherwisePathName || 'Otherwise'),
+                                className: isStructural ? 'structural' : undefined,
+                                markerEnd: { type: MarkerType.ArrowClosed }
+                            });
+                        }
+                    }
                 }
-
-                if (targetId && (questionMap.has(targetId) || targetId === 'end-node')) {
-                    flowEdges.push({
-                        id: `e-${q.id}-output-${targetId}`,
-                        source: q.id,
-                        sourceHandle: 'output',
-                        target: targetId,
-                        targetHandle: 'input',
-                        label: edgeLabel,
-                        markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--color-outline))' },
+            } else if (skipLogic) {
+                logicHandled = true;
+                if (skipLogic.type === 'simple' && skipLogic.isConfirmed) {
+                    const targetId = resolveDestination(skipLogic.skipTo, index);
+                    if (targetId) {
+                        if (hasChoices) {
+                            q.choices!.forEach(choice => {
+                                flowEdges.push({
+                                    id: `e-${q.id}-${choice.id}-simple-skip-${targetId}`,
+                                    source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
+                                    label: parseChoice(choice.text).variable,
+                                    markerEnd: { type: MarkerType.ArrowClosed }
+                                });
+                            });
+                        } else {
+                            flowEdges.push({
+                                id: `e-${q.id}-skip-${targetId}`,
+                                source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
+                                label: q.qid,
+                                markerEnd: { type: MarkerType.ArrowClosed }
+                            });
+                        }
+                    }
+                } else if (skipLogic.type === 'per_choice') {
+                    (q.choices || []).forEach(choice => {
+                        const rule = skipLogic.rules.find(r => r.choiceId === choice.id);
+                        const isConfirmedRule = rule && rule.isConfirmed;
+                        const dest = isConfirmedRule ? rule.skipTo : 'next';
+                        const targetId = resolveDestination(dest, index);
+            
+                        if (targetId) {
+                            flowEdges.push({
+                                id: `e-${q.id}-${choice.id}-${isConfirmedRule ? 'skip' : 'fallthrough'}-${targetId}`,
+                                source: q.id,
+                                sourceHandle: choice.id,
+                                target: targetId,
+                                targetHandle: 'input',
+                                label: isConfirmedRule ? parseChoice(choice.text).variable : '',
+                                markerEnd: { type: MarkerType.ArrowClosed }
+                            });
+                        }
                     });
                 }
             }
-        });
         
+            // 3. Handle fallthrough (no explicit logic at all)
+            if (!logicHandled) {
+                const targetId = resolveDestination('next', index);
+                if (targetId) {
+                    if (q.choices && q.choices.length > 0) {
+                        q.choices.forEach(choice => {
+                            flowEdges.push({
+                                id: `e-${q.id}-${choice.id}-fallthrough-${targetId}`,
+                                source: q.id,
+                                sourceHandle: choice.id,
+                                target: targetId,
+                                targetHandle: 'input',
+                                label: parseChoice(choice.text).variable,
+                                markerEnd: { type: MarkerType.ArrowClosed }
+                            });
+                        });
+                    } else {
+                        flowEdges.push({
+                            id: `e-${q.id}-fallthrough-${targetId}`,
+                            source: q.id,
+                            sourceHandle: 'output',
+                            target: targetId,
+                            targetHandle: 'input',
+                            label: q.qid,
+                            className: 'structural',
+                            markerEnd: { type: MarkerType.ArrowClosed }
+                        });
+                    }
+                }
+            }
+        });
+
         const maxColumn = Math.max(0, ...Array.from(longestPath.values()));
         const endNode: EndNode = {
             id: 'end-node',

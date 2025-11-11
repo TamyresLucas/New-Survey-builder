@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import type { Block, Survey, Question, QuestionRandomizationRule, RandomizationPattern, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, DisplayLogic, DisplayLogicCondition } from '../types';
 import { QuestionType } from '../types';
 import { XIcon, ChevronDownIcon, PlusIcon, ExpandIcon, CollapseIcon, CheckmarkIcon, ArrowRightAltIcon, CallSplitIcon, ContentPasteIcon, InfoIcon } from './icons';
-import { generateId, truncate, parseChoice, CHOICE_BASED_QUESTION_TYPES } from '../utils';
+import { generateId, truncate, parseChoice, CHOICE_BASED_QUESTION_TYPES, isBranchingLogicExhaustive } from '../utils';
 
 interface BlockSidebarProps {
   block: Block;
@@ -12,6 +12,8 @@ interface BlockSidebarProps {
   isExpanded: boolean;
   onToggleExpand: () => void;
   onExpandSidebar: () => void;
+  focusTarget: { type: string; id: string; tab: string; element: string } | null;
+  onFocusHandled: () => void;
 }
 
 // ====================================================================================
@@ -758,12 +760,51 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
 // MAIN SIDEBAR COMPONENT
 // ====================================================================================
 
-export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClose, onUpdateBlock, isExpanded, onToggleExpand, onExpandSidebar }) => {
+export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClose, onUpdateBlock, isExpanded, onToggleExpand, onExpandSidebar, focusTarget, onFocusHandled }) => {
   const [activeTab, setActiveTab] = useState('Settings');
   const [title, setTitle] = useState(block.title);
   const [sectionName, setSectionName] = useState(block.sectionName || block.title);
+  const continueToRef = useRef<HTMLSelectElement>(null);
 
   const tabs = ['Settings', 'Behavior', 'Advanced'];
+
+  const lastInteractiveQuestion = useMemo(() => {
+    // Find the last question in the block that is not a Page Break or Description
+    return [...block.questions]
+      .reverse()
+      .find(
+        (q) =>
+          q.type !== QuestionType.PageBreak &&
+          q.type !== QuestionType.Description
+      );
+  }, [block.questions]);
+
+  const isDefaultPathDisabled = useMemo(
+    () => isBranchingLogicExhaustive(lastInteractiveQuestion),
+    [lastInteractiveQuestion]
+  );
+
+  useEffect(() => {
+    if (focusTarget?.type === 'block' && focusTarget.id === block.id && focusTarget.element === 'continueTo') {
+        setActiveTab(focusTarget.tab);
+        
+        // Use a timeout to ensure the tab has rendered and the element is visible
+        setTimeout(() => {
+            if (continueToRef.current) {
+                continueToRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                continueToRef.current.focus();
+                
+                // Add highlight effect
+                const parentContainer = continueToRef.current.closest('div.relative');
+                if (parentContainer) {
+                    parentContainer.classList.add('logic-highlight');
+                    setTimeout(() => parentContainer.classList.remove('logic-highlight'), 2500);
+                }
+            }
+            onFocusHandled();
+        }, 100);
+    }
+  }, [focusTarget, block.id, onFocusHandled]);
 
   useEffect(() => {
     setTitle(block.title);
@@ -861,6 +902,11 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
     });
   };
 
+  const questionCount = useMemo(() => 
+    block.questions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak).length,
+    [block.questions]
+  );
+
   const renderSettingsTab = () => (
     <div className="space-y-6">
       <div>
@@ -897,33 +943,6 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
           <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
         </div>
         <p className="text-xs text-on-surface-variant mt-1">Associate this block with a survey path.</p>
-      </div>
-       <div>
-        <label htmlFor="continue-to" className="block text-sm font-medium text-on-surface-variant mb-1">
-          Continue to
-        </label>
-        <div className="relative">
-          <select
-            id="continue-to"
-            value={block.continueTo || 'next'}
-            onChange={e => onUpdateBlock(block.id, { continueTo: e.target.value })}
-            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-          >
-            <option value="next">Default (next block)</option>
-            <option value="end">End of Survey</option>
-            {compatibleBlocks.length > 0 && (
-                <optgroup label="Blocks in this path">
-                    {compatibleBlocks.map(b => (
-                        <option key={b.id} value={`block:${b.id}`}>
-                            {b.bid}: {truncate(b.title, 50)}
-                        </option>
-                    ))}
-                </optgroup>
-            )}
-          </select>
-          <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-        </div>
-        <p className="text-xs text-on-surface-variant mt-1">Define the block's default exit path.</p>
       </div>
       <div>
         <div className="flex items-center justify-between">
@@ -980,6 +999,41 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
     <div className="space-y-8">
         <CollapsibleSection title="Navigation" defaultExpanded={true}>
             <div className="space-y-6">
+                <div>
+                    <label htmlFor="continue-to" className={`block text-sm font-medium mb-1 ${isDefaultPathDisabled ? 'text-on-surface-variant/70' : 'text-on-surface-variant'}`}>
+                    Continue to
+                    </label>
+                    <div className="relative">
+                    <select
+                        id="continue-to"
+                        ref={continueToRef}
+                        value={block.continueTo || 'next'}
+                        onChange={e => onUpdateBlock(block.id, { continueTo: e.target.value })}
+                        className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed disabled:text-on-surface-variant/70"
+                        disabled={isDefaultPathDisabled}
+                    >
+                        <option value="next">Default (next block)</option>
+                        <option value="end">End of Survey</option>
+                        {compatibleBlocks.length > 0 && (
+                            <optgroup label="Blocks in this path">
+                                {compatibleBlocks.map(b => (
+                                    <option key={b.id} value={`block:${b.id}`}>
+                                        {b.bid}: {truncate(b.title, 50)}
+                                    </option>
+                                ))}
+                            </optgroup>
+                        )}
+                    </select>
+                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                    </div>
+                    <p className="text-xs text-on-surface-variant mt-1">Define the block's default exit path.</p>
+                    {isDefaultPathDisabled && (
+                        <div className="mt-2 p-2 bg-primary-container/20 border border-primary-container/30 rounded-md text-xs text-on-primary-container flex items-start gap-2">
+                            <InfoIcon className="text-base flex-shrink-0 mt-0.5" />
+                            <span>This is disabled because the last question in the block has exhaustive branching logic that defines all possible exits.</span>
+                        </div>
+                    )}
+                </div>
                 <div>
                     <div className="flex items-center justify-between">
                         <div className="flex-1">
@@ -1310,6 +1364,7 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
       <header className="p-4 border-b border-outline-variant flex items-center justify-between flex-shrink-0">
         <h2 className="text-lg font-bold text-on-surface" style={{ fontFamily: "'Open Sans', sans-serif" }}>
           Edit Block {block.bid}
+          <span className="font-normal text-base text-on-surface-variant ml-2">({questionCount} question{questionCount !== 1 ? 's' : ''})</span>
         </h2>
         <div className="flex items-center gap-2">
             <button onClick={onToggleExpand} className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high" aria-label={isExpanded ? 'Collapse panel' : 'Expand panel'}>

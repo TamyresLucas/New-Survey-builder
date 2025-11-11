@@ -211,9 +211,14 @@ export const SurveyFlowDisplay: React.FC<{ logic: SkipLogic; survey: Survey; onC
         return null;
     }
 
+    const handleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onClick();
+    };
+
     return (
         <div 
-            onClick={onClick}
+            onClick={handleClick}
             className="p-3 border-2 border-dashed border-outline-variant rounded-md bg-surface-container-high cursor-pointer hover:border-primary"
         >
             <div className="flex items-center justify-between gap-2 mb-2">

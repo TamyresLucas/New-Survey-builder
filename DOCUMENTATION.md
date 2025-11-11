@@ -14,7 +14,10 @@ The brand's primary color palette is based on a trio of core colors, implemented
 -   **Green (Success)**: Used for confirmation messages, success states, and active status indicators.
     -   Light Mode: `hsl(162 100% 31%)`
     -   Dark Mode: `hsl(161 58% 65%)`
--   **Coral (Error)**: Used for warnings, errors, and destructive actions.
+-   **Tangerine (Warning)**: Used for non-critical warnings and states requiring user attention (e.g., pending updates).
+    -   Light Mode: `hsl(26 80% 40%)`
+    -   Dark Mode: `hsl(26 100% 80%)`
+-   **Coral (Error)**: Used for critical validation errors and destructive actions.
     -   Light Mode: `hsl(353 84% 64%)`
     -   Dark Mode: `hsl(353 100% 84%)`
 
@@ -61,6 +64,8 @@ The application supports both light and dark themes, which can be toggled by the
   --color-surface-container: 0 0% 100%;
   --color-on-surface: 240 6% 10%;
   --color-outline: 221 7% 47%;
+  --color-warning: 26 80% 40%;
+  --color-on-warning: 0 0% 100%;
   --color-error: 353 84% 64%;
   --color-success: 162 100% 31%;
 }
@@ -76,6 +81,8 @@ The application supports both light and dark themes, which can be toggled by the
   --color-surface-container: 230 5% 13%;
   --color-on-surface: 223 8% 90%;
   --color-outline: 223 6% 59%;
+  --color-warning: 26 100% 80%;
+  --color-on-warning: 26 85% 20%;
   --color-error: 353 100% 84%;
   --color-success: 161 58% 65%;
 }
@@ -106,6 +113,7 @@ The application uses a token-based color system inspired by MD3. Key tokens incl
 -   `on-surface`: The primary text color.
 -   `on-surface-variant`: The secondary text color.
 -   `outline`: For borders and dividers.
+-   `warning`/`on-warning`: For non-critical user attention states.
 -   `error`/`success`: For feedback states.
 
 ### 7.2 Component Library (based on MD3 concepts)

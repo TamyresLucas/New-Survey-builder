@@ -35,6 +35,7 @@ export enum SurveyActionType {
     RESTORE_STATE = 'RESTORE_STATE',
     SET_PAGING_MODE = 'SET_PAGING_MODE',
     REPLACE_SURVEY = 'REPLACE_SURVEY',
+    SET_GLOBAL_AUTOADVANCE = 'SET_GLOBAL_AUTOADVANCE',
 }
 
 export interface Action {
@@ -216,6 +217,17 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             const block = newState.blocks.find((b: Block) => b.id === blockId);
             if (block) {
                 Object.assign(block, updates);
+
+                // If hideBackButton is updated on the block, propagate to all its questions.
+                if ('hideBackButton' in updates) {
+                    block.questions.forEach((q: Question) => {
+                        q.hideBackButton = updates.hideBackButton;
+                    });
+                }
+                
+                if (updates.autoAdvance === false) {
+                    newState.globalAutoAdvance = false;
+                }
             }
             // If the update affects paging, we need to re-apply rules.
             if ('automaticPageBreaks' in updates) {
@@ -228,6 +240,10 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             const { questionId, updates } = action.payload;
             let originalQuestion: Question | undefined;
             let questionInState: Question | undefined;
+
+            if (updates.autoAdvance === false) {
+                newState.globalAutoAdvance = false;
+            }
 
             for (const block of newState.blocks) {
                 const q = block.questions.find((q: Question) => q.id === questionId);
@@ -1083,6 +1099,35 @@ export function surveyReducer(state: Survey, action: Action): Survey {
         
         case SurveyActionType.REPLACE_SURVEY: {
             return applyPagingAndRenumber(action.payload);
+        }
+
+        case SurveyActionType.SET_GLOBAL_AUTOADVANCE: {
+            const { enabled } = action.payload;
+            newState.globalAutoAdvance = enabled;
+            const autoadvanceableTypes = new Set([QTEnum.Radio, QTEnum.ChoiceGrid]);
+
+            if (enabled) {
+                // If enabling, turn it on for everything compatible.
+                newState.blocks.forEach((block: Block) => {
+                    block.autoAdvance = true;
+                    block.questions.forEach((q: Question) => {
+                        if (autoadvanceableTypes.has(q.type)) {
+                            q.autoAdvance = true;
+                        }
+                    });
+                });
+            } else {
+                // If disabling, turn it off for everything.
+                newState.blocks.forEach((block: Block) => {
+                    block.autoAdvance = false;
+                    block.questions.forEach((q: Question) => {
+                        if (autoadvanceableTypes.has(q.type)) {
+                            q.autoAdvance = false;
+                        }
+                    });
+                });
+            }
+            return newState; // No renumbering needed for this property change
         }
 
         default:

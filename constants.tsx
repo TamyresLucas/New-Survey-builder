@@ -42,13 +42,15 @@ import { generateId } from './utils';
 
 
 export const initialSurveyData: Survey = {
-  title: 'Customer Feedback Survey (Saved)',
+  title: 'Customer Feedback',
   pagingMode: 'one-per-page',
+  globalAutoAdvance: false,
   blocks: [
     {
       id: 'block1',
-      title: 'Introduction',
+      title: 'Introduction.',
       pageName: 'Page 1',
+      autoAdvance: false,
       questions: [
         {
           id: 'q-welcome',
@@ -61,6 +63,7 @@ export const initialSurveyData: Survey = {
           qid: 'Q1',
           text: 'Have you purchased coffee from our café in the past month?',
           type: QuestionType.Radio,
+          autoAdvance: false,
           choices: [
             { id: 'q1c1', text: 'Yes' },
             { id: 'q1c2', text: 'No' },
@@ -95,6 +98,7 @@ export const initialSurveyData: Survey = {
       title: 'Purchase Details',
       pageName: 'Page 2',
       branchName: 'Purchaser Path',
+      autoAdvance: false,
       questions: [
         {
           id: 'q2',
@@ -112,6 +116,7 @@ export const initialSurveyData: Survey = {
           qid: 'Q3',
           text: 'Please rate your experience:',
           type: QuestionType.ChoiceGrid,
+          autoAdvance: false,
           choices: [
             { id: 'q3r1', text: 'Product' },
             { id: 'q3r2', text: 'Service' },
@@ -137,12 +142,14 @@ export const initialSurveyData: Survey = {
       title: 'Feedback for Non-Purchasers',
       pageName: 'Page 3',
       branchName: 'Non-Purchaser Path',
+      autoAdvance: false,
       questions: [
         {
           id: 'q4',
           qid: 'Q4',
           text: 'What are the main reasons for not purchasing?',
           type: QuestionType.Radio,
+          autoAdvance: false,
           choices: [
             { id: 'q4c1', text: 'Price' },
             { id: 'q4c2', text: 'Location' },
@@ -166,12 +173,14 @@ export const initialSurveyData: Survey = {
       id: 'block4',
       title: 'Conclusion',
       pageName: 'Page 4',
+      autoAdvance: false,
       questions: [
         {
           id: 'q6',
           qid: 'Q6',
           text: 'Would you like to receive special offers?',
           type: QuestionType.Radio,
+          autoAdvance: false,
           choices: [
             { id: 'q6c1', text: 'Yes' },
             { id: 'q6c2', text: 'No' },

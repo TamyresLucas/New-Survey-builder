@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, useRef, useCallback, useReducer, useEffect, useMemo } from 'react';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
@@ -14,7 +10,7 @@ import { BlockSidebar } from './components/BlockSidebar';
 import SurveyStructureWidget from './components/SurveyStructureWidget';
 import GeminiPanel from './components/GeminiPanel';
 import { BulkEditPanel } from './components/BulkEditPanel';
-import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssue, Block, PathAnalysisResult } from './types';
+import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssue, Block, PathAnalysisResult, SurveyStatus } from './types';
 import { initialSurveyData, toolboxItems as initialToolboxItems } from './constants';
 import { renumberSurveyVariables, generateId, generateSurveyTextCopy, generateSurveyCsv, parseSurveyCsv, analyzeSurveyPaths } from './utils';
 import { QuestionType as QTEnum } from './types';
@@ -93,6 +89,18 @@ const getInitialSurveyState = (): Survey => {
   return initialSurveyData;
 };
 
+// Creates a "clean" version of the initial survey data to represent the "published" state
+// before any changes are made.
+const getInitialPublishedSurvey = (): Survey => {
+    const cleanData = JSON.parse(JSON.stringify(initialSurveyData));
+    // Revert the simulated change in constants.tsx
+    const introBlock = cleanData.blocks.find((b: Block) => b.id === 'block1');
+    if (introBlock) {
+        introBlock.title = 'Introduction';
+    }
+    return cleanData;
+};
+
 const App: React.FC = () => {
   const [survey, dispatch] = useReducer(surveyReducer, getInitialSurveyState(), renumberSurveyVariables);
   const [history, setHistory] = useState<Survey[]>([]);
@@ -113,6 +121,13 @@ const App: React.FC = () => {
   const [toasts, setToasts] = useState<{ id: number; message: string; type: ToastType; onUndo?: () => void }[]>([]);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedPathId, setSelectedPathId] = useState<string>('all-paths');
+  const [focusTarget, setFocusTarget] = useState<{ type: string; id: string; tab: string; element: string; } | null>(null);
+  
+  // State for survey activation and update tracking
+  const [surveyStatus, setSurveyStatus] = useState<SurveyStatus>('active');
+  const [publishedSurvey, setPublishedSurvey] = useState<Survey | null>(getInitialPublishedSurvey);
+  const [isDirty, setIsDirty] = useState(false);
+
 
   const showBulkEditPanel = checkedQuestions.size >= 2;
 
@@ -143,7 +158,20 @@ const App: React.FC = () => {
     // Run logic validation whenever the survey changes
     const issues = validateSurveyLogic(survey);
     setLogicIssues(issues);
-  }, [survey]);
+
+    // Compare current survey with published version to detect changes
+    if (surveyStatus === 'active' && publishedSurvey) {
+      // Using JSON.stringify for a deep but potentially slow comparison.
+      // For performance in a larger app, a specialized deep-diff library would be better.
+      if (JSON.stringify(survey) !== JSON.stringify(publishedSurvey)) {
+        setIsDirty(true);
+      } else {
+        setIsDirty(false);
+      }
+    } else {
+      setIsDirty(false); // If not active, it's not considered "dirty"
+    }
+  }, [survey, surveyStatus, publishedSurvey]);
 
   // Sync selectedQuestion with survey state to prevent stale data in the sidebar
   useEffect(() => {
@@ -262,11 +290,19 @@ const App: React.FC = () => {
     canvasContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  const handleSelectBlock = useCallback((block: Block | null) => {
+  const handleFocusHandled = useCallback(() => setFocusTarget(null), []);
+
+  const handleSelectBlock = useCallback((block: Block | null, options?: { tab: string, focusOn: string }) => {
     if (block) {
       setSelectedQuestion(null);
+      if (options) {
+        setFocusTarget({ type: 'block', id: block.id, tab: options.tab, element: options.focusOn });
+      } else {
+        setFocusTarget(null);
+      }
     } else {
         setIsRightSidebarExpanded(false); // Reset on close
+        setFocusTarget(null);
     }
     setSelectedBlock(block);
   }, []);
@@ -274,6 +310,7 @@ const App: React.FC = () => {
   const handleSelectQuestion = useCallback((question: Question | null, options?: { tab?: string; focusOn?: string }) => {
     if (question) {
         setSelectedBlock(null);
+        setFocusTarget(null);
     }
     
     if (question === null) {
@@ -708,6 +745,16 @@ const App: React.FC = () => {
     dispatchAndRecord({ type: SurveyActionType.SET_PAGING_MODE, payload: { pagingMode: mode } });
   }, [dispatchAndRecord]);
 
+  const handleGlobalAutoAdvanceChange = useCallback((enabled: boolean) => {
+    if (enabled) {
+      if (window.confirm("This will enable auto-advance for all compatible questions and blocks. Individual settings will be overridden. Are you sure?")) {
+        dispatch({ type: SurveyActionType.SET_GLOBAL_AUTOADVANCE, payload: { enabled: true } });
+      }
+    } else {
+      dispatch({ type: SurveyActionType.SET_GLOBAL_AUTOADVANCE, payload: { enabled: false } });
+    }
+  }, []);
+
   const allBlocksCollapsed = survey.blocks.length > 0 && collapsedBlocks.size === survey.blocks.length;
 
   // Bulk action handlers
@@ -809,6 +856,26 @@ const App: React.FC = () => {
       showToast('Failed to parse the imported survey file. Please check the format.', 'error');
     }
   }, [showToast]);
+
+  const handleToggleActivateSurvey = useCallback(() => {
+    setSurveyStatus(prev => {
+        const newStatus = prev === 'active' ? 'draft' : 'active';
+        if (newStatus === 'active') {
+            setPublishedSurvey(survey); // "Publish" the current state
+            setIsDirty(false); // It's clean right after publishing
+        } else {
+            setPublishedSurvey(null); // No published version when in draft
+            setIsDirty(false);
+        }
+        return newStatus;
+    });
+  }, [survey]);
+
+  const handleUpdateLiveSurvey = useCallback(() => {
+      setPublishedSurvey(survey);
+      setIsDirty(false);
+      showToast('Live survey updated successfully!', 'success');
+  }, [survey, showToast]);
 
   // Deselect single question when bulk selecting
   useEffect(() => {
@@ -972,6 +1039,10 @@ const App: React.FC = () => {
         isGeminiPanelOpen={isGeminiPanelOpen} 
         onToggleGeminiPanel={handleToggleGeminiPanel} 
         onUpdateSurveyName={handleUpdateSurveyTitle}
+        surveyStatus={surveyStatus}
+        isDirty={isDirty}
+        onToggleActivateSurvey={handleToggleActivateSurvey}
+        onUpdateLiveSurvey={handleUpdateLiveSurvey}
       />
       <SubHeader onTogglePreview={handleTogglePreviewMode} onCopySurvey={handleCopySurvey} onExportCsv={handleExportCsv} onImportSurvey={() => setIsImportModalOpen(true)} />
       <div className="flex flex-1 overflow-hidden">
@@ -1043,6 +1114,8 @@ const App: React.FC = () => {
                     isExpanded={isRightSidebarExpanded}
                     onToggleExpand={handleToggleRightSidebarExpand}
                     onExpandSidebar={handleExpandRightSidebar}
+                    focusTarget={focusTarget}
+                    onFocusHandled={handleFocusHandled}
                 />
             ) : (activeMainTab === 'Flow' && !isAnyRightPanelOpen) ? (
                 <PathAnalysisPanel survey={survey} />
@@ -1057,6 +1130,7 @@ const App: React.FC = () => {
                         onToggleCollapseAll={handleToggleCollapseAll}
                         allBlocksCollapsed={allBlocksCollapsed}
                         onPagingModeChange={handlePagingModeChange}
+                        onGlobalAutoAdvanceChange={handleGlobalAutoAdvanceChange}
                     />
                 </div>
             ))}

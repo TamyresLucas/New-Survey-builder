@@ -11,7 +11,7 @@ interface SurveyCanvasProps {
   logicIssues: LogicIssue[];
   // FIX: Updated prop signature to be consistent with App.tsx and child components.
   onSelectQuestion: (question: Question | null, options?: { tab?: string; focusOn?: string }) => void;
-  onSelectBlock: (block: Block | null) => void;
+  onSelectBlock: (block: Block | null, options?: { tab: string; focusOn: string }) => void;
   onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
   onUpdateBlock: (blockId: string, updates: Partial<Block>) => void;
   onDeleteQuestion: (questionId: string) => void;

@@ -25,7 +25,7 @@ interface SurveyBlockProps {
     branchedToBlockIds: Set<string>;
     // FIX: Updated prop signature to be consistent with App.tsx and child components.
     onSelectQuestion: (question: Question | null, options?: { tab?: string; focusOn?: string }) => void;
-    onSelectBlock: (block: Block | null) => void;
+    onSelectBlock: (block: Block | null, options?: { tab: string; focusOn: string }) => void;
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
     onUpdateBlock: (blockId: string, updates: Partial<Block>) => void;
     onDeleteQuestion: (questionId: string) => void;
@@ -278,6 +278,11 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
     }
   };
 
+  const questionCount = useMemo(() => 
+    block.questions.filter(q => q.type !== QTEnum.Description && q.type !== QTEnum.PageBreak).length,
+    [block.questions]
+  );
+
   return (
     <div 
       className={`bg-surface-container border rounded-lg mb-8 transition-all ${
@@ -325,7 +330,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
             ) : (
                 <>
                     <div 
-                        className="truncate" 
+                        className="truncate flex items-center" 
                         onClick={handleTitleClick}
                     >
                         <span className="font-bold text-base text-on-surface mr-2">{block.bid}</span>
@@ -335,6 +340,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                         >
                             {block.title}
                         </span>
+                        <span className="text-sm font-normal text-on-surface-variant ml-2">({questionCount} question{questionCount !== 1 ? 's' : ''})</span>
                     </div>
                     {block.autoAdvance && (
                         <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-primary-container text-on-primary-container rounded-full flex-shrink-0">
@@ -434,7 +440,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                   <SurveyFlowDisplay
                     logic={surveyFlowLogic as SkipLogic}
                     survey={survey}
-                    onClick={() => onSelectQuestion(lastContentQuestion, { tab: logicSource === 'branching' ? 'Advanced' : 'Behavior' })}
+                    onClick={() => onSelectBlock(block, { tab: 'Behavior', focusOn: 'continueTo' })}
                   />
                 </div>
               )}

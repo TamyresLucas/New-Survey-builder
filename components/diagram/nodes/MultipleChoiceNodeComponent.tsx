@@ -1,15 +1,15 @@
 import React, { memo } from 'react';
-import { Handle, Position } from '@xyflow/react';
-import type { NodeProps } from '@xyflow/react';
+import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { MultipleChoiceNode } from '../../../types';
 import { CheckboxFilledIcon as CheckboxToolboxIcon, RadioIcon, RadioButtonUncheckedIcon, CheckboxOutlineIcon } from '../../icons';
 import { InputHandle } from './CustomNodeHandles';
 
-const handleStyle = {
-    width: 12,
-    height: 12,
-    background: 'hsl(var(--color-surface))',
-    border: '2px solid hsl(var(--color-on-surface-variant))',
+// FIX: Add custom handle style for choice outputs.
+const choiceHandleStyle = {
+    width: 10,
+    height: 10,
+    background: 'hsl(var(--color-surface-container))',
+    border: '2px solid hsl(var(--color-primary))',
 };
 
 const MultipleChoiceNodeComponent: React.FC<NodeProps<MultipleChoiceNode>> = ({ data, selected }) => {
@@ -42,18 +42,8 @@ const MultipleChoiceNodeComponent: React.FC<NodeProps<MultipleChoiceNode>> = ({ 
                         <span className="flex-grow">{option.text}</span>
                     </div>
                     <span className="bg-surface-container-high text-on-surface-variant text-xs font-mono py-1 px-2 rounded">{option.variableName}</span>
-                     <Handle
-                        type="source"
-                        position={Position.Right}
-                        id={option.id}
-                        style={{
-                            ...handleStyle,
-                            position: 'absolute',
-                            right: '-18px',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                        }}
-                    />
+                    {/* FIX: Add an output handle for each choice to allow branching logic to be visualized. */}
+                    <Handle type="source" position={Position.Right} id={option.id} style={choiceHandleStyle} />
                 </li>
             ))}
         </ul>

@@ -544,6 +544,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
               const canUnselectAll = selectedQuestionsInBlock.length > 0;
               const canCollapse = !isCollapsed;
               const canExpand = isCollapsed;
+              const questionCount = block.questions.filter(q => q.type !== QTEnum.Description && q.type !== QTEnum.PageBreak).length;
 
               return (
                 <React.Fragment key={block.id}>
@@ -564,6 +565,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                         <h3 className="text-sm font-semibold text-on-surface truncate">
                           <span className="font-bold mr-2">{block.bid}</span>
                           {block.title}
+                           <span className="font-normal text-on-surface-variant ml-1">({questionCount})</span>
                         </h3>
                       </div>
                       <div className="relative flex-shrink-0" ref={openMenuBlockId === block.id ? actionsMenuRef : null}>

@@ -34,9 +34,10 @@ interface SurveyStructureWidgetProps {
   onToggleCollapseAll: () => void;
   allBlocksCollapsed: boolean;
   onPagingModeChange: (mode: Survey['pagingMode']) => void;
+  onGlobalAutoAdvanceChange: (enabled: boolean) => void;
 }
 
-const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ survey, paths, selectedPathId, onPathChange, onBackToTop, onToggleCollapseAll, allBlocksCollapsed, onPagingModeChange }) => {
+const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ survey, paths, selectedPathId, onPathChange, onBackToTop, onToggleCollapseAll, allBlocksCollapsed, onPagingModeChange, onGlobalAutoAdvanceChange }) => {
   
   const pathOptions = useMemo(() => [
       { id: 'all-paths', name: 'All Paths' },
@@ -48,6 +49,8 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
     if (selectedPathId !== 'all-paths') {
       const selectedPath = paths.find(p => p.id === selectedPathId);
       if (selectedPath) {
+        // Path analysis time is already a string, so we can't easily modify it.
+        // We'll just show the pre-calculated time for paths. The global calculation below handles the main case.
         return {
           totalQuestions: selectedPath.questionCount,
           requiredQuestions: 'N/A', // Cannot be accurately determined for a specific path
@@ -69,7 +72,10 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
 
     const calculateAndFormatTimeValue = (points: number, questionCount: number): string => {
         if (questionCount === 0) return "0";
-        const minutes = Math.round(points / 8);
+        let minutes = Math.round(points / 8);
+        if (survey.globalAutoAdvance) {
+            minutes = Math.round(minutes * 0.62); // 38% reduction
+        }
         return minutes < 1 ? "<1" : `${minutes}`;
     };
 
@@ -88,11 +94,12 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
     } else {
         // No required questions, just calculate max time
         const maxPoints = countableQuestions.reduce((sum, q) => sum + calculateQuestionPoints(q), 0);
-        const maxTime = Math.round(maxPoints / 8);
-        if (maxTime < 1) {
+        const maxTimeStr = calculateAndFormatTimeValue(maxPoints, totalQuestionsValue);
+
+        if (maxTimeStr === "<1") {
             timeString = totalQuestionsValue > 0 ? "<1 min" : "0 min";
         } else {
-            timeString = `${maxTime} min`;
+            timeString = `${maxTimeStr} min`;
         }
     }
 
@@ -139,6 +146,25 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
                 <option value="multi-per-page">Multi-Question per Page</option>
             </select>
             <ChevronDownIcon className="absolute right-2.5 top-1/2 -translate-y-1/2 text-base text-on-surface-variant pointer-events-none" />
+        </div>
+
+        <div className="flex items-center justify-between">
+            <div className="flex-1">
+                <label htmlFor="global-autoadvance" className="text-sm font-medium text-on-surface block">
+                    Autoadvance
+                </label>
+                <p className="text-xs text-on-surface-variant mt-0.5">Globally enable autoadvance for all compatible items.</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                    type="checkbox" 
+                    id="global-autoadvance" 
+                    checked={survey.globalAutoAdvance || false} 
+                    onChange={(e) => onGlobalAutoAdvanceChange(e.target.checked)} 
+                    className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
         </div>
 
         <div className="relative">

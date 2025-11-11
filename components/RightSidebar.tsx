@@ -1,7 +1,7 @@
 import React, { memo, useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, ActionLogic, Workflow } from '../types';
+import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, ActionLogic, Workflow, ChoiceEliminationLogic } from '../types';
 import { QuestionType } from '../types';
-import { generateId, parseChoice, CHOICE_BASED_QUESTION_TYPES, truncate } from '../utils';
+import { generateId, parseChoice, CHOICE_BASED_QUESTION_TYPES, truncate, isBranchingLogicExhaustive } from '../utils';
 import { PasteChoicesModal } from './PasteChoicesModal';
 // FIX: Add aliases for checked radio and checkbox icons to match usage in the component.
 import { 
@@ -10,7 +10,7 @@ import {
     SignalIcon, BatteryIcon, RadioButtonUncheckedIcon, CheckboxOutlineIcon,
     RadioIcon as RadioButtonCheckedIcon, CheckboxFilledIcon as CheckboxCheckedIcon, ShuffleIcon,
     InfoIcon, EyeIcon, ContentPasteIcon, CarryForwardIcon, CallSplitIcon,
-    WarningIcon, CheckmarkIcon, ContentCopyIcon
+    WarningIcon, CheckmarkIcon, ContentCopyIcon, HideSourceIcon
 } from './icons';
 import { QuestionTypeSelectionMenuContent } from './ActionMenus';
 
@@ -59,6 +59,393 @@ const ActivateQuestionSection: React.FC<{
                     />
                     <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </label>
+            </div>
+        </div>
+    );
+};
+
+const ChoiceEliminationEditor: React.FC<{
+    question: Question;
+    previousQuestions: Question[];
+    onUpdate: (updates: Partial<Question>) => void;
+    onAddLogic: () => void;
+}> = ({ question, previousQuestions, onUpdate, onAddLogic }) => {
+    const logic = question.choiceEliminationLogic;
+
+    const handleAddLogic = () => {
+        onUpdate({ choiceEliminationLogic: { sourceQuestionId: '' } });
+        onAddLogic();
+    };
+
+    const handleRemoveLogic = () => {
+        onUpdate({ choiceEliminationLogic: undefined });
+    };
+
+    const handleUpdateLogic = (updates: Partial<ChoiceEliminationLogic>) => {
+        onUpdate({ choiceEliminationLogic: { ...logic, ...updates } as ChoiceEliminationLogic });
+    };
+
+    if (!logic) {
+        return (
+            <div>
+                <h3 className="text-sm font-medium text-on-surface mb-1 flex items-center gap-2">
+                    <HideSourceIcon className="text-base" />
+                    Choice elimination
+                </h3>
+                <p className="text-xs text-on-surface-variant mb-3">Eliminate choices that have been selected in a previous question.</p>
+                <button onClick={handleAddLogic} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                    <PlusIcon className="text-base" />
+                    Add elimination rule
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div>
+            <div className="flex items-center justify-between gap-2 mb-3">
+                <div>
+                    <h3 className="text-sm font-medium text-on-surface flex items-center gap-2">
+                        <HideSourceIcon className="text-base" />
+                        Choice elimination
+                    </h3>
+                    <p className="text-xs text-on-surface-variant mt-0.5">Eliminate choices that have been selected in a previous question.</p>
+                </div>
+                <button onClick={handleRemoveLogic} className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50">
+                    Remove
+                </button>
+            </div>
+            <div>
+                <label htmlFor="choice-elimination-source" className="block text-xs font-medium text-on-surface-variant mb-1">Source Question</label>
+                <div className="relative">
+                    <select
+                        id="choice-elimination-source"
+                        value={logic.sourceQuestionId}
+                        onChange={e => handleUpdateLogic({ sourceQuestionId: e.target.value })}
+                        className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                    >
+                        <option value="">Select question</option>
+                        {previousQuestions.filter(q => CHOICE_BASED_QUESTION_TYPES.has(q.type)).map(q => (
+                            <option key={q.id} value={q.qid}>{q.qid}: {truncate(q.text, 50)}</option>
+                        ))}
+                    </select>
+                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// FIX: Implement missing RandomizeChoicesEditor component
+const RandomizeChoicesEditor: React.FC<{
+    question: Question;
+    onUpdate: (updates: Partial<Question>) => void;
+}> = ({ question, onUpdate }) => {
+    const isRandomized = question.answerBehavior?.randomizeChoices || false;
+    const method = question.answerBehavior?.randomizationMethod || 'permutation';
+
+    const handleToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+        onUpdate({
+            answerBehavior: {
+                ...question.answerBehavior,
+                randomizeChoices: e.target.checked,
+            },
+        });
+    };
+
+    const handleMethodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        onUpdate({
+            answerBehavior: {
+                ...question.answerBehavior,
+                randomizationMethod: e.target.value as RandomizationMethod,
+            },
+        });
+    };
+
+    return (
+        <div>
+            <div className="flex items-center justify-between">
+                <div className="flex-1">
+                    <label htmlFor="randomize-choices" className="text-sm font-medium text-on-surface block flex items-center gap-2">
+                        <ShuffleIcon className="text-base" />
+                        Randomize choices
+                    </label>
+                    <p className="text-xs text-on-surface-variant mt-0.5">Randomly order the choices for each respondent.</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="randomize-choices" checked={isRandomized} onChange={handleToggle} className="sr-only peer" />
+                    <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+            </div>
+            {isRandomized && (
+                <div className="mt-4 pl-4 border-l-2 border-outline-variant">
+                    <label htmlFor="randomization-method" className="block text-sm font-medium text-on-surface-variant mb-1">Method</label>
+                    <div className="relative">
+                        <select
+                            id="randomization-method"
+                            value={method}
+                            onChange={handleMethodChange}
+                            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                        >
+                            <option value="permutation">Permutation (random order)</option>
+                            <option value="random_reverse">Randomly reverse order</option>
+                            <option value="reverse_order">Reverse order</option>
+                        </select>
+                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// FIX: Implement missing CarryForwardLogicEditor component
+const CarryForwardLogicEditor: React.FC<{
+    question: Question;
+    previousQuestions: Question[];
+    onUpdate: (updates: Partial<Question>) => void;
+    logicKey: 'carryForwardStatements';
+    label: string;
+    addButtonLabel: string;
+    description: string;
+    onAddLogic: () => void;
+}> = ({ question, previousQuestions, onUpdate, logicKey, label, addButtonLabel, description, onAddLogic }) => {
+    const logic = question[logicKey];
+
+    const handleAddLogic = () => {
+        onUpdate({ [logicKey]: { sourceQuestionId: '', filter: 'selected' } });
+        onAddLogic();
+    };
+
+    const handleRemoveLogic = () => {
+        onUpdate({ [logicKey]: undefined });
+    };
+
+    const handleUpdateLogic = (updates: Partial<CarryForwardLogic>) => {
+        onUpdate({ [logicKey]: { ...logic, ...updates } });
+    };
+
+    if (!logic) {
+        return (
+            <div>
+                <h3 className="text-sm font-medium text-on-surface mb-1 flex items-center gap-2">
+                    <CarryForwardIcon className="text-base" />
+                    {label}
+                </h3>
+                <p className="text-xs text-on-surface-variant mb-3">{description}</p>
+                <button onClick={handleAddLogic} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                    <PlusIcon className="text-base" />
+                    {addButtonLabel}
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div>
+            <div className="flex items-center justify-between gap-2 mb-3">
+                <div>
+                    <h3 className="text-sm font-medium text-on-surface flex items-center gap-2">
+                        <CarryForwardIcon className="text-base" />
+                        {label}
+                    </h3>
+                    <p className="text-xs text-on-surface-variant mt-0.5">{description}</p>
+                </div>
+                <button onClick={handleRemoveLogic} className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50">
+                    Remove
+                </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label htmlFor="carry-forward-source" className="block text-xs font-medium text-on-surface-variant mb-1">Source Question</label>
+                    <div className="relative">
+                        <select
+                            id="carry-forward-source"
+                            value={logic.sourceQuestionId}
+                            onChange={e => handleUpdateLogic({ sourceQuestionId: e.target.value })}
+                            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                        >
+                            <option value="">Select question</option>
+                            {previousQuestions.filter(q => CHOICE_BASED_QUESTION_TYPES.has(q.type)).map(q => (
+                                <option key={q.id} value={q.qid}>{q.qid}: {truncate(q.text, 50)}</option>
+                            ))}
+                        </select>
+                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                    </div>
+                </div>
+                <div>
+                    <label htmlFor="carry-forward-filter" className="block text-xs font-medium text-on-surface-variant mb-1">Filter</label>
+                    <div className="relative">
+                        <select
+                            id="carry-forward-filter"
+                            value={logic.filter}
+                            onChange={e => handleUpdateLogic({ filter: e.target.value })}
+                            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                        >
+                            <option value="selected">Selected Choices</option>
+                            <option value="unselected">Unselected Choices</option>
+                            <option value="all">All Choices</option>
+                        </select>
+                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// FIX: Implement missing BranchingLogicEditor component
+const BranchingLogicEditor: React.FC<{
+    question: Question;
+    survey: Survey;
+    previousQuestions: Question[];
+    followingQuestions: Question[];
+    issues: LogicIssue[];
+    onUpdate: (updates: Partial<Question>) => void;
+    onAddLogic: () => void;
+    onRequestGeminiHelp: (topic: string) => void;
+}> = ({ question, survey, previousQuestions, followingQuestions, issues, onUpdate, onAddLogic, onRequestGeminiHelp }) => {
+    const branchingLogic = question.draftBranchingLogic ?? question.branchingLogic;
+
+    const currentBlockId = useMemo(() => {
+        return survey.blocks.find(b => b.questions.some(q => q.id === question.id))?.id || null;
+    }, [survey.blocks, question.id]);
+
+    const handleUpdate = (updates: Partial<Question>) => {
+        onUpdate(updates);
+    };
+
+    if (!branchingLogic) {
+        return null; // This case is handled by the parent component's render logic
+    }
+
+    const handleUpdateBranch = (branchId: string, updates: Partial<BranchingLogicBranch>) => {
+        const newBranches = branchingLogic.branches.map(b => b.id === branchId ? { ...b, ...updates, thenSkipToIsConfirmed: false } : b);
+        handleUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
+    };
+
+    const handleUpdateCondition = (branchId: string, conditionId: string, field: keyof BranchingLogicCondition, value: any) => {
+        const branch = branchingLogic.branches.find(b => b.id === branchId);
+        if (!branch) return;
+        const newConditions = branch.conditions.map(c => c.id === conditionId ? { ...c, [field]: value, isConfirmed: false } : c);
+        handleUpdateBranch(branchId, { conditions: newConditions });
+    };
+
+    const handleAddCondition = (branchId: string) => {
+        const branch = branchingLogic.branches.find(b => b.id === branchId);
+        if (!branch) return;
+        const newCondition: BranchingLogicCondition = { id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false };
+        handleUpdateBranch(branchId, { conditions: [...branch.conditions, newCondition] });
+    };
+
+    const handleRemoveCondition = (branchId: string, conditionId: string) => {
+        const branch = branchingLogic.branches.find(b => b.id === branchId);
+        if (!branch || branch.conditions.length <= 1) return;
+        const newConditions = branch.conditions.filter(c => c.id !== conditionId);
+        handleUpdateBranch(branchId, { conditions: newConditions });
+    };
+    
+    const handleConfirmBranch = (branchId: string) => {
+        const branch = branchingLogic.branches.find(b => b.id === branchId);
+        if (!branch) return;
+        const newConditions = branch.conditions.map(c => ({...c, isConfirmed: true}));
+        handleUpdateBranch(branchId, {conditions: newConditions, thenSkipToIsConfirmed: true});
+    };
+    
+    const handleAddBranch = () => {
+        const newBranch: BranchingLogicBranch = {
+            id: generateId('branch'), operator: 'AND',
+            conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
+            thenSkipTo: '', thenSkipToIsConfirmed: false
+        };
+        handleUpdate({ branchingLogic: { ...branchingLogic, branches: [...branchingLogic.branches, newBranch] } });
+    };
+
+    const handleRemoveBranch = (branchId: string) => {
+        const newBranches = branchingLogic.branches.filter(b => b.id !== branchId);
+        if (newBranches.length === 0 && !branchingLogic.otherwiseSkipTo) {
+             handleUpdate({ branchingLogic: undefined });
+        } else {
+            handleUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
+        }
+    };
+    
+    const isOtherwiseExhaustive = isBranchingLogicExhaustive(question);
+
+    return (
+        <div>
+            <div className="flex items-center justify-between gap-2 mb-4">
+                <div>
+                    <p className="text-xs text-on-surface-variant">Create complex paths through the survey based on multiple conditions.</p>
+                </div>
+                <button onClick={() => handleUpdate({ branchingLogic: undefined, draftBranchingLogic: undefined })} className="text-sm font-medium text-error hover:underline">Remove</button>
+            </div>
+            <div className="space-y-4">
+                {branchingLogic.branches.map((branch) => (
+                    <div key={branch.id} className="p-3 border border-outline-variant rounded-md bg-surface-container">
+                        <div className="flex justify-between items-start mb-3">
+                            <div>
+                                <span className="font-bold text-primary">IF</span>
+                                <div className="pl-4">
+                                    {branch.conditions.length > 1 && (
+                                        <select value={branch.operator} onChange={e => handleUpdateBranch(branch.id, { operator: e.target.value as 'AND' | 'OR' })} className="text-xs font-semibold p-1 rounded-md bg-surface-container-high border border-outline mb-2">
+                                            <option value="AND">All conditions are met (AND)</option>
+                                            <option value="OR">Any condition is met (OR)</option>
+                                        </select>
+                                    )}
+                                </div>
+                            </div>
+                            <button onClick={() => handleRemoveBranch(branch.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full"><XIcon className="text-lg"/></button>
+                        </div>
+                        <div className="space-y-2 mb-3">
+                            {branch.conditions.map((condition, index) => (
+                                <LogicConditionRow
+                                    key={condition.id}
+                                    condition={condition}
+                                    onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
+                                    onRemoveCondition={branch.conditions.length > 1 ? () => handleRemoveCondition(branch.id, condition.id) : undefined}
+                                    onConfirm={() => handleConfirmBranch(branch.id)}
+                                    previousQuestions={previousQuestions}
+                                    issues={issues.filter(i => i.sourceId === condition.id)}
+                                    isFirstCondition={index === 0}
+                                    currentQuestion={question}
+                                    usedValues={new Set()}
+                                />
+                            ))}
+                            <button onClick={() => handleAddCondition(branch.id)} className="text-xs font-medium text-primary hover:underline">+ Add condition</button>
+                        </div>
+                        <DestinationRow
+                            label={<span className="font-bold text-primary">THEN SKIP TO</span>}
+                            value={branch.thenSkipTo}
+                            onChange={(value) => handleUpdateBranch(branch.id, { thenSkipTo: value, thenSkipToIsConfirmed: false })}
+                            onConfirm={() => handleConfirmBranch(branch.id)}
+                            isConfirmed={branch.thenSkipToIsConfirmed}
+                            followingQuestions={followingQuestions}
+                            survey={survey}
+                            currentBlockId={currentBlockId}
+                        />
+                    </div>
+                ))}
+            </div>
+            <button onClick={handleAddBranch} className="mt-4 flex items-center gap-1 text-sm font-medium text-primary hover:underline"><PlusIcon className="text-base" /> Add branch</button>
+            <div className="mt-4 pt-4 border-t border-outline-variant">
+                <DestinationRow
+                    label={<span className="font-bold text-on-surface-variant">OTHERWISE SKIP TO</span>}
+                    value={branchingLogic.otherwiseSkipTo}
+                    onChange={(value) => handleUpdate({ branchingLogic: {...branchingLogic, otherwiseSkipTo: value, otherwiseIsConfirmed: false }})}
+                    onConfirm={() => handleUpdate({ branchingLogic: {...branchingLogic, otherwiseIsConfirmed: true }})}
+                    isConfirmed={branchingLogic.otherwiseIsConfirmed}
+                    followingQuestions={followingQuestions}
+                    survey={survey}
+                    currentBlockId={currentBlockId}
+                    hideNextQuestion={isOtherwiseExhaustive}
+                />
+                {isOtherwiseExhaustive && (
+                    <div className="mt-2 p-2 bg-primary-container/20 border border-primary-container/30 rounded-md text-xs text-on-primary-container flex items-start gap-2">
+                        <InfoIcon className="text-base flex-shrink-0 mt-0.5" />
+                        <span>The 'Otherwise' path is disabled because all choices are covered by a branch rule above.</span>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -136,6 +523,14 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
     );
 
     const isChoiceBased = useMemo(() => CHOICE_BASED_QUESTION_TYPES.has(question.type), [question.type]);
+    
+    const isFirstInteractiveQuestion = useMemo(() => {
+        const allQuestions = survey.blocks.flatMap(b => b.questions);
+        const firstInteractive = allQuestions.find(q => 
+            q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak
+        );
+        return firstInteractive?.id === question.id;
+    }, [survey, question.id]);
 
     useEffect(() => {
         setQuestionText(question.text);
@@ -1162,7 +1557,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
             </div>
             {contentType !== 'none' && (
                 <div className="flex items-start gap-2 p-3 bg-surface-container-high rounded-md">
-                    <InfoIcon className="text-primary text-base" />
+                    <InfoIcon className="text-base text-primary" />
                     <p className="text-xs text-on-surface-variant">
                         {contentType === 'email' && 'Validates email format (e.g., name@domain.com)'}
                         {contentType === 'phone' && 'Validates phone number format'}
@@ -1276,32 +1671,28 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                         </div>
                     )}
                     {previousQuestions.length > 0 && (
-                        <>
-                            <div className="py-6 first:pt-0">
-                                <CarryForwardLogicEditor
-                                    question={question}
-                                    previousQuestions={previousQuestions}
-                                    onUpdate={handleUpdate}
-                                    logicKey="carryForwardStatements"
-                                    label="Carry forward choices"
-                                    addButtonLabel="Add choices"
-                                    description="Use answers from a previous question as choices in this one."
-                                    onAddLogic={onExpandSidebar}
-                                />
-                            </div>
-                            <div className="py-6 first:pt-0">
-                                 <CarryForwardLogicEditor
-                                    question={question}
-                                    previousQuestions={previousQuestions}
-                                    onUpdate={handleUpdate}
-                                    logicKey="carryForwardScalePoints"
-                                    label="Carry forward scale points"
-                                    addButtonLabel="Add scale points"
-                                    description="Use scale points from a previous grid question as choices in this one."
-                                    onAddLogic={onExpandSidebar}
-                                />
-                            </div>
-                        </>
+                        <div className="py-6 first:pt-0">
+                            <CarryForwardLogicEditor
+                                question={question}
+                                previousQuestions={previousQuestions}
+                                onUpdate={handleUpdate}
+                                logicKey="carryForwardStatements"
+                                label="Carry forward choices"
+                                addButtonLabel="Add choices"
+                                description="Use answers from a previous question as choices in this one."
+                                onAddLogic={onExpandSidebar}
+                            />
+                        </div>
+                    )}
+                    {isChoiceBased && !isFirstInteractiveQuestion && previousQuestions.length > 0 && (
+                        <div className="py-6 first:pt-0">
+                            <ChoiceEliminationEditor
+                                question={question}
+                                previousQuestions={previousQuestions}
+                                onUpdate={handleUpdate}
+                                onAddLogic={onExpandSidebar}
+                            />
+                        </div>
                     )}
                 </div>
             </CollapsibleSection>
@@ -1353,7 +1744,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                 </div>
             </CollapsibleSection>
 
-            <CollapsibleSection title="Logic" defaultExpanded={true}>
+            <CollapsibleSection title="Display Logic" defaultExpanded={true}>
                 <div className="divide-y divide-outline-variant">
                     <div className="py-6 first:pt-0">
                         <SkipLogicEditor
@@ -1369,16 +1760,18 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                             currentBlockId={currentBlockId}
                         />
                     </div>
-                    <div className="py-6 first:pt-0">
-                        <DisplayLogicEditor
-                            question={question}
-                            previousQuestions={previousQuestions}
-                            issues={logicIssues.filter(i => i.type === 'display')}
-                            onUpdate={handleUpdate}
-                            onAddLogic={onExpandSidebar}
-                            onRequestGeminiHelp={onRequestGeminiHelp}
-                        />
-                    </div>
+                    {!isFirstInteractiveQuestion && (
+                        <div className="py-6 first:pt-0">
+                            <DisplayLogicEditor
+                                question={question}
+                                previousQuestions={previousQuestions}
+                                issues={logicIssues.filter(i => i.type === 'display')}
+                                onUpdate={handleUpdate}
+                                onAddLogic={onExpandSidebar}
+                                onRequestGeminiHelp={onRequestGeminiHelp}
+                            />
+                        </div>
+                    )}
                 </div>
             </CollapsibleSection>
         </div>
@@ -2637,7 +3030,7 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
     if (!displayLogic || displayLogic.conditions.length === 0) {
         return (
             <div>
-                <h3 className="text-sm font-medium text-on-surface mb-1">Display Logic</h3>
+                <h3 className="text-sm font-medium text-on-surface mb-1">Display this question if</h3>
                 <p className="text-xs text-on-surface-variant mb-3">Control when this question is shown to respondents</p>
                  {isPasting ? (
                     <PasteInlineForm
@@ -2653,7 +3046,7 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
                     <div className="flex items-center gap-4">
                         <button onClick={handleAddDisplayLogic} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
                             <PlusIcon className="text-base" />
-                            Add Display Logic
+                            Add display condition
                         </button>
                         <CopyAndPasteButton onClick={() => setIsPasting(true)} />
                     </div>
@@ -2666,7 +3059,7 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         <div>
             <div className="flex items-center justify-between gap-2 mb-3">
                  <div>
-                    <h3 className="text-sm font-medium text-on-surface">Display Logic</h3>
+                    <h3 className="text-sm font-medium text-on-surface">Display this question if</h3>
                     <p className="text-xs text-on-surface-variant mt-0.5">Control when this question is shown to respondents</p>
                 </div>
                 <button 
@@ -2877,12 +3270,12 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         return undefined;
     };
 
-    const description = isChoiceBased ? "Skip to different questions based on the selected answer" : "Skip to a different question if answered";
+    const description = "Control when this question is hidden from respondents";
 
     if (!isEnabled) {
         return (
             <div>
-                <h3 className="text-sm font-medium text-on-surface mb-1">Skip Logic</h3>
+                <h3 className="text-sm font-medium text-on-surface mb-1">Hide this question if</h3>
                 <p className="text-xs text-on-surface-variant mb-3">{description}</p>
                  {isPasting ? (
                     <PasteInlineForm
@@ -2898,7 +3291,7 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
                     <div className="flex items-center gap-4">
                         <button onClick={() => handleToggle(true)} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
                             <PlusIcon className="text-base" />
-                            Add Skip Logic
+                            Add hide condition
                         </button>
                          <CopyAndPasteButton onClick={() => setIsPasting(true)} />
                     </div>
@@ -2911,7 +3304,7 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         <div ref={editorRef}>
             <div className="flex items-center justify-between gap-2 mb-4">
                 <div>
-                    <h3 className="text-sm font-medium text-on-surface">Skip Logic</h3>
+                    <h3 className="text-sm font-medium text-on-surface">Hide this question if</h3>
                     <p className="text-xs text-on-surface-variant mt-0.5">{description}</p>
                 </div>
                 <button 
@@ -3082,521 +3475,6 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
                     />
                 )}
             </div>
-        </div>
-    );
-};
-
-const RandomizeChoicesEditor: React.FC<{ question: Question; onUpdate: (updates: Partial<Question>) => void; }> = ({ question, onUpdate }) => {
-    const answerBehavior = question.answerBehavior || {};
-
-    const handleToggle = (
-        key: 'randomizeChoices' | 'randomizeRows' | 'randomizeColumns',
-        methodKey: 'randomizationMethod' | 'rowRandomizationMethod' | 'columnRandomizationMethod',
-        enabled: boolean
-    ) => {
-        onUpdate({
-            answerBehavior: {
-                ...answerBehavior,
-                [key]: enabled,
-                [methodKey]: enabled ? 'permutation' : undefined,
-            }
-        });
-    };
-
-    const handleMethodChange = (
-        methodKey: 'randomizationMethod' | 'rowRandomizationMethod' | 'columnRandomizationMethod',
-        method: RandomizationMethod
-    ) => {
-        onUpdate({
-            answerBehavior: {
-                ...answerBehavior,
-                [methodKey]: method,
-            }
-        });
-    };
-
-    const renderControl = (
-        label: string,
-        description: string,
-        isRandomized: boolean,
-        randomizationMethod: RandomizationMethod | undefined,
-        toggleHandler: (enabled: boolean) => void,
-        methodHandler: (method: RandomizationMethod) => void
-    ) => {
-        const idSuffix = label.replace(/\s+/g, '-').toLowerCase();
-        return (
-            <div>
-                <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                        <label htmlFor={`randomize-${idSuffix}`} className="text-sm font-medium text-on-surface block flex items-center gap-2">
-                            <ShuffleIcon className="text-base" />
-                            {label}
-                        </label>
-                        <p className="text-xs text-on-surface-variant mt-0.5">{description}</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id={`randomize-${idSuffix}`} checked={isRandomized} onChange={(e) => toggleHandler(e.target.checked)} className="sr-only peer" />
-                        <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                    </label>
-                </div>
-                {isRandomized && (
-                    <div className="mt-4 pl-4 border-l-2 border-outline-variant">
-                        <label htmlFor={`randomization-method-${idSuffix}`} className="block text-sm font-medium text-on-surface-variant mb-1">Randomization Method</label>
-                        <div className="relative">
-                            <select
-                                id={`randomization-method-${idSuffix}`}
-                                value={randomizationMethod || 'permutation'}
-                                onChange={e => methodHandler(e.target.value as RandomizationMethod)}
-                                className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                            >
-                                <option value="permutation">Permutation (Shuffle)</option>
-                                <option value="random_reverse">Random Reverse</option>
-                                <option value="reverse_order">Reverse Order</option>
-                                <option value="rotation">Rotation</option>
-                            </select>
-                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    };
-
-    if (question.type === QuestionType.ChoiceGrid) {
-        return (
-            <div className="space-y-6">
-                {renderControl(
-                    'Randomize Rows',
-                    'Present rows in a random order',
-                    answerBehavior.randomizeRows ?? false,
-                    answerBehavior.rowRandomizationMethod,
-                    (enabled) => handleToggle('randomizeRows', 'rowRandomizationMethod', enabled),
-                    (method) => handleMethodChange('rowRandomizationMethod', method)
-                )}
-                {renderControl(
-                    'Randomize Columns',
-                    'Present columns in a random order',
-                    answerBehavior.randomizeColumns ?? false,
-                    answerBehavior.columnRandomizationMethod,
-                    (enabled) => handleToggle('randomizeColumns', 'columnRandomizationMethod', enabled),
-                    (method) => handleMethodChange('columnRandomizationMethod', method)
-                )}
-            </div>
-        );
-    }
-
-    return renderControl(
-        'Randomize Choices',
-        'Present choices in a random order',
-        answerBehavior.randomizeChoices ?? false,
-        answerBehavior.randomizationMethod,
-        (enabled) => handleToggle('randomizeChoices', 'randomizationMethod', enabled),
-        (method) => handleMethodChange('randomizationMethod', method)
-    );
-};
-
-const CarryForwardLogicEditor: React.FC<{
-    question: Question;
-    previousQuestions: Question[];
-    onUpdate: (updates: Partial<Question>) => void;
-    logicKey: 'carryForwardStatements' | 'carryForwardScalePoints';
-    label: string;
-    addButtonLabel: string;
-    description: string;
-    onAddLogic: () => void;
-}> = ({ question, previousQuestions, onUpdate, logicKey, label, addButtonLabel, description, onAddLogic }) => {
-    const logic = question[logicKey];
-
-    const handleAddLogic = () => {
-        onUpdate({ [logicKey]: { sourceQuestionId: '', filter: 'selected' } });
-        onAddLogic();
-    };
-
-    const handleRemoveLogic = () => {
-        onUpdate({ [logicKey]: undefined });
-    };
-
-    const handleUpdateLogic = (field: keyof CarryForwardLogic, value: any) => {
-        onUpdate({ [logicKey]: { ...logic, [field]: value } });
-    };
-
-    if (!logic) {
-        return (
-            <div>
-                <h3 className="text-sm font-medium text-on-surface mb-1 flex items-center gap-2">
-                    <CarryForwardIcon className="text-base" />
-                    {label}
-                </h3>
-                <p className="text-xs text-on-surface-variant mb-3">{description}</p>
-                <button onClick={handleAddLogic} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                    <PlusIcon className="text-base" />
-                    {addButtonLabel}
-                </button>
-            </div>
-        );
-    }
-
-    return (
-        <div>
-            <div className="flex items-center justify-between gap-2 mb-3">
-                <div>
-                    <h3 className="text-sm font-medium text-on-surface flex items-center gap-2">
-                        <CarryForwardIcon className="text-base" />
-                        {label}
-                    </h3>
-                    <p className="text-xs text-on-surface-variant mt-0.5">{description}</p>
-                </div>
-                <button onClick={handleRemoveLogic} className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50">
-                    Remove
-                </button>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-                <div>
-                    <label htmlFor={`${logicKey}-source`} className="block text-xs font-medium text-on-surface-variant mb-1">Source Question</label>
-                    <div className="relative">
-                        <select
-                            id={`${logicKey}-source`}
-                            value={logic.sourceQuestionId}
-                            onChange={e => handleUpdateLogic('sourceQuestionId', e.target.value)}
-                            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                        >
-                            <option value="">Select question</option>
-                            {previousQuestions.filter(q => CHOICE_BASED_QUESTION_TYPES.has(q.type)).map(q => (
-                                <option key={q.id} value={q.qid}>{q.qid}: {truncate(q.text, 50)}</option>
-                            ))}
-                        </select>
-                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-                    </div>
-                </div>
-                <div>
-                    <label htmlFor={`${logicKey}-filter`} className="block text-xs font-medium text-on-surface-variant mb-1">Filter</label>
-                    <div className="relative">
-                        <select
-                            id={`${logicKey}-filter`}
-                            value={logic.filter}
-                            onChange={e => handleUpdateLogic('filter', e.target.value)}
-                            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                        >
-                            <option value="selected">Selected</option>
-                            <option value="not_selected">Not Selected</option>
-                            <option value="displayed">Displayed</option>
-                            <option value="not_displayed">Not Displayed</option>
-                            <option value="all">All</option>
-                        </select>
-                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-interface BranchingLogicEditorProps {
-    question: Question;
-    survey: Survey;
-    previousQuestions: Question[];
-    followingQuestions: Question[];
-    issues: LogicIssue[];
-    onUpdate: (updates: Partial<Question>) => void;
-    onAddLogic: () => void;
-    onRequestGeminiHelp: (topic: string) => void;
-}
-
-const BranchingLogicEditor: React.FC<BranchingLogicEditorProps> = ({ question, survey, previousQuestions, followingQuestions, issues, onUpdate, onAddLogic, onRequestGeminiHelp }) => {
-    const branchingLogic = question.draftBranchingLogic ?? question.branchingLogic;
-    // FIX: Updated state type to allow for 'skipTo' as a possible validation error key.
-    const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof BranchingLogicCondition | 'skipTo'>>>(new Map());
-
-    const currentBlockId = useMemo(() => {
-        return survey.blocks.find(b => b.questions.some(q => q.id === question.id))?.id || null;
-    }, [survey.blocks, question.id]);
-
-    const allUsedValuesByQid = useMemo(() => {
-        const map = new Map<string, string[]>();
-        if (!branchingLogic) return map;
-        branchingLogic.branches.forEach(b => {
-            b.conditions.forEach(c => {
-                if (c.questionId && c.value) {
-                    if (!map.has(c.questionId)) {
-                        map.set(c.questionId, []);
-                    }
-                    map.get(c.questionId)!.push(c.value);
-                }
-            });
-        });
-        return map;
-    }, [branchingLogic]);
-
-    const canAddBranch = useMemo(() => {
-        if (!question.choices || question.choices.length === 0) {
-            return true; // Always allow adding branches for non-choice questions
-        }
-    
-        const usedChoiceTexts = new Set<string>();
-        if (branchingLogic) {
-            for (const branch of branchingLogic.branches) {
-                for (const condition of branch.conditions) {
-                    // This logic is specific to the first condition being the current question.
-                    if (condition.questionId === question.qid && condition.value) {
-                        usedChoiceTexts.add(condition.value);
-                    }
-                }
-            }
-        }
-    
-        // 'Otherwise' is shown only if there are choices left over that aren't covered by a branch.
-        return usedChoiceTexts.size < question.choices.length;
-    }, [branchingLogic, question.qid, question.choices]);
-
-
-    if (!branchingLogic) return null; 
-
-    const handleUpdateBranch = (branchId: string, updates: Partial<BranchingLogicBranch>) => {
-        const newBranches = branchingLogic.branches.map(b => b.id === branchId ? { ...b, ...updates } : b);
-        onUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
-    };
-
-    const handleUpdateCondition = (branchId: string, conditionId: string, field: keyof BranchingLogicCondition, value: any) => {
-        const branch = branchingLogic.branches.find(b => b.id === branchId);
-        if (!branch) return;
-
-        const newConditions = branch.conditions.map(c => {
-            if (c.id === conditionId) {
-                const newCondition = { ...c, [field]: value, isConfirmed: false };
-                // If the question is changed (only possible for non-first conditions), reset operator and value
-                if (field === 'questionId') {
-                    newCondition.operator = '';
-                    newCondition.value = '';
-                }
-                return newCondition;
-            }
-            return c;
-        });
-
-        handleUpdateBranch(branchId, { conditions: newConditions, thenSkipToIsConfirmed: false });
-    };
-
-    const handleConfirmBranch = (branchId: string) => {
-        const branch = branchingLogic.branches.find(b => b.id === branchId);
-        if (!branch) return;
-
-        const newValidationErrors = new Map(validationErrors);
-        let isBranchValid = true;
-
-        branch.conditions.forEach(c => newValidationErrors.delete(c.id));
-        newValidationErrors.delete(branch.id);
-
-        for (const condition of branch.conditions) {
-            const conditionErrors = new Set<keyof BranchingLogicCondition>();
-            if (!condition.questionId) conditionErrors.add('questionId');
-            if (!condition.operator) conditionErrors.add('operator');
-            
-            const requiresValue = !['is_empty', 'is_not_empty'].includes(condition.operator);
-            if (requiresValue && !String(condition.value).trim()) conditionErrors.add('value');
-
-            if (conditionErrors.size > 0) {
-                newValidationErrors.set(condition.id, conditionErrors);
-                isBranchValid = false;
-            }
-        }
-
-        if (!branch.thenSkipTo) {
-            newValidationErrors.set(branch.id, new Set(['skipTo']));
-            isBranchValid = false;
-        }
-
-        setValidationErrors(newValidationErrors);
-
-        if (isBranchValid) {
-            const newConditions = branch.conditions.map(c => ({ ...c, isConfirmed: true }));
-            handleUpdateBranch(branchId, {
-                conditions: newConditions,
-                thenSkipToIsConfirmed: true
-            });
-        }
-    };
-
-    const handleConfirmOtherwise = () => {
-        if (!branchingLogic.otherwiseSkipTo) {
-            setValidationErrors((prev: Map<string, Set<keyof BranchingLogicCondition | 'skipTo'>>) => new Map(prev).set('otherwise', new Set(['skipTo'])));
-            return;
-        }
-        onUpdate({ branchingLogic: { ...branchingLogic, otherwiseIsConfirmed: true } });
-        setValidationErrors((prev: Map<string, Set<keyof BranchingLogicCondition | 'skipTo'>>) => {
-            const newMap = new Map(prev);
-            newMap.delete('otherwise');
-            return newMap;
-        });
-    };
-
-    const handleRemoveLogic = () => onUpdate({ branchingLogic: undefined, draftBranchingLogic: undefined });
-    
-    const handleAddBranch = () => {
-        const remainingChoices = (question.choices || []).filter(c => {
-            return !(branchingLogic.branches.some(b => b.conditions.some(cond => cond.value === c.text)) ?? false);
-        });
-
-        const newBranch: BranchingLogicBranch = {
-            id: generateId('branch'),
-            operator: 'AND',
-            conditions: [{ 
-                id: generateId('cond'), 
-                questionId: question.qid, 
-                operator: 'equals',
-                value: remainingChoices.length === 1 ? remainingChoices[0].text : '', 
-                isConfirmed: false 
-            }],
-            thenSkipTo: '',
-            thenSkipToIsConfirmed: false,
-        };
-        onUpdate({ branchingLogic: { ...branchingLogic, branches: [...branchingLogic.branches, newBranch] } });
-        onAddLogic();
-    };
-
-    const handleRemoveBranch = (branchId: string) => {
-        const newBranches = branchingLogic.branches.filter(b => b.id !== branchId);
-        onUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
-    };
-
-    const handleUpdateOtherwise = (value: string) => {
-        onUpdate({ branchingLogic: { ...branchingLogic, otherwiseSkipTo: value, otherwiseIsConfirmed: false } });
-    };
-    
-    const handleUpdatePathName = (branchId: string, newName: string) => {
-        const newBranches = branchingLogic.branches.map(b => b.id === branchId ? { ...b, pathName: newName } : b);
-        onUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
-    };
-
-    const handleUpdateOtherwisePathName = (newName: string) => {
-        onUpdate({ branchingLogic: { ...branchingLogic, otherwisePathName: newName } });
-    };
-
-    return (
-        <div>
-            <div className="flex items-center justify-between gap-2 mb-4">
-                <div>
-                    <h3 className="text-sm font-medium text-on-surface flex items-center gap-2">
-                        <CallSplitIcon className="text-base" />
-                        Branching Logic
-                    </h3>
-                    <p className="text-xs text-on-surface-variant mt-0.5">Create complex paths based on multiple conditions.</p>
-                </div>
-                <button 
-                    onClick={handleRemoveLogic} 
-                    className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50"
-                >
-                    Remove
-                </button>
-            </div>
-            
-            <div className="space-y-4">
-                {branchingLogic.branches.map((branch, branchIndex) => {
-                    const usedBranchDestinations = new Set(
-                        branchingLogic.branches
-                            .filter(b => b.id !== branch.id)
-                            .map(b => b.thenSkipTo)
-                    );
-                    return (
-                        <div key={branch.id} className="p-3 border border-outline-variant rounded-md bg-surface-container">
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-2">
-                                    <span className="font-bold text-primary">IF</span>
-                                </div>
-                                <button onClick={() => handleRemoveBranch(branch.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Remove branch"><XIcon className="text-lg"/></button>
-                            </div>
-
-                            <div className="space-y-2 mb-3">
-                                {branch.conditions.map((condition, condIndex) => {
-                                    const usedValuesForThisQid = new Set(allUsedValuesByQid.get(condition.questionId) || []);
-                                    // The current condition's own value should not be considered "used" for its own dropdown
-                                    usedValuesForThisQid.delete(condition.value);
-
-                                    return (
-                                        <LogicConditionRow
-                                            key={condition.id}
-                                            condition={condition}
-                                            isFirstCondition={condIndex === 0}
-                                            currentQuestion={question}
-                                            onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
-                                            onRemoveCondition={undefined}
-                                            previousQuestions={previousQuestions}
-                                            issues={issues.filter(i => i.sourceId === condition.id)}
-                                            invalidFields={validationErrors.get(condition.id)}
-                                            usedValues={usedValuesForThisQid}
-                                        />
-                                    );
-                                })}
-                            </div>
-                            
-                            <div className="mb-3">
-                               <DestinationRow
-                                    label={<span className="font-bold text-primary">THEN</span>}
-                                    value={branch.thenSkipTo}
-                                    onChange={(value) => handleUpdateBranch(branch.id, { thenSkipTo: value, thenSkipToIsConfirmed: false })}
-                                    onConfirm={() => handleConfirmBranch(branch.id)}
-                                    isConfirmed={branch.thenSkipToIsConfirmed}
-                                    issue={issues.find(i => i.sourceId === branch.id && i.field === 'skipTo')}
-                                    invalid={validationErrors.has(branch.id)}
-                                    followingQuestions={[]}
-                                    hideNextQuestion={true}
-                                    survey={survey}
-                                    currentBlockId={currentBlockId}
-                                    usedDestinations={usedBranchDestinations}
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor={`path-name-${branch.id}`} className="block text-xs font-medium text-on-surface-variant mb-1">Path Name</label>
-                                <input
-                                    type="text"
-                                    id={`path-name-${branch.id}`}
-                                    value={branch.pathName || `Path ${branchIndex + 1}`}
-                                    onChange={e => handleUpdatePathName(branch.id, e.target.value)}
-                                    className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-                                    placeholder={`e.g., Path ${branchIndex + 1}`}
-                                />
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-
-            {canAddBranch && (
-                <button onClick={handleAddBranch} className="mt-4 flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-                    <PlusIcon className="text-base" /> Add branch
-                </button>
-            )}
-
-            {canAddBranch && (
-                <div className="mt-4 pt-4 border-t border-outline-variant">
-                    <div className="mb-3">
-                        <DestinationRow
-                            label="Otherwise"
-                            value={branchingLogic.otherwiseSkipTo}
-                            onChange={handleUpdateOtherwise}
-                            onConfirm={handleConfirmOtherwise}
-                            isConfirmed={branchingLogic.otherwiseIsConfirmed}
-                            issue={issues.find(i => i.sourceId === 'otherwise' && i.field === 'skipTo')}
-                            invalid={validationErrors.has('otherwise')}
-                            followingQuestions={followingQuestions}
-                            hideNextQuestion={false}
-                            survey={survey}
-                            currentBlockId={currentBlockId}
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor={`path-name-otherwise`} className="block text-xs font-medium text-on-surface-variant mb-1">Path Name</label>
-                        <input
-                            type="text"
-                            id={`path-name-otherwise`}
-                            value={branchingLogic.otherwisePathName || `Path ${branchingLogic.branches.length + 1}`}
-                            onChange={e => handleUpdateOtherwisePathName(e.target.value)}
-                            className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-                            placeholder={`e.g., Path ${branchingLogic.branches.length + 1}`}
-                        />
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

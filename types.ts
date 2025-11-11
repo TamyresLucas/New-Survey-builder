@@ -102,7 +102,11 @@ export interface AnswerBehavior {
 
 export interface CarryForwardLogic {
   sourceQuestionId: string; // This is the QID, e.g., "Q1"
-  filter: 'selected' | 'not_selected' | 'displayed' | 'not_displayed' | 'all';
+  filter: string;
+}
+
+export interface ChoiceEliminationLogic {
+  sourceQuestionId: string; // This is the QID, e.g., "Q1"
 }
 
 export interface BranchingLogicCondition {
@@ -225,16 +229,18 @@ export interface Question {
   
   // --- NEW BEHAVIOR PROPERTIES ---
   displayLogic?: DisplayLogic;
+  hideLogic?: DisplayLogic;
   skipLogic?: SkipLogic;
   answerBehavior?: AnswerBehavior;
   carryForwardStatements?: CarryForwardLogic;
-  carryForwardScalePoints?: CarryForwardLogic;
+  choiceEliminationLogic?: ChoiceEliminationLogic;
   branchingLogic?: BranchingLogic;
   beforeWorkflows?: Workflow[];
   afterWorkflows?: Workflow[];
 
   // --- NEW DRAFT LOGIC PROPERTIES ---
   draftDisplayLogic?: DisplayLogic;
+  draftHideLogic?: DisplayLogic;
   draftSkipLogic?: SkipLogic;
   draftBranchingLogic?: BranchingLogic;
   draftBeforeWorkflows?: Workflow[];
@@ -278,6 +284,7 @@ export interface Survey {
   title: string;
   blocks: Block[];
   pagingMode: 'one-per-page' | 'multi-per-page';
+  globalAutoAdvance?: boolean;
 }
 
 export interface ToolboxItemData {
@@ -299,7 +306,7 @@ export interface ChatMessage {
 // --- NEW DATA MODEL FOR LOGIC VALIDATION ---
 export interface LogicIssue {
   questionId: string; // The question where the logic is defined
-  type: 'display' | 'skip' | 'branching'; // Which logic editor it belongs to
+  type: 'display' | 'skip' | 'branching' | 'hide'; // Which logic editor it belongs to
   message: string; // The error message
   sourceId?: string; // The ID of the specific condition, rule, or branch that has the error
   field?: 'questionId' | 'value' | 'operator' | 'skipTo'; // The specific field with the issue
@@ -425,3 +432,5 @@ export const isEndNode = (node: Node): node is EndNode => node.type === 'end';
 export const isMultipleChoiceNode = (node: Node): node is MultipleChoiceNode => node.type === 'multiple_choice';
 export const isTextEntryNode = (node: Node): node is TextEntryNode => node.type === 'text_entry';
 export const isDescriptionNode = (node: Node): node is DescriptionNode => node.type === 'description_node';
+
+export type SurveyStatus = 'draft' | 'active' | 'stopped';

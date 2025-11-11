@@ -35,6 +35,62 @@ export const NON_CHOICE_BASED_QUESTION_TYPES_WITH_TEXT = new Set<QuestionType>([
   QuestionType.TextEntry,
 ]);
 
+/**
+ * Checks if a question has branching logic that covers every possible choice.
+ * @param question The question to check.
+ * @returns True if the branching logic is exhaustive, false otherwise.
+ */
+export const isBranchingLogicExhaustive = (question: Question | undefined): boolean => {
+  // 1. Must be a question with choices to be exhaustive.
+  if (!question || !question.choices || question.choices.length === 0) {
+    return false;
+  }
+
+  // 2. Must have branching logic.
+  const logic = question.draftBranchingLogic ?? question.branchingLogic;
+  if (!logic || !logic.branches || logic.branches.length === 0) {
+    return false;
+  }
+
+  // 3. Collect all unique choice texts.
+  const allChoiceTexts = new Set(question.choices.map(c => c.text));
+
+  // 4. Collect all choice texts covered by a confirmed branch rule for this question.
+  // This assumes simple `IF Q1 equals 'Q1_1 Yes'` conditions.
+  const coveredChoiceTexts = new Set<string>();
+  for (const branch of logic.branches) {
+    // Only consider confirmed branches.
+    if (branch.thenSkipToIsConfirmed) {
+      for (const condition of branch.conditions) {
+        // Only consider simple, confirmed "equals" conditions on the question itself.
+        if (
+          condition.isConfirmed &&
+          condition.questionId === question.qid &&
+          condition.operator === 'equals' &&
+          condition.value
+        ) {
+          coveredChoiceTexts.add(condition.value);
+        }
+      }
+    }
+  }
+
+  // 5. If the number of covered choices doesn't match the total, it's not exhaustive.
+  if (coveredChoiceTexts.size !== allChoiceTexts.size) {
+    return false;
+  }
+  
+  // 6. As a final check, ensure every choice is actually in the covered set.
+  for (const choiceText of allChoiceTexts) {
+    if (!coveredChoiceTexts.has(choiceText)) {
+      return false;
+    }
+  }
+
+  // If we get here, every choice is covered by a confirmed branch.
+  return true;
+};
+
 
 /**
  * Iterates through the entire survey and renumbers all blocks and question QIDs and
@@ -169,12 +225,7 @@ export const renumberSurveyVariables = (survey: Survey): Survey => {
           question.carryForwardStatements.sourceQuestionId = newQid;
         }
       }
-      if (question.carryForwardScalePoints) {
-        const newQid = oldToNewQidMap.get(question.carryForwardScalePoints.sourceQuestionId);
-        if (newQid) {
-          question.carryForwardScalePoints.sourceQuestionId = newQid;
-        }
-      }
+      // FIX: The 'carryForwardScalePoints' property does not exist on the Question type. This block of code is removed.
     });
   });
 
@@ -830,85 +881,131 @@ export const analyzeSurveyPaths = (survey: Survey): PathAnalysisResult[] => {
     }
 
     // Trace each named path from the beginning of the survey
-    for (const { pathName, sourceQuestionId, targetBlockId } of namedBranches) {
-        const pathBlocks: Block[] = [];
-        const visitedInPath = new Set<string>();
-        let currentBlockId: string | undefined = allBlocks[0].id;
-        let tracingBranch = false;
+    // Helper to find the next block ID given the current block, ignoring conditional logic.
+    const getDefaultNextBlockId = (blockId: string): string | 'end' => {
+        const block = blockMap.get(blockId);
+        if (!block) return 'end';
 
-        while (currentBlockId && !visitedInPath.has(currentBlockId)) {
-            const currentBlock = blockMap.get(currentBlockId);
-            if (!currentBlock) break;
+        const lastInteractiveQ = [...block.questions].reverse().find(q => q.type !== QuestionType.PageBreak && q.type !== QuestionType.Description);
 
-            pathBlocks.push(currentBlock);
-            visitedInPath.add(currentBlockId);
-
-            // Determine the next block
-            let nextBlockId: string | undefined;
-
-            // If we are currently tracing the specific branch, subsequent logic is fallthrough
-            if (tracingBranch) {
-                // Find default "otherwise" or skip logic to continue the path
-                let logicFound = false;
-                for (const q of [...currentBlock.questions].reverse()) {
-                     const branching = q.draftBranchingLogic ?? q.branchingLogic;
-                     if (branching && branching.otherwiseIsConfirmed) {
-                         const dest = branching.otherwiseSkipTo;
-                         if (dest.startsWith('block:')) nextBlockId = dest.substring(6);
-                         else if (dest === 'end') nextBlockId = undefined;
-                         logicFound = true;
-                         break;
-                     }
-                }
-                 if (logicFound) {
-                    currentBlockId = nextBlockId;
-                    continue;
-                }
+        if (lastInteractiveQ) {
+            const branching = lastInteractiveQ.branchingLogic;
+            if (branching && branching.branches.length === 0 && branching.otherwiseIsConfirmed && branching.otherwiseSkipTo) {
+                if (branching.otherwiseSkipTo.startsWith('block:')) return branching.otherwiseSkipTo.substring(6);
+                if (branching.otherwiseSkipTo === 'end') return 'end';
             }
             
-            // Check if the current block contains the source of our target branch
-            const isForkBlock = currentBlock.questions.some(q => q.id === sourceQuestionId);
-            if (isForkBlock) {
-                nextBlockId = targetBlockId;
-                tracingBranch = true;
-            } else {
-                // Follow default fallthrough logic
-                const currentBlockIndex = blockIndexMap.get(currentBlockId)!;
-                if (currentBlockIndex < allBlocks.length - 1) {
-                    nextBlockId = allBlocks[currentBlockIndex + 1].id;
-                } else {
-                    nextBlockId = undefined; // End of survey
-                }
+            const skip = lastInteractiveQ.skipLogic;
+            if (skip?.type === 'simple' && skip.isConfirmed && skip.skipTo) {
+                if (skip.skipTo.startsWith('block:')) return skip.skipTo.substring(6);
+                if (skip.skipTo === 'end') return 'end';
             }
-            currentBlockId = nextBlockId;
+        }
+        
+        if (block.continueTo && block.continueTo !== 'next') {
+            if (block.continueTo.startsWith('block:')) return block.continueTo.substring(6);
+            if (block.continueTo === 'end') return 'end';
+        }
+        
+        const currentIndex = blockIndexMap.get(block.id);
+        if (currentIndex !== undefined && currentIndex < allBlocks.length - 1) {
+            return allBlocks[currentIndex + 1].id;
+        }
+        
+        return 'end';
+    };
+
+    const questionIdToBlockId = new Map<string, string>();
+    survey.blocks.forEach(b => b.questions.forEach(q => questionIdToBlockId.set(q.id, b.id)));
+
+
+    namedBranches.forEach(branch => {
+        const pathBlockIds: string[] = [];
+        const visitedBlocks = new Set<string>();
+        
+        let currentBlockId: string | 'end' = allBlocks[0]?.id;
+        if (!currentBlockId) return;
+        
+        const sourceBlockId = questionIdToBlockId.get(branch.sourceQuestionId);
+
+        // Phase 1: Traverse from start until we hit the block that contains the branch
+        while (currentBlockId !== 'end' && currentBlockId !== sourceBlockId) {
+            if (visitedBlocks.has(currentBlockId)) {
+                 // Loop detected, invalid path
+                 return;
+            }
+            pathBlockIds.push(currentBlockId);
+            visitedBlocks.add(currentBlockId);
+            currentBlockId = getDefaultNextBlockId(currentBlockId);
         }
 
-        // Calculate stats for the traced path
-        const pathQuestions = pathBlocks.flatMap(b => b.questions);
-        const countablePathQuestions = pathQuestions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak);
-        const totalPoints = countablePathQuestions.reduce((sum, q) => sum + calculateQuestionPoints(q), 0);
-        const estimatedTimeInMinutes = Math.round(totalPoints / 8);
-        const completionTimeString = estimatedTimeInMinutes < 1 ? (countablePathQuestions.length > 0 ? "<1 min" : "0 min") : `${estimatedTimeInMinutes} min`;
+        if (currentBlockId !== sourceBlockId) {
+            // Did not reach the source block, path is invalid
+            return;
+        }
         
-        const pageCount = pathBlocks.length; // Simplified for now
+        // Add the source block itself
+        if (sourceBlockId) {
+            pathBlockIds.push(sourceBlockId);
+            visitedBlocks.add(sourceBlockId);
+        }
+
+        // Phase 2: Jump to the branch's target and traverse to the end
+        let currentTraceId: string | 'end' = branch.targetBlockId;
+        while(currentTraceId !== 'end') {
+            if (visitedBlocks.has(currentTraceId)) {
+                // Loop detected
+                return;
+            }
+            pathBlockIds.push(currentTraceId);
+            visitedBlocks.add(currentTraceId);
+            currentTraceId = getDefaultNextBlockId(currentTraceId);
+        }
+        
+        // Calculate stats for the valid path
+        const pathBlocks = pathBlockIds.map(id => blockMap.get(id)!).filter(Boolean);
+        const pathQuestions = pathBlocks.flatMap(b => b.questions);
+
+        const countableQuestions = pathQuestions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak);
+        const questionCount = countableQuestions.length;
+        
+        const points = countableQuestions.reduce((sum, q) => sum + calculateQuestionPoints(q), 0);
+        const minutes = Math.round(points / 8);
+        const completionTimeString = questionCount === 0 ? "0 min" : (minutes < 1 ? "<1 min" : `${minutes} min`);
+
+        let pageCount = 0;
+        if (pathBlocks.length > 0) {
+            let hasContentOnCurrentPage = false;
+            pageCount = 1;
+            pathQuestions.forEach((q) => {
+                if (q.type === QuestionType.PageBreak) {
+                    // Only count manual page breaks or auto-breaks in multi-page mode
+                    const parentBlock = blockMap.get(questionIdToBlockId.get(q.id) || '');
+                    if (!q.isAutomatic || (parentBlock && parentBlock.automaticPageBreaks)) {
+                         pageCount++;
+                         hasContentOnCurrentPage = false;
+                    }
+                } else if (q.type !== QuestionType.Description) {
+                    if (survey.pagingMode === 'one-per-page' && hasContentOnCurrentPage) {
+                        pageCount++;
+                    }
+                    hasContentOnCurrentPage = true;
+                }
+            });
+        }
+
 
         finalResults.push({
-            name: pathName,
-            questionCount: countablePathQuestions.length,
+            name: branch.pathName,
+            blockIds: pathBlockIds,
+            questionCount,
             completionTimeString,
-            pageCount,
-            blockIds: pathBlocks.map(b => b.id),
+            pageCount
         });
-    }
-
-    // Deduplicate results in case different logic leads to the same path name and stats
-    const uniqueResults = new Map<string, Omit<PathAnalysisResult, 'id'>>();
-    finalResults.forEach(res => {
-        const key = `${res.name}-${res.blockIds.join(',')}`;
-        if (!uniqueResults.has(key)) {
-            uniqueResults.set(key, res);
-        }
     });
 
-    return Array.from(uniqueResults.values()).map((res, i) => ({ ...res, id: `path-${i}` }));
+    return finalResults.map((r, i) => ({
+        ...r,
+        id: `path-${i}-${r.name.replace(/\s+/g, '-')}`
+    }));
 };

@@ -59,7 +59,36 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
                 }
             }
 
-            // 2. Validate Skip Logic
+            // 2. Validate Hide Logic
+            if (question.hideLogic) {
+                for (const condition of question.hideLogic.conditions) {
+                    if (!condition.questionId) continue;
+                    
+                    const sourceQuestion = byQid.get(condition.questionId);
+                    if (!sourceQuestion) {
+                        issues.push({
+                            questionId: question.id,
+                            type: 'hide',
+                            message: `The selected question (${condition.questionId}) no longer exists.`,
+                            sourceId: condition.id,
+                            field: 'questionId',
+                        });
+                    } else {
+                        const sourceQuestionIndex = byIndex.get(sourceQuestion.id)!;
+                        if (sourceQuestionIndex >= currentQuestionIndex) {
+                            issues.push({
+                                questionId: question.id,
+                                type: 'hide',
+                                message: `Logic cannot depend on a future question (${sourceQuestion.qid}).`,
+                                sourceId: condition.id,
+                                field: 'questionId',
+                            });
+                        }
+                    }
+                }
+            }
+
+            // 3. Validate Skip Logic
             if (question.skipLogic) {
                 const validateTarget = (target: string, sourceId?: string) => {
                     if (target === 'next' || target === 'end' || !target) return;
@@ -128,7 +157,7 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
                 }
             }
 
-            // 3. Validate Branching Logic
+            // 4. Validate Branching Logic
             if (question.branchingLogic) {
                 const validateBranchTarget = (target: string, sourceId?: string) => {
                      if (target === 'next' || target === 'end' || !target) return;

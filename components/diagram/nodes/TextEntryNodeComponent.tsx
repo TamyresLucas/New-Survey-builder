@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 import type { TextEntryNode } from '../../../types';
 import { OpenEndAnswerIcon as TextEntryIcon } from '../../icons';
+// FIX: Import OutputHandle to use for the node's source connection.
 import { InputHandle, OutputHandle } from './CustomNodeHandles';
 
 const TextEntryNodeComponent: React.FC<NodeProps<TextEntryNode>> = ({ data, selected }) => {
@@ -24,6 +25,7 @@ const TextEntryNodeComponent: React.FC<NodeProps<TextEntryNode>> = ({ data, sele
             Respondent provides a text-based answer.
          </div>
       </main>
+      {/* FIX: Add the missing output handle for this node's connections. */}
       <OutputHandle />
     </div>
   );

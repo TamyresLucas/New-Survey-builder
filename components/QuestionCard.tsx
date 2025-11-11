@@ -139,7 +139,6 @@ const QuestionCard: React.FC<{
     const [labelError, setLabelError] = useState<string | null>(null);
 
     const isAnyMenuOpen = isTypeMenuOpen || isActionsMenuOpen;
-    const isOnePerPage = survey.pagingMode === 'one-per-page';
 
     const questionTypeOptions = useMemo(() => toolboxItems
         .filter(item => item.name !== 'Block' && item.name !== 'Page Break')
@@ -594,11 +593,10 @@ const QuestionCard: React.FC<{
                             {isActionsMenuOpen && (
                                 <QuestionActionsMenu
                                     question={question}
-                                    onDuplicate={!isOnePerPage ? () => { onCopyQuestion(question.id); setIsActionsMenuOpen(false); } : undefined}
+                                    onDuplicate={() => { onCopyQuestion(question.id); setIsActionsMenuOpen(false); }}
                                     onDelete={() => { onDeleteQuestion(question.id); setIsActionsMenuOpen(false); }}
-                                    onAddPageBreak={!isOnePerPage ? () => { onAddPageBreakAfterQuestion(question.id); setIsActionsMenuOpen(false); } : undefined}
-                                    onMoveToNewBlock={!isOnePerPage ? () => { onMoveQuestionToNewBlock(question.id); setIsActionsMenuOpen(false); } : undefined}
-                                    onReplaceFromLibrary={!isOnePerPage ? () => { alert('Not implemented'); setIsActionsMenuOpen(false); } : undefined}
+                                    onAddPageBreak={() => { onAddPageBreakAfterQuestion(question.id); setIsActionsMenuOpen(false); }}
+                                    onMoveToNewBlock={() => { onMoveQuestionToNewBlock(question.id); setIsActionsMenuOpen(false); }}
                                     onPreview={handlePreview}
                                     onActivate={handleActivate}
                                     onDeactivate={handleDeactivate}

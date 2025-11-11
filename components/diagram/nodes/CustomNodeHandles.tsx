@@ -17,11 +17,12 @@ export const InputHandle: React.FC = () => (
   />
 );
 
-export const OutputHandle: React.FC<{ id?: string }> = ({ id = 'output' }) => (
-  <Handle
-    type="source"
-    position={Position.Right}
-    id={id}
-    style={handleStyle}
-  />
+// FIX: Add missing OutputHandle component. It is used by StartNodeComponent and other nodes.
+export const OutputHandle: React.FC = () => (
+    <Handle
+        type="source"
+        position={Position.Right}
+        id="output"
+        style={handleStyle}
+    />
 );

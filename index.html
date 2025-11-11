@@ -33,6 +33,11 @@
               'error-container': 'hsl(var(--color-error-container) / <alpha-value>)',
               'on-error-container': 'hsl(var(--color-on-error-container) / <alpha-value>)',
 
+              warning: 'hsl(var(--color-warning) / <alpha-value>)',
+              'on-warning': 'hsl(var(--color-on-warning) / <alpha-value>)',
+              'warning-container': 'hsl(var(--color-warning-container) / <alpha-value>)',
+              'on-warning-container': 'hsl(var(--color-on-warning-container) / <alpha-value>)',
+
               success: 'hsl(var(--color-success) / <alpha-value>)',
               'on-success': 'hsl(var(--color-on-success) / <alpha-value>)',
               'success-container': 'hsl(var(--color-success-container) / <alpha-value>)',
@@ -73,6 +78,11 @@
         --color-on-error: 0 0% 100%;
         --color-error-container: 353 100% 93%;
         --color-on-error-container: 354 100% 13%;
+
+        --color-warning: 26 80% 40%;
+        --color-on-warning: 0 0% 100%;
+        --color-warning-container: 26 100% 90%;
+        --color-on-warning-container: 26 100% 10%;
         
         --color-success: 162 100% 31%;
         --color-on-success: 0 0% 100%;
@@ -101,6 +111,11 @@
         --color-on-error: 354 86% 20%;
         --color-error-container: 353 69% 41%;
         --color-on-error-container: 353 100% 93%;
+
+        --color-warning: 26 100% 80%;
+        --color-on-warning: 26 85% 20%;
+        --color-warning-container: 26 75% 30%;
+        --color-on-warning-container: 26 100% 92%;
         
         --color-success: 161 58% 65%;
         --color-on-success: 162 100% 11%;
@@ -140,6 +155,19 @@
           fill: hsl(var(--color-primary) / 0.7);
       }
 
+      .react-flow__edge.structural .react-flow__edge-path {
+        stroke: hsl(var(--color-on-surface-variant));
+      }
+      .dark .react-flow__edge.structural .react-flow__edge-path {
+        stroke: hsl(var(--color-outline-variant));
+      }
+      .react-flow__edge.structural .react-flow__marker-end path {
+          fill: hsl(var(--color-on-surface-variant));
+      }
+      .dark .react-flow__edge.structural .react-flow__marker-end path {
+          fill: hsl(var(--color-outline-variant));
+      }
+      
       .react-flow__edge-text {
           color: hsl(var(--color-on-surface-variant));
           font-size: 12px;

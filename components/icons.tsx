@@ -117,3 +117,4 @@ export const ShuffleIcon: React.FC<IconProps> = ({ className, style }) => <Mater
 export const CarryForwardIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="subdirectory_arrow_right" className={className} style={style} />;
 export const CallSplitIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="call_split" className={className} style={style} />;
 export const DoubleArrowRightIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="keyboard_double_arrow_right" className={className} style={style} />;
+export const PublishIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="publish" className={className} style={style} />;

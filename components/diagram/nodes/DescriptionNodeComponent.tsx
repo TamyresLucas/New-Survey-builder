@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 import type { DescriptionNode } from '../../../types';
 import { DescriptionIcon } from '../../icons';
+// FIX: Import OutputHandle to use for the node's source connection.
 import { InputHandle, OutputHandle } from './CustomNodeHandles';
 import { stripHtml } from '../../../utils';
 
@@ -24,6 +25,7 @@ const DescriptionNodeComponent: React.FC<NodeProps<DescriptionNode>> = ({ data, 
             {stripHtml(data.question)}
          </div>
       </main>
+      {/* FIX: Add the missing output handle for this node's connections. */}
       <OutputHandle />
     </div>
   );

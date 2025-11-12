@@ -50,7 +50,7 @@ interface DiagramCanvasProps {
 }
 
 const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab }) => {
-    // FIX: Pass an initial empty array to useNodesState and useEdgesState to fix "Expected 1 arguments, but got 0" error.
+    // FIX: Pass an initial empty array to the useNodesState and useEdgesState hooks to prevent an error.
     const [nodes, setNodes, onNodesChange] = useNodesState<DiagramNode>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<DiagramEdge>([]);
     const reactFlowInstance = useReactFlow();
@@ -601,7 +601,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     if (ruleIndex !== -1) {
                         newRules[ruleIndex] = { ...newRules[ruleIndex], skipTo: target, isConfirmed: false };
                     } else {
-                        // FIX: Added the required 'id' property when creating a new SkipLogicRule.
                         newRules.push({
                             id: generateId('slr'),
                             choiceId: connection.sourceHandle,
@@ -610,7 +609,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                         });
                     }
                 } else {
-                    // FIX: Added the required 'id' property to the mapped SkipLogicRule objects.
                     newRules = (sourceQuestion.choices || []).map(choice => ({
                         id: generateId('slr'),
                         choiceId: choice.id,
@@ -640,7 +638,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     }, [survey, onSelectQuestion]);
 
     const onPaneClick = useCallback(() => {
-        // FIX: Called onSelectQuestion with null to deselect the question.
         onSelectQuestion(null);
     }, [onSelectQuestion]);
 
@@ -673,7 +670,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     if (ruleIndex !== -1) {
                         newRules[ruleIndex] = { ...newRules[ruleIndex], skipTo: target, isConfirmed: false };
                     } else {
-                        // FIX: Added the required 'id' property when creating a new SkipLogicRule.
                         newRules.push({
                             id: generateId('slr'),
                             choiceId: newConnection.sourceHandle,
@@ -682,7 +678,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                         });
                     }
                 } else {
-                    // FIX: Added the required 'id' property to the mapped SkipLogicRule objects.
                     newRules = (sourceQuestion.choices || []).map(choice => ({
                         id: generateId('slr'),
                         choiceId: choice.id,

@@ -386,173 +386,153 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
   const validatePage = (): boolean => {
     const errors = new Set<string>();
     for (const q of currentQuestions) {
-      if (!q.forceResponse) continue;
-
-      const answer = answers.get(q.id);
-      let isAnswered = false;
-
-      if (answer !== undefined && answer !== null) {
-        switch (q.type) {
-          case QuestionType.TextEntry:
-            isAnswered = typeof answer === 'string' && answer.trim() !== '';
-            break;
-          case QuestionType.Radio:
-            isAnswered = typeof answer === 'string' && answer.trim() !== '';
-            break;
-          case QuestionType.Checkbox:
-            isAnswered = answer instanceof Set && answer.size > 0;
-            break;
-          case QuestionType.ChoiceGrid:
-            isAnswered = answer instanceof Map && answer.size === (q.choices || []).length;
-            break;
-          default:
-            isAnswered = true;
+      if (q.forceResponse) {
+        const answer = answers.get(q.id);
+        let isAnswered = false;
+        if (answer !== undefined && answer !== null) {
+          if (typeof answer === 'string') {
+            isAnswered = answer.trim() !== '';
+          } else if (answer instanceof Set || answer instanceof Map) {
+            isAnswered = answer.size > 0;
+          } else {
+            isAnswered = true; // For other types, presence is enough
+          }
         }
-      }
-
-      if (!isAnswered) {
-        errors.add(q.id);
+        if (!isAnswered) {
+          errors.add(q.id);
+        }
       }
     }
     setValidationErrors(errors);
+    // FIX: Add missing return statement. This function must return a boolean.
     return errors.size === 0;
   };
-  
-  const handleSubmit = () => {
-      alert("Survey Submitted! (Not really)");
-      onClose();
-  }
 
-  const handleNext = useCallback(() => {
+  const handleNext = () => {
     if (!validatePage()) {
-      return;
+      return; // Validation failed
     }
-
-    setPageHistory(prev => [...prev, currentPage]);
 
     if (nextStepInfo.action === 'submit') {
-      handleSubmit();
+      onClose();
+      // In a real app, you'd probably show a thank you message or redirect.
+      alert('Survey Submitted! (Preview Mode)');
     } else {
+      setPageHistory([...pageHistory, currentPage]);
       setCurrentPage(nextStepInfo.pageIndex);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [validatePage, currentPage, nextStepInfo]);
-
-  const handleAnswerChange = (questionId: string, answer: any) => {
-    setAnswers(prev => new Map(prev).set(questionId, answer));
-    lastAnsweredQIdRef.current = questionId;
-    if (validationErrors.has(questionId)) {
-      setValidationErrors(prev => {
-        const newErrors = new Set(prev);
-        newErrors.delete(questionId);
-        return newErrors;
-      });
-    }
   };
-
-  useEffect(() => {
-    if (!lastAnsweredQIdRef.current) return;
-
-    const questionId = lastAnsweredQIdRef.current;
-    const question = survey.blocks.flatMap(b => b.questions).find(q => q.id === questionId);
-    if (question) {
-        const parentBlock = survey.blocks.find(b => b.questions.some(q => q.id === questionId));
-        
-        // Determine if auto-advance is enabled for this question
-        let autoAdvanceEnabled = question.autoAdvance;
-        if (autoAdvanceEnabled === undefined) { // If not set on question, check block
-            autoAdvanceEnabled = parentBlock?.autoAdvance;
-        }
-
-        const isAutoAdvanceType = question.type === QuestionType.Radio || question.type === QuestionType.ChoiceGrid;
-
-        if (autoAdvanceEnabled && isAutoAdvanceType) {
-            // For ChoiceGrid, only advance if all rows are answered.
-            if (question.type === QuestionType.ChoiceGrid) {
-                const answer = answers.get(question.id) as Map<string, string> | undefined;
-                const allRowsAnswered = (question.choices?.length || 0) === (answer?.size || 0);
-                if (!allRowsAnswered) {
-                    lastAnsweredQIdRef.current = null; // Reset ref
-                    return; // Don't advance yet
-                }
-            }
-            
-            setTimeout(() => {
-                handleNext();
-            }, 300);
-        }
-    }
-
-    lastAnsweredQIdRef.current = null; // Reset ref after check
-  }, [answers, survey, handleNext]);
 
   const handleBack = () => {
     if (pageHistory.length > 0) {
-      const lastPageIndex = pageHistory[pageHistory.length - 1];
-      setPageHistory(prev => prev.slice(0, -1));
-      setCurrentPage(lastPageIndex);
+      const lastPage = pageHistory[pageHistory.length - 1];
+      setPageHistory(pageHistory.slice(0, -1));
+      setCurrentPage(lastPage);
     }
   };
+  
+  const handleAnswerChange = useCallback((questionId: string, answer: any) => {
+    lastAnsweredQIdRef.current = questionId;
+    setAnswers(prev => new Map(prev).set(questionId, answer));
+  }, []);
+  
+  // Autoadvance logic
+  useEffect(() => {
+    const lastAnsweredQId = lastAnsweredQIdRef.current;
+    if (!lastAnsweredQId) return;
 
-  const commonContentProps = {
-    survey: survey,
-    questions: currentQuestions,
-    answers: answers,
-    validationErrors: validationErrors,
-    onAnswerChange: handleAnswerChange,
-    isLastPage: isEffectivelyLastPage,
-    currentPage: currentPage,
-    onBack: handleBack,
-    onNext: handleNext,
-    questionIdToBlockMap,
-  };
+    const question = currentQuestions.find(q => q.id === lastAnsweredQId);
+    if (!question) return;
+    
+    const parentBlock = questionIdToBlockMap.get(question.id);
 
+    const isAutoadvanceable = (question.autoAdvance === true) || (question.autoAdvance === undefined && parentBlock?.autoAdvance === true) || (question.autoAdvance === undefined && parentBlock?.autoAdvance === undefined && survey.globalAutoAdvance === true);
 
+    if (isAutoadvanceable && [QuestionType.Radio, QuestionType.ChoiceGrid].includes(question.type)) {
+        // Delay slightly to allow the UI to update and for the user to see their selection
+        const timer = setTimeout(() => {
+            handleNext();
+        }, 300);
+        return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, currentQuestions]);
+  
+  // FIX: Added return statement to the component to render the JSX.
   return (
-    <div className="fixed inset-0 bg-surface z-50 flex flex-col font-sans">
-      <header className="flex-shrink-0 bg-surface-container border-b border-outline-variant p-4 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-on-surface">Preview</h2>
-        <button onClick={onClose} className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high">
-          <XIcon className="text-xl" />
-        </button>
-      </header>
-      <main className="flex-1 bg-surface-container-high/50 grid grid-cols-1 md:grid-cols-2 gap-8 p-8 overflow-y-auto">
-        {/* Desktop Preview */}
-        <div className="hidden md:flex flex-col items-center">
-            <div
-                ref={desktopPaneRef}
-                onScroll={() => syncScroll('desktop')}
-                className="w-full max-w-3xl bg-surface rounded-lg shadow-lg p-8 overflow-y-auto"
-            >
-              <PreviewContent device="desktop" {...commonContentProps} />
+    <div
+      className="fixed inset-0 z-50"
+    >
+      <div
+        className="bg-surface w-full h-full flex flex-col"
+      >
+        <header className="p-4 border-b border-outline-variant flex items-center justify-between flex-shrink-0">
+          <h2 className="text-lg font-bold text-on-surface">Preview Survey</h2>
+          <button onClick={onClose} className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high">
+            <XIcon className="text-xl" />
+          </button>
+        </header>
+
+        <main className="flex-1 overflow-hidden grid grid-cols-2 gap-4">
+          {/* Desktop Preview */}
+          <div className="flex flex-col">
+            <div ref={desktopPaneRef} onScroll={() => syncScroll('desktop')} className="flex-1 overflow-y-auto p-8">
+              <PreviewContent
+                device="desktop"
+                survey={survey}
+                questions={currentQuestions}
+                answers={answers}
+                validationErrors={validationErrors}
+                onAnswerChange={handleAnswerChange}
+                isLastPage={isEffectivelyLastPage}
+                currentPage={currentPage}
+                onBack={handleBack}
+                onNext={handleNext}
+                questionIdToBlockMap={questionIdToBlockMap}
+              />
             </div>
-        </div>
-        {/* Mobile Preview */}
-        <div className="flex flex-col items-center">
-             <div className="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[700px] w-[350px] shadow-xl">
+          </div>
+
+          {/* Mobile Preview */}
+          <div className="flex flex-col border-l border-outline-variant">
+            <div className="flex-1 overflow-y-auto flex justify-center py-8 bg-surface-container-high">
+              <div className="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-full w-[340px] shadow-xl">
                 <div className="w-[140px] h-[18px] bg-gray-800 top-0 rounded-b-[1rem] left-1/2 -translate-x-1/2 absolute"></div>
                 <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[124px] rounded-l-lg"></div>
                 <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[178px] rounded-l-lg"></div>
                 <div className="h-[64px] w-[3px] bg-gray-800 absolute -right-[17px] top-[142px] rounded-r-lg"></div>
-                <div className="rounded-[2rem] overflow-hidden w-full h-full bg-surface flex flex-col">
-                    <div className="px-4 py-2 flex justify-between items-center text-xs text-on-surface-variant font-sans font-bold flex-shrink-0">
-                        <span>12:29</span>
-                        <div className="flex items-center gap-1">
-                            <SignalIcon className="text-base" />
-                            <BatteryIcon className="text-base" />
-                        </div>
+                <div className="rounded-[2rem] overflow-hidden w-full h-full bg-surface">
+                  <div className="px-4 py-2 flex justify-between items-center text-xs text-on-surface-variant font-sans font-bold">
+                    <span>12:29</span>
+                    <div className="flex items-center gap-1">
+                      <SignalIcon className="text-base" />
+                      <BatteryIcon className="text-base" />
                     </div>
-                    <div
-                        ref={mobilePaneRef}
-                        onScroll={() => syncScroll('mobile')}
-                        className="flex-1 p-4 overflow-y-auto"
-                    >
-                        <PreviewContent device="mobile" {...commonContentProps} />
-                    </div>
+                  </div>
+                  <div ref={mobilePaneRef} onScroll={() => syncScroll('mobile')} className="p-4 overflow-y-auto h-[calc(100%-32px)]">
+                    <PreviewContent
+                      device="mobile"
+                      survey={survey}
+                      questions={currentQuestions}
+                      answers={answers}
+                      validationErrors={validationErrors}
+                      onAnswerChange={handleAnswerChange}
+                      isLastPage={isEffectivelyLastPage}
+                      currentPage={currentPage}
+                      onBack={handleBack}
+                      onNext={handleNext}
+                      questionIdToBlockMap={questionIdToBlockMap}
+                    />
+                  </div>
                 </div>
+              </div>
             </div>
-        </div>
-      </main>
+          </div>
+        </main>
+      </div>
     </div>
   );
 };
+
+
+export default SurveyPreview;

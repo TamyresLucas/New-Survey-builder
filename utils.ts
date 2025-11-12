@@ -217,15 +217,6 @@ export const renumberSurveyVariables = (survey: Survey): Survey => {
       if (question.draftBranchingLogic) {
         question.draftBranchingLogic.branches.forEach(branch => updateConditions(branch));
       }
-
-      // Update Carry Forward Logic
-      if (question.carryForwardStatements) {
-        const newQid = oldToNewQidMap.get(question.carryForwardStatements.sourceQuestionId);
-        if (newQid) {
-          question.carryForwardStatements.sourceQuestionId = newQid;
-        }
-      }
-      // FIX: The 'carryForwardScalePoints' property does not exist on the Question type. This block of code is removed.
     });
   });
 

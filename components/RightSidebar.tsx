@@ -1,5 +1,5 @@
 import React, { memo, useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, CarryForwardLogic, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, ActionLogic, Workflow, ChoiceEliminationLogic } from '../types';
+import type { Survey, Question, ToolboxItemData, Choice, DisplayLogicCondition, SkipLogicRule, RandomizationMethod, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, ActionLogic, Workflow, ChoiceEliminationLogic, Block, DisplayLogic, SkipLogic, ChoiceDisplayLogic, ChoiceDisplayCondition } from '../types';
 import { QuestionType } from '../types';
 import { generateId, parseChoice, CHOICE_BASED_QUESTION_TYPES, truncate, isBranchingLogicExhaustive } from '../utils';
 import { PasteChoicesModal } from './PasteChoicesModal';
@@ -9,8 +9,8 @@ import {
     MoreVertIcon, ArrowRightAltIcon,
     SignalIcon, BatteryIcon, RadioButtonUncheckedIcon, CheckboxOutlineIcon,
     RadioIcon as RadioButtonCheckedIcon, CheckboxFilledIcon as CheckboxCheckedIcon, ShuffleIcon,
-    InfoIcon, EyeIcon, ContentPasteIcon, CarryForwardIcon, CallSplitIcon,
-    WarningIcon, CheckmarkIcon, ContentCopyIcon, HideSourceIcon
+    InfoIcon, EyeIcon, ContentPasteIcon, CallSplitIcon,
+    WarningIcon, CheckmarkIcon, ContentCopyIcon, HideSourceIcon, DoubleArrowRightIcon
 } from './icons';
 import { QuestionTypeSelectionMenuContent } from './ActionMenus';
 
@@ -199,95 +199,332 @@ const RandomizeChoicesEditor: React.FC<{
     );
 };
 
-// FIX: Implement missing CarryForwardLogicEditor component
-const CarryForwardLogicEditor: React.FC<{
+const ChoiceConditionRow: React.FC<{
+    condition: ChoiceDisplayCondition;
+    questionChoices: Choice[];
+    availableQuestions: Question[];
+    onUpdate: (updates: Partial<ChoiceDisplayCondition>) => void;
+    onRemove: () => void;
+    onConfirm: () => void;
+    invalidFields?: Set<keyof ChoiceDisplayCondition>;
+}> = memo(({ condition, questionChoices, availableQuestions, onUpdate, onRemove, onConfirm, invalidFields = new Set() }) => {
+    const referencedQuestion = useMemo(() => availableQuestions.find(q => q.qid === condition.sourceQuestionId), [availableQuestions, condition.sourceQuestionId]);
+    const isNumericInput = referencedQuestion?.type === QuestionType.NumericAnswer;
+    const isChoiceBasedInput = referencedQuestion && CHOICE_BASED_QUESTION_TYPES.has(referencedQuestion.type);
+    const isConfirmed = condition.isConfirmed ?? false;
+    
+    const valueIsDisabled = !referencedQuestion || ['is_empty', 'is_not_empty'].includes(condition.operator);
+
+    const handleOperatorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newOperator = e.target.value;
+        onUpdate({ operator: newOperator as ChoiceDisplayCondition['operator'] });
+        if (['is_empty', 'is_not_empty'].includes(newOperator)) {
+            onUpdate({ value: '' });
+        }
+    };
+    
+    const choiceBorderClass = invalidFields.has('targetChoiceId') ? 'border-error' : 'border-outline focus:outline-primary';
+    const questionBorderClass = invalidFields.has('sourceQuestionId') ? 'border-error' : 'border-outline focus:outline-primary';
+    const operatorBorderClass = invalidFields.has('operator') ? 'border-error' : 'border-outline focus:outline-primary';
+    const valueBorderClass = invalidFields.has('value') ? 'border-error' : 'border-outline focus:outline-primary';
+
+    return (
+        <div className="p-2 bg-surface rounded-md border border-outline flex flex-wrap items-center gap-2 text-sm">
+            <select
+                value={condition.targetChoiceId}
+                onChange={e => onUpdate({ targetChoiceId: e.target.value })}
+                className={`bg-surface-container-high border rounded px-2 py-1 focus:outline-2 focus:outline-primary ${choiceBorderClass}`}
+            >
+                <option value="">Select choice</option>
+                {questionChoices.map(c => {
+                    const { label } = parseChoice(c.text);
+                    return <option key={c.id} value={c.id}>{truncate(label, 20)}</option>
+                })}
+            </select>
+
+            <span className="text-on-surface-variant">if</span>
+
+            <select
+                value={condition.sourceQuestionId}
+                onChange={e => onUpdate({ sourceQuestionId: e.target.value, operator: '', value: '' })}
+                className={`bg-surface-container-high border rounded px-2 py-1 focus:outline-2 focus:outline-primary ${questionBorderClass}`}
+            >
+                <option value="">Select question</option>
+                {availableQuestions.map(q => <option key={q.id} value={q.qid}>{q.qid}</option>)}
+            </select>
+
+            <select 
+                value={condition.operator} 
+                onChange={handleOperatorChange} 
+                className={`bg-surface-container-high border rounded px-2 py-1 focus:outline-2 focus:outline-primary ${operatorBorderClass}`}
+                disabled={!referencedQuestion}
+            >
+                <option value="">operator</option>
+                <option value="equals">equals</option>
+                <option value="not_equals">not equals</option>
+                <option value="contains">contains</option>
+                <option value="greater_than">greater than</option>
+                <option value="less_than">less than</option>
+                <option value="is_empty">is empty</option>
+                <option value="is_not_empty">is not empty</option>
+            </select>
+            
+            {!valueIsDisabled && (
+                isChoiceBasedInput && referencedQuestion?.choices ? (
+                    <select
+                        value={condition.value}
+                        onChange={e => onUpdate({ value: e.target.value })}
+                        className={`bg-surface-container-high border rounded px-2 py-1 focus:outline-2 focus:outline-primary ${valueBorderClass}`}
+                    >
+                        <option value="">Select answer</option>
+                        {referencedQuestion.choices.map(choice => (
+                            <option key={choice.id} value={choice.text}>{parseChoice(choice.text).label}</option>
+                        ))}
+                    </select>
+                ) : (
+                    <input 
+                        type={isNumericInput ? "number" : "text"} 
+                        value={condition.value} 
+                        onChange={e => onUpdate({ value: e.target.value })} 
+                        placeholder="value"
+                        className={`bg-surface-container-high border rounded px-2 py-1 w-24 focus:outline-2 focus:outline-primary ${valueBorderClass}`}
+                    />
+                )
+            )}
+            <div className="ml-auto flex items-center gap-1">
+                <button onClick={onRemove} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full">
+                    <XIcon className="text-base" />
+                </button>
+                {!isConfirmed && (
+                    <button onClick={onConfirm} className="p-1.5 bg-primary text-on-primary rounded-full hover:opacity-90">
+                        <CheckmarkIcon className="text-base" />
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+});
+
+
+const ChoiceDisplayLogicEditor: React.FC<{
     question: Question;
     previousQuestions: Question[];
     onUpdate: (updates: Partial<Question>) => void;
-    logicKey: 'carryForwardStatements';
-    label: string;
-    addButtonLabel: string;
-    description: string;
     onAddLogic: () => void;
-}> = ({ question, previousQuestions, onUpdate, logicKey, label, addButtonLabel, description, onAddLogic }) => {
-    const logic = question[logicKey];
+}> = ({ question, previousQuestions, onUpdate, onAddLogic }) => {
+    const logic = question.draftChoiceDisplayLogic ?? question.choiceDisplayLogic;
+    const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof ChoiceDisplayCondition>>>(new Map());
 
-    const handleAddLogic = () => {
-        onUpdate({ [logicKey]: { sourceQuestionId: '', filter: 'selected' } });
+    const handleUpdateLogic = (updates: Partial<ChoiceDisplayLogic>) => {
+        const newLogic: ChoiceDisplayLogic = {
+            showOperator: logic?.showOperator || 'AND',
+            showConditions: logic?.showConditions || [],
+            hideOperator: logic?.hideOperator || 'AND',
+            hideConditions: logic?.hideConditions || [],
+            ...updates,
+        };
+        onUpdate({ draftChoiceDisplayLogic: newLogic });
+    };
+
+    const handleAddCondition = (type: 'show' | 'hide') => {
         onAddLogic();
+        const newCondition: ChoiceDisplayCondition = {
+            id: generateId('cdc'),
+            targetChoiceId: '',
+            sourceQuestionId: '',
+            operator: '',
+            value: '',
+            isConfirmed: false,
+        };
+        if (type === 'show') {
+            handleUpdateLogic({ showConditions: [...(logic?.showConditions || []), newCondition] });
+        } else {
+            handleUpdateLogic({ hideConditions: [...(logic?.hideConditions || []), newCondition] });
+        }
+    };
+    
+    const handleUpdateCondition = (type: 'show' | 'hide', conditionId: string, updates: Partial<ChoiceDisplayCondition>) => {
+        const list = type === 'show' ? logic?.showConditions : logic?.hideConditions;
+        const newList = (list || []).map(c => c.id === conditionId ? { ...c, ...updates, isConfirmed: false } : c);
+        
+        if (validationErrors.has(conditionId)) {
+            const fieldKeys = Object.keys(updates) as (keyof ChoiceDisplayCondition)[];
+            setValidationErrors(prev => {
+                const newErrors = new Map(prev);
+                const conditionErrors = new Set(newErrors.get(conditionId) || []);
+                fieldKeys.forEach(key => conditionErrors.delete(key));
+                if (conditionErrors.size === 0) {
+                    newErrors.delete(conditionId);
+                } else {
+                    newErrors.set(conditionId, conditionErrors);
+                }
+                return newErrors;
+            });
+        }
+        
+        if (type === 'show') {
+            handleUpdateLogic({ showConditions: newList });
+        } else {
+            handleUpdateLogic({ hideConditions: newList });
+        }
+    };
+    
+    const handleRemoveCondition = (type: 'show' | 'hide', conditionId: string) => {
+        const list = type === 'show' ? logic?.showConditions : logic?.hideConditions;
+        const newList = (list || []).filter(c => c.id !== conditionId);
+        if (type === 'show') {
+            handleUpdateLogic({ showConditions: newList });
+        } else {
+            handleUpdateLogic({ hideConditions: newList });
+        }
     };
 
-    const handleRemoveLogic = () => {
-        onUpdate({ [logicKey]: undefined });
+    const handleConfirmCondition = (type: 'show' | 'hide', conditionId: string) => {
+        const list = type === 'show' ? logic?.showConditions : logic?.hideConditions;
+        if (!list) return;
+        
+        const condition = list.find(c => c.id === conditionId);
+        if (!condition) return;
+
+        const tempErrors = new Set<keyof ChoiceDisplayCondition>();
+        if (!condition.targetChoiceId) tempErrors.add('targetChoiceId');
+        if (!condition.sourceQuestionId) tempErrors.add('sourceQuestionId');
+        if (!condition.operator) tempErrors.add('operator');
+        
+        const requiresValue = !['is_empty', 'is_not_empty'].includes(condition.operator);
+        if (requiresValue && !condition.value.trim()) tempErrors.add('value');
+
+        if (tempErrors.size > 0) {
+            setValidationErrors(prev => new Map(prev).set(conditionId, tempErrors));
+            return;
+        }
+
+        const newList = list.map(c => c.id === conditionId ? { ...c, isConfirmed: true } : c);
+        if (type === 'show') {
+            handleUpdateLogic({ showConditions: newList });
+        } else {
+            handleUpdateLogic({ hideConditions: newList });
+        }
+        setValidationErrors(prev => {
+            const newErrors = new Map(prev);
+            newErrors.delete(conditionId);
+            return newErrors;
+        });
     };
 
-    const handleUpdateLogic = (updates: Partial<CarryForwardLogic>) => {
-        onUpdate({ [logicKey]: { ...logic, ...updates } });
+    const handleRemoveAll = () => {
+        onUpdate({ choiceDisplayLogic: undefined, draftChoiceDisplayLogic: undefined });
     };
 
-    if (!logic) {
-        return (
-            <div>
-                <h3 className="text-sm font-medium text-on-surface mb-1 flex items-center gap-2">
-                    <CarryForwardIcon className="text-base" />
-                    {label}
-                </h3>
-                <p className="text-xs text-on-surface-variant mb-3">{description}</p>
-                <button onClick={handleAddLogic} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                    <PlusIcon className="text-base" />
-                    {addButtonLabel}
-                </button>
-            </div>
-        );
-    }
+    const hasAnyLogic = (logic?.showConditions?.length || 0) > 0 || (logic?.hideConditions?.length || 0) > 0;
 
     return (
         <div>
-            <div className="flex items-center justify-between gap-2 mb-3">
-                <div>
-                    <h3 className="text-sm font-medium text-on-surface flex items-center gap-2">
-                        <CarryForwardIcon className="text-base" />
-                        {label}
-                    </h3>
-                    <p className="text-xs text-on-surface-variant mt-0.5">{description}</p>
-                </div>
-                <button onClick={handleRemoveLogic} className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50">
-                    Remove
-                </button>
+            <div className="flex items-center justify-between gap-2 mb-1">
+                <h3 className="text-sm font-medium text-on-surface">Choice Display Logic</h3>
+                {hasAnyLogic && 
+                    <button onClick={handleRemoveAll} className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50">
+                        Remove
+                    </button>
+                }
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <p className="text-xs text-on-surface-variant mb-4">Control when individual choices are shown or hidden.</p>
+
+            <div className="space-y-6">
+                {/* SHOW SECTION */}
                 <div>
-                    <label htmlFor="carry-forward-source" className="block text-xs font-medium text-on-surface-variant mb-1">Source Question</label>
-                    <div className="relative">
-                        <select
-                            id="carry-forward-source"
-                            value={logic.sourceQuestionId}
-                            onChange={e => handleUpdateLogic({ sourceQuestionId: e.target.value })}
-                            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                        >
-                            <option value="">Select question</option>
-                            {previousQuestions.filter(q => CHOICE_BASED_QUESTION_TYPES.has(q.type)).map(q => (
-                                <option key={q.id} value={q.qid}>{q.qid}: {truncate(q.text, 50)}</option>
-                            ))}
-                        </select>
-                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-                    </div>
+                    {(!logic || !logic.showConditions || logic.showConditions.length === 0) ? (
+                        <>
+                            <h4 className="text-sm font-medium text-on-surface">Show</h4>
+                            <p className="text-xs text-on-surface-variant mt-0.5">Define conditions for when specific choices should be displayed.</p>
+                            <div className="mt-3 flex items-center gap-4">
+                                <button onClick={() => handleAddCondition('show')} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                                    <PlusIcon className="text-base" /> Add show condition
+                                </button>
+                                <CopyAndPasteButton onClick={() => alert('Paste logic for choices not implemented yet.')} />
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                    <h4 className="text-sm font-medium text-on-surface">Show:</h4>
+                                    {logic.showConditions.length > 1 && (
+                                        <div className="flex gap-1">
+                                            <button onClick={() => handleUpdateLogic({ showOperator: 'AND' })} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${logic.showOperator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
+                                            <button onClick={() => handleUpdateLogic({ showOperator: 'OR' })} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${logic.showOperator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
+                                        </div>
+                                    )}
+                                </div>
+                                <button onClick={() => handleAddCondition('show')} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                                    <PlusIcon className="text-base" /> Add condition
+                                </button>
+                            </div>
+                            <div className="space-y-2">
+                                {logic.showConditions.map(condition => (
+                                    <ChoiceConditionRow
+                                        key={condition.id}
+                                        condition={condition}
+                                        questionChoices={question.choices || []}
+                                        availableQuestions={previousQuestions}
+                                        onUpdate={(updates) => handleUpdateCondition('show', condition.id, updates)}
+                                        onRemove={() => handleRemoveCondition('show', condition.id)}
+                                        onConfirm={() => handleConfirmCondition('show', condition.id)}
+                                        invalidFields={validationErrors.get(condition.id)}
+                                    />
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </div>
+
+                <div className="border-t border-outline-variant" />
+
+                {/* HIDE SECTION */}
                 <div>
-                    <label htmlFor="carry-forward-filter" className="block text-xs font-medium text-on-surface-variant mb-1">Filter</label>
-                    <div className="relative">
-                        <select
-                            id="carry-forward-filter"
-                            value={logic.filter}
-                            onChange={e => handleUpdateLogic({ filter: e.target.value })}
-                            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                        >
-                            <option value="selected">Selected Choices</option>
-                            <option value="unselected">Unselected Choices</option>
-                            <option value="all">All Choices</option>
-                        </select>
-                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-                    </div>
+                     {(!logic || !logic.hideConditions || logic.hideConditions.length === 0) ? (
+                        <>
+                            <h4 className="text-sm font-medium text-on-surface">Hide</h4>
+                            <p className="text-xs text-on-surface-variant mt-0.5">Define conditions for when specific choices should be hidden.</p>
+                            <div className="mt-3 flex items-center gap-4">
+                                <button onClick={() => handleAddCondition('hide')} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                                    <PlusIcon className="text-base" /> Add hide condition
+                                </button>
+                                <CopyAndPasteButton onClick={() => alert('Paste logic for choices not implemented yet.')} />
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                    <h4 className="text-sm font-medium text-on-surface">Hide:</h4>
+                                    {logic.hideConditions.length > 1 && (
+                                        <div className="flex gap-1">
+                                            <button onClick={() => handleUpdateLogic({ hideOperator: 'AND' })} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${logic.hideOperator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
+                                            <button onClick={() => handleUpdateLogic({ hideOperator: 'OR' })} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${logic.hideOperator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
+                                        </div>
+                                    )}
+                                </div>
+                                <button onClick={() => handleAddCondition('hide')} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                                    <PlusIcon className="text-base" /> Add condition
+                                </button>
+                            </div>
+                            <div className="space-y-2">
+                                {logic.hideConditions.map(condition => (
+                                    <ChoiceConditionRow
+                                        key={condition.id}
+                                        condition={condition}
+                                        questionChoices={question.choices || []}
+                                        availableQuestions={previousQuestions}
+                                        onUpdate={(updates) => handleUpdateCondition('hide', condition.id, updates)}
+                                        onRemove={() => handleRemoveCondition('hide', condition.id)}
+                                        onConfirm={() => handleConfirmCondition('hide', condition.id)}
+                                        invalidFields={validationErrors.get(condition.id)}
+                                    />
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>
@@ -774,6 +1011,10 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
 
     // ... All render functions and sub-components from RightSidebar.tsx go here ...
     const renderChoiceBasedSettingsTab = () => {
+    const isLinked = !!question.linkedChoicesSource;
+    const sourceQuestion = isLinked ? allSurveyQuestions.find(q => q.id === question.linkedChoicesSource) : null;
+    const sourceQid = sourceQuestion ? sourceQuestion.qid : '...';
+
     return (
         <div className="space-y-6">
             <div>
@@ -853,130 +1094,189 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                 />
                 <p className="text-xs text-on-surface-variant mt-1">Maximum 5000 characters</p>
             </div>
-    
+
             <div>
-                <h3 className="text-sm font-medium text-on-surface-variant mb-2">
-                    {question.type === QuestionType.ChoiceGrid ? 'Rows' : 'Choices'}
-                </h3>
-                <div 
-                    className="space-y-2"
-                    onDrop={handleChoiceDrop}
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        setDropTargetChoiceId(null);
-                    }}
-                >
-                {(question.choices || []).map((choice) => (
-                    <React.Fragment key={choice.id}>
-                    {dropTargetChoiceId === choice.id && <ChoiceDropIndicator />}
-                    <div 
-                        className="group"
-                        draggable
-                        onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
-                        onDragOver={(e) => {
-                            e.stopPropagation();
-                            handleChoiceDragOver(e, choice.id);
-                        }}
-                        onDragEnd={handleChoiceDrop}
-                    >
-                        <div className={`flex items-center gap-2 transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}>
-                            <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing" aria-label="Reorder choice">
-                                <DragIndicatorIcon className="text-lg" />
-                            </span>
-                            <div className="flex-grow flex items-stretch bg-surface border border-outline rounded-md focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-primary">
-                                <input
-                                    type="text"
-                                    value={parseChoice(choice.text).label}
-                                    onChange={(e) => handleChoiceTextChange(choice.id, e.target.value)}
-                                    onPaste={createPasteHandler((newValue) => handleChoiceTextChange(choice.id, newValue))}
-                                    className="w-full bg-transparent p-2 text-sm text-on-surface focus:outline-none"
-                                    placeholder="Enter choice text"
-                                />
-                            </div>
-                            <button onClick={() => setExpandedChoiceId(expandedChoiceId === choice.id ? null : choice.id)} className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-full" aria-label="More options">
-                                <MoreVertIcon className="text-lg" />
-                            </button>
-                            <button onClick={() => onDeleteChoice(question.id, choice.id)} className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Delete choice">
-                                <XIcon className="text-lg" />
-                            </button>
-                        </div>
-                        {expandedChoiceId === choice.id && (
-                        <div className="ml-8 mt-2 p-3 bg-surface-container-high rounded-md space-y-3">
-                            <div className="flex items-center justify-between">
-                            <label className="text-xs font-medium text-on-surface-variant">Visible</label>
-                            <input type="checkbox" checked={choice.visible ?? true} onChange={e => handleChoicePropertyChange(choice.id, 'visible', e.target.checked)} className="accent-primary" />
-                            </div>
-                            <div className="flex items-center justify-between">
-                            <label className="text-xs font-medium text-on-surface-variant">Allow Text Entry</label>
-                            <div className="flex items-center justify-end">
-                                <input type="checkbox" checked={choice.allowTextEntry ?? false} onChange={e => handleChoicePropertyChange(choice.id, 'allowTextEntry', e.target.checked)} className="accent-primary" />
-                            </div>
-                            </div>
-                        </div>
-                        )}
+                <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                        <label htmlFor="link-choices" className="text-sm font-medium text-on-surface block">
+                            Link choices to question
+                        </label>
+                        <p className="text-xs text-on-surface-variant mt-0.5">Use the same choices as another question.</p>
                     </div>
-                    </React.Fragment>
-                ))}
-                {dropTargetChoiceId === null && draggedChoiceId && <ChoiceDropIndicator />}
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            id="link-choices" 
+                            checked={question.linkedChoicesSource !== undefined} 
+                            onChange={(e) => {
+                                const isEnabling = e.target.checked;
+                                handleUpdate({ linkedChoicesSource: isEnabling ? '' : undefined });
+                            }} 
+                            className="sr-only peer" 
+                        />
+                        <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
                 </div>
-                <div className="mt-3 flex items-center gap-4">
-                    <button onClick={() => onAddChoice(question.id)} className="flex items-center text-sm font-medium text-primary hover:underline"><PlusIcon className="text-base mr-1" /> {question.type === QuestionType.ChoiceGrid ? 'Row' : 'Choice'}</button>
-                    <CopyAndPasteButton onClick={() => setIsPasteModalOpen(true)} />
-                </div>
+
+                {question.linkedChoicesSource !== undefined && (
+                    <div className="mt-4 pl-4 border-l-2 border-outline-variant">
+                        <label htmlFor="linked-choices-source" className="block text-sm font-medium text-on-surface-variant mb-1">Source question</label>
+                        <div className="relative">
+                            <select
+                                id="linked-choices-source"
+                                value={question.linkedChoicesSource || ''}
+                                onChange={(e) => handleUpdate({ linkedChoicesSource: e.target.value || undefined })}
+                                className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                            >
+                                <option value="">Select a source question...</option>
+                                {previousQuestions.filter(q => q.id !== question.id && CHOICE_BASED_QUESTION_TYPES.has(q.type)).map(q => (
+                                    <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>
+                                ))}
+                            </select>
+                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                        </div>
+                    </div>
+                )}
             </div>
-            {question.type === QuestionType.ChoiceGrid && (
-                <div>
-                    <h3 className="text-sm font-medium text-on-surface-variant mb-2">Columns</h3>
-                    <div 
-                        className="space-y-2"
-                        onDrop={handleScalePointDrop}
-                        onDragOver={(e) => {
-                            e.preventDefault();
-                            setDropTargetScalePointId(null);
-                        }}
-                    >
-                    {(question.scalePoints || []).map((scalePoint) => (
-                        <React.Fragment key={scalePoint.id}>
-                        {dropTargetScalePointId === scalePoint.id && <ChoiceDropIndicator />}
+    
+            <div className={isLinked ? 'opacity-50' : ''}>
+                <fieldset disabled={isLinked}>
+                    <div>
+                        <h3 className="text-sm font-medium text-on-surface-variant mb-2">
+                            {question.type === QuestionType.ChoiceGrid ? 'Rows' : 'Choices'}
+                        </h3>
                         <div 
-                            className="group"
-                            draggable
-                            onDragStart={(e) => handleScalePointDragStart(e, scalePoint.id)}
+                            className="space-y-2"
+                            onDrop={handleChoiceDrop}
                             onDragOver={(e) => {
-                                e.stopPropagation();
-                                handleScalePointDragOver(e, scalePoint.id);
+                                e.preventDefault();
+                                setDropTargetChoiceId(null);
                             }}
-                            onDragEnd={handleScalePointDragEnd}
                         >
-                            <div className={`flex items-center gap-2 transition-opacity ${draggedScalePointId === scalePoint.id ? 'opacity-30' : ''}`}>
-                                <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing" aria-label="Reorder column">
-                                    <DragIndicatorIcon className="text-lg" />
-                                </span>
-                                <div className="flex-grow flex items-stretch bg-surface border border-outline rounded-md focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-primary">
-                                    <input
-                                        type="text"
-                                        value={scalePoint.text}
-                                        onChange={(e) => handleScalePointTextChange(scalePoint.id, e.target.value)}
-                                        onPaste={createPasteHandler((newValue) => handleScalePointTextChange(scalePoint.id, newValue))}
-                                        className="w-full bg-transparent p-2 text-sm text-on-surface focus:outline-none"
-                                        placeholder="Enter column text"
-                                    />
+                        {(question.choices || []).map((choice) => (
+                            <React.Fragment key={choice.id}>
+                            {dropTargetChoiceId === choice.id && <ChoiceDropIndicator />}
+                            <div 
+                                className="group"
+                                draggable
+                                onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
+                                onDragOver={(e) => {
+                                    e.stopPropagation();
+                                    handleChoiceDragOver(e, choice.id);
+                                }}
+                                onDragEnd={handleChoiceDrop}
+                            >
+                                <div className={`flex items-center gap-2 transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}>
+                                    <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing" aria-label="Reorder choice">
+                                        <DragIndicatorIcon className="text-lg" />
+                                    </span>
+                                    <div className="flex-grow flex items-stretch bg-surface border border-outline rounded-md focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-primary">
+                                        <input
+                                            type="text"
+                                            value={parseChoice(choice.text).label}
+                                            onChange={(e) => handleChoiceTextChange(choice.id, e.target.value)}
+                                            onPaste={createPasteHandler((newValue) => handleChoiceTextChange(choice.id, newValue))}
+                                            className="w-full bg-transparent p-2 text-sm text-on-surface focus:outline-none"
+                                            placeholder="Enter choice text"
+                                        />
+                                    </div>
+                                    <button onClick={() => setExpandedChoiceId(expandedChoiceId === choice.id ? null : choice.id)} className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-full" aria-label="More options">
+                                        <MoreVertIcon className="text-lg" />
+                                    </button>
+                                    <button onClick={() => onDeleteChoice(question.id, choice.id)} className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Delete choice">
+                                        <XIcon className="text-lg" />
+                                    </button>
                                 </div>
-                                {/* Per screenshot, no "more" icon for columns */}
-                                <div className="w-10 h-10"></div>
-                                <button onClick={() => handleDeleteScalePoint(scalePoint.id)} className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Delete column">
-                                    <XIcon className="text-lg" />
-                                </button>
+                                {expandedChoiceId === choice.id && (
+                                <div className="ml-8 mt-2 p-3 bg-surface-container-high rounded-md space-y-3">
+                                    <div className="flex items-center justify-between">
+                                    <label className="text-xs font-medium text-on-surface-variant">Visible</label>
+                                    <input type="checkbox" checked={choice.visible ?? true} onChange={e => handleChoicePropertyChange(choice.id, 'visible', e.target.checked)} className="accent-primary" />
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                    <label className="text-xs font-medium text-on-surface-variant">Allow Text Entry</label>
+                                    <div className="flex items-center justify-end">
+                                        <input type="checkbox" checked={choice.allowTextEntry ?? false} onChange={e => handleChoicePropertyChange(choice.id, 'allowTextEntry', e.target.checked)} className="accent-primary" />
+                                    </div>
+                                    </div>
+                                </div>
+                                )}
+                            </div>
+                            </React.Fragment>
+                        ))}
+                        {dropTargetChoiceId === null && draggedChoiceId && <ChoiceDropIndicator />}
+                        </div>
+                        <div className="mt-3 flex items-center gap-4">
+                            <button onClick={() => onAddChoice(question.id)} className="flex items-center text-sm font-medium text-primary hover:underline"><PlusIcon className="text-base mr-1" /> {question.type === QuestionType.ChoiceGrid ? 'Row' : 'Choice'}</button>
+                            <CopyAndPasteButton onClick={() => setIsPasteModalOpen(true)} />
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+            {isLinked && (
+                <div className="-mt-4 p-3 bg-primary-container/30 text-on-primary-container text-xs rounded-md border border-primary-container/50 flex items-start gap-2">
+                    <InfoIcon className="text-base flex-shrink-0 mt-0.5" />
+                    <span>Choices are linked from question {sourceQid}. To edit, change the source question or unlink choices.</span>
+                </div>
+            )}
+            
+            {question.type === QuestionType.ChoiceGrid && (
+                <div className={`mt-6 ${isLinked ? 'opacity-50' : ''}`}>
+                    <fieldset disabled={isLinked}>
+                        <div>
+                            <h3 className="text-sm font-medium text-on-surface-variant mb-2">Columns</h3>
+                            <div 
+                                className="space-y-2"
+                                onDrop={handleScalePointDrop}
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    setDropTargetScalePointId(null);
+                                }}
+                            >
+                            {(question.scalePoints || []).map((scalePoint) => (
+                                <React.Fragment key={scalePoint.id}>
+                                {dropTargetScalePointId === scalePoint.id && <ChoiceDropIndicator />}
+                                <div 
+                                    className="group"
+                                    draggable
+                                    onDragStart={(e) => handleScalePointDragStart(e, scalePoint.id)}
+                                    onDragOver={(e) => {
+                                        e.stopPropagation();
+                                        handleScalePointDragOver(e, scalePoint.id);
+                                    }}
+                                    onDragEnd={handleScalePointDragEnd}
+                                >
+                                    <div className={`flex items-center gap-2 transition-opacity ${draggedScalePointId === scalePoint.id ? 'opacity-30' : ''}`}>
+                                        <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing" aria-label="Reorder column">
+                                            <DragIndicatorIcon className="text-lg" />
+                                        </span>
+                                        <div className="flex-grow flex items-stretch bg-surface border border-outline rounded-md focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-primary">
+                                            <input
+                                                type="text"
+                                                value={scalePoint.text}
+                                                onChange={(e) => handleScalePointTextChange(scalePoint.id, e.target.value)}
+                                                onPaste={createPasteHandler((newValue) => handleScalePointTextChange(scalePoint.id, newValue))}
+                                                className="w-full bg-transparent p-2 text-sm text-on-surface focus:outline-none"
+                                                placeholder="Enter column text"
+                                            />
+                                        </div>
+                                        {/* Per screenshot, no "more" icon for columns */}
+                                        <div className="w-10 h-10"></div>
+                                        <button onClick={() => handleDeleteScalePoint(scalePoint.id)} className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Delete column">
+                                            <XIcon className="text-lg" />
+                                        </button>
+                                    </div>
+                                </div>
+                                </React.Fragment>
+                            ))}
+                            {dropTargetScalePointId === null && draggedScalePointId && <ChoiceDropIndicator />}
+                            </div>
+                            <div className="mt-3 flex items-center gap-4">
+                                <button onClick={handleAddScalePoint} className="flex items-center text-sm font-medium text-primary hover:underline"><PlusIcon className="text-base mr-1" /> Column</button>
+                                <CopyAndPasteButton onClick={() => setIsPasteColumnsModalOpen(true)} />
                             </div>
                         </div>
-                        </React.Fragment>
-                    ))}
-                    {dropTargetScalePointId === null && draggedScalePointId && <ChoiceDropIndicator />}
-                    </div>
-                    <div className="mt-3 flex items-center gap-4">
-                        <button onClick={handleAddScalePoint} className="flex items-center text-sm font-medium text-primary hover:underline"><PlusIcon className="text-base mr-1" /> Column</button>
-                        <CopyAndPasteButton onClick={() => setIsPasteColumnsModalOpen(true)} />
-                    </div>
+                    </fieldset>
                 </div>
             )}
         </div>
@@ -1660,93 +1960,53 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
   const renderBehaviorTab = () => {
     return (
         <div className="space-y-8">
-            <CollapsibleSection title="Choices" defaultExpanded={true}>
-                <div className="divide-y divide-outline-variant">
-                    {isChoiceBased && (
-                        <div className="py-6 first:pt-0">
-                            <RandomizeChoicesEditor 
-                                question={question}
-                                onUpdate={handleUpdate}
-                            />
-                        </div>
-                    )}
-                    {previousQuestions.length > 0 && (
-                        <div className="py-6 first:pt-0">
-                            <CarryForwardLogicEditor
-                                question={question}
-                                previousQuestions={previousQuestions}
-                                onUpdate={handleUpdate}
-                                logicKey="carryForwardStatements"
-                                label="Carry forward choices"
-                                addButtonLabel="Add choices"
-                                description="Use answers from a previous question as choices in this one."
-                                onAddLogic={onExpandSidebar}
-                            />
-                        </div>
-                    )}
-                    {isChoiceBased && !isFirstInteractiveQuestion && previousQuestions.length > 0 && (
-                        <div className="py-6 first:pt-0">
-                            <ChoiceEliminationEditor
-                                question={question}
-                                previousQuestions={previousQuestions}
-                                onUpdate={handleUpdate}
-                                onAddLogic={onExpandSidebar}
-                            />
-                        </div>
-                    )}
-                </div>
-            </CollapsibleSection>
-            
             <CollapsibleSection title="Navigation" defaultExpanded={true}>
-                <div className="py-6 first:pt-0 space-y-6">
-                    {isAutoadvanceable && (
+                <div className="divide-y divide-outline-variant">
+                    <div className="py-6 first:pt-0 space-y-6">
+                        {isAutoadvanceable && (
+                            <div>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex-1 pr-4">
+                                        <label htmlFor="question-auto-advance" className="text-sm font-medium text-on-surface block">
+                                            Autoadvance
+                                        </label>
+                                        <p className="text-xs text-on-surface-variant mt-0.5">Automatically move to the next page when this question is answered.</p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            id="question-auto-advance"
+                                            checked={question.autoAdvance ?? false}
+                                            onChange={(e) => handleUpdate({ autoAdvance: e.target.checked })}
+                                            className="sr-only peer"
+                                        />
+                                        <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        )}
                         <div>
                             <div className="flex items-center justify-between">
                                 <div className="flex-1 pr-4">
-                                    <label htmlFor="question-auto-advance" className="text-sm font-medium text-on-surface block">
-                                        Autoadvance
+                                    <label htmlFor="hide-back-button" className="text-sm font-medium text-on-surface block">
+                                        Hide back button
                                     </label>
-                                    <p className="text-xs text-on-surface-variant mt-0.5">Automatically move to the next page when this question is answered.</p>
+                                    <p className="text-xs text-on-surface-variant mt-0.5">Prevent respondent from going back from this question.</p>
                                 </div>
                                 <label className="relative inline-flex items-center cursor-pointer">
                                     <input
                                         type="checkbox"
-                                        id="question-auto-advance"
-                                        checked={question.autoAdvance ?? false}
-                                        onChange={(e) => handleUpdate({ autoAdvance: e.target.checked })}
+                                        id="hide-back-button"
+                                        checked={!!question.hideBackButton}
+                                        onChange={(e) => handleUpdate({ hideBackButton: e.target.checked })}
                                         className="sr-only peer"
                                     />
                                     <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                                 </label>
                             </div>
                         </div>
-                    )}
-                    <div>
-                        <div className="flex items-center justify-between">
-                            <div className="flex-1 pr-4">
-                                <label htmlFor="hide-back-button" className="text-sm font-medium text-on-surface block">
-                                    Hide back button
-                                </label>
-                                <p className="text-xs text-on-surface-variant mt-0.5">Prevent respondent from going back from this question.</p>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    id="hide-back-button"
-                                    checked={!!question.hideBackButton}
-                                    onChange={(e) => handleUpdate({ hideBackButton: e.target.checked })}
-                                    className="sr-only peer"
-                                />
-                                <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                            </label>
-                        </div>
                     </div>
-                </div>
-            </CollapsibleSection>
-
-            <CollapsibleSection title="Display Logic" defaultExpanded={true}>
-                <div className="divide-y divide-outline-variant">
-                    <div className="py-6 first:pt-0">
+                    <div className="py-6">
                         <SkipLogicEditor
                             question={question}
                             followingQuestions={followingQuestions}
@@ -1760,15 +2020,71 @@ const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                             currentBlockId={currentBlockId}
                         />
                     </div>
-                    {!isFirstInteractiveQuestion && (
+                </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Question Display Logic" defaultExpanded={true}>
+                <div className="divide-y divide-outline-variant">
+                    <div className="py-6 first:pt-0">
+                        <ConditionalLogicEditor
+                            logicType="display"
+                            title="Show this question if"
+                            description="Control when this question is shown to respondents"
+                            logicProp="displayLogic"
+                            draftLogicProp="draftDisplayLogic"
+                            question={question}
+                            previousQuestions={previousQuestions}
+                            issues={logicIssues.filter(i => i.type === 'display')}
+                            onUpdate={handleUpdate}
+                            onAddLogic={onExpandSidebar}
+                            onRequestGeminiHelp={onRequestGeminiHelp}
+                        />
+                    </div>
+                    <div className="py-6">
+                        <ConditionalLogicEditor
+                            logicType="hide"
+                            title="Hide this question if"
+                            description="Control when this question is hidden from respondents"
+                            logicProp="hideLogic"
+                            draftLogicProp="draftHideLogic"
+                            question={question}
+                            previousQuestions={previousQuestions}
+                            issues={logicIssues.filter(i => i.type === 'hide')}
+                            onUpdate={handleUpdate}
+                            onAddLogic={onExpandSidebar}
+                            onRequestGeminiHelp={onRequestGeminiHelp}
+                        />
+                    </div>
+                </div>
+            </CollapsibleSection>
+            
+            <CollapsibleSection title="Choices" defaultExpanded={true}>
+                <div className="divide-y divide-outline-variant">
+                    {isChoiceBased && (
                         <div className="py-6 first:pt-0">
-                            <DisplayLogicEditor
+                            <RandomizeChoicesEditor 
+                                question={question}
+                                onUpdate={handleUpdate}
+                            />
+                        </div>
+                    )}
+                    {isChoiceBased && !isFirstInteractiveQuestion && previousQuestions.length > 0 && (
+                        <div className="py-6 first:pt-0">
+                            <ChoiceEliminationEditor
                                 question={question}
                                 previousQuestions={previousQuestions}
-                                issues={logicIssues.filter(i => i.type === 'display')}
                                 onUpdate={handleUpdate}
                                 onAddLogic={onExpandSidebar}
-                                onRequestGeminiHelp={onRequestGeminiHelp}
+                            />
+                        </div>
+                    )}
+                    {isChoiceBased && !isFirstInteractiveQuestion && previousQuestions.length > 0 && (
+                        <div className="py-6 first:pt-0">
+                            <ChoiceDisplayLogicEditor
+                                question={question}
+                                previousQuestions={previousQuestions}
+                                onUpdate={handleUpdate}
+                                onAddLogic={onExpandSidebar}
                             />
                         </div>
                     )}
@@ -2860,10 +3176,22 @@ const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange,
     );
 };
 
-const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Question[]; issues: LogicIssue[]; onUpdate: (updates: Partial<Question>) => void; onAddLogic: () => void; onRequestGeminiHelp: (topic: string) => void; }> = ({ question, previousQuestions, issues, onUpdate, onAddLogic, onRequestGeminiHelp }) => {
+const ConditionalLogicEditor: React.FC<{ 
+    logicType: 'display' | 'hide';
+    title: string;
+    description: string;
+    logicProp: 'displayLogic' | 'hideLogic';
+    draftLogicProp: 'draftDisplayLogic' | 'draftHideLogic';
+    question: Question;
+    previousQuestions: Question[];
+    issues: LogicIssue[];
+    onUpdate: (updates: Partial<Question>) => void;
+    onAddLogic: () => void;
+    onRequestGeminiHelp: (topic: string) => void;
+ }> = ({ logicType, title, description, logicProp, draftLogicProp, question, previousQuestions, issues, onUpdate, onAddLogic, onRequestGeminiHelp }) => {
     const [isPasting, setIsPasting] = useState(false);
     const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof DisplayLogicCondition>>>(new Map());
-    const displayLogic = question.draftDisplayLogic ?? question.displayLogic;
+    const logic = question[draftLogicProp] ?? question[logicProp];
 
     useEffect(() => {
         if (isPasting) {
@@ -2871,7 +3199,7 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         }
     }, [question.id]);
 
-    const handleAddDisplayLogic = () => {
+    const handleAddLogic = () => {
         const newCondition: DisplayLogicCondition = {
             id: generateId('cond'),
             questionId: '',
@@ -2880,17 +3208,17 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
             isConfirmed: false,
         };
         onUpdate({
-            displayLogic: {
-                operator: displayLogic?.operator || 'AND',
-                conditions: [...(displayLogic?.conditions || []), newCondition],
+            [logicProp]: {
+                operator: logic?.operator || 'AND',
+                conditions: [...(logic?.conditions || []), newCondition],
             },
         });
         onAddLogic();
     };
     
     const handleConfirmCondition = (conditionId: string) => {
-        if (!displayLogic) return;
-        const condition = displayLogic.conditions.find(c => c.id === conditionId);
+        if (!logic) return;
+        const condition = logic.conditions.find(c => c.id === conditionId);
         if (!condition) return;
 
         const tempErrors = new Set<keyof DisplayLogicCondition>();
@@ -2910,8 +3238,8 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
             return;
         }
         
-        const newConditions = displayLogic.conditions.map(c => c.id === conditionId ? { ...c, isConfirmed: true } : c);
-        onUpdate({ displayLogic: { ...displayLogic, conditions: newConditions } });
+        const newConditions = logic.conditions.map(c => c.id === conditionId ? { ...c, isConfirmed: true } : c);
+        onUpdate({ [logicProp]: { ...logic, conditions: newConditions } });
         setValidationErrors((prev: Map<string, Set<keyof DisplayLogicCondition>>) => {
             const newErrors = new Map(prev);
             newErrors.delete(conditionId);
@@ -2970,9 +3298,9 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
         
         if (newConditions.length > 0) {
             onUpdate({
-                displayLogic: {
-                    operator: displayLogic?.operator || 'AND',
-                    conditions: [...(displayLogic?.conditions || []), ...newConditions],
+                [logicProp]: {
+                    operator: logic?.operator || 'AND',
+                    conditions: [...(logic?.conditions || []), ...newConditions],
                 },
             });
             onAddLogic();
@@ -2982,8 +3310,8 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
     };
 
     const handleUpdateCondition = (index: number, field: keyof DisplayLogicCondition, value: any) => {
-        if (!displayLogic) return;
-        const newConditions = [...displayLogic.conditions];
+        if (!logic) return;
+        const newConditions = [...logic.conditions];
         const conditionId = newConditions[index].id;
         newConditions[index] = { ...newConditions[index], [field]: value, isConfirmed: false };
         
@@ -3005,13 +3333,13 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
                 return newErrors;
             });
         }
-        onUpdate({ displayLogic: { ...displayLogic, conditions: newConditions } });
+        onUpdate({ [logicProp]: { ...logic, conditions: newConditions } });
     };
 
     const handleRemoveCondition = (index: number) => {
-        if (!displayLogic) return;
-        const conditionId = displayLogic.conditions[index].id;
-        const newConditions = displayLogic.conditions.filter((_, i) => i !== index);
+        if (!logic) return;
+        const conditionId = logic.conditions[index].id;
+        const newConditions = logic.conditions.filter((_, i) => i !== index);
         
         setValidationErrors((prev: Map<string, Set<keyof DisplayLogicCondition>>) => {
             const newErrors = new Map(prev);
@@ -3019,51 +3347,59 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
             return newErrors;
         });
 
-        onUpdate({ displayLogic: newConditions.length > 0 ? { ...displayLogic, conditions: newConditions } : undefined });
+        onUpdate({ [logicProp]: newConditions.length > 0 ? { ...logic, conditions: newConditions } : undefined });
     };
 
     const setLogicOperator = (operator: 'AND' | 'OR') => {
-        if (!displayLogic) return;
-        onUpdate({ displayLogic: { ...displayLogic, operator } });
+        if (!logic) return;
+        onUpdate({ [logicProp]: { ...logic, operator } });
     };
 
-    if (!displayLogic || displayLogic.conditions.length === 0) {
+    if (previousQuestions.length === 0 && logicType === 'display') {
+        return (
+            <div className="p-3 bg-surface-container-high rounded-md text-sm text-on-surface-variant">
+                Display logic cannot be added because there are no preceding questions to base it on.
+            </div>
+        );
+    }
+    
+    if (!logic || logic.conditions.length === 0) {
         return (
             <div>
-                <h3 className="text-sm font-medium text-on-surface mb-1">Display this question if</h3>
-                <p className="text-xs text-on-surface-variant mb-3">Control when this question is shown to respondents</p>
+                <h3 className="text-sm font-medium text-on-surface mb-1">{title}</h3>
+                <p className="text-xs text-on-surface-variant mb-3">{description}</p>
                  {isPasting ? (
                     <PasteInlineForm
                         onSave={handlePasteLogic}
                         onCancel={() => setIsPasting(false)}
                         placeholder={"Q1 equals Yes\nQ2 not_equals 5"}
-                        primaryActionLabel="Add Display Logic"
+                        primaryActionLabel={`Add ${logicType === 'display' ? 'Display' : 'Hide'} Logic`}
                         disclosureText="Enter advanced syntax only;"
                         helpTopic="Display Logic"
                         onRequestGeminiHelp={onRequestGeminiHelp}
                     />
                 ) : (
                     <div className="flex items-center gap-4">
-                        <button onClick={handleAddDisplayLogic} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                        <button onClick={handleAddLogic} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
                             <PlusIcon className="text-base" />
-                            Add display condition
+                            Add {logicType === 'display' ? 'display' : 'hide'} condition
                         </button>
                         <CopyAndPasteButton onClick={() => setIsPasting(true)} />
                     </div>
                 )}
             </div>
-        );
+        )
     }
 
     return (
         <div>
             <div className="flex items-center justify-between gap-2 mb-3">
                  <div>
-                    <h3 className="text-sm font-medium text-on-surface">Display this question if</h3>
-                    <p className="text-xs text-on-surface-variant mt-0.5">Control when this question is shown to respondents</p>
+                    <h3 className="text-sm font-medium text-on-surface">{title}</h3>
+                    <p className="text-xs text-on-surface-variant mt-0.5">{description}</p>
                 </div>
                 <button 
-                    onClick={() => onUpdate({ displayLogic: undefined, draftDisplayLogic: undefined })}
+                    onClick={() => onUpdate({ [logicProp]: undefined, [draftLogicProp]: undefined })}
                     className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50"
                 >
                     Remove
@@ -3072,22 +3408,22 @@ const DisplayLogicEditor: React.FC<{ question: Question; previousQuestions: Ques
             
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                    <p className="text-xs font-medium text-on-surface">Show this question if:</p>
-                    {displayLogic.conditions.length > 1 && (
+                    <p className="text-xs font-medium text-on-surface">{logicType === 'display' ? 'Show' : 'Hide'} this question if:</p>
+                    {logic.conditions.length > 1 && (
                         <div className="flex gap-1">
-                            <button onClick={() => setLogicOperator('AND')} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${displayLogic.operator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
-                            <button onClick={() => setLogicOperator('OR')} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${displayLogic.operator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
+                            <button onClick={() => setLogicOperator('AND')} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${logic.operator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
+                            <button onClick={() => setLogicOperator('OR')} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${logic.operator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
                         </div>
                     )}
                 </div>
-                <button onClick={handleAddDisplayLogic} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                <button onClick={handleAddLogic} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
                     <PlusIcon className="text-base" />
                     Add condition
                 </button>
             </div>
             
             <div className="space-y-2 mb-3">
-                {displayLogic.conditions.map((condition, index) => (
+                {logic.conditions.map((condition, index) => (
                     <LogicConditionRow
                         key={condition.id || index}
                         condition={condition}
@@ -3270,12 +3606,12 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         return undefined;
     };
 
-    const description = "Control when this question is hidden from respondents";
+    const description = "Send respondents to a different point in the survey after they answer this question";
 
     if (!isEnabled) {
         return (
             <div>
-                <h3 className="text-sm font-medium text-on-surface mb-1">Hide this question if</h3>
+                <h3 className="text-sm font-medium text-on-surface mb-1">Skip Logic</h3>
                 <p className="text-xs text-on-surface-variant mb-3">{description}</p>
                  {isPasting ? (
                     <PasteInlineForm
@@ -3291,7 +3627,7 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
                     <div className="flex items-center gap-4">
                         <button onClick={() => handleToggle(true)} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
                             <PlusIcon className="text-base" />
-                            Add hide condition
+                            Add skip logic
                         </button>
                          <CopyAndPasteButton onClick={() => setIsPasting(true)} />
                     </div>
@@ -3304,7 +3640,7 @@ const SkipLogicEditor: React.FC<{ question: Question; followingQuestions: Questi
         <div ref={editorRef}>
             <div className="flex items-center justify-between gap-2 mb-4">
                 <div>
-                    <h3 className="text-sm font-medium text-on-surface">Hide this question if</h3>
+                    <h3 className="text-sm font-medium text-on-surface">Skip Logic</h3>
                     <p className="text-xs text-on-surface-variant mt-0.5">{description}</p>
                 </div>
                 <button 

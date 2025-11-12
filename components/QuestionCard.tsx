@@ -258,7 +258,6 @@ const QuestionCard: React.FC<{
         const currentScalePoints = question.scalePoints || [];
         const newScalePoint: Choice = {
             id: generateId('s'),
-            // FIX: Added Number() casting to prevent potential type errors when adding to length.
             text: `Column ${Number(currentScalePoints.length) + 1}`
         };
         onUpdateQuestion(question.id, { scalePoints: [...currentScalePoints, newScalePoint] });

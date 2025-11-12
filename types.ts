@@ -62,6 +62,22 @@ export interface DisplayLogic {
   conditions: DisplayLogicCondition[];
 }
 
+export interface ChoiceDisplayCondition {
+  id: string;
+  targetChoiceId: string; 
+  sourceQuestionId: string; 
+  operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty' | '';
+  value: string;
+  isConfirmed?: boolean;
+}
+  
+export interface ChoiceDisplayLogic {
+    showOperator: 'AND' | 'OR';
+    showConditions: ChoiceDisplayCondition[];
+    hideOperator: 'AND' | 'OR';
+    hideConditions: ChoiceDisplayCondition[];
+}
+
 export interface SkipLogicRule {
   id: string; // A unique ID for the rule itself.
   choiceId: string; // For ChoiceGrid, this is the rowId. For Radio, the choiceId.
@@ -98,11 +114,6 @@ export interface AnswerBehavior {
   rowRandomizationMethod?: RandomizationMethod;
   randomizeColumns?: boolean;
   columnRandomizationMethod?: RandomizationMethod;
-}
-
-export interface CarryForwardLogic {
-  sourceQuestionId: string; // This is the QID, e.g., "Q1"
-  filter: string;
 }
 
 export interface ChoiceEliminationLogic {
@@ -232,11 +243,11 @@ export interface Question {
   hideLogic?: DisplayLogic;
   skipLogic?: SkipLogic;
   answerBehavior?: AnswerBehavior;
-  carryForwardStatements?: CarryForwardLogic;
   choiceEliminationLogic?: ChoiceEliminationLogic;
   branchingLogic?: BranchingLogic;
   beforeWorkflows?: Workflow[];
   afterWorkflows?: Workflow[];
+  choiceDisplayLogic?: ChoiceDisplayLogic;
 
   // --- NEW DRAFT LOGIC PROPERTIES ---
   draftDisplayLogic?: DisplayLogic;
@@ -245,6 +256,10 @@ export interface Question {
   draftBranchingLogic?: BranchingLogic;
   draftBeforeWorkflows?: Workflow[];
   draftAfterWorkflows?: Workflow[];
+  draftChoiceDisplayLogic?: ChoiceDisplayLogic;
+
+  // --- NEW FEATURE ---
+  linkedChoicesSource?: string; // ID of the question this one's choices are linked to
 }
 
 export type RandomizationPattern = 'rotation' | 'permutation' | 'synchronized' | 'reverse_order';

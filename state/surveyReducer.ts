@@ -322,6 +322,26 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 finalUpdates.scalePoints = undefined;
             }
             
+            // Handle linking choices
+            if ('linkedChoicesSource' in updates) {
+                const sourceQuestionId = updates.linkedChoicesSource;
+                if (sourceQuestionId) {
+                    const allQuestions = newState.blocks.flatMap((b: Block) => b.questions);
+                    const sourceQuestion = allQuestions.find((q: Question) => q.id === sourceQuestionId);
+
+                    if (sourceQuestion) {
+                        if (sourceQuestion.choices) {
+                            questionInState.choices = sourceQuestion.choices.map((c: Choice) => ({ ...c, id: generateId('c') }));
+                        }
+                        if (sourceQuestion.scalePoints) {
+                             questionInState.scalePoints = sourceQuestion.scalePoints.map((sp: Choice) => ({ ...sp, id: generateId('s') }));
+                        }
+                    }
+                }
+                // If sourceQuestionId is undefined/null/empty, it's an unlink.
+                // The choices are kept, and the linkedChoicesSource property is updated by Object.assign below.
+            }
+
             // --- DRAFT LOGIC HANDLING ---
             if (finalUpdates.displayLogic) {
                 questionInState.draftDisplayLogic = finalUpdates.displayLogic;
@@ -331,6 +351,15 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                     delete questionInState.draftDisplayLogic;
                 }
                 delete finalUpdates.displayLogic;
+            }
+            if (finalUpdates.hideLogic) {
+                questionInState.draftHideLogic = finalUpdates.hideLogic;
+                const allConfirmed = questionInState.draftHideLogic.conditions?.every(c => c.isConfirmed);
+                if (allConfirmed) {
+                    questionInState.hideLogic = questionInState.draftHideLogic;
+                    delete questionInState.draftHideLogic;
+                }
+                delete finalUpdates.hideLogic;
             }
             if (finalUpdates.skipLogic) {
                 questionInState.draftSkipLogic = finalUpdates.skipLogic;
@@ -618,8 +647,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
             if (targetQuestion) {
                 if (!targetQuestion.choices) targetQuestion.choices = [];
-                // FIX: Added Number() casting to prevent potential type errors when adding to length. This may be the source of the error reported for RightSidebar.tsx.
-                const choiceNum = Number(targetQuestion.choices.length) + 1;
+                const choiceNum = targetQuestion.choices.length + 1;
                 
                 const defaultText = targetQuestion.type === QTEnum.ChoiceGrid 
                     ? `Row ${choiceNum}` 
@@ -1074,6 +1102,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             // When a user navigates away from a question, any unconfirmed changes
             // stored in the draft state are discarded. The confirmed logic remains untouched.
             delete questionToClean.draftDisplayLogic;
+            delete questionToClean.draftHideLogic;
             delete questionToClean.draftSkipLogic;
             delete questionToClean.draftBranchingLogic;
             delete questionToClean.draftBeforeWorkflows;

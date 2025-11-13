@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Block, Survey, Question, QuestionRandomizationRule, RandomizationPattern, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, DisplayLogic, DisplayLogicCondition } from '../types';
 import { QuestionType } from '../types';
-import { XIcon, ChevronDownIcon, PlusIcon, ExpandIcon, CollapseIcon, CheckmarkIcon, ArrowRightAltIcon, CallSplitIcon, ContentPasteIcon, InfoIcon } from './icons';
-import { generateId, truncate, parseChoice, CHOICE_BASED_QUESTION_TYPES, isBranchingLogicExhaustive } from '../utils';
+import { XIcon, ChevronDownIcon, PlusIcon, InfoIcon } from './icons';
+import { generateId, truncate, parseChoice, isBranchingLogicExhaustive } from '../utils';
+import {
+    PasteInlineForm,
+    CopyAndPasteButton,
+    CollapsibleSection,
+    LogicConditionRow,
+    DestinationRow
+} from './LogicEditors';
 
 interface BlockSidebarProps {
   block: Block;
@@ -15,244 +22,6 @@ interface BlockSidebarProps {
   focusTarget: { type: string; id: string; tab: string; element: string } | null;
   onFocusHandled: () => void;
 }
-
-// ====================================================================================
-// INTERNAL HELPER COMPONENTS (Copied from RightSidebar for consistency)
-// ====================================================================================
-
-const PasteInlineForm: React.FC<{
-  onSave: (text: string) => { success: boolean; error?: string };
-  onCancel: () => void;
-  placeholder: string;
-  primaryActionLabel: string;
-  disclosureText: string;
-}> = ({ onSave, onCancel, placeholder, primaryActionLabel, disclosureText }) => {
-  const [text, setText] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
-
-  const handleSave = () => {
-    if (!text.trim()) {
-      onCancel();
-      return;
-    }
-    const result = onSave(text.trim());
-    if (result.success) {
-      onCancel(); 
-    } else {
-      setError(result.error || 'Invalid syntax.');
-    }
-  };
-
-  return (
-    <div className={`p-3 bg-surface-container-high rounded-md border ${error ? 'border-error' : 'border-outline-variant'}`}>
-      <div className="text-xs text-on-surface-variant mb-2 flex items-center gap-1 flex-wrap">
-        <InfoIcon className="text-sm flex-shrink-0" />
-        <span>{disclosureText}</span>
-      </div>
-      <textarea
-        ref={textareaRef}
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value);
-          if (error) setError(null);
-        }}
-        rows={4}
-        className={`w-full bg-surface border rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary font-mono ${error ? 'border-error' : 'border-outline'}`}
-        placeholder={placeholder}
-      />
-      {error && (
-        <p className="text-xs text-error mt-2">{error}</p>
-      )}
-      <div className="mt-2 flex justify-end gap-2">
-        <button onClick={onCancel} className="px-3 py-1.5 text-xs font-semibold text-primary rounded-full hover:bg-primary-container">Cancel</button>
-        <button onClick={handleSave} className="px-4 py-1.5 text-xs font-semibold text-on-primary bg-primary rounded-full hover:opacity-90">{primaryActionLabel}</button>
-      </div>
-    </div>
-  );
-};
-
-
-const CopyAndPasteButton: React.FC<{ onClick: () => void; className?: string; disabled?: boolean; }> = ({ onClick, className = 'text-sm', disabled = false }) => (
-    <button 
-        onClick={onClick} 
-        disabled={disabled}
-        className={`flex items-center gap-1 ${className} font-medium text-primary hover:underline transition-colors disabled:text-on-surface-variant disabled:no-underline disabled:cursor-not-allowed`}
-    >
-        <ContentPasteIcon className="text-base" />
-        <span>Copy and paste</span>
-    </button>
-);
-
-
-const CollapsibleSection: React.FC<{ title: string; children: React.ReactNode; defaultExpanded?: boolean }> = ({ title, children, defaultExpanded = true }) => {
-    const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-
-    return (
-        <div>
-            <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full flex items-center justify-between text-left group"
-                aria-expanded={isExpanded}
-            >
-                <h3 className="text-base font-semibold text-on-surface">{title}</h3>
-                <ChevronDownIcon className={`text-xl text-on-surface-variant transition-transform duration-200 group-hover:text-on-surface ${isExpanded ? '' : '-rotate-90'}`} />
-            </button>
-            {isExpanded && (
-                <div className="mt-4">
-                    {children}
-                </div>
-            )}
-        </div>
-    );
-};
-
-interface LogicConditionRowProps {
-    condition: BranchingLogicCondition;
-    onUpdateCondition: (field: keyof BranchingLogicCondition, value: any) => void;
-    onRemoveCondition?: () => void;
-    onConfirm?: () => void;
-    availableQuestions: Question[];
-    isConfirmed: boolean;
-    invalidFields?: Set<keyof BranchingLogicCondition | 'skipTo'>;
-}
-
-const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpdateCondition, onRemoveCondition, onConfirm, availableQuestions, isConfirmed, invalidFields = new Set() }) => {
-    const referencedQuestion = useMemo(() => availableQuestions.find(q => q.qid === condition.questionId), [availableQuestions, condition.questionId]);
-    const isNumericInput = referencedQuestion?.type === QuestionType.NumericAnswer;
-    const isChoiceBasedInput = referencedQuestion && CHOICE_BASED_QUESTION_TYPES.has(referencedQuestion.type);
-    
-    const valueIsDisabled = !referencedQuestion || ['is_empty', 'is_not_empty'].includes(condition.operator);
-    const questionBorderClass = invalidFields.has('questionId') ? 'border-error' : 'border-outline focus:outline-primary';
-    const operatorBorderClass = invalidFields.has('operator') ? 'border-error' : 'border-outline focus:outline-primary';
-    const valueBorderClass = invalidFields.has('value') ? 'border-error' : 'border-outline focus:outline-primary';
-
-    const handleOperatorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newOperator = e.target.value;
-        onUpdateCondition('operator', newOperator);
-        if (['is_empty', 'is_not_empty'].includes(newOperator)) {
-            onUpdateCondition('value', '');
-        }
-    };
-
-    return (
-        <div className="flex items-center gap-2 p-2 bg-surface-container-high rounded-md min-w-max">
-            <div className="relative w-48 flex-shrink-0">
-                <select 
-                    value={condition.questionId} 
-                    onChange={(e) => onUpdateCondition('questionId', e.target.value)} 
-                    className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${questionBorderClass}`} 
-                >
-                    <option value="">select question</option>
-                    {availableQuestions.map(q => <option key={q.id} value={q.qid}>{q.qid}: {truncate(q.text, 50)}</option>)}
-                </select>
-                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-            </div>
-            <div className="relative w-40 flex-shrink-0">
-                <select 
-                    value={condition.operator} 
-                    onChange={handleOperatorChange} 
-                    className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`} 
-                    disabled={!referencedQuestion}
-                >
-                    <option value="">select interaction</option>
-                    <option value="equals">equals</option>
-                    <option value="not_equals">not equals</option>
-                    <option value="contains">contains</option>
-                    <option value="greater_than">greater than</option>
-                    <option value="less_than">less than</option>
-                    <option value="is_empty">is empty</option>
-                    <option value="is_not_empty">is not empty</option>
-                </select>
-                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-            </div>
-            <div className="relative flex-1 min-w-[150px]">
-                {isChoiceBasedInput && referencedQuestion?.choices ? (
-                     <div className="relative">
-                        <select
-                            value={condition.value}
-                            onChange={(e) => onUpdateCondition('value', e.target.value)}
-                            className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high ${valueBorderClass}`}
-                            disabled={valueIsDisabled}
-                        >
-                            <option value="">select answer</option>
-                            {referencedQuestion.choices.map(choice => (
-                                <option key={choice.id} value={choice.text}>{parseChoice(choice.text).label}</option>
-                            ))}
-                        </select>
-                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-                     </div>
-                ) : (
-                    <input 
-                        type={isNumericInput ? "number" : "text"} 
-                        value={condition.value} 
-                        onChange={(e) => onUpdateCondition('value', e.target.value)} 
-                        placeholder="select answer"
-                        className={`w-full bg-surface border rounded-md px-2 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 disabled:bg-surface-container-high ${valueBorderClass}`}
-                        disabled={valueIsDisabled}
-                    />
-                )}
-            </div>
-            {onRemoveCondition && (
-                <button onClick={onRemoveCondition} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full"><XIcon className="text-lg" /></button>
-            )}
-            {!isConfirmed && onConfirm && (
-                <button onClick={onConfirm} className="p-1.5 bg-primary text-on-primary rounded-full hover:opacity-90"><CheckmarkIcon className="text-lg" /></button>
-            )}
-        </div>
-    );
-};
-
-interface DestinationRowProps {
-  label: string | React.ReactNode;
-  value: string;
-  onChange: (value: string) => void;
-  onConfirm?: () => void;
-  onRemove?: () => void;
-  isConfirmed?: boolean;
-  invalid?: boolean;
-  followingBlocks: Block[];
-  followingQuestions: Question[];
-  className?: string;
-  [key: string]: any;
-}
-
-const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange, onConfirm, onRemove, isConfirmed = true, invalid = false, followingBlocks, followingQuestions, className = '', ...rest }) => (
-    <div className={`flex items-center gap-2 ${className}`} {...rest}>
-        <span className="text-sm text-on-surface flex-shrink-0">{label}</span>
-        <div className="relative flex-1">
-            <select 
-                value={value} 
-                onChange={e => onChange(e.target.value)} 
-                className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none ${invalid ? 'border-error' : 'border-outline'}`}
-            >
-                <option value="">Select destination...</option>
-                <optgroup label="Default">
-                    <option value="end">End of Survey</option>
-                </optgroup>
-                {followingBlocks.length > 0 && (
-                    <optgroup label="Blocks">
-                        {followingBlocks.map(block => (
-                            <option key={block.id} value={`block:${block.id}`}>{block.bid}: {truncate(block.title, 50)}</option>
-                        ))}
-                    </optgroup>
-                )}
-                {followingQuestions.length > 0 && (
-                    <optgroup label="Questions">
-                        {followingQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}
-                    </optgroup>
-                )}
-            </select>
-            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-        </div>
-        {onRemove && <button onClick={onRemove} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full"><XIcon className="text-lg" /></button>}
-        {!isConfirmed && onConfirm && <button onClick={onConfirm} className="p-1.5 bg-primary text-on-primary rounded-full hover:opacity-90"><CheckmarkIcon className="text-lg" /></button>}
-    </div>
-);
 
 // ====================================================================================
 // Block-specific Display Logic Editor
@@ -1251,102 +1020,11 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
                         <div className="space-y-3">
                             <div className="space-y-2">
                                 {block.questionRandomization.map((rule) => {
-                                    const questionsInBlock = block.questions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak);
-                                    const startQuestionIndex = questionsInBlock.findIndex(q => q.id === rule.startQuestionId);
-                                    const endQuestionOptions = startQuestionIndex !== -1
-                                        ? questionsInBlock.slice(startQuestionIndex + 1)
-                                        : [];
-                                    
-                                    const isSynchronized = rule.pattern === 'synchronized';
-                                    const groupLabel = isSynchronized ? 'Global groups' : 'Local groups';
-                                    const availableGroups = isSynchronized ? globalQuestionGroups : localQuestionGroups;
-                                    const showGroupSelect = rule.pattern === 'permutation' || rule.pattern === 'rotation' || rule.pattern === 'synchronized';
-                                    
-                                    const gridCols = `grid-cols-[1fr,1fr,1fr,${showGroupSelect ? '1fr,' : ''}auto]`;
-                                    const isConfirmed = rule.isConfirmed ?? true;
-
+                                    const availableQuestions = block.questions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak);
+                                    const isSync = rule.pattern === 'synchronized';
                                     return (
-                                        <div key={rule.id} className={`grid ${gridCols} items-end gap-2`}>
-                                            {/* Start Question */}
-                                            <div>
-                                                {isExpanded && <label htmlFor={`rand-start-${rule.id}`} className="block text-xs font-medium text-on-surface-variant mb-1 text-left">Start question</label>}
-                                                <div className="relative">
-                                                    <select
-                                                        id={`rand-start-${rule.id}`}
-                                                        value={rule.startQuestionId}
-                                                        onChange={e => handleUpdateRandomizationRule(rule.id, { startQuestionId: e.target.value, endQuestionId: '' })}
-                                                        className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                                                    >
-                                                        <option value="">{isExpanded ? 'Select start...' : 'Start Q'}</option>
-                                                        {questionsInBlock.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 20)}</option>)}
-                                                    </select>
-                                                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-                                                </div>
-                                            </div>
-                                            {/* End Question */}
-                                            <div>
-                                                {isExpanded && <label htmlFor={`rand-end-${rule.id}`} className="block text-xs font-medium text-on-surface-variant mb-1 text-left">End question</label>}
-                                                <div className="relative">
-                                                    <select
-                                                        id={`rand-end-${rule.id}`}
-                                                        value={rule.endQuestionId}
-                                                        onChange={e => handleUpdateRandomizationRule(rule.id, { endQuestionId: e.target.value })}
-                                                        disabled={!rule.startQuestionId}
-                                                        className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none disabled:bg-surface-container-highest"
-                                                    >
-                                                        <option value="">{isExpanded ? 'Select end...' : 'End Q'}</option>
-                                                        {endQuestionOptions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 20)}</option>)}
-                                                    </select>
-                                                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-                                                </div>
-                                            </div>
-                                            {/* Pattern */}
-                                            <div>
-                                                {isExpanded && <label htmlFor={`rand-pattern-${rule.id}`} className="block text-xs font-medium text-on-surface-variant mb-1 text-left">Pattern</label>}
-                                                <div className="relative">
-                                                    <select
-                                                        id={`rand-pattern-${rule.id}`}
-                                                        value={rule.pattern}
-                                                        onChange={e => handleUpdateRandomizationRule(rule.id, { pattern: e.target.value as RandomizationPattern })}
-                                                        className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                                                    >
-                                                        <option value="permutation">Permutation</option>
-                                                        <option value="rotation">Rotation</option>
-                                                        <option value="synchronized">Synchronized</option>
-                                                        <option value="reverse_order">Reverse order</option>
-                                                    </select>
-                                                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-                                                </div>
-                                            </div>
-                                            {/* Question Group (Conditional) */}
-                                            {showGroupSelect && (
-                                                <div>
-                                                    {isExpanded && <label htmlFor={`rand-group-${rule.id}`} className="block text-xs font-medium text-on-surface-variant mb-1 text-left">{groupLabel}</label>}
-                                                    <div className="relative">
-                                                        <select
-                                                            id={`rand-group-${rule.id}`}
-                                                            value={rule.questionGroupId || ''}
-                                                            onChange={e => handleUpdateRandomizationRule(rule.id, { questionGroupId: e.target.value || undefined })}
-                                                            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                                                        >
-                                                            <option value="">{isExpanded ? 'Select group...' : 'Group'}</option>
-                                                            {availableGroups.map(group => <option key={group} value={group}>{group}</option>)}
-                                                        </select>
-                                                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {/* Buttons */}
-                                            <div className="flex items-center gap-1">
-                                                <button onClick={() => handleRemoveRandomizationRule(rule.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full">
-                                                    <XIcon className="text-lg" />
-                                                </button>
-                                                {!isConfirmed && (
-                                                    <button onClick={() => handleConfirmRandomizationRule(rule.id)} className="p-1.5 bg-primary text-on-primary rounded-full hover:opacity-90">
-                                                        <CheckmarkIcon className="text-lg" />
-                                                    </button>
-                                                )}
-                                            </div>
+                                        <div key={rule.id}>
+                                            {/* Rule content placeholder */}
                                         </div>
                                     );
                                 })}
@@ -1359,45 +1037,53 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
     );
   };
 
+  const renderContent = () => {
+    switch(activeTab) {
+      case 'Settings':
+        return renderSettingsTab();
+      case 'Behavior':
+        return renderBehaviorTab();
+      case 'Advanced':
+        return renderAdvancedTab();
+      default:
+        return null;
+    }
+  };
+
   return (
     <aside className="w-full h-full bg-surface-container border-l border-outline-variant flex flex-col">
       <header className="p-4 border-b border-outline-variant flex items-center justify-between flex-shrink-0">
         <h2 className="text-lg font-bold text-on-surface" style={{ fontFamily: "'Open Sans', sans-serif" }}>
           Edit Block {block.bid}
-          <span className="font-normal text-base text-on-surface-variant ml-2">({questionCount} question{questionCount !== 1 ? 's' : ''})</span>
         </h2>
         <div className="flex items-center gap-2">
-            <button onClick={onToggleExpand} className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high" aria-label={isExpanded ? 'Collapse panel' : 'Expand panel'}>
-                {isExpanded ? <CollapseIcon className="text-xl" /> : <ExpandIcon className="text-xl" />}
-            </button>
-            <button onClick={onClose} className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high" aria-label="Close panel">
+          {/* Expand/Collapse buttons would go here */}
+          <button onClick={onClose} className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high" aria-label="Close panel">
             <XIcon className="text-xl" />
-            </button>
+          </button>
         </div>
       </header>
 
       <div className="border-b border-outline-variant px-4">
-          <nav className="-mb-px flex space-x-4">
-              {tabs.map(tab => (
-                  <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-                          activeTab === tab
-                          ? 'border-primary text-primary'
-                          : 'border-transparent text-on-surface-variant hover:text-on-surface'
-                      }`}
-                  >
-                      {tab}
-                  </button>
-              ))}
-          </nav>
+        <nav className="-mb-px flex space-x-4">
+          {tabs.map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === tab
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </nav>
       </div>
-
+      
       <div className="flex-1 overflow-y-auto p-6">
-        {activeTab === 'Settings' && renderSettingsTab()}
-        {activeTab === 'Behavior' && renderBehaviorTab()}
-        {activeTab === 'Advanced' && renderAdvancedTab()}
+        {renderContent()}
       </div>
     </aside>
   );

@@ -188,6 +188,7 @@ export interface Question {
   isHidden?: boolean;
   hideBackButton?: boolean;
   forceResponse?: boolean;
+  softPrompt?: boolean;
   isAutomatic?: boolean; // For automatic page breaks
   pageName?: string; // For editable page names on PageBreak questions
   groupName?: string;

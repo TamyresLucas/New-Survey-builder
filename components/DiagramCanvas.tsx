@@ -52,6 +52,7 @@ interface DiagramCanvasProps {
 const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab }) => {
     // FIX: Pass an initial empty array to the useNodesState and useEdgesState hooks to prevent an error.
     const [nodes, setNodes, onNodesChange] = useNodesState<DiagramNode>([]);
+    // FIX: The useEdgesState hook requires an initial value. Pass an empty array to prevent a runtime error.
     const [edges, setEdges, onEdgesChange] = useEdgesState<DiagramEdge>([]);
     const reactFlowInstance = useReactFlow();
     const prevActiveTabRef = useRef<string>();

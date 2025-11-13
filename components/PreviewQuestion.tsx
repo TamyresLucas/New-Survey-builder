@@ -27,7 +27,8 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
   };
 
   const handleCheckboxChange = (choiceId: string) => {
-    const currentSet = (value as Set<string>) || new Set();
+    // FIX: Safely initialize currentSet to prevent errors if `value` is truthy but not a Set.
+    const currentSet = value instanceof Set ? (value as Set<string>) : new Set<string>();
     const newSet = new Set(currentSet);
     if (newSet.has(choiceId)) {
       newSet.delete(choiceId);
@@ -98,7 +99,7 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
     }[orientation];
 
     const radioSelection = value as string | null;
-    const checkboxSelection = (value as Set<string>) || new Set();
+    const checkboxSelection = (value instanceof Set ? value : new Set<string>()) as Set<string>;
 
     return (
       <div className={layoutClasses}>

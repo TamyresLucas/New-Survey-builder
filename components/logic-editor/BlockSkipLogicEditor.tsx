@@ -1,11 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import type { Block, Survey, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition } from '../../types';
 import { QuestionType } from '../../types';
-// FIX: Import 'XIcon' from '../icons' to resolve 'Cannot find name' error.
 import { PlusIcon, XIcon } from '../icons';
 import { generateId } from '../../utils';
-// FIX: Changed import path to point to the barrel file inside the 'shared' directory.
-import { PasteInlineForm, CopyAndPasteButton, LogicConditionRow, DestinationRow } from './shared/index';
+import { PasteInlineForm, CopyAndPasteButton, LogicConditionRow, DestinationRow } from './shared';
 
 interface BlockSkipLogicEditorProps {
     block: Block;

@@ -12,11 +12,9 @@ import {
   NodeTypes,
   addEdge,
   MarkerType,
-  Edge as XyflowEdge,
   OnNodesChange,
   OnEdgesChange,
   NodeMouseHandler,
-  Node,
 } from '@xyflow/react';
 
 import type { Survey, Question, SkipLogicRule, SkipLogic, EndNode, TextEntryNode, DescriptionNode, MultipleChoiceNode, StartNode } from '../types';
@@ -54,9 +52,9 @@ interface DiagramCanvasProps {
 }
 
 const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab }) => {
-    // FIX: Pass an initial empty array to the useNodesState and useEdgesState hooks to prevent an error.
-    const [nodes, setNodes, onNodesChange] = useNodesState<DiagramNode>([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState<DiagramEdge>([]);
+    // FIX: Pass initial empty arrays to useNodesState and useEdgesState hooks and remove explicit generic types to allow for better type inference from the library, resolving both reported errors in this file.
+    const [nodes, setNodes, onNodesChange] = useNodesState([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const reactFlowInstance = useReactFlow();
     const prevActiveTabRef = useRef<string>();
     const prevSelectedQuestionRef = useRef<Question | null>(null);
@@ -632,8 +630,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         },
         [survey, onUpdateQuestion, onSelectQuestion]
     );
-
-    const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    const onNodeClick = useCallback((_event: React.MouseEvent, node: DiagramNode) => {
         if (node.type === 'end') return;
         const fullQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === node.id);
         if (fullQuestion) {
@@ -645,7 +642,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         onSelectQuestion(null);
     }, [onSelectQuestion]);
 
-    const onEdgeClick = useCallback((event: React.MouseEvent, edge: XyflowEdge) => {
+    const onEdgeClick = useCallback((event: React.MouseEvent, edge: DiagramEdge) => {
         event.stopPropagation();
         const sourceQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === edge.source);
         if (sourceQuestion) {
@@ -698,10 +695,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 onUpdateQuestion(sourceQuestion.id, { skipLogic: newLogic });
                 onSelectQuestion(sourceQuestion, { tab: 'Behavior', focusOn: newConnection.sourceHandle });
             }
-            
-            setEdges((els) => els.filter(e => e.id !== oldEdge.id));
         },
-        [setEdges, survey, onUpdateQuestion, onSelectQuestion]
+        [survey, onUpdateQuestion, onSelectQuestion]
     );
 
 

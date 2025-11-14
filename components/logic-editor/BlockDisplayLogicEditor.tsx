@@ -3,8 +3,7 @@ import type { Block, Survey, DisplayLogicCondition, DisplayLogic } from '../../t
 import { QuestionType } from '../../types';
 import { PlusIcon } from '../icons';
 import { generateId } from '../../utils';
-// FIX: Changed import path to point to the barrel file inside the 'shared' directory.
-import { PasteInlineForm, CopyAndPasteButton, LogicConditionRow } from './shared/index';
+import { PasteInlineForm, CopyAndPasteButton, LogicConditionRow } from './shared';
 
 interface BlockDisplayLogicEditorProps {
     block: Block;

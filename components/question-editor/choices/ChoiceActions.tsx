@@ -1,7 +1,6 @@
 import React from 'react';
-import { PlusIcon, ContentPasteIcon } from '../../icons';
+import { PlusIcon } from '../../icons';
 import { CopyAndPasteButton } from '../../logic-editor/shared';
-import { Button } from '../../Button';
 
 interface ChoiceActionsProps {
     questionType: string;
@@ -12,12 +11,10 @@ interface ChoiceActionsProps {
 const ChoiceActions: React.FC<ChoiceActionsProps> = ({ questionType, onAddChoice, onPaste }) => {
     return (
         <div className="mt-3 flex items-center gap-4">
-            <Button variant="tertiary-primary" size="large" onClick={onAddChoice}>
-                <PlusIcon className="text-xl mr-2" /> {questionType === 'Choice Grid' ? 'Add row' : 'Add choice'}
-            </Button>
-            <Button variant="tertiary-primary" size="large" onClick={onPaste}>
-                <ContentPasteIcon className="text-xl mr-2" /> Paste
-            </Button>
+            <button onClick={onAddChoice} className="flex items-center text-sm font-medium text-primary hover:underline">
+                <PlusIcon className="text-base mr-1" /> {questionType === 'Choice Grid' ? 'Row' : 'Choice'}
+            </button>
+            <CopyAndPasteButton onClick={onPaste} />
         </div>
     );
 };

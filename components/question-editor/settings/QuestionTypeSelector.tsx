@@ -38,18 +38,12 @@ const QuestionTypeSelector: React.FC<QuestionTypeSelectorProps> = ({ question, o
             <div className="relative" ref={typeMenuRef}>
                 <button
                     onClick={() => setIsTypeMenuOpen(prev => !prev)}
-                    className="w-full h-[32px] flex items-center gap-2 text-left bg-transparent border border-input-border rounded-md px-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary transition-colors"
+                    className="w-full flex items-center gap-2 text-left bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
                     aria-haspopup="true"
                     aria-expanded={isTypeMenuOpen}
                 >
-                    {CurrentQuestionTypeInfo ? (
-                        <div className="w-[19px] h-[19px] flex-shrink-0 flex items-center justify-center">
-                            <CurrentQuestionTypeInfo.icon className="text-base text-primary" />
-                        </div>
-                    ) : (
-                        <div className="w-[19px] h-[19px] flex-shrink-0" />
-                    )}
-                    <span className="flex-grow truncate leading-[19px]">{question.type}</span>
+                    {CurrentQuestionTypeInfo ? <CurrentQuestionTypeInfo.icon className="text-base text-primary flex-shrink-0" /> : <div className="w-4 h-4 mr-3 flex-shrink-0" />}
+                    <span className="flex-grow">{question.type}</span>
                     <ChevronDownIcon className="text-lg text-on-surface-variant flex-shrink-0" />
                 </button>
                 {isTypeMenuOpen && (

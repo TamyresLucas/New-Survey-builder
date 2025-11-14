@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import type { Question } from '../../../types';
 import { QuestionType } from '../../../types';
-import { Toggle } from '../../Toggle';
 
 interface NavigationSettingsProps {
     question: Question;
@@ -22,11 +21,16 @@ const NavigationSettings: React.FC<NavigationSettingsProps> = ({ question, onUpd
                             </label>
                             <p className="text-xs text-on-surface-variant mt-0.5">Automatically move to the next page when this question is answered.</p>
                         </div>
-                        <Toggle
-                            id="question-auto-advance"
-                            checked={question.autoAdvance ?? false}
-                            onChange={(checked) => onUpdate({ autoAdvance: checked })}
-                        />
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                id="question-auto-advance"
+                                checked={question.autoAdvance ?? false}
+                                onChange={(e) => onUpdate({ autoAdvance: e.target.checked })}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
                     </div>
                 </div>
             )}
@@ -38,11 +42,16 @@ const NavigationSettings: React.FC<NavigationSettingsProps> = ({ question, onUpd
                         </label>
                         <p className="text-xs text-on-surface-variant mt-0.5">Prevent respondent from going back from this question.</p>
                     </div>
-                    <Toggle
-                        id="hide-back-button"
-                        checked={!!question.hideBackButton}
-                        onChange={(checked) => onUpdate({ hideBackButton: checked })}
-                    />
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            id="hide-back-button"
+                            checked={!!question.hideBackButton}
+                            onChange={(e) => onUpdate({ hideBackButton: e.target.checked })}
+                            className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
                 </div>
             </div>
         </div>

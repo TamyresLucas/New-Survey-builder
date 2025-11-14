@@ -1,5 +1,6 @@
 
 
+
 import React from 'react';
 import type { Question, ChoiceDisplayLogic, ChoiceDisplayCondition, Survey } from '../../types';
 import { generateId, truncate, parseChoice } from '../../utils';
@@ -31,7 +32,6 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
         handleUpdate(undefined);
     }
 
-    // FIX: Hoisted handleAddCondition to be accessible when no logic is present yet.
     const handleAddCondition = (type: 'show' | 'hide') => {
         const newCondition: ChoiceDisplayCondition = { id: generateId('ccond'), targetChoiceId: '', sourceQuestionId: '', operator: '', value: '', isConfirmed: false };
         const currentLogic = logic || { showOperator: 'AND', showConditions: [], hideOperator: 'AND', hideConditions: [] };
@@ -70,7 +70,6 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
             }
         };
 
-        // FIX: handleUpdateCondition updated to handle 'questionId' from LogicConditionRow and map it back to 'sourceQuestionId'.
         const handleUpdateCondition = (index: number, field: keyof ChoiceDisplayCondition | 'questionId', value: any) => {
             const currentLogic = logic!;
             const updateField = (field === 'questionId' ? 'sourceQuestionId' : field) as keyof ChoiceDisplayCondition;
@@ -160,7 +159,6 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
                                 </select>
                                 <span className="text-sm font-bold text-primary">IF</span>
                             </div>
-                            {/* FIX: Mapped sourceQuestionId to questionId to satisfy LogicConditionRow's prop type. */}
                             <LogicConditionRow
                                 condition={{
                                     ...condition,
@@ -184,7 +182,6 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
              <div>
                 <h3 className="text-sm font-medium text-on-surface mb-1">Choice Display Logic</h3>
                 <p className="text-xs text-on-surface-variant mb-3">Conditionally show or hide choices based on previous answers.</p>
-                {/* FIX: Call handleAddCondition with 'show' parameter to create the first rule. */}
                 <button onClick={() => handleAddCondition('show')} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
                     <PlusIcon className="text-base" /> Add display rule
                 </button>

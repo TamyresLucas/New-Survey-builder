@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Question } from '../../../types';
-import { DropdownField } from '../../DropdownField';
+import { ChevronDownIcon } from '../../icons';
 
 interface AnswerFormatSelectorProps {
     question: Question;
@@ -8,19 +8,16 @@ interface AnswerFormatSelectorProps {
 }
 
 const AnswerFormatSelector: React.FC<AnswerFormatSelectorProps> = ({ question, onUpdate }) => {
-    const options = [
-        { value: 'list', label: 'List (Vertical)' },
-        { value: 'grid', label: 'Grid' }
-    ];
-
     return (
         <div>
-            <label className="block text-sm font-medium text-on-surface-variant mb-1">Answer Format</label>
-            <DropdownField
-                value={question.answerFormat || 'list'}
-                options={options}
-                onChange={(value) => onUpdate({ answerFormat: value as any })}
-            />
+            <label htmlFor="answer-format" className="block text-sm font-medium text-on-surface-variant mb-1">Answer Format</label>
+            <div className="relative">
+                <select id="answer-format" value={question.answerFormat || 'list'} onChange={e => onUpdate({ answerFormat: e.target.value as any })} className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none">
+                    <option value="list">List (Vertical)</option>
+                    <option value="grid">Grid</option>
+                </select>
+                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+            </div>
         </div>
     );
 };

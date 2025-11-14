@@ -2,8 +2,7 @@ import React, { memo } from 'react';
 import type { Workflow, ActionLogic } from '../../types';
 import { generateId } from '../../utils';
 import { PlusIcon, XIcon } from '../icons';
-// FIX: Changed import path to point to the barrel file inside the 'shared' directory.
-import { ActionEditor } from './shared/index';
+import { ActionEditor } from './shared';
 
 export const WorkflowSectionEditor: React.FC<{
     title: string;

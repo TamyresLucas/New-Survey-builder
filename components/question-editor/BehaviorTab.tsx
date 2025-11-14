@@ -1,14 +1,12 @@
 import React from 'react';
-import type { Question, Survey, LogicIssue, Block } from '../../types';
-import { CHOICE_BASED_QUESTION_TYPES } from '../../utils';
+import type { Question, Survey, LogicIssue } from '../../types';
 import { CollapsibleSection } from '../logic-editor/shared';
 import {
     ChoiceBehaviorSection,
+    DisplayLogicSection,
     NavigationSettings,
-    SkipLogicSection,
-    QuestionBehaviorSection
+    SkipLogicSection
 } from './behavior';
-import { BranchingLogicEditor } from '../logic-editor/BranchingLogicEditor';
 
 interface BehaviorTabProps {
     question: Question;
@@ -21,7 +19,6 @@ interface BehaviorTabProps {
     onRequestGeminiHelp: (topic: string) => void;
     focusedLogicSource: string | null;
     isFirstInteractiveQuestion: boolean;
-    onSelectBlock: (block: Block | null, options?: { tab: string; focusOn: string; }) => void;
 }
 
 export const BehaviorTab: React.FC<BehaviorTabProps> = ({
@@ -34,11 +31,8 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({
     onAddLogic,
     onRequestGeminiHelp,
     focusedLogicSource,
-    isFirstInteractiveQuestion,
-    onSelectBlock
+    isFirstInteractiveQuestion
 }) => {
-    const isChoiceBased = CHOICE_BASED_QUESTION_TYPES.has(question.type);
-
     return (
         <div className="p-6 space-y-8">
             <CollapsibleSection title="Navigation" defaultExpanded={true}>
@@ -58,53 +52,30 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({
                             focusedLogicSource={focusedLogicSource}
                         />
                     </div>
-                    <div className="py-6">
-                        <BranchingLogicEditor
-                            question={question}
-                            survey={survey}
-                            previousQuestions={previousQuestions}
-                            followingQuestions={followingQuestions}
-                            issues={issues.filter(i => i.type === 'branching')}
-                            onUpdate={onUpdate}
-                            onAddLogic={onAddLogic}
-                            onRequestGeminiHelp={onRequestGeminiHelp}
-                            focusedLogicSource={focusedLogicSource}
-                        />
-                    </div>
                 </div>
             </CollapsibleSection>
 
-
-
-            <CollapsibleSection title="Question" defaultExpanded={true}>
-                <div className="py-6 first:pt-0">
-                    <QuestionBehaviorSection
-                        question={question}
-                        survey={survey}
-                        previousQuestions={previousQuestions}
-                        onUpdate={onUpdate}
-                        onSelectBlock={onSelectBlock}
-                        onAddLogic={onAddLogic}
-                        issues={issues} // Pass issues down
-                        onRequestGeminiHelp={onRequestGeminiHelp}
-                        focusedLogicSource={focusedLogicSource}
-                    />
-                </div>
+            <CollapsibleSection title="Question Display Logic" defaultExpanded={true}>
+                <DisplayLogicSection
+                    question={question}
+                    previousQuestions={previousQuestions}
+                    issues={issues}
+                    onUpdate={onUpdate}
+                    onAddLogic={onAddLogic}
+                    onRequestGeminiHelp={onRequestGeminiHelp}
+                />
             </CollapsibleSection>
-
-            {isChoiceBased && (
-                <CollapsibleSection title="Choices" defaultExpanded={true}>
-                    <ChoiceBehaviorSection
-                        question={question}
-                        survey={survey}
-                        previousQuestions={previousQuestions}
-                        onUpdate={onUpdate}
-                        onAddLogic={onAddLogic}
-                        isFirstInteractiveQuestion={isFirstInteractiveQuestion}
-                        issues={issues} // Pass issues down
-                    />
-                </CollapsibleSection>
-            )}
+            
+            <CollapsibleSection title="Choices" defaultExpanded={true}>
+                <ChoiceBehaviorSection
+                    question={question}
+                    survey={survey}
+                    previousQuestions={previousQuestions}
+                    onUpdate={onUpdate}
+                    onAddLogic={onAddLogic}
+                    isFirstInteractiveQuestion={isFirstInteractiveQuestion}
+                />
+            </CollapsibleSection>
         </div>
     );
 };

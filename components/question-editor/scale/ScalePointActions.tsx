@@ -1,7 +1,6 @@
 import React from 'react';
-import { PlusIcon, ContentPasteIcon } from '../../icons';
+import { PlusIcon } from '../../icons';
 import { CopyAndPasteButton } from '../../logic-editor/shared';
-import { Button } from '../../Button';
 
 interface ScalePointActionsProps {
     onAddScalePoint: () => void;
@@ -11,12 +10,10 @@ interface ScalePointActionsProps {
 const ScalePointActions: React.FC<ScalePointActionsProps> = ({ onAddScalePoint, onPaste }) => {
     return (
         <div className="mt-3 flex items-center gap-4">
-            <Button variant="tertiary-primary" size="large" onClick={onAddScalePoint}>
-                <PlusIcon className="text-xl mr-2" /> Column
-            </Button>
-            <Button variant="tertiary-primary" size="large" onClick={onPaste}>
-                <ContentPasteIcon className="text-xl mr-2" /> Paste
-            </Button>
+            <button onClick={onAddScalePoint} className="flex items-center text-sm font-medium text-primary hover:underline">
+                <PlusIcon className="text-base mr-1" /> Column
+            </button>
+            <CopyAndPasteButton onClick={onPaste} />
         </div>
     );
 };

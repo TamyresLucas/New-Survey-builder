@@ -3,8 +3,7 @@ import type { Block, Survey, Question, QuestionRandomizationRule, RandomizationP
 import { QuestionType } from '../types';
 import { XIcon, ChevronDownIcon, PlusIcon, InfoIcon } from './icons';
 import { generateId, truncate, parseChoice, isBranchingLogicExhaustive } from '../utils';
-// FIX: Changed import path to point to the barrel file inside the 'shared' directory.
-import { CollapsibleSection } from './logic-editor/shared/index';
+import { CollapsibleSection } from './logic-editor/shared';
 import { BlockDisplayLogicEditor } from './logic-editor/BlockDisplayLogicEditor';
 import { BlockSkipLogicEditor } from './logic-editor/BlockSkipLogicEditor';
 

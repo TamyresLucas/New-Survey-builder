@@ -3,14 +3,12 @@ import type { Survey, Question, BranchingLogic, BranchingLogicBranch, BranchingL
 import { generateId, isBranchingLogicExhaustive } from '../../utils';
 import { 
     XIcon, PlusIcon,
-    // FIX: Import 'InfoIcon' from '../icons' to resolve 'Cannot find name' error.
     InfoIcon
 } from '../icons';
-// FIX: Changed import path to point to the barrel file inside the 'shared' directory.
 import { 
     LogicConditionRow,
     DestinationRow
-} from './shared/index';
+} from './shared';
 
 
 export const BranchingLogicEditor: React.FC<{ 

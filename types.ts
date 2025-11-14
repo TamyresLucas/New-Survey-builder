@@ -1,4 +1,7 @@
 import type React from 'react';
+// FIX: Import Position enum from @xyflow/react to resolve type incompatibility for handles.
+import type { Position, XYPosition } from '@xyflow/react';
+
 
 export enum QuestionType {
   Radio = 'Radio Button',
@@ -330,11 +333,6 @@ export interface LogicIssue {
 
 // --- NEW TYPES FOR DIAGRAM CANVAS ---
 
-export interface Position {
-  x: number;
-  y: number;
-}
-
 export interface ViewTransform {
   x: number;
   y: number;
@@ -347,7 +345,8 @@ export interface Option {
   variableName: string;
 }
 
-export type HandlePosition = 'top' | 'right' | 'bottom' | 'left';
+// FIX: Change HandlePosition to be an alias for the imported Position enum.
+export type HandlePosition = Position;
 
 export interface Condition {
   id: string;
@@ -362,11 +361,19 @@ export interface Condition {
 export interface BaseNode {
   id: string;
   type: string;
-  position: Position;
-  width: number;
-  height: number;
-  data: unknown;
+  // FIX: Use XYPosition for node position to match @xyflow/react's expected type.
+  position: XYPosition;
+  // FIX: Make width and height optional to match @xyflow/react's expected node prop types.
+  width?: number;
+  height?: number;
+  // FIX: Changed data property from `unknown` to `any` to ensure compatibility with @xyflow/react's Node type, which expects `data: any`.
+  data: any;
   selected?: boolean; // Add selected property for React Flow
+  // FIX: Add optional properties to match react-flow's Node type and resolve type errors.
+  sourcePosition?: HandlePosition;
+  targetPosition?: HandlePosition;
+  dragHandle?: string;
+  parentId?: string;
 }
 
 /**
@@ -420,7 +427,8 @@ export interface Edge {
   source: string;
   sourceHandle?: string;
   target: string;
-  targetHandle: string;
+  // FIX: Make targetHandle optional to match @xyflow/react's Edge type.
+  targetHandle?: string;
   label?: string | React.ReactNode;
   data?: {
     condition?: string;

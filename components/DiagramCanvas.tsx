@@ -13,9 +13,13 @@ import {
   addEdge,
   MarkerType,
   Edge as XyflowEdge,
+  OnNodesChange,
+  OnEdgesChange,
+  NodeMouseHandler,
+  Node,
 } from '@xyflow/react';
 
-import type { Survey, Question, SkipLogicRule, SkipLogic, EndNode } from '../types';
+import type { Survey, Question, SkipLogicRule, SkipLogic, EndNode, TextEntryNode, DescriptionNode, MultipleChoiceNode, StartNode } from '../types';
 import type { Node as DiagramNode, Edge as DiagramEdge } from '../types';
 
 import { generateId, parseChoice, isBranchingLogicExhaustive } from '../utils';
@@ -52,7 +56,6 @@ interface DiagramCanvasProps {
 const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab }) => {
     // FIX: Pass an initial empty array to the useNodesState and useEdgesState hooks to prevent an error.
     const [nodes, setNodes, onNodesChange] = useNodesState<DiagramNode>([]);
-    // FIX: The useEdgesState hook requires an initial value. Pass an empty array to prevent a runtime error.
     const [edges, setEdges, onEdgesChange] = useEdgesState<DiagramEdge>([]);
     const reactFlowInstance = useReactFlow();
     const prevActiveTabRef = useRef<string>();
@@ -630,7 +633,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         [survey, onUpdateQuestion, onSelectQuestion]
     );
 
-    const onNodeClick = useCallback((_event: React.MouseEvent, node: DiagramNode) => {
+    const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
         if (node.type === 'end') return;
         const fullQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === node.id);
         if (fullQuestion) {

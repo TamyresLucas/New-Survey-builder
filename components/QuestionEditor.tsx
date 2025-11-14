@@ -1,3 +1,4 @@
+
 import React, { memo, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 // FIX: Import 'BranchingLogicBranch' type.
 import type { Survey, Question, ToolboxItemData, Choice, LogicIssue, RandomizationMethod, BranchingLogicBranch } from '../types';
@@ -12,22 +13,22 @@ import {
     InfoIcon, EyeIcon
 } from './icons';
 import { QuestionTypeSelectionMenuContent } from './ActionMenus';
-// FIX: Import 'CopyAndPasteButton' component.
+// FIX: Import 'CopyAndPasteButton' component from the new shared logic editor file.
 import { 
-    ConditionalLogicEditor, 
-    SkipLogicEditor, 
-    ChoiceDisplayLogicEditor, 
-    BranchingLogicEditor,
-    ActionEditor,
-    WorkflowSectionEditor,
-    QuestionGroupEditor,
-    RandomizeChoicesEditor,
-    ChoiceEliminationEditor,
-    ForceResponseSection,
-    ActivateQuestionSection,
     CollapsibleSection,
-    CopyAndPasteButton
-} from './LogicEditors';
+    CopyAndPasteButton,
+    ActivateQuestionSection,
+    ForceResponseSection,
+    QuestionGroupEditor
+// FIX: Changed import path to point to the barrel file inside the 'shared' directory.
+} from './logic-editor/shared/index';
+import { ConditionalLogicEditor } from './logic-editor/QuestionDisplayLogicEditor';
+import { SkipLogicEditor } from './logic-editor/SkipLogicEditor';
+import { ChoiceDisplayLogicEditor } from './logic-editor/ChoiceDisplayLogicEditor';
+import { BranchingLogicEditor } from './logic-editor/BranchingLogicEditor';
+import { WorkflowSectionEditor } from './logic-editor/WorkflowEditor';
+import { RandomizeChoicesEditor } from './logic-editor/RandomizationEditor';
+import { ChoiceEliminationEditor } from './logic-editor/ChoiceEliminationEditor';
 
 
 // ====================================================================================
@@ -1445,6 +1446,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                         <div className="py-6 first:pt-0">
                             <ChoiceDisplayLogicEditor
                                 question={question}
+                                survey={survey}
                                 previousQuestions={previousQuestions}
                                 onUpdate={handleUpdate}
                                 onAddLogic={onExpandSidebar}
@@ -1615,3 +1617,4 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
         </>
     );
 });
+    

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import type { Question } from '../types';
-import { QuestionType } from '../types';
-import { parseChoice } from '../utils';
+import type { Question } from '../../types';
+import { QuestionType } from '../../types';
+import { parseChoice } from '../../utils';
 import {
     RadioButtonUncheckedIcon,
     RadioIcon as RadioButtonCheckedIcon,
@@ -28,7 +28,7 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
 
   const handleCheckboxChange = (choiceId: string) => {
     // FIX: Safely initialize currentSet to prevent errors if `value` is truthy but not a Set.
-    const currentSet = value instanceof Set ? (value as Set<string>) : new Set<string>();
+    const currentSet = value instanceof Set ? value : new Set<string>();
     const newSet = new Set(currentSet);
     if (newSet.has(choiceId)) {
       newSet.delete(choiceId);

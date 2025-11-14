@@ -1,10 +1,9 @@
 
 
-
 import React from 'react';
 import type { Question, ChoiceDisplayLogic, ChoiceDisplayCondition, Survey } from '../../types';
 import { generateId, truncate, parseChoice } from '../../utils';
-import { PlusIcon, XIcon, ChevronDownIcon } from '../icons';
+import { PlusIcon, XIcon } from '../icons';
 import { LogicConditionRow } from './shared';
 
 interface ChoiceDisplayLogicEditorProps {
@@ -32,6 +31,7 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
         handleUpdate(undefined);
     }
 
+    // FIX: Hoisted handleAddCondition to be accessible when no logic is present yet.
     const handleAddCondition = (type: 'show' | 'hide') => {
         const newCondition: ChoiceDisplayCondition = { id: generateId('ccond'), targetChoiceId: '', sourceQuestionId: '', operator: '', value: '', isConfirmed: false };
         const currentLogic = logic || { showOperator: 'AND', showConditions: [], hideOperator: 'AND', hideConditions: [] };
@@ -48,7 +48,7 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
         const title = type === 'show' ? "Show choice if..." : "Hide choice if...";
         const conditions = type === 'show' ? logic?.showConditions || [] : logic?.hideConditions || [];
         const operator = type === 'show' ? logic?.showOperator || 'AND' : logic?.hideOperator || 'AND';
-
+        
         const handleSetOperator = (op: 'AND' | 'OR') => {
             const currentLogic = logic || { showOperator: 'AND', showConditions: [], hideOperator: 'AND', hideConditions: [] };
             if (type === 'show') {
@@ -70,6 +70,7 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
             }
         };
 
+        // FIX: handleUpdateCondition updated to handle 'questionId' from LogicConditionRow and map it back to 'sourceQuestionId'.
         const handleUpdateCondition = (index: number, field: keyof ChoiceDisplayCondition | 'questionId', value: any) => {
             const currentLogic = logic!;
             const updateField = (field === 'questionId' ? 'sourceQuestionId' : field) as keyof ChoiceDisplayCondition;
@@ -85,7 +86,7 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
             } else {
                 const newConditions = [...currentLogic.hideConditions];
                 newConditions[index] = { ...newConditions[index], [updateField]: value, isConfirmed: false };
-                if (field === 'sourceQuestionId' || field === 'questionId') {
+                 if (field === 'sourceQuestionId' || field === 'questionId') {
                     newConditions[index].operator = '';
                     newConditions[index].value = '';
                 }
@@ -94,30 +95,30 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
         };
 
         const handleConfirmCondition = (index: number) => {
-            const currentLogic = logic!;
-            const condition = type === 'show' ? currentLogic.showConditions[index] : currentLogic.hideConditions[index];
-
+             const currentLogic = logic!;
+             const condition = type === 'show' ? currentLogic.showConditions[index] : currentLogic.hideConditions[index];
+            
             if (!condition.targetChoiceId || !condition.sourceQuestionId || !condition.operator || (!condition.value && !['is_empty', 'is_not_empty'].includes(condition.operator))) {
                 return;
             }
 
-            if (type === 'show') {
-                const newConditions = [...currentLogic.showConditions];
-                newConditions[index] = { ...newConditions[index], isConfirmed: true };
-                handleUpdate({ ...currentLogic, showConditions: newConditions });
-            } else {
-                const newConditions = [...currentLogic.hideConditions];
-                newConditions[index] = { ...newConditions[index], isConfirmed: true };
-                handleUpdate({ ...currentLogic, hideConditions: newConditions });
-            }
+             if (type === 'show') {
+                 const newConditions = [...currentLogic.showConditions];
+                 newConditions[index] = { ...newConditions[index], isConfirmed: true };
+                 handleUpdate({ ...currentLogic, showConditions: newConditions });
+             } else {
+                 const newConditions = [...currentLogic.hideConditions];
+                 newConditions[index] = { ...newConditions[index], isConfirmed: true };
+                 handleUpdate({ ...currentLogic, hideConditions: newConditions });
+             }
         };
 
         if (conditions.length === 0) {
             return (
                 <div className="py-6 first:pt-0">
                     <h4 className="text-sm font-medium text-on-surface mb-1">{title}</h4>
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => handleAddCondition(type)} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5">
+                     <div className="flex items-center gap-4">
+                        <button onClick={() => handleAddCondition(type)} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
                             <PlusIcon className="text-base" /> Add condition
                         </button>
                     </div>
@@ -132,12 +133,12 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
                         <h4 className="text-sm font-medium text-on-surface">{title}</h4>
                         {conditions.length > 1 && (
                             <div className="flex gap-1">
-                                <button onClick={() => handleSetOperator('AND')} className={`px-2 py-0.5 text-xs font-semibold rounded-full ${operator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
-                                <button onClick={() => handleSetOperator('OR')} className={`px-2 py-0.5 text-xs font-semibold rounded-full ${operator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
+                                <button onClick={() => handleSetOperator('AND')} className={`px-2 py-0.5 text-xs font-medium rounded-full ${operator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
+                                <button onClick={() => handleSetOperator('OR')} className={`px-2 py-0.5 text-xs font-medium rounded-full ${operator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
                             </div>
                         )}
                     </div>
-                    <button onClick={() => handleAddCondition(type)} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5">
+                    <button onClick={() => handleAddCondition(type)} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
                         <PlusIcon className="text-base" /> Add
                     </button>
                 </div>
@@ -145,23 +146,21 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
                 <div className="space-y-2">
                     {conditions.map((condition, index) => (
                         <div key={condition.id} className="p-2 bg-surface rounded-md space-y-2 border border-outline-variant">
-                            <div className="flex items-center gap-2">
-                                <div className="relative w-full">
-                                    <select
-                                        value={condition.targetChoiceId}
-                                        onChange={e => handleUpdateCondition(index, 'targetChoiceId', e.target.value)}
-                                        className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                                        aria-label={`Target choice for ${type} logic`}
-                                    >
-                                        <option value="">Select choice to {type}...</option>
-                                        {(question.choices || []).map(c => (
-                                            <option key={c.id} value={c.id}>{truncate(parseChoice(c.text).label, 30)}</option>
-                                        ))}
-                                    </select>
-                                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-lg" />
-                                </div>
+                             <div className="flex items-center gap-2">
+                                <select
+                                    value={condition.targetChoiceId}
+                                    onChange={e => handleUpdateCondition(index, 'targetChoiceId', e.target.value)}
+                                    className="w-full bg-surface-container border border-outline rounded-md px-2 py-1.5 text-sm"
+                                    aria-label={`Target choice for ${type} logic`}
+                                >
+                                    <option value="">Select choice to {type}...</option>
+                                    {(question.choices || []).map(c => (
+                                        <option key={c.id} value={c.id}>{truncate(parseChoice(c.text).label, 30)}</option>
+                                    ))}
+                                </select>
                                 <span className="text-sm font-bold text-primary">IF</span>
                             </div>
+                            {/* FIX: Mapped sourceQuestionId to questionId to satisfy LogicConditionRow's prop type. */}
                             <LogicConditionRow
                                 condition={{
                                     ...condition,
@@ -181,22 +180,23 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
     };
 
     if (!logic) {
-        return (
-            <div>
+         return (
+             <div>
                 <h3 className="text-sm font-medium text-on-surface mb-1">Choice Display Logic</h3>
                 <p className="text-xs text-on-surface-variant mb-3">Conditionally show or hide choices based on previous answers.</p>
-                <button onClick={() => handleAddCondition('show')} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5">
+                {/* FIX: Call handleAddCondition with 'show' parameter to create the first rule. */}
+                <button onClick={() => handleAddCondition('show')} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
                     <PlusIcon className="text-base" /> Add display rule
                 </button>
-            </div>
-        );
+             </div>
+         );
     }
 
     return (
         <div>
             <div className="flex items-center justify-between gap-2 mb-2">
                 <h3 className="text-sm font-medium text-on-surface">Choice Display Logic</h3>
-                <button onClick={handleRemoveAllLogic} className="text-sm font-semibold text-error hover:underline">Remove</button>
+                <button onClick={handleRemoveAllLogic} className="text-sm font-medium text-error hover:underline">Remove</button>
             </div>
             <div className="divide-y divide-outline-variant">
                 {renderLogicSection('show')}

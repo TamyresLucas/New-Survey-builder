@@ -1,4 +1,5 @@
-export { AdvancedTab } from './AdvancedTab';
+
+export { AdvancedTab, PreviewTab } from './AdvancedTab';
 export { BehaviorTab } from './BehaviorTab';
 export { ChoiceBasedSettingsTab } from './ChoiceBasedSettingsTab';
-export { GenericSettingsTab } from './GenericSettingsTab';
+export { GenericSettingsTab, TextEntrySettingsTab } from './GenericSettingsTab';

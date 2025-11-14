@@ -52,7 +52,7 @@ interface DiagramCanvasProps {
 }
 
 const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab }) => {
-    // FIX: Pass initial empty arrays to useNodesState and useEdgesState hooks and remove explicit generic types to allow for better type inference from the library, resolving both reported errors in this file.
+    // FIX: Pass initial empty arrays to useNodesState and useEdgesState hooks as they require an initial value.
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const reactFlowInstance = useReactFlow();

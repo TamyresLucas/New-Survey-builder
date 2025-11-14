@@ -52,19 +52,6 @@ interface DiagramCanvasProps {
 }
 
 const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab }) => {
-    // FIX: Pass initial empty arrays to useNodesState and useEdgesState hooks as they require an initial value.
-    const [nodes, setNodes, onNodesChange] = useNodesState([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-    const reactFlowInstance = useReactFlow();
-    const prevActiveTabRef = useRef<string>();
-    const prevSelectedQuestionRef = useRef<Question | null>(null);
-
-    // Memoize the flat list of all questions and a map of their indices for efficient validation.
-    const questionIndexMap = useMemo(() => {
-        const allQuestions = survey.blocks.flatMap(b => b.questions);
-        return new Map(allQuestions.map((q, i) => [q.id, i]));
-    }, [survey]);
-    
     const { layoutNodes, layoutEdges } = useMemo(() => {
         const allQuestions = survey.blocks.flatMap(b => b.questions);
         const questionMap: Map<string, Question> = new Map(allQuestions.map(q => [q.id, q]));
@@ -527,6 +514,19 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         flowNodes.push(endNode);
 
         return { layoutNodes: flowNodes, layoutEdges: flowEdges };
+    }, [survey]);
+
+    // FIX: Initialize useNodesState and useEdgesState with the calculated layout nodes and edges to fix initialization error.
+    const [nodes, setNodes, onNodesChange] = useNodesState(layoutNodes);
+    const [edges, setEdges, onEdgesChange] = useEdgesState(layoutEdges);
+    const reactFlowInstance = useReactFlow();
+    const prevActiveTabRef = useRef<string>();
+    const prevSelectedQuestionRef = useRef<Question | null>(null);
+
+    // Memoize the flat list of all questions and a map of their indices for efficient validation.
+    const questionIndexMap = useMemo(() => {
+        const allQuestions = survey.blocks.flatMap(b => b.questions);
+        return new Map(allQuestions.map((q, i) => [q.id, i]));
     }, [survey]);
     
     useEffect(() => {

@@ -31,7 +31,7 @@ const MultipleChoiceNodeComponent: React.FC<NodeProps<MultipleChoiceNode>> = ({ 
       </header>
       <main className="p-3">
         <ul className="space-y-2">
-            {data.options.map((option) => (
+            {data.options.map((option, index) => (
                 <li key={option.id} className="relative bg-surface rounded p-2 text-sm text-on-surface flex items-center justify-between border border-outline-variant">
                     <div className="flex items-center gap-2">
                         {data.subtype === 'radio' ? (
@@ -43,7 +43,12 @@ const MultipleChoiceNodeComponent: React.FC<NodeProps<MultipleChoiceNode>> = ({ 
                     </div>
                     <span className="bg-surface-container-high text-on-surface-variant text-xs font-mono py-1 px-2 rounded">{option.variableName}</span>
                     {/* FIX: Add an output handle for each choice to allow branching logic to be visualized. */}
-                    <Handle type="source" position={Position.Right} id={option.id} style={choiceHandleStyle} />
+                    <Handle 
+                        type="source" 
+                        position={Position.Right} 
+                        id={option.id} 
+                        style={{ ...choiceHandleStyle, top: `${(100 / (data.options.length + 1)) * (index + 1)}%` }} 
+                    />
                 </li>
             ))}
         </ul>

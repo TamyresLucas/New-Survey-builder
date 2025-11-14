@@ -1,3 +1,5 @@
+
+
 import React, { memo, useMemo } from 'react';
 import type { Survey, Question, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, Block } from '../../types';
 import { generateId, isBranchingLogicExhaustive } from '../../utils';
@@ -40,8 +42,33 @@ export const BranchingLogicEditor: React.FC<{
         onUpdate(updates);
     };
 
+    const handleAddBranchingLogic = () => {
+        const newBranch: BranchingLogicBranch = {
+            id: generateId('branch'),
+            operator: 'AND',
+            conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
+            thenSkipTo: '',
+            thenSkipToIsConfirmed: false,
+        };
+        const newLogic: BranchingLogic = {
+            branches: [newBranch],
+            otherwiseSkipTo: 'next',
+            otherwiseIsConfirmed: true,
+        };
+        onUpdate({ branchingLogic: newLogic });
+        onAddLogic();
+    };
+
     if (!branchingLogic) {
-        return null; // This case is handled by the parent component's render logic
+        return (
+             <div className="py-6 first:pt-0">
+                <h3 className="text-sm font-medium text-on-surface mb-1">Branching Logic</h3>
+                <p className="text-xs text-on-surface-variant mb-3">Create complex paths through the survey based on multiple conditions.</p>
+                <button onClick={handleAddBranchingLogic} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                    <PlusIcon className="text-base" /> Add branch
+                </button>
+             </div>
+        );
     }
 
     const handleUpdateBranch = (branchId: string, updates: Partial<BranchingLogicBranch>) => {

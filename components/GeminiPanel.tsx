@@ -18,7 +18,24 @@ interface GeminiPanelProps {
   logicIssues: LogicIssue[];
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+// Lazy initialization of GoogleGenAI - only create when needed and API key is available
+let aiInstance: GoogleGenAI | null = null;
+
+const hasAPIKey = (): boolean => {
+  const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+  return !!apiKey && apiKey !== 'undefined' && apiKey !== '';
+};
+
+const getAI = (): GoogleGenAI => {
+  if (!aiInstance) {
+    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === 'undefined' || apiKey === '') {
+      throw new Error('API Key não configurada');
+    }
+    aiInstance = new GoogleGenAI({ apiKey: apiKey as string });
+  }
+  return aiInstance;
+};
 
 type PendingLogicChange = {
     name: string;
@@ -459,7 +476,13 @@ const GeminiPanel: React.FC<GeminiPanelProps> = memo(({ onClose, onAddQuestion, 
   const chatRef = useRef<Chat | null>(null);
 
   useEffect(() => {
-    const systemInstruction = `You are a helpful survey building assistant integrated into a UI.
+    // Only initialize chat if API key is available
+    if (!hasAPIKey()) {
+      return;
+    }
+
+    try {
+      const systemInstruction = `You are a helpful survey building assistant integrated into a UI.
 Your primary goal is to help users build and modify surveys using available tools.
 With every user prompt, you will be provided with the complete current structure of the survey, including all questions, choices, and logic. You MUST treat this structure as the single source of truth.
 The provided context may also include a list of 'Current Logic Issues'. You should be aware of these when making changes or if the user asks you to validate the survey.
@@ -471,27 +494,31 @@ When this happens, you MUST inform the user about the specific issues found in t
 Do not apologize or try to fix it yourself. Just present the facts and ask for confirmation.
 If the user confirms, call the exact same function again, but for a reposition, add the 'force: true' parameter. For logic changes, just call the function again. If they cancel, simply confirm the cancellation.`;
 
-    chatRef.current = ai.chats.create({
-      model: 'gemini-2.5-flash',
-      history: initialMessages.map(msg => ({
-        role: msg.role,
-        parts: [{ text: msg.text }]
-      })),
-      config: {
-        tools: [{ functionDeclarations: [
-            addQuestionFunctionDeclaration, 
-            updateQuestionFunctionDeclaration,
-            getQuestionDetailsFunctionDeclaration,
-            setDisplayLogicFunctionDeclaration,
-            removeDisplayLogicFunctionDeclaration,
-            setSkipLogicFunctionDeclaration,
-            removeSkipLogicFunctionDeclaration,
-            repositionQuestionFunctionDeclaration,
-            deleteQuestionFunctionDeclaration,
-        ] }],
-      },
-      systemInstruction: { parts: [{ text: systemInstruction }] }
-    });
+      chatRef.current = getAI().chats.create({
+        model: 'gemini-2.5-flash',
+        history: initialMessages.map(msg => ({
+          role: msg.role,
+          parts: [{ text: msg.text }]
+        })),
+        config: {
+          tools: [{ functionDeclarations: [
+              addQuestionFunctionDeclaration, 
+              updateQuestionFunctionDeclaration,
+              getQuestionDetailsFunctionDeclaration,
+              setDisplayLogicFunctionDeclaration,
+              removeDisplayLogicFunctionDeclaration,
+              setSkipLogicFunctionDeclaration,
+              removeSkipLogicFunctionDeclaration,
+              repositionQuestionFunctionDeclaration,
+              deleteQuestionFunctionDeclaration,
+          ] }],
+        },
+        systemInstruction: { parts: [{ text: systemInstruction }] }
+      });
+    } catch (error) {
+      console.error('Erro ao inicializar chat do Gemini:', error);
+      setMessages([{ role: 'model', text: 'Erro ao inicializar o assistente Gemini. Por favor, verifique sua API key.' }]);
+    }
   }, []);
 
 
@@ -500,6 +527,13 @@ If the user confirms, call the exact same function again, but for a reposition, 
   }, [messages, isLoading]);
 
   useEffect(() => {
+    if (!hasAPIKey() || !helpTopic) {
+      if (helpTopic) {
+        setMessages([{ role: 'model', text: 'API Key não configurada. Por favor, configure a variável GEMINI_API_KEY no arquivo .env.local para usar este recurso.' }]);
+      }
+      return;
+    }
+    
     const fetchHelpTopic = async (topic: string) => {
       setMessages([]); // Clear previous chat
       setIsLoading(true);
@@ -510,7 +544,7 @@ If the user confirms, call the exact same function again, but for a reposition, 
         - Provide at least one concrete example for ${topic}.
         - Keep the explanation concise and formatted for a small panel using markdown for bolding and lists.`;
 
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
           model: 'gemini-2.5-flash',
           contents: prompt,
         });
@@ -526,13 +560,7 @@ If the user confirms, call the exact same function again, but for a reposition, 
       }
     };
 
-    if (helpTopic) {
-      fetchHelpTopic(helpTopic);
-    } else {
-      if (messages.length === 0) {
-        setMessages(initialMessages);
-      }
-    }
+    fetchHelpTopic(helpTopic);
   }, [helpTopic]);
   
   const applyLogicChange = useCallback((name: string, args: any) => {
@@ -743,7 +771,7 @@ const validateReposition = useCallback((args: any): { ok: boolean, error?: strin
 
   const handleSendMessage = useCallback(async () => {
     const trimmedInput = inputValue.trim();
-    if (!trimmedInput || isLoading || !chatRef.current) return;
+    if (!trimmedInput || isLoading || !chatRef.current || !hasAPIKey()) return;
 
     const userMessage: ChatMessage = { role: 'user', text: trimmedInput };
     setMessages(prev => [...prev, userMessage]);
@@ -942,7 +970,25 @@ const validateReposition = useCallback((args: any): { ok: boolean, error?: strin
       </div>
       
       <div className="flex-1 p-6 overflow-y-auto space-y-4" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-        {messages.map((msg, index) => (
+        {!hasAPIKey() ? (
+          <div className="flex flex-col items-center justify-center h-full text-center p-6">
+            <SparkleIcon className="text-4xl text-on-surface-variant mb-4" />
+            <h3 className="text-lg font-semibold text-on-surface mb-2">API Key não configurada</h3>
+            <p className="text-sm text-on-surface-variant mb-4 max-w-md">
+              Para usar o assistente Gemini, você precisa configurar sua chave de API do Google Gemini.
+            </p>
+            <div className="bg-surface-container-high rounded-lg p-4 max-w-md text-left">
+              <p className="text-xs font-semibold text-on-surface mb-2">Como configurar:</p>
+              <ol className="text-xs text-on-surface-variant space-y-1 list-decimal list-inside">
+                <li>Crie um arquivo <code className="bg-surface px-1 rounded">.env.local</code> na raiz do projeto</li>
+                <li>Adicione a linha: <code className="bg-surface px-1 rounded">GEMINI_API_KEY=sua_chave_aqui</code></li>
+                <li>Reinicie o servidor de desenvolvimento</li>
+              </ol>
+            </div>
+          </div>
+        ) : (
+          <>
+            {messages.map((msg, index) => (
             <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                 {msg.role === 'model' && (
                     <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center flex-shrink-0">
@@ -972,9 +1018,11 @@ const validateReposition = useCallback((args: any): { ok: boolean, error?: strin
             </div>
         )}
         <div ref={chatEndRef} />
+          </>
+        )}
       </div>
 
-      <div className={`p-4 border-t border-outline-variant ${isHelpMode ? 'hidden' : ''}`}>
+      <div className={`p-4 border-t border-outline-variant ${isHelpMode || !hasAPIKey() ? 'hidden' : ''}`}>
         <div className="relative">
           <textarea
             rows={1}

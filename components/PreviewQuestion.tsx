@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import type { Question } from '../../types';
-import { QuestionType } from '../../types';
-import { parseChoice } from '../../utils';
+import type { Question } from '../types';
+import { QuestionType } from '../types';
+import { parseChoice } from '../utils';
 import {
     RadioButtonUncheckedIcon,
     RadioIcon as RadioButtonCheckedIcon,

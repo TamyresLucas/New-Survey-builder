@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect, memo, useCallback } from 'react';
 import { SearchIcon, PanelLeftIcon, RadioIcon, WarningIcon, DragIndicatorIcon, ChevronDownIcon, DotsHorizontalIcon } from './icons';
-import type { Survey, Question, ToolboxItemData, QuestionType, Block } from '../types';
+import type { Survey, Question, ToolboxItemData, QuestionType, Block, LogicIssue } from '../types';
 import { QuestionType as QTEnum } from '../types';
 import { BlockActionsMenu, QuestionActionsMenu } from './ActionMenus';
 
@@ -14,6 +14,7 @@ interface BuildPanelProps {
   checkedQuestions: Set<string>;
   collapsedBlocks: Set<string>;
   toolboxItems: ToolboxItemData[];
+  logicIssues: LogicIssue[];
   onReorderToolbox: (items: ToolboxItemData[]) => void;
   onReorderQuestion: (draggedQuestionId: string, targetQuestionId: string | null, targetBlockId: string) => void;
   onReorderBlock: (draggedBlockId: string, targetBlockId: string | null) => void;
@@ -133,7 +134,7 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
 
 
 const BuildPanel: React.FC<BuildPanelProps> = memo(({ 
-  onClose, survey, onSelectQuestion, selectedQuestion, selectedBlock, onSelectBlock, checkedQuestions, collapsedBlocks, toolboxItems, onReorderToolbox, onReorderQuestion, onReorderBlock,
+  onClose, survey, onSelectQuestion, selectedQuestion, selectedBlock, onSelectBlock, checkedQuestions, collapsedBlocks, toolboxItems, logicIssues, onReorderToolbox, onReorderQuestion, onReorderBlock,
   onMoveBlockUp, onMoveBlockDown, onAddBlock, onCopyBlock, onAddQuestionToBlock, onExpandAllBlocks, onCollapseAllBlocks, onDeleteBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock,
   onMoveQuestionToExistingBlock, onAddPageBreakAfterQuestion, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock, onUpdateQuestion
 }) => {
@@ -195,13 +196,21 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
         .filter(item => item.name !== 'Block' && item.name !== 'Page Break')
         .map(item => item.name)
     );
-    return ['All content', 'All question types', ...Array.from(types)];
+    return ['All content', 'All question types', 'Issues', ...Array.from(types)];
   }, [toolboxItems]);
 
   const filteredSurveyBlocks = useMemo(() => {
     let blocks = survey.blocks;
 
-    if (questionTypeFilter === 'All question types') {
+    if (questionTypeFilter === 'Issues') {
+        const issueQuestionIds = new Set(logicIssues.map(i => i.questionId));
+        blocks = blocks
+            .map(block => ({
+                ...block,
+                questions: block.questions.filter(q => issueQuestionIds.has(q.id)),
+            }))
+            .filter(block => block.questions.length > 0);
+    } else if (questionTypeFilter === 'All question types') {
         blocks = blocks
             .map(block => ({
                 ...block,
@@ -231,7 +240,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
     }
 
     return blocks;
-}, [survey.blocks, searchTerm, questionTypeFilter]);
+}, [survey.blocks, searchTerm, questionTypeFilter, logicIssues]);
 
 
   const questionTypeIconMap = useMemo(() => new Map(toolboxItems.map(item => [item.name, item.icon])), [toolboxItems]);
@@ -442,6 +451,9 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             >
               <div className="flex items-center truncate">
                 {(() => {
+                  if (questionTypeFilter === 'Issues') {
+                      return <WarningIcon className="text-base mr-2 text-error flex-shrink-0" />;
+                  }
                   const IconComponent = questionTypeIconMap.get(questionTypeFilter);
                   return IconComponent ? (
                     <IconComponent className="text-base mr-2 text-primary flex-shrink-0" />
@@ -456,8 +468,8 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             {isFilterDropdownOpen && (
               <ul className="absolute top-full left-0 right-0 mt-1 w-full max-h-60 overflow-y-auto bg-surface-container border border-outline-variant rounded-md shadow-lg z-20 py-1">
                 {questionTypeFilterOptions.map(option => {
-                  const IconComponent = questionTypeIconMap.get(option);
-                  const isEnabled = option === 'All content' || option === 'All question types' || enabledToolboxItems.has(option);
+                  const IconComponent = option === 'Issues' ? WarningIcon : questionTypeIconMap.get(option);
+                  const isEnabled = option === 'All content' || option === 'All question types' || option === 'Issues' || enabledToolboxItems.has(option);
                   return (
                     <li key={option}>
                       <button
@@ -474,7 +486,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                         }`}
                       >
                         {IconComponent ? (
-                          <IconComponent className={`text-base mr-2 flex-shrink-0 ${isEnabled ? 'text-primary' : 'text-on-surface-variant'}`} />
+                          <IconComponent className={`text-base mr-2 flex-shrink-0 ${isEnabled ? (option === 'Issues' ? 'text-error' : 'text-primary') : 'text-on-surface-variant'}`} />
                         ) : (
                           <div className="w-4 mr-2 flex-shrink-0" />
                         )}

@@ -234,14 +234,16 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
 
         <div className="relative" ref={userMenuRef}>
           <button onClick={() => setIsUserMenuOpen(prev => !prev)} className="rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ring-offset-surface-container">
-            <img src="https://i.pravatar.cc/40?img=32" alt="User Avatar" className="h-9 w-9 rounded-full" />
+            <div className="h-9 w-9 rounded-full bg-primary text-on-primary flex items-center justify-center text-sm font-medium shadow-sm">
+                TL
+            </div>
           </button>
           {isUserMenuOpen && (
             <div className="absolute right-0 mt-2 w-64 bg-surface-container rounded-md shadow-lg ring-1 ring-black/5 dark:ring-outline-variant z-30">
               <div className="py-1">
                 <div className="px-4 py-2 border-b border-outline-variant">
                   <p className="text-sm text-on-surface-variant" id="user-menu-email-label">Signed in as</p>
-                  <p className="text-sm font-medium text-on-surface truncate" aria-labelledby="user-menu-email-label">user@example.com</p>
+                  <p className="text-sm font-medium text-on-surface truncate" aria-labelledby="user-menu-email-label">tamyres.lucas@voxco.com</p>
                 </div>
                 <div className="p-2">
                   <div className="flex justify-between items-center px-2 py-1">

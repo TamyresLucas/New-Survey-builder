@@ -1,6 +1,6 @@
 import React, { memo, useMemo } from 'react';
 import { QuestionEditor } from './QuestionEditor';
-import type { Survey, Question, ToolboxItemData, LogicIssue } from '../types';
+import type { Survey, Question, ToolboxItemData, LogicIssue, Block } from '../types';
 import { XIcon, ExpandIcon, CollapseIcon } from './icons';
 import { QuestionType } from '../types';
 
@@ -18,6 +18,7 @@ export const RightSidebar: React.FC<{
   isExpanded: boolean;
   onToggleExpand: () => void;
   onExpandSidebar: () => void;
+  onSelectBlock: (block: Block | null, options?: { tab: string, focusOn: string }) => void;
   toolboxItems: ToolboxItemData[];
   onRequestGeminiHelp: (topic: string) => void;
 }> = memo(({
@@ -34,6 +35,7 @@ export const RightSidebar: React.FC<{
     isExpanded,
     onToggleExpand,
     onExpandSidebar,
+    onSelectBlock,
     toolboxItems,
     onRequestGeminiHelp,
 }) => {
@@ -91,6 +93,7 @@ export const RightSidebar: React.FC<{
                     onDeleteChoice={onDeleteChoice}
                     isExpanded={isExpanded}
                     onExpandSidebar={onExpandSidebar}
+                    onSelectBlock={onSelectBlock}
                     toolboxItems={toolboxItems}
                     onRequestGeminiHelp={onRequestGeminiHelp}
                 />

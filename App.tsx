@@ -436,11 +436,20 @@ const App: React.FC = () => {
   }, []);
 
   const handleToggleRightSidebarExpand = useCallback(() => {
-    setIsRightSidebarExpanded(prev => !prev);
+    setIsRightSidebarExpanded(prev => {
+        const isExpanding = !prev;
+        if (isExpanding) {
+            setIsBuildPanelOpen(false);
+        } else {
+            setIsBuildPanelOpen(true);
+        }
+        return isExpanding;
+    });
   }, []);
   
   const handleExpandRightSidebar = useCallback(() => {
     setIsRightSidebarExpanded(true);
+    setIsBuildPanelOpen(false);
   }, []);
 
   const handleUpdateQuestion = useCallback((questionId: string, updates: Partial<Question>) => {
@@ -1056,7 +1065,7 @@ const App: React.FC = () => {
                 ? `absolute top-0 right-0 h-full shadow-lg transform transition-transform duration-300 ease-in-out
                   ${isAnyRightPanelOpen ? 'translate-x-0' : 'translate-x-full'}
                   ${isPanelExpanded ? 'w-1/2' : 'w-96'}`
-                : `flex-shrink-0 transition-all duration-300 ease-in-out ${isPanelExpanded ? 'w-[50%]' : 'w-96'}`
+                : `flex-shrink-0 transition-all duration-300 ease-in-out ${isPanelExpanded ? 'w-[640px]' : 'w-96'}`
             }
           >
             {isGeminiPanelOpen ? (
@@ -1102,6 +1111,7 @@ const App: React.FC = () => {
                   isExpanded={isRightSidebarExpanded}
                   onToggleExpand={handleToggleRightSidebarExpand}
                   onExpandSidebar={handleExpandRightSidebar}
+                  onSelectBlock={handleSelectBlock}
                   toolboxItems={toolboxItems}
                   onRequestGeminiHelp={handleRequestGeminiHelp}
                 />

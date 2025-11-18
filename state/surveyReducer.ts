@@ -343,66 +343,96 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             }
 
             // --- DRAFT LOGIC HANDLING ---
-            if (finalUpdates.displayLogic) {
-                questionInState.draftDisplayLogic = finalUpdates.displayLogic;
-                const allConfirmed = questionInState.draftDisplayLogic.conditions?.every(c => c.isConfirmed);
-                if (allConfirmed) {
-                    questionInState.displayLogic = questionInState.draftDisplayLogic;
+            if ('displayLogic' in finalUpdates) {
+                if (finalUpdates.displayLogic === undefined) {
+                    delete questionInState.displayLogic;
                     delete questionInState.draftDisplayLogic;
+                } else {
+                    questionInState.draftDisplayLogic = finalUpdates.displayLogic;
+                    const allConfirmed = questionInState.draftDisplayLogic.conditions?.every(c => c.isConfirmed);
+                    if (allConfirmed) {
+                        questionInState.displayLogic = questionInState.draftDisplayLogic;
+                        delete questionInState.draftDisplayLogic;
+                    }
                 }
                 delete finalUpdates.displayLogic;
             }
-            if (finalUpdates.hideLogic) {
-                questionInState.draftHideLogic = finalUpdates.hideLogic;
-                const allConfirmed = questionInState.draftHideLogic.conditions?.every(c => c.isConfirmed);
-                if (allConfirmed) {
-                    questionInState.hideLogic = questionInState.draftHideLogic;
+            if ('hideLogic' in finalUpdates) {
+                if (finalUpdates.hideLogic === undefined) {
+                    delete questionInState.hideLogic;
                     delete questionInState.draftHideLogic;
+                } else {
+                    questionInState.draftHideLogic = finalUpdates.hideLogic;
+                    const allConfirmed = questionInState.draftHideLogic.conditions?.every(c => c.isConfirmed);
+                    if (allConfirmed) {
+                        questionInState.hideLogic = questionInState.draftHideLogic;
+                        delete questionInState.draftHideLogic;
+                    }
                 }
                 delete finalUpdates.hideLogic;
             }
-            if (finalUpdates.skipLogic) {
-                questionInState.draftSkipLogic = finalUpdates.skipLogic;
-                let allConfirmed = false;
-                if (questionInState.draftSkipLogic.type === 'simple') {
-                    allConfirmed = questionInState.draftSkipLogic.isConfirmed === true;
-                } else if (questionInState.draftSkipLogic.type === 'per_choice') {
-                    allConfirmed = questionInState.draftSkipLogic.rules?.every(r => r.isConfirmed === true);
-                }
-                if (allConfirmed) {
-                    questionInState.skipLogic = questionInState.draftSkipLogic;
+            if ('skipLogic' in finalUpdates) {
+                if (finalUpdates.skipLogic === undefined) {
+                    delete questionInState.skipLogic;
                     delete questionInState.draftSkipLogic;
+                } else {
+                    questionInState.draftSkipLogic = finalUpdates.skipLogic;
+                    let allConfirmed = false;
+                    if (questionInState.draftSkipLogic.type === 'simple') {
+                        allConfirmed = questionInState.draftSkipLogic.isConfirmed === true;
+                    } else if (questionInState.draftSkipLogic.type === 'per_choice') {
+                        allConfirmed = questionInState.draftSkipLogic.rules?.every(r => r.isConfirmed === true);
+                    }
+                    if (allConfirmed) {
+                        questionInState.skipLogic = questionInState.draftSkipLogic;
+                        delete questionInState.draftSkipLogic;
+                    }
                 }
                 delete finalUpdates.skipLogic;
             }
-            if (finalUpdates.branchingLogic) {
-                questionInState.draftBranchingLogic = finalUpdates.branchingLogic;
-                const allConfirmed = questionInState.draftBranchingLogic.otherwiseIsConfirmed === true &&
-                                     questionInState.draftBranchingLogic.branches?.every(b => 
-                                        b.thenSkipToIsConfirmed === true &&
-                                        b.conditions.every(c => c.isConfirmed === true)
-                                     );
-                if (allConfirmed) {
-                    questionInState.branchingLogic = questionInState.draftBranchingLogic;
+            if ('branchingLogic' in finalUpdates) {
+                if (finalUpdates.branchingLogic === undefined) {
+                    delete questionInState.branchingLogic;
                     delete questionInState.draftBranchingLogic;
+                } else {
+                    questionInState.draftBranchingLogic = finalUpdates.branchingLogic;
+                    const allConfirmed = questionInState.draftBranchingLogic.otherwiseIsConfirmed === true &&
+                                         questionInState.draftBranchingLogic.branches?.every(b => 
+                                            b.thenSkipToIsConfirmed === true &&
+                                            b.conditions.every(c => c.isConfirmed === true)
+                                         );
+                    if (allConfirmed) {
+                        questionInState.branchingLogic = questionInState.draftBranchingLogic;
+                        delete questionInState.draftBranchingLogic;
+                    }
                 }
                 delete finalUpdates.branchingLogic;
             }
-            if (finalUpdates.beforeWorkflows) {
-                questionInState.draftBeforeWorkflows = finalUpdates.beforeWorkflows;
-                const allConfirmed = questionInState.draftBeforeWorkflows.every((w: any) => w.actions.every((a: any) => a.isConfirmed));
-                if (allConfirmed) {
-                    questionInState.beforeWorkflows = questionInState.draftBeforeWorkflows;
+            if ('beforeWorkflows' in finalUpdates) {
+                if (finalUpdates.beforeWorkflows === undefined) {
+                    delete questionInState.beforeWorkflows;
                     delete questionInState.draftBeforeWorkflows;
+                } else {
+                    questionInState.draftBeforeWorkflows = finalUpdates.beforeWorkflows;
+                    const allConfirmed = questionInState.draftBeforeWorkflows.every((w: any) => w.actions.every((a: any) => a.isConfirmed));
+                    if (allConfirmed) {
+                        questionInState.beforeWorkflows = questionInState.draftBeforeWorkflows;
+                        delete questionInState.draftBeforeWorkflows;
+                    }
                 }
                 delete finalUpdates.beforeWorkflows;
             }
-            if (finalUpdates.afterWorkflows) {
-                questionInState.draftAfterWorkflows = finalUpdates.afterWorkflows;
-                const allConfirmed = questionInState.draftAfterWorkflows.every((w: any) => w.actions.every((a: any) => a.isConfirmed));
-                if (allConfirmed) {
-                    questionInState.afterWorkflows = questionInState.draftAfterWorkflows;
+            if ('afterWorkflows' in finalUpdates) {
+                if (finalUpdates.afterWorkflows === undefined) {
+                    delete questionInState.afterWorkflows;
                     delete questionInState.draftAfterWorkflows;
+                } else {
+                    questionInState.draftAfterWorkflows = finalUpdates.afterWorkflows;
+                    const allConfirmed = questionInState.draftAfterWorkflows.every((w: any) => w.actions.every((a: any) => a.isConfirmed));
+                    if (allConfirmed) {
+                        questionInState.afterWorkflows = questionInState.draftAfterWorkflows;
+                        delete questionInState.draftAfterWorkflows;
+                    }
                 }
                 delete finalUpdates.afterWorkflows;
             }

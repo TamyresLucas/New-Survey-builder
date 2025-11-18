@@ -1,12 +1,14 @@
 
+
+
 import React, { useState, useCallback, useEffect } from 'react';
-import type { Question, Survey, LogicIssue } from '../../types';
+import type { Question, Survey, LogicIssue, Block } from '../../types';
 import { QuestionType } from '../../types';
 import { parseChoice } from '../../utils';
 import {
     SignalIcon, BatteryIcon, RadioButtonUncheckedIcon, CheckboxOutlineIcon,
     RadioIcon as RadioButtonCheckedIcon, CheckboxFilledIcon as CheckboxCheckedIcon,
-    ChevronDownIcon, InfoIcon, EyeIcon
+    ChevronDownIcon, InfoIcon, EyeIcon, ArrowRightAltIcon
 } from '../icons';
 
 import { CollapsibleSection, QuestionGroupEditor } from '../logic-editor/shared';
@@ -23,6 +25,7 @@ interface AdvancedTabProps {
     onUpdate: (updates: Partial<Question>) => void;
     onAddLogic: () => void;
     onRequestGeminiHelp: (topic: string) => void;
+    onSelectBlock: (block: Block | null, options?: { tab: string; focusOn: string; }) => void;
 }
 
 export const AdvancedTab: React.FC<AdvancedTabProps> = ({ 
@@ -33,14 +36,21 @@ export const AdvancedTab: React.FC<AdvancedTabProps> = ({
     issues,
     onUpdate,
     onAddLogic,
-    onRequestGeminiHelp
+    onRequestGeminiHelp,
+    onSelectBlock
 }) => {
     const isChoiceBased = [QuestionType.Radio, QuestionType.Checkbox, QuestionType.ChoiceGrid].includes(question.type);
 
+    const handleSetRandomization = () => {
+        const parentBlock = survey.blocks.find(b => b.questions.some(q => q.id === question.id));
+        if (parentBlock) {
+            // This will close the question editor and open the block editor
+            onSelectBlock(parentBlock, { tab: 'Advanced', focusOn: 'questionRandomization' });
+        }
+    };
+
     return (
         <div className="p-6 space-y-8">
-            <QuestionGroupEditor question={question} survey={survey} onUpdateQuestion={onUpdate} />
-
             <CollapsibleSection title="Branching Logic" defaultExpanded={true}>
                 <div className="py-6 first:pt-0">
                     <BranchingLogicEditor
@@ -80,6 +90,19 @@ export const AdvancedTab: React.FC<AdvancedTabProps> = ({
                 </div>
             </CollapsibleSection>
             
+            <CollapsibleSection title="Randomization" defaultExpanded={true}>
+                <div className="space-y-4">
+                    <QuestionGroupEditor question={question} survey={survey} onUpdate={onUpdate} />
+                    <button
+                        onClick={handleSetRandomization}
+                        className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors"
+                    >
+                        <span>Set question randomization</span>
+                        <ArrowRightAltIcon className="text-base" />
+                    </button>
+                </div>
+            </CollapsibleSection>
+
             {isChoiceBased && (
                 <CollapsibleSection title="Display & Layout" defaultExpanded={true}>
                     <div className="py-6 first:pt-0">
@@ -470,7 +493,7 @@ export const PreviewTab: React.FC<PreviewTabProps> = ({ question, survey, isExpa
             </div>
         );
     } else {
-        content = <p className="text-center text-on-surface-variant">Preview not available for this question type.</p>
+        content = <p className="text-center text-on-surface-variant">Preview not available for this question type.</p>;
     }
     
     return <div className="p-6">{content}</div>;

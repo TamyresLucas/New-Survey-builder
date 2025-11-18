@@ -1,6 +1,7 @@
 
+
 import React, { memo, useMemo } from 'react';
-import type { Survey, Question, ToolboxItemData, LogicIssue } from '../types';
+import type { Survey, Question, ToolboxItemData, LogicIssue, Block } from '../types';
 import { QuestionType } from '../types';
 import { CHOICE_BASED_QUESTION_TYPES } from '../utils';
 
@@ -24,13 +25,14 @@ export interface QuestionEditorProps {
     onDeleteChoice: (questionId: string, choiceId: string) => void;
     isExpanded: boolean;
     onExpandSidebar: () => void;
+    onSelectBlock: (block: Block | null, options?: { tab: string; focusOn: string; }) => void;
     toolboxItems: ToolboxItemData[];
     onRequestGeminiHelp: (topic: string) => void;
 }
 
 export const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
     question, survey, logicIssues, activeTab, focusedLogicSource, onUpdateQuestion, onAddChoice, onDeleteChoice,
-    isExpanded, onExpandSidebar, toolboxItems, onRequestGeminiHelp
+    isExpanded, onExpandSidebar, toolboxItems, onRequestGeminiHelp, onSelectBlock
 }) => {
 
     const allSurveyQuestions = useMemo(() => survey.blocks.flatMap(b => b.questions), [survey]);
@@ -135,6 +137,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     onUpdate={handleUpdate}
                     onAddLogic={onExpandSidebar}
                     onRequestGeminiHelp={onRequestGeminiHelp}
+                    onSelectBlock={onSelectBlock}
                 />
             );
 

@@ -1,3 +1,4 @@
+
 // FIX: Added 'useCallback' to the import from 'react' to resolve the 'Cannot find name' error.
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { Survey, Question, DisplayLogicCondition, BranchingLogicCondition, Block } from '../types';
@@ -533,6 +534,3 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
     </div>
   );
 };
-
-
-export default SurveyPreview;

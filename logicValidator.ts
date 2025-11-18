@@ -112,28 +112,27 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
                                 field: 'skipTo',
                             });
                         }
-                        return;
-                    }
-
-                    const targetQuestion = byId.get(target);
-                    if (!targetQuestion) {
-                         issues.push({
-                            questionId: question.id,
-                            type: 'skip',
-                            message: `The destination question no longer exists.`,
-                            sourceId,
-                            field: 'skipTo',
-                        });
                     } else {
-                        const targetQuestionIndex = byIndex.get(targetQuestion.id)!;
-                        if (targetQuestionIndex <= currentQuestionIndex) {
+                        const targetQuestion = byId.get(target);
+                        if (!targetQuestion) {
                             issues.push({
                                 questionId: question.id,
                                 type: 'skip',
-                                message: `Skipping backward to ${targetQuestion.qid} can cause loops.`,
+                                message: `The destination question no longer exists.`,
                                 sourceId,
                                 field: 'skipTo',
                             });
+                        } else {
+                            const targetQuestionIndex = byIndex.get(targetQuestion.id)!;
+                            if (targetQuestionIndex <= currentQuestionIndex) {
+                                issues.push({
+                                    questionId: question.id,
+                                    type: 'skip',
+                                    message: `Skipping backward to ${targetQuestion.qid} can cause loops.`,
+                                    sourceId,
+                                    field: 'skipTo',
+                                });
+                            }
                         }
                     }
                 };
@@ -181,28 +180,27 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
                                 field: 'skipTo',
                             });
                         }
-                        return;
-                    }
-
-                     const targetQuestion = byId.get(target);
-                     if (!targetQuestion) {
-                        issues.push({
-                            questionId: question.id,
-                            type: 'branching',
-                            message: `The destination question no longer exists.`,
-                            sourceId,
-                            field: 'skipTo',
-                        });
                      } else {
-                        const targetQuestionIndex = byIndex.get(targetQuestion.id)!;
-                        if (targetQuestionIndex <= currentQuestionIndex) {
-                             issues.push({
-                                questionId: question.id,
-                                type: 'branching',
-                                message: `Branching backward to ${targetQuestion.qid} can cause loops.`,
-                                sourceId,
-                                field: 'skipTo',
-                            });
+                        const targetQuestion = byId.get(target);
+                        if (!targetQuestion) {
+                           issues.push({
+                               questionId: question.id,
+                               type: 'branching',
+                               message: `The destination question no longer exists.`,
+                               sourceId,
+                               field: 'skipTo',
+                           });
+                        } else {
+                           const targetQuestionIndex = byIndex.get(targetQuestion.id)!;
+                           if (targetQuestionIndex <= currentQuestionIndex) {
+                                issues.push({
+                                   questionId: question.id,
+                                   type: 'branching',
+                                   message: `Branching backward to ${targetQuestion.qid} can cause loops.`,
+                                   sourceId,
+                                   field: 'skipTo',
+                               });
+                           }
                         }
                      }
                 }

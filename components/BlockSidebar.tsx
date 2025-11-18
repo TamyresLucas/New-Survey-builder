@@ -29,6 +29,7 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
   const [title, setTitle] = useState(block.title);
   const [sectionName, setSectionName] = useState(block.sectionName || block.title);
   const continueToRef = useRef<HTMLSelectElement>(null);
+  const randomizationRef = useRef<HTMLDivElement>(null);
 
   const tabs = ['Settings', 'Behavior', 'Advanced'];
 
@@ -49,21 +50,30 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
   );
 
   useEffect(() => {
-    if (focusTarget?.type === 'block' && focusTarget.id === block.id && focusTarget.element === 'continueTo') {
+    if (focusTarget?.type === 'block' && focusTarget.id === block.id) {
         setActiveTab(focusTarget.tab);
         
         // Use a timeout to ensure the tab has rendered and the element is visible
         setTimeout(() => {
-            if (continueToRef.current) {
-                continueToRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                continueToRef.current.focus();
+            let elementToHighlight: HTMLElement | null = null;
+            let elementToFocus: HTMLElement | null = null;
+
+            if (focusTarget.element === 'continueTo' && continueToRef.current) {
+                elementToFocus = continueToRef.current;
+                elementToHighlight = continueToRef.current.closest('div.relative');
+            } else if (focusTarget.element === 'questionRandomization' && randomizationRef.current) {
+                elementToFocus = randomizationRef.current;
+                elementToHighlight = randomizationRef.current;
+            }
+
+            if (elementToFocus && elementToHighlight) {
+                elementToHighlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                elementToFocus.focus({ preventScroll: true });
                 
-                // Add highlight effect
-                const parentContainer = continueToRef.current.closest('div.relative');
-                if (parentContainer) {
-                    parentContainer.classList.add('logic-highlight');
-                    setTimeout(() => parentContainer.classList.remove('logic-highlight'), 2500);
-                }
+                elementToHighlight.classList.add('logic-highlight');
+                setTimeout(() => {
+                    elementToHighlight?.classList.remove('logic-highlight');
+                }, 2500);
             }
             onFocusHandled();
         }, 100);
@@ -488,7 +498,7 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
     return (
         <div className="space-y-6">
             {/* Question Randomization Section */}
-            <div>
+            <div ref={randomizationRef} tabIndex={-1} className="focus:outline-none rounded-md">
                 <div className="flex items-center justify-between">
                     <div className="flex-1">
                         <label htmlFor="enable-randomization" className="text-sm font-medium text-on-surface block">

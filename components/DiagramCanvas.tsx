@@ -702,7 +702,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
 
     return (
         <div className="w-full h-full">
-            <DiagramToolbar onAddNode={() => {}} />
+            {/* FIX: The `onAddNode` prop for `DiagramToolbar` expects a function that takes one argument, but was passed a function that takes none. */}
+            <DiagramToolbar onAddNode={(type) => {}} />
             <ReactFlow
                 nodes={nodes}
                 edges={edges}

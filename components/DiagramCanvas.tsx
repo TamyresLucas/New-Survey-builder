@@ -14,7 +14,6 @@ import {
   MarkerType,
   OnNodesChange,
   OnEdgesChange,
-  NodeMouseHandler,
 } from '@xyflow/react';
 
 import type { Survey, Question, SkipLogicRule, SkipLogic, EndNode, TextEntryNode, DescriptionNode, MultipleChoiceNode, StartNode } from '../types';
@@ -516,7 +515,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         return { layoutNodes: flowNodes, layoutEdges: flowEdges };
     }, [survey]);
 
-    // FIX: Initialize useNodesState and useEdgesState with the calculated layout nodes and edges to fix initialization error.
     const [nodes, setNodes, onNodesChange] = useNodesState(layoutNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(layoutEdges);
     const reactFlowInstance = useReactFlow();
@@ -625,7 +623,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     
             if (newLogic) {
                 onUpdateQuestion(sourceQuestion.id, { skipLogic: newLogic });
-                onSelectQuestion(sourceQuestion, { tab: 'Behavior', focusOn: connection.sourceHandle });
+                onSelectQuestion(sourceQuestion, { tab: 'Behavior', focusOn: connection.sourceHandle || undefined });
             }
         },
         [survey, onUpdateQuestion, onSelectQuestion]
@@ -638,7 +636,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         }
     }, [survey, onSelectQuestion]);
 
-    const onPaneClick = useCallback(() => {
+    const onPaneClick = useCallback((_event?: React.MouseEvent) => {
         onSelectQuestion(null);
     }, [onSelectQuestion]);
 
@@ -693,7 +691,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     
             if (newLogic) {
                 onUpdateQuestion(sourceQuestion.id, { skipLogic: newLogic });
-                onSelectQuestion(sourceQuestion, { tab: 'Behavior', focusOn: newConnection.sourceHandle });
+                onSelectQuestion(sourceQuestion, { tab: 'Behavior', focusOn: newConnection.sourceHandle || undefined });
             }
         },
         [survey, onUpdateQuestion, onSelectQuestion]
@@ -702,8 +700,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
 
     return (
         <div className="w-full h-full">
-            {/* FIX: The `onAddNode` prop for `DiagramToolbar` expects a function that takes one argument, but was passed a function that takes none. */}
-            <DiagramToolbar onAddNode={(type) => {}} />
+            <DiagramToolbar onAddNode={(type) => console.log(type)} />
             <ReactFlow
                 nodes={nodes}
                 edges={edges}

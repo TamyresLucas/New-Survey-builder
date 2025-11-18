@@ -50,76 +50,149 @@ const validateAndCleanLogicAfterMove = (
 ) => {
     const allQuestions = survey.blocks.flatMap((b: Block) => b.questions);
     const questionIndexMap = new Map(allQuestions.map((q, i) => [q.id, i]));
-    const questionQidMap = new Map(allQuestions.map(q => [q.id, q.qid]));
+    const blockIndexMap = new Map(survey.blocks.map((b, i) => [b.id, i]));
 
     // We need to iterate through ALL questions because moving one question (e.g., Q1)
     // can invalidate logic on another question (e.g., Q2 which depended on Q1).
     for (const question of allQuestions) {
-        let wasModified = false;
+        const questionIndex = questionIndexMap.get(question.id);
+        if (questionIndex === undefined) continue;
+        
+        const currentBlockIndex = survey.blocks.findIndex(b => b.questions.some(q => q.id === question.id));
 
-        // 1. Validate Skip Logic (preventing backward skips)
+        // --- 1. Validate Skip Logic (preventing backward skips) ---
         if (question.skipLogic) {
-            const questionIndex = questionIndexMap.get(question.id);
-            if (questionIndex !== undefined) {
-                let isLogicInvalid = false;
-                const logic = question.skipLogic;
+            let isLogicInvalid = false;
+            const logic = question.skipLogic;
 
-                if (logic.type === 'simple') {
-                    const targetId = logic.skipTo;
-                    if (targetId && targetId !== 'next' && targetId !== 'end') {
-                        const targetIndex = questionIndexMap.get(targetId);
-                        if (targetIndex !== undefined && targetIndex < questionIndex) {
-                            isLogicInvalid = true;
-                        }
-                    }
-                } else if (logic.type === 'per_choice') {
-                    for (const rule of logic.rules) {
-                        const targetId = rule.skipTo;
-                        if (targetId && targetId !== 'next' && targetId !== 'end') {
-                            const targetIndex = questionIndexMap.get(targetId);
-                            if (targetIndex !== undefined && targetIndex < questionIndex) {
-                                isLogicInvalid = true;
-                                break;
-                            }
-                        }
+            const checkTarget = (targetId: string): boolean => {
+                 if (!targetId || targetId === 'next' || targetId === 'end') return false;
+                 
+                 if (targetId.startsWith('block:')) {
+                     const blockId = targetId.substring(6);
+                     const targetBlockIndex = blockIndexMap.get(blockId);
+                     // Invalid if skipping to a previous block
+                     return targetBlockIndex !== undefined && targetBlockIndex < currentBlockIndex;
+                 } else {
+                     const targetIndex = questionIndexMap.get(targetId);
+                     // Invalid if skipping to a previous question
+                     return targetIndex !== undefined && targetIndex <= questionIndex;
+                 }
+            };
+
+            if (logic.type === 'simple') {
+                if (checkTarget(logic.skipTo)) isLogicInvalid = true;
+            } else if (logic.type === 'per_choice') {
+                for (const rule of logic.rules) {
+                    if (checkTarget(rule.skipTo)) {
+                        isLogicInvalid = true;
+                        break;
                     }
                 }
-                if (isLogicInvalid) {
-                    question.skipLogic = undefined;
-                    question.draftSkipLogic = undefined; // Also clear draft
-                    wasModified = true;
-                    onLogicRemoved?.(`Skip logic on question ${question.qid} was removed because its new position was after its destination, which would create an invalid loop.`);
+            }
+            
+            if (isLogicInvalid) {
+                question.skipLogic = undefined;
+                question.draftSkipLogic = undefined;
+                onLogicRemoved?.(`Skip Logic on ${question.qid} removed. Reason: Target is now before the question. Impact: Logic removed to prevent infinite loops.`);
+            }
+        }
+
+        // --- 2. Validate Branching Logic (Loops & Dependencies) ---
+        if (question.branchingLogic) {
+            const logic = question.branchingLogic;
+            let isBranchingModified = false;
+            let loopErrorFound = false;
+            let dependencyErrorFound = false;
+
+            // A. Check Destinations (Loops)
+            const checkBranchTarget = (targetId: string): boolean => {
+                if (!targetId || targetId === 'next' || targetId === 'end') return false;
+                 if (targetId.startsWith('block:')) {
+                     const blockId = targetId.substring(6);
+                     const targetBlockIndex = blockIndexMap.get(blockId);
+                     return targetBlockIndex !== undefined && targetBlockIndex < currentBlockIndex;
+                 } else {
+                    const targetIndex = questionIndexMap.get(targetId);
+                    return targetIndex !== undefined && targetIndex <= questionIndex;
+                 }
+            };
+
+            // Check "Otherwise" path
+            if (checkBranchTarget(logic.otherwiseSkipTo)) {
+                logic.otherwiseSkipTo = 'next'; // Reset to default
+                logic.otherwiseIsConfirmed = true;
+                isBranchingModified = true;
+                loopErrorFound = true;
+            }
+
+            // Check specific branches
+            if (logic.branches) {
+                 logic.branches.forEach(branch => {
+                    if (branch.thenSkipToIsConfirmed && checkBranchTarget(branch.thenSkipTo)) {
+                        branch.thenSkipTo = '';
+                        branch.thenSkipToIsConfirmed = false;
+                        isBranchingModified = true;
+                        loopErrorFound = true;
+                    }
+                    
+                    // B. Check Conditions (Dependencies)
+                    const validConditions = branch.conditions.filter(condition => {
+                        if (!condition.questionId) return true;
+                        const sourceQ = allQuestions.find(q => q.qid === condition.questionId);
+                        if (!sourceQ) return true; // Let standard validator catch missing questions
+                        const sourceIndex = questionIndexMap.get(sourceQ.id);
+                        // Condition valid only if source is BEFORE current question
+                        return sourceIndex !== undefined && sourceIndex < questionIndex;
+                    });
+
+                    if (validConditions.length < branch.conditions.length) {
+                        branch.conditions = validConditions.length > 0 ? validConditions : [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }];
+                        if (validConditions.length === 0) {
+                             branch.thenSkipToIsConfirmed = false; // Invalidate branch if no conditions left
+                        }
+                        isBranchingModified = true;
+                        dependencyErrorFound = true;
+                    }
+                 });
+                 
+                 // Filter out branches that became empty/invalid if necessary, or leave them unconfirmed
+            }
+
+            if (isBranchingModified) {
+                // Sync draft
+                question.draftBranchingLogic = JSON.parse(JSON.stringify(logic));
+                
+                if (loopErrorFound) {
+                    onLogicRemoved?.(`Branching Logic on ${question.qid} reset. Reason: A destination is now before the question. Impact: Logic updated to prevent infinite loops.`);
+                } else if (dependencyErrorFound) {
+                    onLogicRemoved?.(`Branching Logic conditions on ${question.qid} removed. Reason: A dependent question is now located after this question. Impact: Conditions removed to ensure valid flow.`);
                 }
             }
         }
 
-        // 2. Validate Display Logic (source question must come before target)
+        // --- 3. Validate Display Logic (Dependencies) ---
         if (question.displayLogic) {
-            const questionIndex = questionIndexMap.get(question.id);
-            if (questionIndex !== undefined) {
-                const validConditions = question.displayLogic.conditions.filter(condition => {
-                    if (!condition.questionId) return true; // Keep incomplete conditions
-                    const sourceQ = allQuestions.find(q => q.qid === condition.questionId);
-                    if (!sourceQ) return true; // Keep if source is gone, validator will catch it
-                    
-                    const sourceIndex = questionIndexMap.get(sourceQ.id);
-                    // The condition is valid only if the source question comes BEFORE this question
-                    return sourceIndex !== undefined && sourceIndex < questionIndex;
-                });
+            const validConditions = question.displayLogic.conditions.filter(condition => {
+                if (!condition.questionId) return true; 
+                const sourceQ = allQuestions.find(q => q.qid === condition.questionId);
+                if (!sourceQ) return true; 
+                
+                const sourceIndex = questionIndexMap.get(sourceQ.id);
+                return sourceIndex !== undefined && sourceIndex < questionIndex;
+            });
 
-                if (validConditions.length < question.displayLogic.conditions.length) {
-                    wasModified = true;
-                    if (validConditions.length === 0) {
-                        question.displayLogic = undefined;
-                        question.draftDisplayLogic = undefined;
-                    } else {
-                        question.displayLogic.conditions = validConditions;
-                        if (question.draftDisplayLogic) {
-                            question.draftDisplayLogic.conditions = validConditions;
-                        }
+            if (validConditions.length < question.displayLogic.conditions.length) {
+                if (validConditions.length === 0) {
+                    question.displayLogic = undefined;
+                    question.draftDisplayLogic = undefined;
+                } else {
+                    question.displayLogic.conditions = validConditions;
+                    if (question.draftDisplayLogic) {
+                        question.draftDisplayLogic.conditions = validConditions;
                     }
-                    onLogicRemoved?.(`Display logic on question ${question.qid} was removed because its source question was moved after it.`);
                 }
+                onLogicRemoved?.(`Display Logic on ${question.qid} removed. Reason: Dependent question is now located after this question. Impact: Question is now visible to everyone.`);
             }
         }
     }

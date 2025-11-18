@@ -921,6 +921,7 @@ const App: React.FC = () => {
             {isBuildPanelOpen && (
               <BuildPanel
                 survey={displaySurvey}
+                logicIssues={logicIssues}
                 onClose={() => setIsBuildPanelOpen(false)}
                 onSelectQuestion={handleSelectQuestion}
                 selectedQuestion={selectedQuestion}

@@ -1,5 +1,3 @@
-
-
 import React, { memo, useMemo } from 'react';
 import type { Survey, Question, ToolboxItemData, LogicIssue, Block } from '../types';
 import { QuestionType } from '../types';
@@ -123,6 +121,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     onRequestGeminiHelp={onRequestGeminiHelp}
                     focusedLogicSource={focusedLogicSource}
                     isFirstInteractiveQuestion={isFirstInteractiveQuestion}
+                    onSelectBlock={onSelectBlock}
                 />
             );
         
@@ -137,7 +136,6 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     onUpdate={handleUpdate}
                     onAddLogic={onExpandSidebar}
                     onRequestGeminiHelp={onRequestGeminiHelp}
-                    onSelectBlock={onSelectBlock}
                 />
             );
 

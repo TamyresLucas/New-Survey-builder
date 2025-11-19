@@ -16,7 +16,25 @@ export const LogicConditionRow: React.FC<{
     isFirstCondition?: boolean;
     currentQuestion?: Question;
     usedValues?: Set<string>;
-}> = ({ condition, onUpdateCondition, onRemoveCondition, onConfirm, availableQuestions, isConfirmed, issues = [], invalidFields = new Set(), isFirstCondition = false, currentQuestion, usedValues }) => {
+    questionWidth?: string;
+    operatorWidth?: string;
+    valueWidth?: string;
+}> = ({ 
+    condition, 
+    onUpdateCondition, 
+    onRemoveCondition, 
+    onConfirm, 
+    availableQuestions, 
+    isConfirmed, 
+    issues = [], 
+    invalidFields = new Set(), 
+    isFirstCondition = false, 
+    currentQuestion, 
+    usedValues,
+    questionWidth = "w-48",
+    operatorWidth = "w-40",
+    valueWidth = "flex-1 min-w-[150px]"
+}) => {
     const referencedQuestion = useMemo(() => {
         if (isFirstCondition && currentQuestion) {
             return currentQuestion;
@@ -101,7 +119,9 @@ export const LogicConditionRow: React.FC<{
         onUpdateCondition('operator', newOperator);
         if (['is_empty', 'is_not_empty'].includes(newOperator)) {
             onUpdateCondition('value', '');
-            onUpdateCondition('gridValue', '');
+            if ('gridValue' in condition) {
+                onUpdateCondition('gridValue', '');
+            }
         }
     };
 
@@ -116,9 +136,9 @@ export const LogicConditionRow: React.FC<{
     };
 
     return (
-        <div className="flex items-center gap-2 p-2 bg-surface-container-high rounded-md min-w-max">
+        <div className="flex items-center gap-2 p-2 bg-surface-container-high rounded-md min-w-max w-full">
             {/* 1. Question */}
-            <div className="relative group/tooltip w-48 flex-shrink-0">
+            <div className={`relative group/tooltip ${questionWidth} flex-shrink-0`}>
                 {isFirstCondition && currentQuestion ? (
                     <div 
                         title={`${currentQuestion.qid}: ${currentQuestion.text}`}
@@ -135,8 +155,8 @@ export const LogicConditionRow: React.FC<{
                             className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${questionBorderClass}`} 
                             aria-label="Select question"
                         >
-                            <option value="">select question</option>
-                            {availableQuestions.map(q => <option key={q.id} value={q.qid}>{q.qid}: {truncate(q.text, 50)}</option>)}
+                            <option value="">Question</option>
+                            {availableQuestions.map(q => <option key={q.id} value={q.qid}>{q.qid}: {truncate(q.text, 30)}</option>)}
                         </select>
                         <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
                     </>
@@ -147,7 +167,7 @@ export const LogicConditionRow: React.FC<{
             {referencedQuestion?.type === QuestionType.ChoiceGrid && referencedQuestion.choices && referencedQuestion.scalePoints ? (
             <>
                 {/* 2. Row Select (for ChoiceGrid) */}
-                <div className="relative group/tooltip flex-1 min-w-[150px]">
+                <div className={`relative group/tooltip ${valueWidth}`}>
                     <div className="relative">
                         <select
                             value={(condition as BranchingLogicCondition).value}
@@ -167,7 +187,7 @@ export const LogicConditionRow: React.FC<{
                 </div>
 
                 {/* 3. Operator (for ChoiceGrid) */}
-                <div className="relative group/tooltip w-40 flex-shrink-0">
+                <div className={`relative group/tooltip ${operatorWidth} flex-shrink-0`}>
                     <select 
                         value={condition.operator} 
                         onChange={handleOperatorChange} 
@@ -175,7 +195,7 @@ export const LogicConditionRow: React.FC<{
                         aria-label="Select interaction"
                         disabled={!referencedQuestion}
                     >
-                        <option value="">select interaction</option>
+                        <option value="">Interaction</option>
                         {availableOperators.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
                     </select>
                     <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
@@ -183,7 +203,7 @@ export const LogicConditionRow: React.FC<{
                 </div>
 
                 {/* 4. Value Select (for ChoiceGrid) */}
-                <div className="relative group/tooltip flex-1 min-w-[150px]">
+                <div className={`relative group/tooltip ${valueWidth}`}>
                     <div className="relative">
                         <select
                             value={(condition as BranchingLogicCondition).gridValue || ''}
@@ -202,7 +222,7 @@ export const LogicConditionRow: React.FC<{
             ) : (
             <>
                 {/* 3. Operator / Interaction */}
-                <div className="relative group/tooltip w-40 flex-shrink-0">
+                <div className={`relative group/tooltip ${operatorWidth} flex-shrink-0`}>
                     <select 
                         value={condition.operator} 
                         onChange={handleOperatorChange} 
@@ -210,14 +230,14 @@ export const LogicConditionRow: React.FC<{
                         aria-label="Select interaction"
                         disabled={!referencedQuestion}
                     >
-                        <option value="">select interaction</option>
+                        <option value="">Interaction</option>
                         {availableOperators.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
                     </select>
                     <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
                     <Tooltip issue={operatorIssue} />
                 </div>
                 {/* 2. Value / Answer */}
-                <div className="relative group/tooltip flex-1 min-w-[150px]">
+                <div className={`relative group/tooltip ${valueWidth}`}>
                     {isChoiceBasedInput && referencedQuestion?.choices ? (
                          <div className="relative">
                             <select

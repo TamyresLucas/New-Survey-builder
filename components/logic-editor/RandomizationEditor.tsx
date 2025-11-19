@@ -30,7 +30,6 @@ export const RandomizeChoicesEditor: React.FC<{
 
   return (
     <div>
-      <h3 className="text-sm font-medium text-on-surface mb-1">Answer Randomization</h3>
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <label htmlFor="randomize-choices" className="text-sm font-medium text-on-surface block">

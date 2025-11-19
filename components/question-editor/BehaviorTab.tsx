@@ -1,11 +1,11 @@
 import React from 'react';
-import type { Question, Survey, LogicIssue } from '../../types';
+import type { Question, Survey, LogicIssue, Block } from '../../types';
 import { CollapsibleSection } from '../logic-editor/shared';
 import {
     ChoiceBehaviorSection,
-    DisplayLogicSection,
     NavigationSettings,
-    SkipLogicSection
+    SkipLogicSection,
+    QuestionBehaviorSection
 } from './behavior';
 
 interface BehaviorTabProps {
@@ -19,6 +19,7 @@ interface BehaviorTabProps {
     onRequestGeminiHelp: (topic: string) => void;
     focusedLogicSource: string | null;
     isFirstInteractiveQuestion: boolean;
+    onSelectBlock: (block: Block | null, options?: { tab: string; focusOn: string; }) => void;
 }
 
 export const BehaviorTab: React.FC<BehaviorTabProps> = ({
@@ -31,7 +32,8 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({
     onAddLogic,
     onRequestGeminiHelp,
     focusedLogicSource,
-    isFirstInteractiveQuestion
+    isFirstInteractiveQuestion,
+    onSelectBlock
 }) => {
     return (
         <div className="p-6 space-y-8">
@@ -55,15 +57,17 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({
                 </div>
             </CollapsibleSection>
 
-            <CollapsibleSection title="Question Display Logic" defaultExpanded={true}>
-                <DisplayLogicSection
-                    question={question}
-                    previousQuestions={previousQuestions}
-                    issues={issues}
-                    onUpdate={onUpdate}
-                    onAddLogic={onAddLogic}
-                    onRequestGeminiHelp={onRequestGeminiHelp}
-                />
+            <CollapsibleSection title="Question" defaultExpanded={true}>
+                <div className="py-6 first:pt-0">
+                    <QuestionBehaviorSection 
+                        question={question} 
+                        survey={survey}
+                        previousQuestions={previousQuestions}
+                        onUpdate={onUpdate} 
+                        onSelectBlock={onSelectBlock}
+                        onAddLogic={onAddLogic}
+                    />
+                </div>
             </CollapsibleSection>
             
             <CollapsibleSection title="Choices" defaultExpanded={true}>

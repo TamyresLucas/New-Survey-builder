@@ -111,7 +111,7 @@ export const QuestionGroupEditor: React.FC<QuestionGroupEditorProps> = ({ questi
 
     return (
         <div ref={containerRef}>
-            <label htmlFor="question-group-name" className="block text-sm font-medium text-on-surface-variant mb-1">
+            <label htmlFor="question-group-name" className="block text-sm font-medium text-on-surface mb-1">
                 Question Group
             </label>
             <div className="relative">

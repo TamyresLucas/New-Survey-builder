@@ -10,10 +10,10 @@ import {
   BackgroundVariant,
   Connection,
   NodeTypes,
-  addEdge,
   MarkerType,
   OnNodesChange,
   OnEdgesChange,
+  Edge,
 } from '@xyflow/react';
 
 import type { Survey, Question, SkipLogicRule, SkipLogic, EndNode, TextEntryNode, DescriptionNode, MultipleChoiceNode, StartNode } from '../types';
@@ -556,7 +556,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         prevSelectedQuestionRef.current = selectedQuestion;
     });
 
-    const isValidConnection = useCallback((connection: Connection) => {
+    const isValidConnection = useCallback((connection: Connection | Edge) => {
         if (!connection.source || !connection.target) {
             return false;
         }
@@ -628,6 +628,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         },
         [survey, onUpdateQuestion, onSelectQuestion]
     );
+
     const onNodeClick = useCallback((_event: React.MouseEvent, node: DiagramNode) => {
         if (node.type === 'end') return;
         const fullQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === node.id);
@@ -644,12 +645,13 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         event.stopPropagation();
         const sourceQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === edge.source);
         if (sourceQuestion) {
-            onSelectQuestion(sourceQuestion, { tab: 'Behavior', focusOn: edge.sourceHandle });
+            // FIX: Handle edge.sourceHandle being possibly null
+            onSelectQuestion(sourceQuestion, { tab: 'Behavior', focusOn: edge.sourceHandle || undefined });
         }
     }, [survey, onSelectQuestion]);
 
-    const onEdgeUpdate = useCallback(
-        (oldEdge: DiagramEdge, newConnection: Connection) => {
+    const onReconnect = useCallback(
+        (oldEdge: Edge, newConnection: Connection) => {
             if (!newConnection.source || !newConnection.target || !newConnection.sourceHandle) {
                 return;
             }
@@ -700,7 +702,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
 
     return (
         <div className="w-full h-full">
-            <DiagramToolbar onAddNode={(type) => console.log(type)} />
+            <DiagramToolbar onAddNode={(type: 'multiple_choice' | 'text_entry' | 'logic') => console.log(type)} />
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -711,11 +713,11 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 onNodeClick={onNodeClick}
                 onPaneClick={onPaneClick}
                 onEdgeClick={onEdgeClick}
-                onEdgeUpdate={onEdgeUpdate}
+                onReconnect={onReconnect}
                 nodeTypes={nodeTypes}
                 proOptions={{ hideAttribution: true }}
                 className="bg-surface"
-                fitView
+                fitView={true}
             >
                 <Background
                     variant={BackgroundVariant.Dots}

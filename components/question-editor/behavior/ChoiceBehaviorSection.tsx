@@ -32,6 +32,7 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
 }) => {
     // Local state for the placeholder section's logic rows
     const [placeholderConditions, setPlaceholderConditions] = useState<PlaceholderCondition[]>([]);
+    const [placeholderOperator, setPlaceholderOperator] = useState<'AND' | 'OR'>('AND');
 
     const isChoiceBased = CHOICE_BASED_QUESTION_TYPES.has(question.type);
 
@@ -101,16 +102,27 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
             <div className="py-6 first:pt-0">
                  <h3 className="text-sm font-medium text-on-surface mb-1">Placeholder</h3>
                  <p className="text-xs text-on-surface-variant mb-3">This is a placeholder section.</p>
-                 <div className="flex items-center gap-4 mb-3">
-                     <button 
-                        onClick={handleAddPlaceholderCondition} 
-                        className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors"
-                    >
-                        <PlusIcon className="text-base" />
-                        Add condition
-                    </button>
-                    <CopyAndPasteButton onClick={() => {}} />
+                 
+                 <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-4">
+                         <button 
+                            onClick={handleAddPlaceholderCondition} 
+                            className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors"
+                        >
+                            <PlusIcon className="text-base" />
+                            Add condition
+                        </button>
+                        <CopyAndPasteButton onClick={() => {}} />
+                    </div>
+                    
+                    {placeholderConditions.length > 1 && (
+                        <div className="flex gap-1">
+                            <button onClick={() => setPlaceholderOperator('AND')} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${placeholderOperator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
+                            <button onClick={() => setPlaceholderOperator('OR')} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${placeholderOperator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
+                        </div>
+                    )}
                  </div>
+
                  <div className="space-y-2">
                     {placeholderConditions.map((condition, index) => (
                         <div key={condition.id} className="p-3 bg-surface-container-high rounded-md border border-transparent hover:border-outline-variant group flex flex-col gap-3 w-full max-w-full overflow-hidden">

@@ -422,8 +422,12 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                     delete questionInState.draftDisplayLogic;
                 } else {
                     questionInState.draftDisplayLogic = finalUpdates.displayLogic;
-                    const allConfirmed = questionInState.draftDisplayLogic.conditions?.every(c => c.isConfirmed);
-                    if (allConfirmed) {
+                    
+                    // Check both top-level conditions AND logic sets
+                    const conditionsConfirmed = questionInState.draftDisplayLogic.conditions?.every((c: any) => c.isConfirmed) ?? true;
+                    const logicSetsConfirmed = questionInState.draftDisplayLogic.logicSets?.every((s: any) => s.isConfirmed) ?? true;
+                    
+                    if (conditionsConfirmed && logicSetsConfirmed) {
                         questionInState.displayLogic = questionInState.draftDisplayLogic;
                         delete questionInState.draftDisplayLogic;
                     }
@@ -436,8 +440,11 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                     delete questionInState.draftHideLogic;
                 } else {
                     questionInState.draftHideLogic = finalUpdates.hideLogic;
-                    const allConfirmed = questionInState.draftHideLogic.conditions?.every(c => c.isConfirmed);
-                    if (allConfirmed) {
+                    
+                    const conditionsConfirmed = questionInState.draftHideLogic.conditions?.every((c: any) => c.isConfirmed) ?? true;
+                    const logicSetsConfirmed = questionInState.draftHideLogic.logicSets?.every((s: any) => s.isConfirmed) ?? true;
+
+                    if (conditionsConfirmed && logicSetsConfirmed) {
                         questionInState.hideLogic = questionInState.draftHideLogic;
                         delete questionInState.draftHideLogic;
                     }

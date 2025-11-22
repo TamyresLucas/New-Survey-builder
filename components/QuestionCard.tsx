@@ -462,6 +462,11 @@ const QuestionCard: React.FC<{
     const CurrentQuestionTypeIcon = questionTypeOptions.find(o => o.type === question.type)?.icon || RadioIcon;
     const hasLogicIssues = logicIssues.length > 0;
 
+    const hasDisplayLogic = useMemo(() => {
+        if (!question.displayLogic) return false;
+        return question.displayLogic.conditions.length > 0 || (question.displayLogic.logicSets && question.displayLogic.logicSets.length > 0);
+    }, [question.displayLogic]);
+
     return (
         <>
             {pageIndicator}
@@ -824,9 +829,9 @@ const QuestionCard: React.FC<{
                         </div>
                     )}
                     
-                    {question.displayLogic && question.displayLogic.conditions.length > 0 && (
+                    {hasDisplayLogic && (
                         <DisplayLogicDisplay
-                            logic={question.displayLogic}
+                            logic={question.displayLogic!}
                             survey={survey}
                             onClick={() => onSelect(question, { tab: 'Behavior' })}
                         />

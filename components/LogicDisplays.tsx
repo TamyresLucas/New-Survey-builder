@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { Survey, Question, DisplayLogic, SkipLogic, BranchingLogic, DisplayLogicCondition, BranchingLogicCondition } from '../types';
+import type { Survey, Question, DisplayLogic, SkipLogic, BranchingLogic, DisplayLogicCondition, BranchingLogicCondition, LogicSet } from '../types';
 import { EyeIcon, ArrowRightAltIcon, CallSplitIcon, DoubleArrowRightIcon } from './icons';
 import { truncate, parseChoice } from '../utils';
 
@@ -48,15 +48,28 @@ const formatCondition = (condition: DisplayLogicCondition | BranchingLogicCondit
     return `${qText} ${operator} "${condition.value}"`;
 };
 
+const formatLogicSet = (set: LogicSet, survey: Survey): string => {
+    const conditions = set.conditions.map(c => formatCondition(c, survey));
+    if (conditions.length === 0) return '';
+    const joined = conditions.join(` <span class="font-bold text-primary">${set.operator}</span> `);
+    return `(${joined})`;
+};
+
 // --- Display Logic Component ---
 export const DisplayLogicDisplay: React.FC<{ logic: DisplayLogic; survey: Survey; onClick: () => void }> = ({ logic, survey, onClick }) => {
     const confirmedConditions = logic.conditions.filter(c => c.isConfirmed === true);
+    const confirmedSets = logic.logicSets?.filter(s => s.isConfirmed === true) || [];
 
-    if (confirmedConditions.length === 0) {
+    if (confirmedConditions.length === 0 && confirmedSets.length === 0) {
         return null;
     }
 
-    const summary = confirmedConditions.map(c => formatCondition(c, survey)).join(` <span class="font-bold text-primary">${logic.operator}</span> `);
+    const parts = [
+        ...confirmedConditions.map(c => formatCondition(c, survey)),
+        ...confirmedSets.map(s => formatLogicSet(s, survey))
+    ];
+
+    const summary = parts.join(` <span class="font-bold text-primary">${logic.operator}</span> `);
 
     return (
         <div 

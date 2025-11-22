@@ -58,7 +58,29 @@ export const LogicSet: React.FC<LogicSetProps> = ({
     };
 
     const handleConfirmSet = () => {
-        onUpdate({ isConfirmed: true });
+        // Validation Logic
+        let isValid = true;
+        const validatedConditions = logicSet.conditions.map(condition => {
+            const missingQuestion = !condition.questionId;
+            const missingOperator = !condition.operator;
+            const requiresValue = !['is_empty', 'is_not_empty'].includes(condition.operator);
+            const missingValue = requiresValue && !condition.value;
+
+            if (missingQuestion || missingOperator || missingValue) {
+                isValid = false;
+                return { ...condition, isConfirmed: false }; // Keep as unconfirmed
+            }
+            return { ...condition, isConfirmed: true };
+        });
+
+        if (isValid) {
+            onUpdate({ conditions: validatedConditions, isConfirmed: true });
+        } else {
+             // Update conditions to potentially show error states if implemented, or just keep current state
+             // For now, we just don't confirm the set.
+             // Optionally we could pass an error state down, but blocking the confirm is the primary request.
+             console.warn("Logic set validation failed: missing required fields.");
+        }
     };
 
     return (

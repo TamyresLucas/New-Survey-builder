@@ -29,20 +29,22 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
     const items = useMemo(() => {
         const list: ExtendedConditionItem[] = [];
         
+        // NOTE: Intentionally omitting top-level conditions as requested.
+        // Only Logic Sets are displayed.
         if (displayLogic) {
-            displayLogic.conditions.forEach(c => list.push({ ...c, logicType: 'display', itemType: 'condition' }));
+            // displayLogic.conditions.forEach(c => list.push({ ...c, logicType: 'display', itemType: 'condition' }));
             if (displayLogic.logicSets) {
                 displayLogic.logicSets.forEach(s => list.push({ ...s, logicType: 'display', itemType: 'set' }));
             }
         }
         
         if (hideLogic) {
-            hideLogic.conditions.forEach(c => list.push({ ...c, logicType: 'hide', itemType: 'condition' }));
+            // hideLogic.conditions.forEach(c => list.push({ ...c, logicType: 'hide', itemType: 'condition' }));
              if (hideLogic.logicSets) {
                 hideLogic.logicSets.forEach(s => list.push({ ...s, logicType: 'hide', itemType: 'set' }));
             }
         }
-        // Sort: Conditions first, then Sets
+        // Sort: Conditions first (if any were added), then Sets
         return list.sort((a, b) => {
             if (a.itemType === 'condition' && b.itemType === 'set') return -1;
             if (a.itemType === 'set' && b.itemType === 'condition') return 1;
@@ -72,6 +74,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
         if (Object.keys(updates).length > 0) handleUpdateLogics(updates);
     };
 
+    // handleAddCondition is technically unused if button is hidden, but kept for safety/completeness
     const handleAddCondition = () => {
         const newCondition: DisplayLogicCondition = {
             id: generateId('cond'),
@@ -118,7 +121,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
     // ... (Paste logic preserved) ...
     const handlePasteLogic = (text: string): { success: boolean; error?: string } => {
         // ... existing implementation ...
-        return { success: false, error: "Not implemented for brevity in this diff, but assumed kept." };
+        return { success: false, error: "Not implemented for brevity." };
     };
 
     const handleUpdateCondition = (conditionId: string, logicType: 'display' | 'hide', field: keyof DisplayLogicCondition, value: any) => {
@@ -219,11 +222,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
                 
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-4">
-                        <button onClick={handleAddCondition} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                            <PlusIcon className="text-base" />
-                            Add condition
-                        </button>
-                        <button onClick={handleAddLogicSet} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                         <button onClick={handleAddLogicSet} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
                             <GridIcon className="text-base" />
                             Add logic set
                         </button>
@@ -253,67 +252,24 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
                 <div className="space-y-2">
                      {items.map((item) => (
                         <React.Fragment key={item.id}>
-                        {item.itemType === 'condition' ? (
-                            <div className="flex flex-col gap-2 p-2 bg-surface-container-high rounded-md border border-transparent hover:border-outline-variant group">
-                                <div className="flex items-center gap-2">
-                                    <div className="relative w-24 flex-shrink-0">
-                                        <select
-                                            value={item.logicType === 'display' ? 'Show' : 'Hide'}
-                                            onChange={e => handleTypeChange(item.id, item.itemType, item.logicType, e.target.value === 'Show' ? 'display' : 'hide')}
-                                            className="w-full bg-surface border border-outline rounded-md pl-2 pr-6 py-1.5 text-sm text-on-surface font-medium focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                                            aria-label="Logic Action"
-                                        >
-                                            <option value="Show">Show</option>
-                                            <option value="Hide">Hide</option>
-                                        </select>
-                                        <ChevronDownIcon className="absolute right-1.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-base" />
+                        {item.itemType === 'condition' ? null : (
+                            <LogicSet 
+                                logicSet={item}
+                                availableQuestions={previousQuestions}
+                                onUpdate={(updates) => handleUpdateLogicSet(item.id, item.logicType, updates)}
+                                onRemove={() => handleRemoveItem(item.id, 'set', item.logicType)}
+                                questionWidth="w-32"
+                                operatorWidth="w-28"
+                                valueWidth="flex-1 min-w-[100px]"
+                                actionValue={item.logicType === 'display' ? 'show' : 'hide'}
+                                onActionChange={(val) => handleTypeChange(item.id, item.itemType, item.logicType, val === 'show' ? 'display' : 'hide')}
+                                extraActionContent={
+                                    <div className="flex items-center gap-2">
+                                         <span className="text-sm font-bold text-on-surface">{question.qid}</span>
+                                         <span className="text-sm font-bold text-primary flex-shrink-0">IF</span>
                                     </div>
-                                    <span className="text-sm font-bold text-on-surface">{question.qid}</span>
-                                    <span className="text-sm font-bold text-primary flex-shrink-0">IF</span>
-                                </div>
-
-                                <div className="w-full">
-                                    <LogicConditionRow
-                                        condition={item}
-                                        onUpdateCondition={(field, value) => handleUpdateCondition(item.id, item.logicType, field, value)}
-                                        onRemoveCondition={() => handleRemoveItem(item.id, 'condition', item.logicType)}
-                                        onConfirm={() => handleConfirmCondition(item.id, item.logicType)}
-                                        availableQuestions={previousQuestions}
-                                        isConfirmed={item.isConfirmed === true}
-                                        questionWidth="w-[28%]"
-                                        operatorWidth="w-[28%]"
-                                        valueWidth="w-[28%]"
-                                    />
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                    <div className="relative w-24 flex-shrink-0">
-                                        <select
-                                            value={item.logicType === 'display' ? 'Show' : 'Hide'}
-                                            onChange={e => handleTypeChange(item.id, item.itemType, item.logicType, e.target.value === 'Show' ? 'display' : 'hide')}
-                                            className="w-full bg-surface border border-outline rounded-md pl-2 pr-6 py-1.5 text-sm text-on-surface font-medium focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                                            aria-label="Logic Action"
-                                        >
-                                            <option value="Show">Show</option>
-                                            <option value="Hide">Hide</option>
-                                        </select>
-                                        <ChevronDownIcon className="absolute right-1.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-base" />
-                                    </div>
-                                    <span className="text-sm font-bold text-on-surface">{question.qid}</span>
-                                    <span className="text-sm font-bold text-primary flex-shrink-0">IF</span>
-                                </div>
-                                <LogicSet 
-                                    logicSet={item}
-                                    availableQuestions={previousQuestions}
-                                    onUpdate={(updates) => handleUpdateLogicSet(item.id, item.logicType, updates)}
-                                    onRemove={() => handleRemoveItem(item.id, 'set', item.logicType)}
-                                    questionWidth="w-32"
-                                    operatorWidth="w-28"
-                                    valueWidth="flex-1 min-w-[100px]"
-                                />
-                            </div>
+                                }
+                            />
                         )}
                         </React.Fragment>
                     ))}

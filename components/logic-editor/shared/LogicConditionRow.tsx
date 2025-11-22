@@ -136,7 +136,7 @@ export const LogicConditionRow: React.FC<{
     };
 
     return (
-        <div className="flex items-center gap-2 p-2 bg-surface-container-high rounded-md min-w-max w-full">
+        <div className="flex items-center gap-2 p-2 rounded-md min-w-max w-full">
             {/* 1. Question */}
             <div className={`relative group/tooltip ${questionWidth} flex-shrink-0`}>
                 {isFirstCondition && currentQuestion ? (

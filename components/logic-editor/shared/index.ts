@@ -7,3 +7,4 @@ export * from './ForceResponseSection';
 export * from './LogicConditionRow';
 export * from './PasteInlineForm';
 export * from './QuestionGroupEditor';
+export * from './LogicSet';

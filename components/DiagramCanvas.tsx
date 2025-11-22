@@ -637,11 +637,11 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         }
     }, [survey, onSelectQuestion]);
 
-    const onPaneClick = useCallback((_event?: React.MouseEvent) => {
+    const onPaneClick = useCallback(() => {
         onSelectQuestion(null);
     }, [onSelectQuestion]);
 
-    const onEdgeClick = useCallback((event: React.MouseEvent, edge: DiagramEdge) => {
+    const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
         event.stopPropagation();
         const sourceQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === edge.source);
         if (sourceQuestion) {

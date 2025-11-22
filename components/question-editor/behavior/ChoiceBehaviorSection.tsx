@@ -114,11 +114,14 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
     };
 
     // Sort items for display: conditions first, then sets
-    const sortedItems = [...placeholderItems].sort((a, b) => {
-        if (a.itemType === 'condition' && b.itemType === 'set') return -1;
-        if (a.itemType === 'set' && b.itemType === 'condition') return 1;
-        return 0;
-    });
+    const sortedItems = [...placeholderItems]
+        .filter(item => item.itemType === 'set')
+        .sort((a, b) => {
+            // Sort logic kept if mixed types were allowed, but with filter it's just sets.
+            if (a.itemType === 'condition' && b.itemType === 'set') return -1;
+            if (a.itemType === 'set' && b.itemType === 'condition') return 1;
+            return 0;
+        });
 
     return (
         <div className="divide-y divide-outline-variant">
@@ -144,15 +147,8 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
                  
                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-4">
-                         <button 
-                            onClick={handleAddPlaceholderCondition} 
-                            className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors"
-                        >
-                            <PlusIcon className="text-base" />
-                            Add condition
-                        </button>
                          <button onClick={handleAddPlaceholderLogicSet} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                            <GridIcon className="text-base" />
+                            <PlusIcon className="text-base" />
                             Add logic set
                         </button>
                         <CopyAndPasteButton onClick={() => {}} />
@@ -168,8 +164,10 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
 
                  <div className="space-y-2">
                     {sortedItems.map((item, index) => (
-                        <div key={item.id} className="p-3 bg-surface-container-high rounded-md border border-transparent hover:border-outline-variant group flex flex-col gap-3 w-full max-w-full overflow-hidden">
-                            {/* Row 1: Action & Target Choice */}
+                        <React.Fragment key={item.id}>
+                        {item.itemType === 'condition' ? (
+                        <div className="p-3 bg-surface-container-high rounded-md border border-transparent hover:border-outline-variant group flex flex-col gap-3 w-full max-w-full overflow-hidden">
+                            {/* ... Row 1 ... */}
                             <div className="flex items-center gap-2 w-full">
                                 <div className="relative w-24 flex-shrink-0">
                                     <select
@@ -202,38 +200,58 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
                                 </div>
                             </div>
 
-                            {/* Row 2: Condition or Logic Set */}
+                            {/* Row 2 */}
                             <div className="flex items-start gap-1 w-full">
-                                {item.itemType === 'condition' && (
-                                    <span className="text-sm font-bold text-primary flex-shrink-0 w-8 text-left mt-2.5">IF</span>
-                                )}
+                                <span className="text-sm font-bold text-primary flex-shrink-0 w-8 text-left mt-2.5">IF</span>
                                 <div className="flex-grow min-w-0 w-full">
-                                    {item.itemType === 'condition' ? (
-                                        <LogicConditionRow
-                                            condition={item}
-                                            onUpdateCondition={(field, value) => handleUpdateItem(index, field as string, value)}
-                                            onRemoveCondition={() => handleRemoveItem(index)}
-                                            onConfirm={() => handleConfirmCondition(index)}
-                                            availableQuestions={previousQuestions}
-                                            isConfirmed={item.isConfirmed === true}
-                                            questionWidth="w-[23%]"
-                                            operatorWidth="w-[23%]"
-                                            valueWidth="w-[23%]"
-                                        />
-                                    ) : (
-                                        <LogicSet
-                                            logicSet={item}
-                                            availableQuestions={previousQuestions}
-                                            onUpdate={(updates) => handleUpdateLogicSet(index, updates)}
-                                            onRemove={() => handleRemoveItem(index)}
-                                            questionWidth="w-[23%]"
-                                            operatorWidth="w-[23%]"
-                                            valueWidth="w-[23%]"
-                                        />
-                                    )}
+                                    <LogicConditionRow
+                                        condition={item}
+                                        onUpdateCondition={(field, value) => handleUpdateItem(index, field as string, value)}
+                                        onRemoveCondition={() => handleRemoveItem(index)}
+                                        onConfirm={() => handleConfirmCondition(index)}
+                                        availableQuestions={previousQuestions}
+                                        isConfirmed={item.isConfirmed === true}
+                                        questionWidth="w-[23%]"
+                                        operatorWidth="w-[23%]"
+                                        valueWidth="w-[23%]"
+                                    />
                                 </div>
                             </div>
                         </div>
+                        ) : (
+                            <div className="w-full">
+                                <LogicSet
+                                    logicSet={item}
+                                    availableQuestions={previousQuestions}
+                                    onUpdate={(updates) => handleUpdateLogicSet(index, updates)}
+                                    onRemove={() => handleRemoveItem(index)}
+                                    questionWidth="w-[23%]"
+                                    operatorWidth="w-[23%]"
+                                    valueWidth="w-[23%]"
+                                    actionValue={item.action}
+                                    onActionChange={(val) => handleUpdateItem(index, 'action', val)}
+                                    extraActionContent={
+                                        <div className="relative flex-1">
+                                            <select
+                                                value={item.targetChoiceId || ''}
+                                                onChange={e => handleUpdateItem(index, 'targetChoiceId', e.target.value)}
+                                                className="w-full bg-surface border border-outline rounded-md pl-2 pr-6 py-1.5 text-sm text-on-surface font-medium focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                                                aria-label="Target Choice"
+                                            >
+                                                <option value="">Select choice...</option>
+                                                {question.choices?.map(choice => (
+                                                    <option key={choice.id} value={choice.id}>
+                                                        {truncate(parseChoice(choice.text).label, 30)}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <ChevronDownIcon className="absolute right-1.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-base" />
+                                        </div>
+                                    }
+                                />
+                            </div>
+                        )}
+                        </React.Fragment>
                     ))}
                  </div>
             </div>

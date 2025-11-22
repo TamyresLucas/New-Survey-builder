@@ -60,9 +60,17 @@ export interface DisplayLogicCondition {
   isConfirmed?: boolean;
 }
 
+export interface LogicSet {
+  id: string;
+  operator: 'AND' | 'OR';
+  conditions: DisplayLogicCondition[];
+  isConfirmed?: boolean;
+}
+
 export interface DisplayLogic {
   operator: 'AND' | 'OR';
   conditions: DisplayLogicCondition[];
+  logicSets?: LogicSet[];
 }
 
 export interface ChoiceDisplayCondition {

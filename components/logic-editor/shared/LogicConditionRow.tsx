@@ -2,12 +2,13 @@ import React, { useMemo } from 'react';
 import type { Question, DisplayLogicCondition, BranchingLogicCondition, LogicIssue } from '../../../types';
 import { QuestionType } from '../../../types';
 import { CHOICE_BASED_QUESTION_TYPES, parseChoice, truncate } from '../../../utils';
-import { XIcon, ChevronDownIcon, CheckmarkIcon, InfoIcon } from '../../icons';
+import { XIcon, ChevronDownIcon, CheckmarkIcon, InfoIcon, PlusIcon } from '../../icons';
 
 export const LogicConditionRow: React.FC<{
     condition: DisplayLogicCondition | BranchingLogicCondition;
     onUpdateCondition: (field: keyof (DisplayLogicCondition | BranchingLogicCondition), value: any) => void;
     onRemoveCondition?: () => void;
+    onAddCondition?: () => void;
     onConfirm?: () => void;
     availableQuestions: Question[];
     isConfirmed: boolean;
@@ -23,6 +24,7 @@ export const LogicConditionRow: React.FC<{
     condition, 
     onUpdateCondition, 
     onRemoveCondition, 
+    onAddCondition,
     onConfirm, 
     availableQuestions, 
     isConfirmed, 
@@ -136,7 +138,7 @@ export const LogicConditionRow: React.FC<{
     };
 
     return (
-        <div className="flex items-center gap-2 p-2 rounded-md min-w-max w-full">
+        <div className="flex items-center gap-2 p-2 rounded-md w-full">
             {/* 1. Question */}
             <div className={`relative group/tooltip ${questionWidth} flex-shrink-0`}>
                 {isFirstCondition && currentQuestion ? (
@@ -273,6 +275,11 @@ export const LogicConditionRow: React.FC<{
             {onRemoveCondition && (
                 <button onClick={onRemoveCondition} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-colors flex-shrink-0" aria-label="Remove condition">
                     <XIcon className="text-lg" />
+                </button>
+            )}
+             {onAddCondition && (
+                <button onClick={onAddCondition} className="p-1.5 text-primary hover:text-on-primary hover:bg-primary rounded-full transition-colors flex-shrink-0" aria-label="Add condition below">
+                    <PlusIcon className="text-lg" />
                 </button>
             )}
             {!isConfirmed && onConfirm && (

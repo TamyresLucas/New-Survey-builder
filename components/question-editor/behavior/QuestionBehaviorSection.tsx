@@ -29,8 +29,6 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
     const items = useMemo(() => {
         const list: ExtendedConditionItem[] = [];
         
-        // NOTE: Intentionally omitting top-level conditions as requested.
-        // Only Logic Sets are displayed.
         if (displayLogic) {
             // displayLogic.conditions.forEach(c => list.push({ ...c, logicType: 'display', itemType: 'condition' }));
             if (displayLogic.logicSets) {
@@ -218,11 +216,12 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
 
             <div className="border-t border-outline-variant pt-4">
                 <h3 className="text-sm font-medium text-on-surface mb-0.5">Question display logic</h3>
-                <p className="text-xs text-on-surface-variant mb-3">Control when this question is shown to respondents or hidden from them.</p>
+                <p className="text-xs text-on-surface-variant mb-3">Display this question only if the following condition is met.</p>
                 
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-4">
-                         <button onClick={handleAddLogicSet} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                        {/* Add condition button hidden as per previous request */}
+                        <button onClick={handleAddLogicSet} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
                             <GridIcon className="text-base" />
                             Add logic set
                         </button>
@@ -252,19 +251,45 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
                 <div className="space-y-2">
                      {items.map((item) => (
                         <React.Fragment key={item.id}>
-                        {item.itemType === 'condition' ? null : (
+                        {item.itemType === 'condition' ? (
+                             // This block is effectively hidden due to filtering in previous steps/requests,
+                             // but logic kept for code integrity if filtering is relaxed.
+                             // If rendered, it would be the legacy condition format.
+                            <div className="w-full">
+                                <LogicConditionRow
+                                    condition={item}
+                                    onUpdateCondition={(field, value) => handleUpdateCondition(item.id, item.logicType, field, value)}
+                                    onRemoveCondition={() => handleRemoveItem(item.id, 'condition', item.logicType)}
+                                    onConfirm={() => handleConfirmCondition(item.id, item.logicType)}
+                                    availableQuestions={previousQuestions}
+                                    isConfirmed={item.isConfirmed === true}
+                                />
+                            </div>
+                        ) : (
                             <LogicSet 
                                 logicSet={item}
                                 availableQuestions={previousQuestions}
                                 onUpdate={(updates) => handleUpdateLogicSet(item.id, item.logicType, updates)}
                                 onRemove={() => handleRemoveItem(item.id, 'set', item.logicType)}
-                                questionWidth="w-32"
-                                operatorWidth="w-28"
-                                valueWidth="flex-1 min-w-[100px]"
+                                questionWidth="w-[28%]" // Reduced width to prevent cutoff
+                                operatorWidth="w-[28%]"
+                                valueWidth="w-[28%]"
                                 actionValue={item.logicType === 'display' ? 'show' : 'hide'}
                                 onActionChange={(val) => handleTypeChange(item.id, item.itemType, item.logicType, val === 'show' ? 'display' : 'hide')}
-                                extraActionContent={
-                                    <div className="flex items-center gap-2">
+                                headerContent={
+                                    <div className="flex items-center gap-2 w-full">
+                                         <div className="relative w-24 flex-shrink-0">
+                                            <select
+                                                value={item.logicType === 'display' ? 'Show' : 'Hide'}
+                                                onChange={e => handleTypeChange(item.id, item.itemType, item.logicType, e.target.value === 'Show' ? 'display' : 'hide')}
+                                                className="w-full bg-surface border border-outline rounded-md pl-2 pr-6 py-1.5 text-sm text-on-surface font-medium focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                                                aria-label="Logic Action"
+                                            >
+                                                <option value="Show">Show</option>
+                                                <option value="Hide">Hide</option>
+                                            </select>
+                                            <ChevronDownIcon className="absolute right-1.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-base" />
+                                        </div>
                                          <span className="text-sm font-bold text-on-surface">{question.qid}</span>
                                          <span className="text-sm font-bold text-primary flex-shrink-0">IF</span>
                                     </div>

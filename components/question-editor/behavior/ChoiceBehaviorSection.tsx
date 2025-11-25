@@ -53,6 +53,26 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
         onAddLogic();
     };
 
+    // New handler for inline addition
+    const handleAddPlaceholderConditionAtIndex = (index: number) => {
+        setPlaceholderItems(prev => {
+            const newItems = [...prev];
+            newItems.splice(index + 1, 0, {
+                itemType: 'condition',
+                id: generateId('cond'),
+                questionId: '',
+                operator: '',
+                value: '',
+                isConfirmed: false,
+                action: 'show',
+                targetChoiceId: ''
+            });
+            return newItems;
+        });
+        onAddLogic();
+    };
+
+
     const handleAddPlaceholderLogicSet = () => {
          setPlaceholderItems(prev => [...prev, {
             itemType: 'set',
@@ -114,14 +134,11 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
     };
 
     // Sort items for display: conditions first, then sets
-    const sortedItems = [...placeholderItems]
-        .filter(item => item.itemType === 'set')
-        .sort((a, b) => {
-            // Sort logic kept if mixed types were allowed, but with filter it's just sets.
-            if (a.itemType === 'condition' && b.itemType === 'set') return -1;
-            if (a.itemType === 'set' && b.itemType === 'condition') return 1;
-            return 0;
-        });
+    const sortedItems = [...placeholderItems].sort((a, b) => {
+        if (a.itemType === 'condition' && b.itemType === 'set') return -1;
+        if (a.itemType === 'set' && b.itemType === 'condition') return 1;
+        return 0;
+    });
 
     return (
         <div className="divide-y divide-outline-variant">
@@ -208,6 +225,7 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
                                         condition={item}
                                         onUpdateCondition={(field, value) => handleUpdateItem(index, field as string, value)}
                                         onRemoveCondition={() => handleRemoveItem(index)}
+                                        onAddCondition={() => handleAddPlaceholderConditionAtIndex(index)} // Pass handler
                                         onConfirm={() => handleConfirmCondition(index)}
                                         availableQuestions={previousQuestions}
                                         isConfirmed={item.isConfirmed === true}

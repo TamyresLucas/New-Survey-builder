@@ -1,4 +1,5 @@
-import type { Survey, Question, LogicIssue } from './types';
+import type { Survey, Question, LogicIssue, DisplayLogicCondition, BranchingLogicCondition } from './types';
+import { QuestionType } from './types';
 
 // Create a map for quick lookups of questions by different properties for efficient validation.
 const getQuestionMap = (survey: Survey): { byId: Map<string, Question>, byQid: Map<string, Question>, byIndex: Map<string, number> } => {
@@ -7,6 +8,98 @@ const getQuestionMap = (survey: Survey): { byId: Map<string, Question>, byQid: M
     const byQid = new Map(questions.filter(q => q.qid).map(q => [q.qid, q]));
     const byIndex = new Map(questions.map((q, i) => [q.id, i]));
     return { byId, byQid, byIndex };
+};
+
+/**
+ * Analyzes a list of conditions joined by 'AND' to find logical contradictions.
+ */
+const checkAndLogicForContradictions = (
+    conditions: (DisplayLogicCondition | BranchingLogicCondition)[],
+    byQid: Map<string, Question>,
+    currentQuestionId: string,
+    sourceId: string, // This is the ID of the LogicSet or the specific branch
+    type: 'display' | 'hide' | 'branching'
+): LogicIssue[] => {
+    const issues: LogicIssue[] = [];
+    
+    // Group conditions by the source question they reference
+    const conditionsBySource = new Map<string, (DisplayLogicCondition | BranchingLogicCondition)[]>();
+    
+    for (const condition of conditions) {
+        if (!condition.questionId) continue;
+        if (!conditionsBySource.has(condition.questionId)) {
+            conditionsBySource.set(condition.questionId, []);
+        }
+        conditionsBySource.get(condition.questionId)!.push(condition);
+    }
+
+    // Analyze each source question's constraints
+    for (const [sourceQid, conds] of conditionsBySource.entries()) {
+        const sourceQuestion = byQid.get(sourceQid);
+        if (!sourceQuestion) continue;
+
+        const equalsValues = new Set<string>();
+        const notEqualsValues = new Set<string>();
+        let requiresEmpty = false;
+        let requiresNotEmpty = false;
+
+        for (const cond of conds) {
+            if (cond.operator === 'equals') equalsValues.add(cond.value);
+            if (cond.operator === 'not_equals') notEqualsValues.add(cond.value);
+            if (cond.operator === 'is_empty') requiresEmpty = true;
+            if (cond.operator === 'is_not_empty' || cond.operator === 'contains') requiresNotEmpty = true;
+        }
+
+        // 1. Check for Empty vs Not Empty contradiction
+        if (requiresEmpty && requiresNotEmpty) {
+            issues.push({
+                questionId: currentQuestionId,
+                type,
+                message: `Contradiction: Logic requires ${sourceQid} to be both empty and not empty.`,
+                sourceId: sourceId,
+                field: 'operator'
+            });
+        }
+
+        // 2. Check for Direct Contradiction (Equals X AND Not Equals X)
+        for (const val of equalsValues) {
+            if (notEqualsValues.has(val)) {
+                issues.push({
+                    questionId: currentQuestionId,
+                    type,
+                    message: `Contradiction: Logic requires ${sourceQid} to equal '${val}' AND NOT equal '${val}'.`,
+                    sourceId: sourceId,
+                    field: 'value'
+                });
+            }
+        }
+
+        // 3. Check for Mutually Exclusive Equals (Single Choice Questions)
+        const isSingleChoice = sourceQuestion.type === QuestionType.Radio || sourceQuestion.type === QuestionType.DropDownList;
+        
+        if (isSingleChoice && equalsValues.size > 1) {
+            issues.push({
+                questionId: currentQuestionId,
+                type,
+                message: `Impossible logic: ${sourceQid} is single-choice but must equal multiple values (${Array.from(equalsValues).join(' AND ')}).`,
+                sourceId: sourceId,
+                field: 'value'
+            });
+        }
+        
+        // 4. Check for Value Requirement vs Empty Requirement
+        if (requiresEmpty && (equalsValues.size > 0 || notEqualsValues.size > 0)) {
+             issues.push({
+                questionId: currentQuestionId,
+                type,
+                message: `Contradiction: Logic requires ${sourceQid} to be empty, but also checks for a value.`,
+                sourceId: sourceId,
+                field: 'operator'
+            });
+        }
+    }
+
+    return issues;
 };
 
 /**
@@ -30,60 +123,73 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
             const currentQuestionIndex = byIndex.get(question.id)!;
             const currentBlockIndex = blockOfQuestionMap.get(question.id)!;
 
-            // 1. Validate Display Logic
-            if (question.displayLogic) {
-                for (const condition of question.displayLogic.conditions) {
-                    if (!condition.questionId) continue; // This is a temporary state, not a validation error
-                    
-                    const sourceQuestion = byQid.get(condition.questionId);
-                    if (!sourceQuestion) {
+            const validateCondition = (condition: any, type: 'display' | 'hide', sourceId: string) => {
+                if (!condition.questionId) return; 
+                
+                const sourceQuestion = byQid.get(condition.questionId);
+                if (!sourceQuestion) {
+                    issues.push({
+                        questionId: question.id,
+                        type: type,
+                        message: `The selected question (${condition.questionId}) no longer exists.`,
+                        sourceId: sourceId,
+                        field: 'questionId',
+                    });
+                } else {
+                    const sourceQuestionIndex = byIndex.get(sourceQuestion.id)!;
+                    if (sourceQuestionIndex >= currentQuestionIndex) {
                         issues.push({
                             questionId: question.id,
-                            type: 'display',
-                            message: `The selected question (${condition.questionId}) no longer exists.`,
-                            sourceId: condition.id,
+                            type: type,
+                            message: `Logic cannot depend on a future question (${sourceQuestion.qid}).`,
+                            sourceId: sourceId,
                             field: 'questionId',
                         });
-                    } else {
-                        const sourceQuestionIndex = byIndex.get(sourceQuestion.id)!;
-                        if (sourceQuestionIndex >= currentQuestionIndex) {
-                            issues.push({
-                                questionId: question.id,
-                                type: 'display',
-                                message: `Logic cannot depend on a future question (${sourceQuestion.qid}).`,
-                                sourceId: condition.id,
-                                field: 'questionId',
-                            });
-                        }
                     }
                 }
+            };
+
+            // 1. Validate Display Logic
+            if (question.displayLogic) {
+                const logic = question.displayLogic;
+                // Standard structural checks
+                logic.conditions.forEach(c => validateCondition(c, 'display', c.id));
+                if (logic.logicSets) {
+                    logic.logicSets.forEach(set => {
+                        // Check conditions within the set
+                        set.conditions.forEach(c => validateCondition(c, 'display', set.id));
+                        
+                        // Advanced Semantic Check for Sets (AND)
+                        if (set.operator === 'AND') {
+                            const contradictions = checkAndLogicForContradictions(set.conditions, byQid, question.id, set.id, 'display');
+                            issues.push(...contradictions);
+                        }
+                    });
+                }
+                
+                // Advanced Semantic Check for Top Level (AND)
+                if (logic.operator === 'AND') {
+                    const contradictions = checkAndLogicForContradictions(logic.conditions, byQid, question.id, 'root', 'display');
+                    issues.push(...contradictions);
+                }
             }
+
             // NEW: Validate Hide Logic
             if (question.hideLogic) {
-                for (const condition of question.hideLogic.conditions) {
-                    if (!condition.questionId) continue;
-                    
-                    const sourceQuestion = byQid.get(condition.questionId);
-                    if (!sourceQuestion) {
-                        issues.push({
-                            questionId: question.id,
-                            type: 'hide',
-                            message: `The selected question (${condition.questionId}) no longer exists.`,
-                            sourceId: condition.id,
-                            field: 'questionId',
-                        });
-                    } else {
-                        const sourceQuestionIndex = byIndex.get(sourceQuestion.id)!;
-                        if (sourceQuestionIndex >= currentQuestionIndex) {
-                            issues.push({
-                                questionId: question.id,
-                                type: 'hide',
-                                message: `Logic cannot depend on a future question (${sourceQuestion.qid}).`,
-                                sourceId: condition.id,
-                                field: 'questionId',
-                            });
+                const logic = question.hideLogic;
+                logic.conditions.forEach(c => validateCondition(c, 'hide', c.id));
+                 if (logic.logicSets) {
+                    logic.logicSets.forEach(set => {
+                        set.conditions.forEach(c => validateCondition(c, 'hide', set.id));
+                        if (set.operator === 'AND') {
+                            const contradictions = checkAndLogicForContradictions(set.conditions, byQid, question.id, set.id, 'hide');
+                             issues.push(...contradictions);
                         }
-                    }
+                    });
+                }
+                if (logic.operator === 'AND') {
+                     const contradictions = checkAndLogicForContradictions(logic.conditions, byQid, question.id, 'root', 'hide');
+                     issues.push(...contradictions);
                 }
             }
 
@@ -205,33 +311,41 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
                      }
                 }
                 
-                for(const branch of question.branchingLogic.branches) {
-                    for (const condition of branch.conditions) {
-                        if (!condition.questionId) continue; // Temporary state
+                if (question.branchingLogic.branches) {
+                    for(const branch of question.branchingLogic.branches) {
+                        for (const condition of branch.conditions) {
+                            if (!condition.questionId) continue; // Temporary state
 
-                        const sourceQuestion = byQid.get(condition.questionId);
-                        if (!sourceQuestion) {
-                            issues.push({
-                                questionId: question.id,
-                                type: 'branching',
-                                message: `The selected question (${condition.questionId}) in this branch no longer exists.`,
-                                sourceId: condition.id,
-                                field: 'questionId',
-                            });
-                        } else {
-                            const sourceQuestionIndex = byIndex.get(sourceQuestion.id)!;
-                            if (sourceQuestionIndex > currentQuestionIndex) {
+                            const sourceQuestion = byQid.get(condition.questionId);
+                            if (!sourceQuestion) {
                                 issues.push({
                                     questionId: question.id,
                                     type: 'branching',
-                                    message: `Advanced logic cannot depend on a future question (${sourceQuestion.qid}).`,
+                                    message: `The selected question (${condition.questionId}) in this branch no longer exists.`,
                                     sourceId: condition.id,
                                     field: 'questionId',
                                 });
+                            } else {
+                                const sourceQuestionIndex = byIndex.get(sourceQuestion.id)!;
+                                if (sourceQuestionIndex > currentQuestionIndex) {
+                                    issues.push({
+                                        questionId: question.id,
+                                        type: 'branching',
+                                        message: `Advanced logic cannot depend on a future question (${sourceQuestion.qid}).`,
+                                        sourceId: condition.id,
+                                        field: 'questionId',
+                                    });
+                                }
                             }
                         }
+                        validateBranchTarget(branch.thenSkipTo, branch.id);
+                        
+                        // Advanced Semantic Check for Branches
+                        if (branch.operator === 'AND') {
+                             const contradictions = checkAndLogicForContradictions(branch.conditions, byQid, question.id, branch.id, 'branching');
+                             issues.push(...contradictions);
+                        }
                     }
-                    validateBranchTarget(branch.thenSkipTo, branch.id);
                 }
                 validateBranchTarget(question.branchingLogic.otherwiseSkipTo, 'otherwise');
             }

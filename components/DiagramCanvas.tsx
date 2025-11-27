@@ -521,7 +521,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     const prevActiveTabRef = useRef<string>();
     const prevSelectedQuestionRef = useRef<Question | null>(null);
 
-    // Memoize the flat list of all questions and a map of their indices for efficient validation.
     const questionIndexMap = useMemo(() => {
         const allQuestions = survey.blocks.flatMap(b => b.questions);
         return new Map(allQuestions.map((q, i) => [q.id, i]));
@@ -581,7 +580,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
 
     const onConnect = useCallback(
         (connection: Connection) => {
-            if (!connection.source || !connection.target || !connection.sourceHandle) {
+            if (!connection.source || !connection.target) {
                 return;
             }
     
@@ -600,7 +599,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     const ruleIndex = newRules.findIndex(r => r.choiceId === connection.sourceHandle);
                     if (ruleIndex !== -1) {
                         newRules[ruleIndex] = { ...newRules[ruleIndex], skipTo: target, isConfirmed: false };
-                    } else {
+                    } else if (connection.sourceHandle) {
                         newRules.push({
                             id: generateId('slr'),
                             choiceId: connection.sourceHandle,
@@ -645,14 +644,13 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         event.stopPropagation();
         const sourceQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === edge.source);
         if (sourceQuestion) {
-            // FIX: Handle edge.sourceHandle being possibly null
             onSelectQuestion(sourceQuestion, { tab: 'Behavior', focusOn: edge.sourceHandle || undefined });
         }
     }, [survey, onSelectQuestion]);
 
     const onReconnect = useCallback(
         (oldEdge: Edge, newConnection: Connection) => {
-            if (!newConnection.source || !newConnection.target || !newConnection.sourceHandle) {
+            if (!newConnection.source || !newConnection.target) {
                 return;
             }
             
@@ -670,7 +668,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     const ruleIndex = newRules.findIndex(r => r.choiceId === newConnection.sourceHandle);
                     if (ruleIndex !== -1) {
                         newRules[ruleIndex] = { ...newRules[ruleIndex], skipTo: target, isConfirmed: false };
-                    } else {
+                    } else if (newConnection.sourceHandle) {
                         newRules.push({
                             id: generateId('slr'),
                             choiceId: newConnection.sourceHandle,

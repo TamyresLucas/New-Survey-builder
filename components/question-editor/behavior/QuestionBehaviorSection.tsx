@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import type { Question, Survey, Block, DisplayLogicCondition, DisplayLogic, LogicSet as ILogicSet } from '../../../types';
+import type { Question, Survey, Block, DisplayLogicCondition, DisplayLogic, LogicSet as ILogicSet, LogicIssue } from '../../../types';
 import { ArrowRightAltIcon, PlusIcon, ChevronDownIcon, GridIcon } from '../../icons';
 import { QuestionGroupEditor, PasteInlineForm, CopyAndPasteButton, LogicConditionRow, LogicSet } from '../../logic-editor/shared';
 import { generateId } from '../../../utils';
@@ -11,6 +11,7 @@ interface QuestionBehaviorSectionProps {
     onUpdate: (updates: Partial<Question>) => void;
     onSelectBlock: (block: Block | null, options?: { tab: string; focusOn: string; }) => void;
     onAddLogic: () => void;
+    issues?: LogicIssue[];
 }
 
 // Extended type to include Logic Sets
@@ -19,7 +20,7 @@ type ExtendedConditionItem =
     | (ILogicSet & { logicType: 'display' | 'hide'; itemType: 'set' });
 
 
-const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ question, survey, previousQuestions = [], onUpdate, onSelectBlock, onAddLogic }) => {
+const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ question, survey, previousQuestions = [], onUpdate, onSelectBlock, onAddLogic, issues = [] }) => {
     const [isPasting, setIsPasting] = useState(false);
     
     const displayLogic = question.draftDisplayLogic ?? question.displayLogic;
@@ -228,12 +229,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
                         <CopyAndPasteButton onClick={() => setIsPasting(true)} disabled={isPasting} />
                     </div>
 
-                    {items.length > 1 && (
-                        <div className="flex gap-1">
-                            <button onClick={() => handleSetOperator('AND')} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${currentOperator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
-                            <button onClick={() => handleSetOperator('OR')} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${currentOperator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
-                        </div>
-                    )}
+                    {/* AND/OR toggle removed */}
                 </div>
 
                 {isPasting && (
@@ -271,29 +267,16 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
                                 availableQuestions={previousQuestions}
                                 onUpdate={(updates) => handleUpdateLogicSet(item.id, item.logicType, updates)}
                                 onRemove={() => handleRemoveItem(item.id, 'set', item.logicType)}
-                                questionWidth="w-[28%]" // Reduced width to prevent cutoff
+                                questionWidth="w-[28%]"
                                 operatorWidth="w-[28%]"
                                 valueWidth="w-[28%]"
-                                actionValue={item.logicType === 'display' ? 'show' : 'hide'}
-                                onActionChange={(val) => handleTypeChange(item.id, item.itemType, item.logicType, val === 'show' ? 'display' : 'hide')}
+                                // actionValue and onActionChange REMOVED here
                                 headerContent={
-                                    <div className="flex items-center gap-2 w-full">
-                                         <div className="relative w-24 flex-shrink-0">
-                                            <select
-                                                value={item.logicType === 'display' ? 'Show' : 'Hide'}
-                                                onChange={e => handleTypeChange(item.id, item.itemType, item.logicType, e.target.value === 'Show' ? 'display' : 'hide')}
-                                                className="w-full bg-surface border border-outline rounded-md pl-2 pr-6 py-1.5 text-sm text-on-surface font-medium focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                                                aria-label="Logic Action"
-                                            >
-                                                <option value="Show">Show</option>
-                                                <option value="Hide">Hide</option>
-                                            </select>
-                                            <ChevronDownIcon className="absolute right-1.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-base" />
-                                        </div>
+                                    <div className="flex items-center gap-2">
                                          <span className="text-sm font-bold text-on-surface">{question.qid}</span>
-                                         <span className="text-sm font-bold text-primary flex-shrink-0">IF</span>
                                     </div>
                                 }
+                                issues={issues.filter(i => i.sourceId === item.id)}
                             />
                         )}
                         </React.Fragment>

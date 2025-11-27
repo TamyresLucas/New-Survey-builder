@@ -480,9 +480,11 @@ const QuestionCard: React.FC<{
                 className={`p-4 rounded-lg border-2 transition-all cursor-grab group grid grid-cols-[auto_1fr] items-start gap-x-3 relative ${
                     isSelected
                         ? 'border-primary bg-surface-container-high shadow-md'
-                        : question.isHidden
-                            ? 'border-outline-variant bg-surface-container opacity-60'
-                            : 'border-outline-variant hover:border-outline'
+                        : (hasLogicIssues)
+                            ? 'border-error bg-surface-container' // Added error state styling
+                            : question.isHidden
+                                ? 'border-outline-variant bg-surface-container opacity-60'
+                                : 'border-outline-variant hover:border-outline'
                 } ${isDragging ? 'opacity-50' : ''} ${isAnyMenuOpen ? 'z-10' : ''}`}
             >
                 {/* Grid Cell 1: Checkbox */}
@@ -834,6 +836,7 @@ const QuestionCard: React.FC<{
                             logic={question.displayLogic!}
                             survey={survey}
                             onClick={() => onSelect(question, { tab: 'Behavior' })}
+                            issues={logicIssues.filter(i => i.type === 'display' || i.type === 'hide')}
                         />
                     )}
                     {question.branchingLogic && question.branchingLogic.branches.length > 0 && (

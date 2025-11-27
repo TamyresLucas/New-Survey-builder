@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import type { Question, Survey, DisplayLogicCondition, LogicSet as ILogicSet } from '../../../types';
+import type { Question, Survey, DisplayLogicCondition, LogicSet as ILogicSet, LogicIssue } from '../../../types';
 import { CHOICE_BASED_QUESTION_TYPES, generateId, truncate, parseChoice } from '../../../utils';
 import { RandomizeChoicesEditor } from '../../logic-editor/RandomizationEditor';
 import { ChoiceEliminationEditor } from '../../logic-editor/ChoiceEliminationEditor';
 import { ChoiceDisplayLogicEditor } from '../../logic-editor/ChoiceDisplayLogicEditor';
 import { PlusIcon, ChevronDownIcon, GridIcon } from '../../icons';
-import { CopyAndPasteButton, LogicConditionRow, LogicSet } from '../../logic-editor/shared';
+import { CopyAndPasteButton, LogicSet } from '../../logic-editor/shared';
 
 interface ChoiceBehaviorSectionProps {
     question: Question;
@@ -14,6 +14,7 @@ interface ChoiceBehaviorSectionProps {
     onUpdate: (updates: Partial<Question>) => void;
     onAddLogic: () => void;
     isFirstInteractiveQuestion: boolean;
+    issues?: LogicIssue[];
 }
 
 // Union type for local state
@@ -27,7 +28,8 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
     previousQuestions,
     onUpdate,
     onAddLogic,
-    isFirstInteractiveQuestion
+    isFirstInteractiveQuestion,
+    issues = []
 }) => {
     // Local state for the logic rows
     const [placeholderItems, setPlaceholderItems] = useState<PlaceholderItem[]>([]);
@@ -39,40 +41,7 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
         return null;
     }
 
-    const handleAddPlaceholderCondition = () => {
-        setPlaceholderItems(prev => [...prev, {
-            itemType: 'condition',
-            id: generateId('cond'),
-            questionId: '',
-            operator: '',
-            value: '',
-            isConfirmed: false,
-            action: 'show',
-            targetChoiceId: ''
-        }]);
-        onAddLogic();
-    };
-
-    // New handler for inline addition
-    const handleAddPlaceholderConditionAtIndex = (index: number) => {
-        setPlaceholderItems(prev => {
-            const newItems = [...prev];
-            newItems.splice(index + 1, 0, {
-                itemType: 'condition',
-                id: generateId('cond'),
-                questionId: '',
-                operator: '',
-                value: '',
-                isConfirmed: false,
-                action: 'show',
-                targetChoiceId: ''
-            });
-            return newItems;
-        });
-        onAddLogic();
-    };
-
-
+    // Handler for adding a new Logic Set
     const handleAddPlaceholderLogicSet = () => {
          setPlaceholderItems(prev => [...prev, {
             itemType: 'set',
@@ -95,14 +64,9 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
     const handleUpdateItem = (index: number, field: string, value: any) => {
         setPlaceholderItems(prev => {
             const newItems = [...prev];
-            const item = newItems[index];
+            const item = { ...newItems[index] }; // Immutable update
             (item as any)[field] = value;
-            
-            // Reset dependent fields if question changes for conditions
-            if (item.itemType === 'condition' && field === 'questionId') {
-                item.operator = '';
-                item.value = '';
-            }
+            newItems[index] = item;
             return newItems;
         });
     };
@@ -112,7 +76,7 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
             const newItems = [...prev];
             const item = newItems[index];
             if (item.itemType === 'set') {
-                Object.assign(item, updates);
+                newItems[index] = { ...item, ...updates }; // Immutable update
             }
             return newItems;
         });
@@ -122,23 +86,13 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
         setPlaceholderItems(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleConfirmCondition = (index: number) => {
-        setPlaceholderItems(prev => {
-            const newItems = [...prev];
-            const item = newItems[index];
-            if(item.itemType === 'condition') {
-                 item.isConfirmed = true;
-            }
-            return newItems;
+    // Sort items for display: sets only (as per filtering request)
+    const sortedItems = [...placeholderItems]
+        .filter(item => item.itemType === 'set')
+        .sort((a, b) => {
+             // Stability sort or explicit ordering if needed
+            return 0; 
         });
-    };
-
-    // Sort items for display: conditions first, then sets
-    const sortedItems = [...placeholderItems].sort((a, b) => {
-        if (a.itemType === 'condition' && b.itemType === 'set') return -1;
-        if (a.itemType === 'set' && b.itemType === 'condition') return 1;
-        return 0;
-    });
 
     return (
         <div className="divide-y divide-outline-variant">
@@ -165,7 +119,7 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-4">
                          <button onClick={handleAddPlaceholderLogicSet} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                            <PlusIcon className="text-base" />
+                            <GridIcon className="text-base" />
                             Add logic set
                         </button>
                         <CopyAndPasteButton onClick={() => {}} />
@@ -181,63 +135,8 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
 
                  <div className="space-y-2">
                     {sortedItems.map((item, index) => (
-                        <React.Fragment key={item.id}>
-                        {item.itemType === 'condition' ? (
-                        <div className="p-3 bg-surface-container-high rounded-md border border-transparent hover:border-outline-variant group flex flex-col gap-3 w-full max-w-full overflow-hidden">
-                            {/* ... Row 1 ... */}
-                            <div className="flex items-center gap-2 w-full">
-                                <div className="relative w-24 flex-shrink-0">
-                                    <select
-                                        value={item.action === 'show' ? 'Show' : 'Hide'}
-                                        onChange={e => handleUpdateItem(index, 'action', e.target.value === 'Show' ? 'show' : 'hide')}
-                                        className="w-full bg-surface border border-outline rounded-md pl-2 pr-6 py-1.5 text-sm text-on-surface font-medium focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                                        aria-label="Logic Action"
-                                    >
-                                        <option value="Show">Show</option>
-                                        <option value="Hide">Hide</option>
-                                    </select>
-                                    <ChevronDownIcon className="absolute right-1.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-base" />
-                                </div>
-
-                                <div className="relative flex-1">
-                                    <select
-                                        value={item.targetChoiceId || ''}
-                                        onChange={e => handleUpdateItem(index, 'targetChoiceId', e.target.value)}
-                                        className="w-full bg-surface border border-outline rounded-md pl-2 pr-6 py-1.5 text-sm text-on-surface font-medium focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                                        aria-label="Target Choice"
-                                    >
-                                        <option value="">Select choice...</option>
-                                        {question.choices?.map(choice => (
-                                            <option key={choice.id} value={choice.id}>
-                                                {truncate(parseChoice(choice.text).label, 30)}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <ChevronDownIcon className="absolute right-1.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-base" />
-                                </div>
-                            </div>
-
-                            {/* Row 2 */}
-                            <div className="flex items-start gap-1 w-full">
-                                <span className="text-sm font-bold text-primary flex-shrink-0 w-8 text-left mt-2.5">IF</span>
-                                <div className="flex-grow min-w-0 w-full">
-                                    <LogicConditionRow
-                                        condition={item}
-                                        onUpdateCondition={(field, value) => handleUpdateItem(index, field as string, value)}
-                                        onRemoveCondition={() => handleRemoveItem(index)}
-                                        onAddCondition={() => handleAddPlaceholderConditionAtIndex(index)} // Pass handler
-                                        onConfirm={() => handleConfirmCondition(index)}
-                                        availableQuestions={previousQuestions}
-                                        isConfirmed={item.isConfirmed === true}
-                                        questionWidth="w-[23%]"
-                                        operatorWidth="w-[23%]"
-                                        valueWidth="w-[23%]"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                        ) : (
-                            <div className="w-full">
+                        <div key={item.id} className="w-full">
+                            {item.itemType === 'set' && (
                                 <LogicSet
                                     logicSet={item}
                                     availableQuestions={previousQuestions}
@@ -248,28 +147,32 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
                                     valueWidth="w-[23%]"
                                     actionValue={item.action}
                                     onActionChange={(val) => handleUpdateItem(index, 'action', val)}
-                                    extraActionContent={
-                                        <div className="relative flex-1">
-                                            <select
-                                                value={item.targetChoiceId || ''}
-                                                onChange={e => handleUpdateItem(index, 'targetChoiceId', e.target.value)}
-                                                className="w-full bg-surface border border-outline rounded-md pl-2 pr-6 py-1.5 text-sm text-on-surface font-medium focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                                                aria-label="Target Choice"
-                                            >
-                                                <option value="">Select choice...</option>
-                                                {question.choices?.map(choice => (
-                                                    <option key={choice.id} value={choice.id}>
-                                                        {truncate(parseChoice(choice.text).label, 30)}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <ChevronDownIcon className="absolute right-1.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-base" />
+                                    headerContent={
+                                        <div className="flex items-center gap-2 w-full">
+                                            <div className="relative flex-1">
+                                                <select
+                                                    value={item.targetChoiceId || ''}
+                                                    onChange={e => handleUpdateItem(index, 'targetChoiceId', e.target.value)}
+                                                    className="w-full bg-surface border border-outline rounded-md pl-2 pr-6 py-1.5 text-sm text-on-surface font-medium focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                                                    aria-label="Target Choice"
+                                                >
+                                                    <option value="">Select choice...</option>
+                                                    {question.choices?.map(choice => (
+                                                        <option key={choice.id} value={choice.id}>
+                                                            {truncate(parseChoice(choice.text).label, 30)}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <ChevronDownIcon className="absolute right-1.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-base" />
+                                            </div>
+                                            <span className="text-sm font-bold text-primary flex-shrink-0">IF</span>
                                         </div>
                                     }
+                                    issues={issues}
+                                    showRowIfLabel={true}
                                 />
-                            </div>
-                        )}
-                        </React.Fragment>
+                            )}
+                        </div>
                     ))}
                  </div>
             </div>

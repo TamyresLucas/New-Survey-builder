@@ -1,1170 +1,555 @@
-import React, { useState, useRef, useCallback, useReducer, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
 import LeftSidebar from './components/LeftSidebar';
 import BuildPanel from './components/BuildPanel';
 import SurveyCanvas from './components/SurveyCanvas';
-// FIX: Changed import to named import as RightSidebar is now a named export.
+import DiagramCanvas from './components/DiagramCanvas';
 import { RightSidebar } from './components/RightSidebar';
 import { BlockSidebar } from './components/BlockSidebar';
-import SurveyStructureWidget from './components/SurveyStructureWidget';
-import GeminiPanel from './components/GeminiPanel';
 import { BulkEditPanel } from './components/BulkEditPanel';
-import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssue, Block, PathAnalysisResult, SurveyStatus } from './types';
-import { initialSurveyData, toolboxItems as initialToolboxItems } from './constants';
-import { renumberSurveyVariables, generateId, generateSurveyTextCopy, generateSurveyCsv, parseSurveyCsv, analyzeSurveyPaths } from './utils';
-import { QuestionType as QTEnum } from './types';
-import { surveyReducer, SurveyActionType, type Action } from './state/surveyReducer';
-import { PanelRightIcon, WarningIcon, XIcon, CheckmarkIcon } from './components/icons';
-import { validateSurveyLogic } from './logicValidator';
-import DiagramCanvas from './components/DiagramCanvas';
-import PathAnalysisPanel from './components/diagram/PathAnalysisPanel';
+import GeminiPanel from './components/GeminiPanel';
 import { SurveyPreview } from './components/SurveyPreview';
-import CanvasTabs from './components/CanvasTabs';
+import PathAnalysisPanel from './components/diagram/PathAnalysisPanel';
 import { ImportSurveyModal } from './components/ImportSurveyModal';
+import SurveyStructureWidget from './components/SurveyStructureWidget';
 
-const LOCAL_STORAGE_KEY = 'surveyBuilderAppState';
+// Hooks
+import { useSurveyState } from './hooks/useSurveyState';
+import { useSelection } from './hooks/useSelection';
+import { useSurveyActions } from './hooks/useSurveyActions';
+
+// Types
+import { ToolboxItemData, LogicIssue, SurveyStatus } from './types';
+import { SurveyActionType } from './state/surveyReducer';
+import { toolboxItems as initialToolboxItems } from './constants';
+import { validateSurveyLogic } from './logicValidator';
+import { analyzeSurveyPaths, generateSurveyCsv } from './utils';
+
+// Icons
+import { WarningIcon, CheckmarkIcon, XIcon, PanelRightIcon } from './components/icons';
 
 type ToastType = 'error' | 'success';
 
 const Toast: React.FC<{ message: string; type: ToastType; onDismiss: () => void; onUndo?: () => void }> = ({ message, type, onDismiss, onUndo }) => {
-  useEffect(() => {
-    // Make toasts with an undo button last longer
-    const duration = onUndo ? 10000 : 6000;
-    const timer = setTimeout(onDismiss, duration);
-    return () => clearTimeout(timer);
-  }, [onDismiss, onUndo]);
+    useEffect(() => {
+        const duration = onUndo ? 10000 : 6000;
+        const timer = setTimeout(onDismiss, duration);
+        return () => clearTimeout(timer);
+    }, [onDismiss, onUndo]);
 
-  const isError = type === 'error';
+    const isError = type === 'error';
 
-  const containerClasses = isError
-    ? 'bg-error-container text-on-error-container'
-    : 'bg-success-container text-on-success-container';
-  
-  const icon = isError
-    ? <WarningIcon className="text-xl flex-shrink-0" />
-    : <CheckmarkIcon className="text-xl flex-shrink-0" />;
+    const containerClasses = isError
+        ? 'bg-error-container text-on-error-container'
+        : 'bg-success-container text-on-success-container';
 
-  return (
-      <div 
-          className={`flex items-center gap-4 px-4 py-3 rounded-lg shadow-2xl animate-fade-in-up w-auto max-w-md ${containerClasses}`}
-          role="alert"
-      >
-          {icon}
-          <p className="text-sm font-medium flex-grow">{message}</p>
-          <div className={`flex-shrink-0 flex items-center gap-2 border-l pl-3 ml-2 ${isError ? 'border-on-error-container/20' : 'border-on-success-container/20'}`}>
-              {onUndo && (
-                  <button
-                      onClick={onUndo}
-                      className={`px-3 py-1 text-xs font-bold uppercase rounded-full hover:bg-black/10 ${isError ? 'text-on-error-container' : 'text-on-success-container'}`}
-                  >
-                      Undo
-                  </button>
-              )}
-              <button 
-                  onClick={onDismiss} 
-                  className="p-1 -mr-1 rounded-full hover:bg-black/10"
-                  aria-label="Dismiss"
-              >
-                  <XIcon className="text-lg" />
-              </button>
-          </div>
-      </div>
-  );
-};
+    const icon = isError
+        ? <WarningIcon className="text-xl flex-shrink-0" />
+        : <CheckmarkIcon className="text-xl flex-shrink-0" />;
 
-const getInitialSurveyState = (): Survey => {
-  try {
-    const savedStateJSON = window.localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (savedStateJSON) {
-      const savedState = JSON.parse(savedStateJSON);
-      // A simple check to ensure it's not totally invalid data
-      if (savedState && savedState.title && Array.isArray(savedState.blocks)) {
-        return savedState;
-      }
-    }
-  } catch (error) {
-    console.error("Failed to load or parse survey from localStorage:", error);
-  }
-  return initialSurveyData;
-};
-
-// Creates a "clean" version of the initial survey data to represent the "published" state
-// before any changes are made.
-const getInitialPublishedSurvey = (): Survey => {
-    const cleanData = JSON.parse(JSON.stringify(initialSurveyData));
-    // Revert the simulated change in constants.tsx
-    const introBlock = cleanData.blocks.find((b: Block) => b.id === 'block1');
-    if (introBlock) {
-        introBlock.title = 'Introduction';
-    }
-    return cleanData;
+    return (
+        <div
+            className={`flex items-center gap-4 px-4 py-3 rounded-lg shadow-2xl animate-fade-in-up w-auto max-w-md ${containerClasses}`}
+            role="alert"
+        >
+            {icon}
+            <p className="text-sm font-medium flex-grow">{message}</p>
+            <div className={`flex-shrink-0 flex items-center gap-2 border-l pl-3 ml-2 ${isError ? 'border-on-error-container/20' : 'border-on-success-container/20'}`}>
+                {onUndo && (
+                    <button
+                        onClick={onUndo}
+                        className={`px-3 py-1 text-xs font-bold uppercase rounded-full hover:bg-black/10 ${isError ? 'text-on-error-container' : 'text-on-success-container'}`}
+                    >
+                        Undo
+                    </button>
+                )}
+                <button
+                    onClick={onDismiss}
+                    className="p-1 -mr-1 rounded-full hover:bg-black/10"
+                    aria-label="Dismiss"
+                >
+                    <XIcon className="text-lg" />
+                </button>
+            </div>
+        </div>
+    );
 };
 
 const App: React.FC = () => {
-  const [survey, dispatch] = useReducer(surveyReducer, getInitialSurveyState(), renumberSurveyVariables);
-  const [history, setHistory] = useState<Survey[]>([]);
-  const [toolboxItems, setToolboxItems] = useState<ToolboxItemData[]>(initialToolboxItems);
-  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
-  const [selectedBlock, setSelectedBlock] = useState<Block | null>(null);
-  const [checkedQuestions, setCheckedQuestions] = useState<Set<string>>(new Set());
-  const [activeMainTab, setActiveMainTab] = useState<string>('Build');
-  const [activeCanvasTab, setActiveCanvasTab] = useState<'Online' | 'Phone'>('Online');
-  const [isBuildPanelOpen, setIsBuildPanelOpen] = useState(true);
-  const [isGeminiPanelOpen, setIsGeminiPanelOpen] = useState(false);
-  const [geminiHelpTopic, setGeminiHelpTopic] = useState<string | null>(null);
-  const [activeRightSidebarTab, setActiveRightSidebarTab] = useState('Settings');
-  const [isRightSidebarExpanded, setIsRightSidebarExpanded] = useState(false);
-  const [logicIssues, setLogicIssues] = useState<LogicIssue[]>([]);
-  const [focusedLogicSource, setFocusedLogicSource] = useState<string | null>(null);
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [toasts, setToasts] = useState<{ id: number; message: string; type: ToastType; onUndo?: () => void }[]>([]);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [selectedPathId, setSelectedPathId] = useState<string>('all-paths');
-  const [focusTarget, setFocusTarget] = useState<{ type: string; id: string; tab: string; element: string; } | null>(null);
-  
-  // State for survey activation and update tracking
-  const [surveyStatus, setSurveyStatus] = useState<SurveyStatus>('active');
-  const [publishedSurvey, setPublishedSurvey] = useState<Survey | null>(getInitialPublishedSurvey);
-  const [isDirty, setIsDirty] = useState(false);
+    console.log('App component starting render...');
 
+    // --- State Hooks ---
+    const {
+        survey,
+        dispatch,
+        dispatchAndRecord,
+        history,
+        handleUndo,
+        surveyStatus,
+        setSurveyStatus,
+        publishedSurvey,
+        setPublishedSurvey,
+        isDirty
+    } = useSurveyState();
 
-  const showBulkEditPanel = checkedQuestions.size >= 2;
+    const [activeMainTab, setActiveMainTab] = useState('Build');
+    const [isBuildPanelOpen, setIsBuildPanelOpen] = useState(true);
+    const [isRightSidebarExpanded, setIsRightSidebarExpanded] = useState(false);
+    const [activeRightSidebarTab, setActiveRightSidebarTab] = useState('Settings');
+    const [isGeminiPanelOpen, setIsGeminiPanelOpen] = useState(false);
+    const [geminiHelpTopic, setGeminiHelpTopic] = useState<string | null>(null);
+    const [isPreviewMode, setIsPreviewMode] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [toasts, setToasts] = useState<{ id: string; message: string; type: ToastType; onUndo?: () => void }[]>([]);
+    const [selectedPathId, setSelectedPathId] = useState('all-paths');
 
-  const canvasContainerRef = useRef<HTMLDivElement>(null);
-  const rightPanelRef = useRef<HTMLDivElement>(null);
-  const surveyRef = useRef(survey);
-  const [collapsedBlocks, setCollapsedBlocks] = useState<Set<string>>(new Set());
-  const prevSelectedQuestionIdRef = useRef<string | null>(null);
-  
-  // Ref to hold the latest history state to avoid stale closures in callbacks.
-  const historyRef = useRef(history);
-  useEffect(() => {
-    historyRef.current = history;
-  }, [history]);
+    // Derived state for view mode
+    const isDiagramView = activeMainTab === 'Flow';
 
-  const isDiagramView = activeMainTab === 'Flow';
-  const isAnyRightPanelOpen = isGeminiPanelOpen || showBulkEditPanel || !!selectedQuestion || !!selectedBlock;
+    // Refs
+    const canvasContainerRef = useRef<HTMLDivElement>(null);
+    const rightPanelRef = useRef<HTMLDivElement>(null);
 
-  // On first load, dispatch an action to apply the default paging mode and insert automatic page breaks.
-  useEffect(() => {
-    dispatch({ type: SurveyActionType.SET_PAGING_MODE, payload: { pagingMode: survey.pagingMode } });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only once on mount
+    // --- Selection Hook ---
+    const {
+        selectedQuestion,
+        selectedBlock,
+        handleSelectQuestion,
+        handleSelectBlock,
+        focusTarget,
+        setFocusTarget,
+        setSelectedQuestion,
+        setSelectedBlock
+    } = useSelection(survey, dispatch);
 
+    const handleFocusHandled = useCallback(() => setFocusTarget(null), [setFocusTarget]);
 
-  useEffect(() => {
-    surveyRef.current = survey;
-    // Run logic validation whenever the survey changes
-    const issues = validateSurveyLogic(survey);
-    setLogicIssues(issues);
+    // --- Toast Logic ---
+    const showToast = useCallback((message: string, type: ToastType = 'error', onUndo?: () => void) => {
+        const id = Math.random().toString(36).substring(7);
+        setToasts(prev => [...prev, { id, message, type, onUndo }]);
+        setTimeout(() => {
+            setToasts(prev => prev.filter(t => t.id !== id));
+        }, 3000);
+    }, []);
 
-    // Compare current survey with published version to detect changes
-    if (surveyStatus === 'active' && publishedSurvey) {
-      // Using JSON.stringify for a deep but potentially slow comparison.
-      // For performance in a larger app, a specialized deep-diff library would be better.
-      if (JSON.stringify(survey) !== JSON.stringify(publishedSurvey)) {
-        setIsDirty(true);
-      } else {
-        setIsDirty(false);
-      }
-    } else {
-      setIsDirty(false); // If not active, it's not considered "dirty"
-    }
-  }, [survey, surveyStatus, publishedSurvey]);
+    const dismissToast = useCallback((id: string) => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+    }, []);
 
-  // Sync selectedQuestion with survey state to prevent stale data in the sidebar
-  useEffect(() => {
-    if (selectedQuestion) {
-      const updatedQuestion = survey.blocks
-        .flatMap(b => b.questions)
-        .find(q => q.id === selectedQuestion.id);
-      
-      if (updatedQuestion && JSON.stringify(updatedQuestion) !== JSON.stringify(selectedQuestion)) {
-        setSelectedQuestion(updatedQuestion);
-      } else if (!updatedQuestion) {
-        setSelectedQuestion(null);
-      }
-    }
-    if (selectedBlock) {
-        const updatedBlock = survey.blocks.find(b => b.id === selectedBlock.id);
-        if (updatedBlock && JSON.stringify(updatedBlock) !== JSON.stringify(selectedBlock)) {
-            setSelectedBlock(updatedBlock);
-        } else if (!updatedBlock) {
-            setSelectedBlock(null);
+    // --- Actions Hook ---
+    // We need a ref to the current survey for the actions hook to access latest state in async callbacks
+    const surveyRef = useRef(survey);
+    useEffect(() => {
+        surveyRef.current = survey;
+    }, [survey]);
+
+    const [toolboxItems, setToolboxItems] = useState<ToolboxItemData[]>(initialToolboxItems);
+    const [checkedQuestions, setCheckedQuestions] = useState<Set<string>>(new Set());
+    const [collapsedBlocks, setCollapsedBlocks] = useState<Set<string>>(new Set());
+
+    const actions = useSurveyActions({
+        survey,
+        dispatch,
+        dispatchAndRecord,
+        handleSelectQuestion,
+        handleUndo,
+        showToast,
+        setToolboxItems,
+        setCheckedQuestions,
+        checkedQuestions,
+        selectedQuestion,
+        selectedBlock,
+        setSelectedQuestion,
+        setSelectedBlock,
+        surveyRef
+    });
+
+    // --- Logic Validation ---
+    const logicIssues = useMemo(() => validateSurveyLogic(survey), [survey]);
+    const paths = useMemo(() => analyzeSurveyPaths(survey), [survey]);
+
+    // --- Event Handlers ---
+
+    const handleToggleGeminiPanel = useCallback(() => {
+        setIsGeminiPanelOpen(prev => !prev);
+        if (!isGeminiPanelOpen) {
+            setGeminiHelpTopic(null); // Reset topic when opening
         }
-    }
-  }, [survey, selectedQuestion, selectedBlock]);
+    }, [isGeminiPanelOpen]);
 
-  // When the selected question changes, clean up any unconfirmed logic from the *previous* question.
-  useEffect(() => {
-    const prevId = prevSelectedQuestionIdRef.current;
-    // If there was a previously selected question, and it's different from the new one, clean it up.
-    if (prevId && prevId !== selectedQuestion?.id) {
-        dispatch({ type: SurveyActionType.CLEANUP_UNCONFIRMED_LOGIC, payload: { questionId: prevId } });
-    }
-    // Update the ref to the current selection for the next change.
-    prevSelectedQuestionIdRef.current = selectedQuestion?.id ?? null;
-  }, [selectedQuestion]);
+    const handleRequestGeminiHelp = useCallback((topic: string) => {
+        setGeminiHelpTopic(topic);
+        setIsGeminiPanelOpen(true);
+    }, []);
 
-  const dismissToast = useCallback((id: number) => {
-    setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
-  }, []);
+    const handleToggleRightSidebarExpand = useCallback(() => {
+        setIsRightSidebarExpanded(prev => !prev);
+    }, []);
 
-  const handleUndo = useCallback(() => {
-    // Use the ref to get the most up-to-date history state, avoiding stale closures.
-    const currentHistory = historyRef.current;
-    if (currentHistory.length > 0) {
-        const lastState = currentHistory[currentHistory.length - 1];
-        dispatch({ type: SurveyActionType.RESTORE_STATE, payload: lastState });
-        setHistory(currentHistory.slice(0, -1));
-        setToasts([]); // Clear all toasts on undo
-    }
-  }, [dispatch]);
+    const handleExpandRightSidebar = useCallback(() => {
+        setIsRightSidebarExpanded(true);
+    }, []);
 
-  const showToast = useCallback((message: string, type: ToastType = 'error', onUndo?: () => void) => {
-    const newToast = { id: Date.now() + Math.random(), message, type, onUndo };
-    setToasts(prevToasts => [...prevToasts, newToast]);
-  }, []);
-
-  const undoableActionTypes = useMemo(() => new Set([
-      SurveyActionType.REORDER_QUESTION,
-      SurveyActionType.REPOSITION_QUESTION,
-      SurveyActionType.MOVE_QUESTION_TO_NEW_BLOCK,
-      SurveyActionType.MOVE_QUESTION_TO_EXISTING_BLOCK,
-      SurveyActionType.DELETE_QUESTION,
-      SurveyActionType.DELETE_BLOCK,
-      SurveyActionType.BULK_DELETE_QUESTIONS,
-      SurveyActionType.BULK_MOVE_TO_NEW_BLOCK,
-      SurveyActionType.DELETE_CHOICE,
-      SurveyActionType.SET_PAGING_MODE,
-      SurveyActionType.REORDER_BLOCK,
-      SurveyActionType.MOVE_BLOCK_UP,
-      SurveyActionType.MOVE_BLOCK_DOWN,
-  ]), []);
-
-  const dispatchAndRecord = useCallback((action: Action) => {
-      if (undoableActionTypes.has(action.type)) {
-          // Limit history size to prevent memory issues, e.g., 10 levels
-          setHistory(prev => [...prev, survey].slice(-10)); 
-      }
-      dispatch(action);
-  }, [survey, undoableActionTypes]);
-
-  const paths = useMemo(() => analyzeSurveyPaths(survey), [survey]);
-
-  // When survey changes, ensure the selected path still exists.
-  useEffect(() => {
-    if (selectedPathId !== 'all-paths' && !paths.some(p => p.id === selectedPathId)) {
-        setSelectedPathId('all-paths');
-    }
-  }, [paths, selectedPathId]);
-
-  const displaySurvey = useMemo(() => {
-    if (selectedPathId === 'all-paths') {
-      return survey;
-    }
-
-    const selectedPath = paths.find(p => p.id === selectedPathId);
-
-    if (!selectedPath) {
-      return survey; // Fallback to showing everything
-    }
-
-    const blockIdsToShow = new Set(selectedPath.blockIds);
-
-    const filteredBlocks = survey.blocks
-      .filter(block => blockIdsToShow.has(block.id));
-    
-    // Make sure we don't end up with an empty view if filtering goes wrong
-    if (filteredBlocks.length === 0) return survey;
-
-    return {
-      ...survey,
-      blocks: filteredBlocks,
-    };
-  }, [survey, paths, selectedPathId]);
-
-
-  const handleBackToTop = useCallback(() => {
-    canvasContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
-
-  const handleFocusHandled = useCallback(() => setFocusTarget(null), []);
-
-  const handleSelectBlock = useCallback((block: Block | null, options?: { tab: string, focusOn: string }) => {
-    if (block) {
-      setSelectedQuestion(null);
-      if (options) {
-        setFocusTarget({ type: 'block', id: block.id, tab: options.tab, element: options.focusOn });
-      } else {
-        setFocusTarget(null);
-      }
-    } else {
-        setIsRightSidebarExpanded(false); // Reset on close
-        setFocusTarget(null);
-    }
-    setSelectedBlock(block);
-  }, []);
-
-  const handleSelectQuestion = useCallback((question: Question | null, options?: { tab?: string; focusOn?: string }) => {
-    if (question) {
-        setSelectedBlock(null);
-        setFocusTarget(null);
-    }
-    
-    if (question === null) {
-      setIsRightSidebarExpanded(false); // Reset on close
-      setFocusedLogicSource(null);
-    } else {
-        if (question.type === QTEnum.PageBreak) {
-          setSelectedQuestion(null);
-          return;
-        }
-
-        // If Gemini panel is open, keep it open but update the context.
-        // If user was viewing a help topic, switch back to chat.
-        if (isGeminiPanelOpen && geminiHelpTopic) {
-          setGeminiHelpTopic(null);
-        }
-      
-        // If a tab was explicitly passed, set it as active.
-        // Otherwise, the active tab remains unchanged, preserving the "sticky" tab behavior.
-        if (options?.tab) {
-          setActiveRightSidebarTab(options.tab);
-        }
-        
-        setFocusedLogicSource(options?.focusOn ?? null);
-    }
-
-    setSelectedQuestion(question);
-  }, [isGeminiPanelOpen, geminiHelpTopic]);
-
-  // Effect to handle clicks outside of the selected question card and right panel to deselect.
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-        if (selectedQuestion || selectedBlock) {
-            const target = event.target as HTMLElement;
-
-            // Clicks that control the build panel should not deselect.
-            const isClickOnLeftSidebar = target.closest('nav.w-20');
-            const isClickOnBuildPanelToggle = target.closest('[aria-label="Collapse build panel"], [aria-label="Open build panel"]');
-            
-            // Clicks on the Gemini panel toggle should not deselect.
-            const isClickOnGeminiToggle = target.closest('[aria-label="AI Features"]');
-
-            if (isClickOnLeftSidebar || isClickOnBuildPanelToggle || isClickOnGeminiToggle) {
-                return;
+    const handleToggleBlockCollapse = useCallback((blockId: string) => {
+        setCollapsedBlocks(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(blockId)) {
+                newSet.delete(blockId);
+            } else {
+                newSet.add(blockId);
             }
+            return newSet;
+        });
+    }, []);
 
-            const isClickInRightPanel = rightPanelRef.current?.contains(target);
-            const isClickInQuestionCard = target.closest('[data-question-id]');
-            const isClickInBlock = target.closest('[data-block-id]');
-            const isClickInDiagramNode = target.closest('.react-flow__node');
-            const isClickInDiagramEdge = target.closest('.react-flow__edge');
-            
-            if (!isClickInRightPanel && !isClickInQuestionCard && !isClickInBlock && !isClickInDiagramNode && !isClickInDiagramEdge) {
-                handleSelectQuestion(null);
-                handleSelectBlock(null);
-            }
+    const handleExpandBlock = useCallback((blockId: string) => {
+        setCollapsedBlocks(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(blockId);
+            return newSet;
+        });
+    }, []);
+
+    const handleCollapseBlock = useCallback((blockId: string) => {
+        setCollapsedBlocks(prev => {
+            const newSet = new Set(prev);
+            newSet.add(blockId);
+            return newSet;
+        });
+    }, []);
+
+    const handleBackToTop = useCallback(() => {
+        if (canvasContainerRef.current) {
+            canvasContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
         }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [selectedQuestion, selectedBlock, handleSelectQuestion, handleSelectBlock]);
+    }, []);
 
-  const handleToggleCollapseAll = useCallback(() => {
-    setCollapsedBlocks(prev => {
-      const allBlockIds = survey.blocks.map(b => b.id);
-      if (prev.size >= allBlockIds.length) {
-        return new Set<string>();
-      } else {
-        return new Set<string>(allBlockIds);
-      }
-    });
-  }, [survey.blocks]);
+    // --- Side Effects ---
 
-  const handleToggleBlockCollapse = useCallback((blockId: string) => {
-    setCollapsedBlocks(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(blockId)) {
-        newSet.delete(blockId);
-      } else {
-        newSet.add(blockId);
-      }
-      return newSet;
-    });
-  }, []);
-
-  const handleCollapseBlock = useCallback((blockId: string) => {
-    setCollapsedBlocks(prev => {
-        const newSet = new Set(prev);
-        newSet.add(blockId);
-        return newSet;
-    });
-  }, []);
-
-  const handleExpandBlock = useCallback((blockId: string) => {
-    setCollapsedBlocks(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(blockId);
-        return newSet;
-    });
-  }, []);
-
-  const handleToggleGeminiPanel = useCallback(() => {
-    setIsGeminiPanelOpen(prev => {
-        const willBeOpen = !prev;
-        if (willBeOpen) {
-            // If we are opening the panel, clear any bulk selection
-            if (checkedQuestions.size > 0) {
-                setCheckedQuestions(new Set());
-            }
-        } else { // When closing
-            setGeminiHelpTopic(null);
-        }
-        return willBeOpen;
-    });
-  }, [checkedQuestions.size]);
-  
-  const handleRequestGeminiHelp = useCallback((topic: string) => {
-    setGeminiHelpTopic(topic);
-    setIsGeminiPanelOpen(true);
-    // Don't deselect the question, so we can return to it.
-  }, []);
-
-  const handleToggleRightSidebarExpand = useCallback(() => {
-    setIsRightSidebarExpanded(prev => {
-        const isExpanding = !prev;
-        if (isExpanding) {
+    // Close Build Panel when switching to Diagram view
+    useEffect(() => {
+        if (activeMainTab === 'Flow') {
             setIsBuildPanelOpen(false);
-        } else {
+        } else if (activeMainTab === 'Build') {
             setIsBuildPanelOpen(true);
         }
-        return isExpanding;
-    });
-  }, []);
-  
-  const handleExpandRightSidebar = useCallback(() => {
-    setIsRightSidebarExpanded(true);
-    setIsBuildPanelOpen(false);
-  }, []);
+    }, [activeMainTab]);
 
-  const handleUpdateQuestion = useCallback((questionId: string, updates: Partial<Question>) => {
-    dispatch({ type: SurveyActionType.UPDATE_QUESTION, payload: { questionId, updates } });
-  }, []);
-  
-  const handleReorderQuestion = useCallback((draggedQuestionId: string, targetQuestionId: string | null, targetBlockId: string) => {
-    const onLogicRemoved = (message: string) => {
-        showToast(message, 'error', handleUndo);
-    };
-    dispatchAndRecord({ type: SurveyActionType.REORDER_QUESTION, payload: { draggedQuestionId, targetQuestionId, targetBlockId, onLogicRemoved } });
-  }, [showToast, handleUndo, dispatchAndRecord]);
+    // --- Derived UI State ---
+    const showBulkEditPanel = checkedQuestions.size > 0;
+    const isAnyRightPanelOpen = isGeminiPanelOpen || showBulkEditPanel || selectedBlock || selectedQuestion;
 
-  const handleReorderToolbox = useCallback((newItems: ToolboxItemData[]) => {
-    setToolboxItems(newItems);
-  }, []);
+    // Logic to determine focused logic source for QuestionEditor
+    const focusedLogicSource = useMemo(() => {
+        // This could be enhanced to detect if we clicked a logic node in the diagram
+        return '';
+    }, []);
 
-  const handleReorderBlock = useCallback((draggedBlockId: string, targetBlockId: string | null) => {
-    dispatchAndRecord({ type: SurveyActionType.REORDER_BLOCK, payload: { draggedBlockId, targetBlockId } });
-  }, [dispatchAndRecord]);
+    // Prepare display survey (with filters if needed, e.g. search)
+    const displaySurvey = survey;
 
-  const handleMoveBlockUp = useCallback((blockId: string) => {
-    dispatchAndRecord({ type: SurveyActionType.MOVE_BLOCK_UP, payload: { blockId } });
-  }, [dispatchAndRecord]);
-  
-  const handleMoveBlockDown = useCallback((blockId: string) => {
-    dispatchAndRecord({ type: SurveyActionType.MOVE_BLOCK_DOWN, payload: { blockId } });
-  }, [dispatchAndRecord]);
-
-  const handleAddBlockFromToolbox = useCallback((targetBlockId: string | null) => {
-    dispatchAndRecord({ type: SurveyActionType.ADD_BLOCK_FROM_TOOLBOX, payload: { targetBlockId } });
-  }, [dispatchAndRecord]);
-
-  const handleAddQuestion = useCallback((questionType: QuestionType, targetQuestionId: string | null, targetBlockId: string) => {
-    const onQuestionAdded = (newQuestionId: string) => {
-        if (questionType !== QTEnum.PageBreak) {
-            // This now uses a ref to get the latest survey state post-reducer update.
-            setTimeout(() => {
-                const currentSurvey = surveyRef.current;
-                const addedQuestion = currentSurvey.blocks
-                    .flatMap(b => b.questions)
-                    .find(q => q.id === newQuestionId);
-                if (addedQuestion) {
-                    handleSelectQuestion(addedQuestion);
-                }
-            }, 0);
+    const handleTabSelect = useCallback((tabId: string) => {
+        if (tabId === 'Build' && activeMainTab === 'Build') {
+            setIsBuildPanelOpen(prev => !prev);
+        } else if (tabId === 'Build') {
+            setIsBuildPanelOpen(true);
         }
-    };
-    dispatchAndRecord({ type: SurveyActionType.ADD_QUESTION, payload: { questionType, targetQuestionId, targetBlockId, onQuestionAdded } });
-  }, [handleSelectQuestion, dispatchAndRecord]);
-  
-  const handleAddQuestionToBlock = useCallback((blockId: string, questionType: QuestionType) => {
-    const onQuestionAdded = (newQuestionId: string) => {
-        if (questionType !== QTEnum.PageBreak) {
-            setTimeout(() => {
-                const currentSurvey = surveyRef.current;
-                const addedQuestion = currentSurvey.blocks
-                    .flatMap(b => b.questions)
-                    .find(q => q.id === newQuestionId);
-                if (addedQuestion) {
-                    handleSelectQuestion(addedQuestion);
-                }
-            }, 0);
-        }
-    };
-    dispatchAndRecord({ type: SurveyActionType.ADD_QUESTION, payload: { questionType, targetQuestionId: null, targetBlockId: blockId, onQuestionAdded } });
-  }, [handleSelectQuestion, dispatchAndRecord]);
+        setActiveMainTab(tabId);
+    }, [activeMainTab]);
 
-  const handleAddQuestionFromAI = useCallback((questionType: QuestionType, text: string, choiceStrings?: string[], afterQid?: string, beforeQid?: string) => {
-    dispatchAndRecord({ type: SurveyActionType.ADD_QUESTION_FROM_AI, payload: { questionType, text, choiceStrings, afterQid, beforeQid } });
-  }, [dispatchAndRecord]);
+    const allBlocksCollapsed = survey.blocks.length > 0 && collapsedBlocks.size === survey.blocks.length;
+    const handleExpandAllBlocks = useCallback(() => setCollapsedBlocks(new Set()), []);
+    const handleCollapseAllBlocks = useCallback(() => setCollapsedBlocks(new Set(survey.blocks.map(b => b.id))), [survey.blocks]);
 
-  const handleRepositionQuestion = useCallback((args: { qid: string; after_qid?: string; before_qid?: string }) => {
-    const onLogicRemoved = (message: string) => {
-        showToast(message, 'error', handleUndo);
-    };
-    dispatchAndRecord({ 
-        type: SurveyActionType.REPOSITION_QUESTION, 
-        payload: { ...args, onLogicRemoved } 
-    });
-  }, [showToast, handleUndo, dispatchAndRecord]);
-
-  const handleUpdateQuestionFromAI = useCallback((args: any) => {
-    const { qid, ...updatesFromAI } = args;
-    if (!qid) {
-        console.warn('[AI Action] No QID provided for update.');
-        return;
-    }
-
-    const question = surveyRef.current.blocks.flatMap(b => b.questions).find(q => q.qid === qid);
-    if (question) {
-        const finalUpdates: Partial<Question> = {};
-
-        // Directly map top-level properties from AI args to Question properties
-        if (updatesFromAI.text !== undefined) finalUpdates.text = updatesFromAI.text;
-        if (updatesFromAI.type !== undefined) finalUpdates.type = updatesFromAI.type;
-        if (updatesFromAI.forceResponse !== undefined) finalUpdates.forceResponse = updatesFromAI.forceResponse;
-        
-        if (updatesFromAI.answerFormat !== undefined) {
-             finalUpdates.answerFormat = updatesFromAI.answerFormat;
-             if (updatesFromAI.answerFormat === 'grid' && question.type !== QTEnum.ChoiceGrid) {
-                finalUpdates.type = QTEnum.ChoiceGrid;
-             } else if (updatesFromAI.answerFormat === 'list' && question.type === QTEnum.ChoiceGrid) {
-                finalUpdates.type = QTEnum.Radio;
-             }
-        }
-
-        // Handle 'multipleSelection' to toggle between Radio and Checkbox
-        if (updatesFromAI.multipleSelection !== undefined) {
-            if (question.type === QTEnum.Radio || question.type === QTEnum.Checkbox) {
-                finalUpdates.type = updatesFromAI.multipleSelection ? QTEnum.Checkbox : QTEnum.Radio;
-            }
-        }
-
-        // Handle nested 'answerBehavior' for properties like randomization
-        if (updatesFromAI.randomizeChoices !== undefined) {
-            finalUpdates.answerBehavior = {
-                ...question.answerBehavior, // Preserve existing behavior settings
-                randomizeChoices: updatesFromAI.randomizeChoices,
-            };
-        }
-        
-        // Handle logic updates. The entire logic object is passed. 'undefined' is used for removal.
-        if ('displayLogic' in updatesFromAI) finalUpdates.displayLogic = updatesFromAI.displayLogic;
-        if ('skipLogic' in updatesFromAI) finalUpdates.skipLogic = updatesFromAI.skipLogic;
-
-        // Handle 'choices' transformation from string array to Choice object array
-        if (updatesFromAI.choices) {
-            finalUpdates.choices = updatesFromAI.choices.map((choiceText: string): Choice => ({
-                id: generateId('c'),
-                text: choiceText,
-            }));
-        }
-
-        if (Object.keys(finalUpdates).length > 0) {
-            handleUpdateQuestion(question.id, finalUpdates);
-        }
-    } else {
-        console.warn(`[AI Action] Could not find question with QID: ${qid} to update.`);
-    }
-  }, [handleUpdateQuestion]);
-
-
-  const handleAddBlock = useCallback((blockId: string, position: 'above' | 'below') => {
-    dispatchAndRecord({ type: SurveyActionType.ADD_BLOCK, payload: { blockId, position } });
-  }, [dispatchAndRecord]);
-
-  const handleCopyBlock = useCallback((blockId: string) => {
-    dispatchAndRecord({ type: SurveyActionType.COPY_BLOCK, payload: { blockId } });
-  }, [dispatchAndRecord]);
-  
-  const handleExpandAllBlocks = useCallback(() => {
-    setCollapsedBlocks(new Set());
-  }, []);
-
-  const handleCollapseAllBlocks = useCallback(() => {
-    setCollapsedBlocks(new Set(survey.blocks.map(b => b.id)));
-  }, [survey.blocks]);
-
-  const handleDeleteQuestion = useCallback((questionId: string) => {
-    dispatchAndRecord({ type: SurveyActionType.DELETE_QUESTION, payload: { questionId } });
-    if (selectedQuestion?.id === questionId) {
-        setSelectedQuestion(null);
-    }
-    setCheckedQuestions(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(questionId);
-        return newSet;
-    });
-  }, [selectedQuestion, dispatchAndRecord]);
-
-  const handleDeleteQuestionFromAI = useCallback((qid: string) => {
-    const questionToDelete = surveyRef.current.blocks.flatMap(b => b.questions).find(q => q.qid === qid);
-    if (questionToDelete) {
-      handleDeleteQuestion(questionToDelete.id);
-    } else {
-      console.warn(`[AI Action] Could not find question with QID: ${qid} to delete.`);
-    }
-  }, [handleDeleteQuestion]);
-
-  const handleDeleteBlock = useCallback((blockId: string) => {
-    const blockToDelete = survey.blocks.find(b => b.id === blockId);
-    if (!blockToDelete) return;
-    
-    if (selectedQuestion && blockToDelete.questions.some(q => q.id === selectedQuestion.id)) {
-        setSelectedQuestion(null);
-    }
-
-    if (selectedBlock?.id === blockId) {
-        setSelectedBlock(null);
-    }
-
-    const questionIdsToDelete = new Set(blockToDelete.questions.map(q => q.id));
-    setCheckedQuestions(prev => {
-        const newSet = new Set(prev);
-        questionIdsToDelete.forEach(id => newSet.delete(id));
-        return newSet;
-    });
-
-    dispatchAndRecord({ type: SurveyActionType.DELETE_BLOCK, payload: { blockId } });
-  }, [survey, selectedQuestion, selectedBlock, dispatchAndRecord]);
-  
-  const handleToggleQuestionCheck = useCallback((questionId: string) => {
-    setCheckedQuestions(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(questionId)) {
-            newSet.delete(questionId);
-        } else {
-            newSet.add(questionId);
-        }
-        return newSet;
-    });
-  }, []);
-
-  const handleSelectAllInBlock = useCallback((blockId: string) => {
-    const block = survey.blocks.find(b => b.id === blockId);
-    if (!block) return;
-    const questionIds = block.questions
-        .filter(q => q.type !== QTEnum.PageBreak)
-        .map(q => q.id);
-        
-    setCheckedQuestions(prev => new Set([...prev, ...questionIds]));
-  }, [survey.blocks]);
-
-  const handleUnselectAllInBlock = useCallback((blockId: string) => {
-    const block = survey.blocks.find(b => b.id === blockId);
-    if (!block) return;
-    const questionIds = new Set(block.questions.map(q => q.id));
-    setCheckedQuestions(prev => {
-        const newSet = new Set(prev);
-        questionIds.forEach(id => newSet.delete(id));
-        return newSet;
-    });
-  }, [survey.blocks]);
-
-  const handleCopyQuestion = useCallback((questionId: string) => {
-    dispatchAndRecord({ type: SurveyActionType.COPY_QUESTION, payload: { questionId } });
-  }, [dispatchAndRecord]);
-
-  const handleMoveQuestionToNewBlock = useCallback((questionId: string) => {
-    const onLogicRemoved = (message: string) => {
-        showToast(message, 'error', handleUndo);
-    };
-
-    const onQuestionMoved = (movedQuestionId: string) => {
-      setTimeout(() => {
-        const currentSurvey = surveyRef.current;
-        const movedQuestion = currentSurvey.blocks
-            .flatMap(b => b.questions)
-            .find(q => q.id === movedQuestionId);
-        if (movedQuestion) {
-            handleSelectQuestion(movedQuestion);
-        }
-      }, 0);
-    };
-
-    dispatchAndRecord({ type: SurveyActionType.MOVE_QUESTION_TO_NEW_BLOCK, payload: { questionId, onLogicRemoved, onQuestionMoved } });
-  }, [handleSelectQuestion, showToast, handleUndo, dispatchAndRecord]);
-  
-  const handleMoveQuestionToExistingBlock = useCallback((questionId: string, targetBlockId: string) => {
-    const onLogicRemoved = (message: string) => {
-        showToast(message, 'error', handleUndo);
-    };
-    dispatchAndRecord({ type: SurveyActionType.MOVE_QUESTION_TO_EXISTING_BLOCK, payload: { questionId, targetBlockId, onLogicRemoved } });
-    handleSelectQuestion(null);
-  }, [showToast, handleUndo, dispatchAndRecord, handleSelectQuestion]);
-
-  const handleAddChoice = useCallback((questionId: string) => {
-    dispatchAndRecord({ type: SurveyActionType.ADD_CHOICE, payload: { questionId } });
-  }, [dispatchAndRecord]);
-  
-  const handleDeleteChoice = useCallback((questionId: string, choiceId: string) => {
-    dispatchAndRecord({ type: SurveyActionType.DELETE_CHOICE, payload: { questionId, choiceId } });
-  }, [dispatchAndRecord]);
-
-  const handleAddPageBreakAfterQuestion = useCallback((questionId: string) => {
-    dispatchAndRecord({ type: SurveyActionType.ADD_PAGE_BREAK_AFTER_QUESTION, payload: { questionId } });
-  }, [dispatchAndRecord]);
-
-  const handleUpdateBlockTitle = useCallback((blockId: string, title: string) => {
-    dispatch({ type: SurveyActionType.UPDATE_BLOCK_TITLE, payload: { blockId, title } });
-  }, []);
-  
-  const handleUpdateBlock = useCallback((blockId: string, updates: Partial<Block>) => {
-    dispatch({ type: SurveyActionType.UPDATE_BLOCK, payload: { blockId, updates } });
-  }, []);
-
-  const handleUpdateSurveyTitle = useCallback((title: string) => {
-    dispatch({ type: SurveyActionType.UPDATE_SURVEY_TITLE, payload: { title } });
-  }, []);
-
-  const handleTabSelect = useCallback((tabId: string) => {
-    if (tabId === 'Build' && activeMainTab === 'Build') {
-      setIsBuildPanelOpen(prev => !prev);
-    } else if (tabId === 'Build') {
-      setIsBuildPanelOpen(true);
-    }
-    setActiveMainTab(tabId);
-  }, [activeMainTab]);
-
-  const handlePagingModeChange = useCallback((mode: Survey['pagingMode']) => {
-    dispatchAndRecord({ type: SurveyActionType.SET_PAGING_MODE, payload: { pagingMode: mode } });
-  }, [dispatchAndRecord]);
-
-  const handleGlobalAutoAdvanceChange = useCallback((enabled: boolean) => {
-    if (enabled) {
-      if (window.confirm("This will enable auto-advance for all compatible questions and blocks. Individual settings will be overridden. Are you sure?")) {
-        dispatch({ type: SurveyActionType.SET_GLOBAL_AUTOADVANCE, payload: { enabled: true } });
-      }
-    } else {
-      dispatch({ type: SurveyActionType.SET_GLOBAL_AUTOADVANCE, payload: { enabled: false } });
-    }
-  }, []);
-
-  const allBlocksCollapsed = survey.blocks.length > 0 && collapsedBlocks.size === survey.blocks.length;
-
-  // Bulk action handlers
-  const handleClearSelection = useCallback(() => {
-    setCheckedQuestions(new Set());
-  }, []);
-
-  const handleBulkDelete = useCallback(() => {
-    if (window.confirm(`Are you sure you want to delete ${checkedQuestions.size} questions?`)) {
-      dispatchAndRecord({ type: SurveyActionType.BULK_DELETE_QUESTIONS, payload: { questionIds: checkedQuestions } });
-      handleClearSelection();
-    }
-  }, [checkedQuestions, handleClearSelection, dispatchAndRecord]);
-  
-  const handleBulkDuplicate = useCallback(() => {
-    dispatchAndRecord({ type: SurveyActionType.BULK_DUPLICATE_QUESTIONS, payload: { questionIds: checkedQuestions } });
-    handleClearSelection();
-  }, [checkedQuestions, handleClearSelection, dispatchAndRecord]);
-
-  const handleBulkMoveToNewBlock = useCallback(() => {
-    dispatchAndRecord({ type: SurveyActionType.BULK_MOVE_TO_NEW_BLOCK, payload: { questionIds: checkedQuestions } });
-    handleClearSelection();
-  }, [checkedQuestions, handleClearSelection, dispatchAndRecord]);
-  
-  const handleBulkHideQuestion = useCallback(() => {
-    dispatchAndRecord({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { isHidden: true } } });
-  }, [checkedQuestions, dispatchAndRecord]);
-
-  const handleBulkHideBackButton = useCallback(() => {
-    dispatchAndRecord({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { hideBackButton: true } } });
-  }, [checkedQuestions, dispatchAndRecord]);
-  
-  const handleBulkForceResponse = useCallback(() => {
-    dispatchAndRecord({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { forceResponse: true } } });
-  }, [checkedQuestions, dispatchAndRecord]);
-
-  const handleBulkUnforceResponse = useCallback(() => {
-    dispatchAndRecord({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { forceResponse: false } } });
-  }, [checkedQuestions, dispatchAndRecord]);
-  
-  const handleAddToLibrary = useCallback(() => {
-    alert('Add to Library functionality not implemented.');
-  }, []);
-
-  const handleTogglePreviewMode = useCallback(() => {
-    setIsPreviewMode(prev => !prev);
-  }, []);
-
-  const handleCopySurvey = useCallback(async () => {
-    try {
-        const surveyText = generateSurveyTextCopy(surveyRef.current);
-        await navigator.clipboard.writeText(surveyText);
-        showToast('Survey content copied to clipboard!', 'success');
-    } catch (err) {
-        console.error('Failed to copy survey text: ', err);
-        showToast('Failed to copy survey. See console for details.', 'error');
-    }
-  }, [showToast]);
-
-  const handleSaveSurvey = useCallback(async () => {
-    try {
-      const surveyStateString = JSON.stringify(surveyRef.current);
-      window.localStorage.setItem(LOCAL_STORAGE_KEY, surveyStateString);
-      showToast('Survey saved successfully!', 'success');
-    } catch (err) {
-      console.error('Failed to save survey state: ', err);
-      showToast('Failed to save survey. See console for details.', 'error');
-    }
-  }, [showToast]);
-
-  const handleExportCsv = useCallback(() => {
-    try {
-        const csvContent = generateSurveyCsv(surveyRef.current);
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        if (link.download !== undefined) {
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            const fileName = `${surveyRef.current.title.replace(/\s+/g, '_')}_export.csv`;
-            link.setAttribute("download", fileName);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-        showToast('Survey exported as CSV!', 'success');
-    } catch (err) {
-        console.error('Failed to export survey as CSV: ', err);
-        showToast('Failed to export survey. See console for details.', 'error');
-    }
-  }, [showToast]);
-
-  const handleImportSurvey = useCallback((csvContent: string, fileName: string) => {
-    const importedSurvey = parseSurveyCsv(csvContent, fileName);
-    if (importedSurvey) {
-      dispatch({ type: SurveyActionType.REPLACE_SURVEY, payload: importedSurvey });
-      showToast('Survey imported successfully!', 'success');
-    } else {
-      showToast('Failed to parse the imported survey file. Please check the format.', 'error');
-    }
-  }, [showToast]);
-
-  const handleToggleActivateSurvey = useCallback(() => {
-    setSurveyStatus(prev => {
-        const newStatus = prev === 'active' ? 'draft' : 'active';
-        if (newStatus === 'active') {
-            setPublishedSurvey(survey); // "Publish" the current state
-            setIsDirty(false); // It's clean right after publishing
-        } else {
-            setPublishedSurvey(null); // No published version when in draft
-            setIsDirty(false);
-        }
-        return newStatus;
-    });
-  }, [survey]);
-
-  const handleUpdateLiveSurvey = useCallback(() => {
-      setPublishedSurvey(survey);
-      setIsDirty(false);
-      showToast('Live survey updated successfully!', 'success');
-  }, [survey, showToast]);
-
-  // Deselect single question when bulk selecting
-  useEffect(() => {
-    if (checkedQuestions.size >= 2 && selectedQuestion) {
-      handleSelectQuestion(null);
-    }
-    if (checkedQuestions.size >= 2 && selectedBlock) {
-      handleSelectBlock(null);
-    }
-  }, [checkedQuestions.size, selectedQuestion, selectedBlock, handleSelectQuestion, handleSelectBlock]);
-
-  // Memoize selected question objects for performance
-  const selectedQuestionObjects = useMemo(() => {
-    if (checkedQuestions.size === 0) return [];
-    const allQuestions = survey.blocks.flatMap(b => b.questions);
-    return allQuestions.filter(q => checkedQuestions.has(q.id));
-  }, [checkedQuestions, survey.blocks]);
-
-  // Show "Make Optional" if at least one selected question is required
-  const showUnforceResponse = useMemo(() => {
-    return selectedQuestionObjects.some(q => q.forceResponse === true);
-  }, [selectedQuestionObjects]);
-
-  // Show "Force Response" if at least one selected question is optional
-  const showForceResponse = useMemo(() => {
-    return selectedQuestionObjects.some(q => !q.forceResponse);
-  }, [selectedQuestionObjects]);
-
-  const mainContent = useMemo(() => {
-    switch (activeMainTab) {
-      case 'Build':
+    if (isPreviewMode) {
         return (
-          <>
-            {isBuildPanelOpen && (
-              <BuildPanel
-                survey={displaySurvey}
-                logicIssues={logicIssues}
-                onClose={() => setIsBuildPanelOpen(false)}
-                onSelectQuestion={handleSelectQuestion}
-                selectedQuestion={selectedQuestion}
-                selectedBlock={selectedBlock}
-                onSelectBlock={handleSelectBlock}
-                checkedQuestions={checkedQuestions}
-                collapsedBlocks={collapsedBlocks}
-                toolboxItems={toolboxItems}
-                onReorderToolbox={handleReorderToolbox}
-                onReorderQuestion={handleReorderQuestion}
-                onReorderBlock={handleReorderBlock}
-                onMoveBlockUp={handleMoveBlockUp}
-                onMoveBlockDown={handleMoveBlockDown}
-                onAddBlock={handleAddBlock}
-                onCopyBlock={handleCopyBlock}
-                onAddQuestionToBlock={handleAddQuestionToBlock}
-                onExpandAllBlocks={handleExpandAllBlocks}
-                onCollapseAllBlocks={handleCollapseAllBlocks}
-                onDeleteBlock={handleDeleteBlock}
-                onDeleteQuestion={handleDeleteQuestion}
-                onCopyQuestion={handleCopyQuestion}
-                onMoveQuestionToNewBlock={handleMoveQuestionToNewBlock}
-                onMoveQuestionToExistingBlock={handleMoveQuestionToExistingBlock}
-                onAddPageBreakAfterQuestion={handleAddPageBreakAfterQuestion}
-                onExpandBlock={handleExpandBlock}
-                onCollapseBlock={handleCollapseBlock}
-                onSelectAllInBlock={handleSelectAllInBlock}
-                onUnselectAllInBlock={handleUnselectAllInBlock}
-                onUpdateQuestion={handleUpdateQuestion}
-              />
-            )}
-            
-            <div className="relative flex-1 flex flex-col min-w-0">
-              <div ref={canvasContainerRef} className={`relative flex-1 overflow-y-auto pt-16 px-4 pb-4 transition-all duration-300 ${isAnyRightPanelOpen ? 'pr-0' : ''}`}>
-                <SurveyCanvas 
-                  survey={displaySurvey} 
-                  selectedQuestion={selectedQuestion}
-                  selectedBlock={selectedBlock}
-                  checkedQuestions={checkedQuestions}
-                  logicIssues={logicIssues}
-                  onSelectQuestion={handleSelectQuestion}
-                  onSelectBlock={handleSelectBlock}
-                  onUpdateQuestion={handleUpdateQuestion}
-                  onUpdateBlock={handleUpdateBlock}
-                  onDeleteQuestion={handleDeleteQuestion}
-                  onCopyQuestion={handleCopyQuestion}
-                  onMoveQuestionToNewBlock={handleMoveQuestionToNewBlock}
-                  onMoveQuestionToExistingBlock={handleMoveQuestionToExistingBlock}
-                  onDeleteBlock={handleDeleteBlock}
-                  onReorderQuestion={handleReorderQuestion}
-                  onReorderBlock={handleReorderBlock}
-                  onAddBlockFromToolbox={handleAddBlockFromToolbox}
-                  onAddQuestion={handleAddQuestion}
-                  onAddBlock={handleAddBlock}
-                  onAddQuestionToBlock={handleAddQuestionToBlock}
-                  onToggleQuestionCheck={handleToggleQuestionCheck}
-                  onSelectAllInBlock={handleSelectAllInBlock}
-                  onUnselectAllInBlock={handleUnselectAllInBlock}
-                  toolboxItems={toolboxItems}
-                  collapsedBlocks={collapsedBlocks}
-                  onToggleBlockCollapse={handleToggleBlockCollapse}
-                  onCopyBlock={handleCopyBlock}
-                  onExpandAllBlocks={handleExpandAllBlocks}
-                  onCollapseAllBlocks={handleCollapseAllBlocks}
-                  onExpandBlock={handleExpandBlock}
-                  onCollapseBlock={handleCollapseBlock}
-                  onAddChoice={handleAddChoice}
-                  onAddPageBreakAfterQuestion={handleAddPageBreakAfterQuestion}
-                  onUpdateBlockTitle={handleUpdateBlockTitle}
-                  onUpdateSurveyTitle={handleUpdateSurveyTitle}
-                  onAddFromLibrary={handleAddToLibrary}
-                />
-              </div>
-              {!isBuildPanelOpen && (
-                <button
-                  onClick={() => setIsBuildPanelOpen(true)}
-                  className="absolute top-4 left-0 z-10 p-2 rounded-r-md text-on-surface-variant hover:bg-surface-container-high"
-                  aria-label="Open build panel"
-                >
-                  <PanelRightIcon className="text-xl" />
-                </button>
-              )}
-              <CanvasTabs 
-                  variant="floating"
-                  activeTab={activeCanvasTab}
-                  onTabChange={setActiveCanvasTab}
-              />
-            </div>
-          </>
-        );
-      case 'Flow':
-        return (
-          <>
-            <DiagramCanvas survey={survey} selectedQuestion={selectedQuestion} onSelectQuestion={handleSelectQuestion} onUpdateQuestion={handleUpdateQuestion} activeMainTab={activeMainTab} />
-            <CanvasTabs 
-              variant="floating"
-              activeTab={activeCanvasTab}
-              onTabChange={setActiveCanvasTab}
+            <SurveyPreview
+                survey={survey}
+                onClose={() => setIsPreviewMode(false)}
             />
-          </>
-        );
-      default:
-        return (
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-2xl text-on-surface-variant">{activeMainTab} page is not implemented yet.</p>
-          </div>
         );
     }
-  }, [
-    activeMainTab, isBuildPanelOpen, survey, displaySurvey, selectedQuestion, selectedBlock, checkedQuestions, collapsedBlocks, toolboxItems, logicIssues, isAnyRightPanelOpen,
-    handleSelectQuestion, handleSelectBlock, handleReorderToolbox, handleReorderQuestion, handleReorderBlock, handleAddBlock,
-    handleCopyBlock, handleAddQuestionToBlock, handleExpandAllBlocks, handleCollapseAllBlocks, handleDeleteBlock,
-    handleDeleteQuestion, handleCopyQuestion, handleAddPageBreakAfterQuestion, handleExpandBlock, handleCollapseBlock,
-    handleSelectAllInBlock, handleUnselectAllInBlock, handleUpdateQuestion, handleUpdateBlock, handleAddBlockFromToolbox, handleAddQuestion,
-    handleToggleQuestionCheck, handleToggleBlockCollapse, handleAddChoice, handleUpdateBlockTitle, handleUpdateSurveyTitle,
-    handleAddToLibrary, activeCanvasTab, handleMoveQuestionToNewBlock, handleMoveQuestionToExistingBlock, handleMoveBlockUp, handleMoveBlockDown
-  ]);
-  
-  const isPanelExpanded = isRightSidebarExpanded && (!!selectedQuestion || !!selectedBlock);
 
-  return (
-    <div className={`flex flex-col h-screen bg-surface text-on-surface ${isDiagramView ? 'dark' : ''}`}>
-      <Header 
-        surveyName={survey.title} 
-        isGeminiPanelOpen={isGeminiPanelOpen} 
-        onToggleGeminiPanel={handleToggleGeminiPanel} 
-        onUpdateSurveyName={handleUpdateSurveyTitle}
-        surveyStatus={surveyStatus}
-        isDirty={isDirty}
-        onToggleActivateSurvey={handleToggleActivateSurvey}
-        onUpdateLiveSurvey={handleUpdateLiveSurvey}
-      />
-      <SubHeader onTogglePreview={handleTogglePreviewMode} onCopySurvey={handleCopySurvey} onExportCsv={handleExportCsv} onImportSurvey={() => setIsImportModalOpen(true)} />
-      <div className="flex flex-1 overflow-hidden">
-        <LeftSidebar activeTab={activeMainTab} onTabSelect={handleTabSelect} />
-        <main className={`flex flex-1 bg-surface overflow-hidden ${isDiagramView ? 'relative' : ''}`}>
-          {mainContent}
-          <div
-            ref={rightPanelRef}
-            className={
-              isDiagramView
-                ? `absolute top-0 right-0 h-full shadow-lg transform transition-transform duration-300 ease-in-out
-                  ${isAnyRightPanelOpen ? 'translate-x-0' : 'translate-x-full'}
-                  ${isPanelExpanded ? 'w-1/2' : 'w-96'}`
-                : `flex-shrink-0 transition-all duration-300 ease-in-out ${isPanelExpanded ? 'w-[640px]' : 'w-96'}`
-            }
-          >
-            {isGeminiPanelOpen ? (
-                <GeminiPanel 
-                  onClose={handleToggleGeminiPanel} 
-                  onAddQuestion={handleAddQuestionFromAI}
-                  onUpdateQuestion={handleUpdateQuestionFromAI}
-                  onRepositionQuestion={handleRepositionQuestion}
-                  onDeleteQuestion={handleDeleteQuestionFromAI}
-                  helpTopic={geminiHelpTopic}
-                  selectedQuestion={selectedQuestion}
-                  survey={survey}
-                  logicIssues={logicIssues}
+    return (
+        <div className="flex flex-col h-screen bg-surface text-on-surface overflow-hidden font-sans">
+            <Header
+                surveyName={survey.title}
+                isGeminiPanelOpen={isGeminiPanelOpen}
+                onToggleGeminiPanel={handleToggleGeminiPanel}
+                onUpdateSurveyName={actions.handleUpdateSurveyTitle}
+                surveyStatus={surveyStatus}
+                isDirty={isDirty}
+                onToggleActivateSurvey={() => setSurveyStatus(prev => prev === 'active' ? 'stopped' : 'active')}
+                onUpdateLiveSurvey={() => {
+                    setPublishedSurvey(JSON.parse(JSON.stringify(survey)));
+                    showToast("Survey updated successfully!", 'success');
+                }}
+            />
+            <SubHeader
+                onTogglePreview={() => setIsPreviewMode(true)}
+                onCopySurvey={() => {
+                    const json = JSON.stringify(survey, null, 2);
+                    navigator.clipboard.writeText(json);
+                    showToast("Survey JSON copied to clipboard", 'success');
+                }}
+                onExportCsv={() => {
+                    const csvContent = generateSurveyCsv(survey);
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    if (link.download !== undefined) {
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute('href', url);
+                        link.setAttribute('download', `${survey.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_export.csv`);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        showToast("Survey exported to CSV successfully!", 'success');
+                    }
+                }}
+                onImportSurvey={() => setIsImportModalOpen(true)}
+            />
+
+            <div className="flex flex-1 overflow-hidden relative">
+                <LeftSidebar
+                    activeTab={activeMainTab}
+                    onTabSelect={handleTabSelect}
                 />
-            ) : showBulkEditPanel ? (
-              <BulkEditPanel
-                checkedQuestionCount={checkedQuestions.size}
-                onClose={handleClearSelection}
-                onDuplicate={handleBulkDuplicate}
-                onAddToLibrary={handleAddToLibrary}
-                onMoveQuestions={() => alert('Move Questions functionality not implemented.')}
-                onMoveToNewBlock={handleBulkMoveToNewBlock}
-                onHideQuestion={handleBulkHideQuestion}
-                onHideBackButton={handleBulkHideBackButton}
-                onForceResponse={handleBulkForceResponse}
-                showForceResponse={showForceResponse}
-                onUnforceResponse={handleBulkUnforceResponse}
-                showUnforceResponse={showUnforceResponse}
-                onDelete={handleBulkDelete}
-              />
-            ) : selectedQuestion ? (
-                <RightSidebar 
-                  question={selectedQuestion} 
-                  survey={survey}
-                  logicIssues={logicIssues.filter(issue => issue.questionId === selectedQuestion.id)}
-                  focusedLogicSource={focusedLogicSource}
-                  onClose={() => handleSelectQuestion(null)} 
-                  activeTab={activeRightSidebarTab}
-                  onTabChange={setActiveRightSidebarTab}
-                  onUpdateQuestion={handleUpdateQuestion}
-                  onAddChoice={handleAddChoice}
-                  onDeleteChoice={handleDeleteChoice}
-                  isExpanded={isRightSidebarExpanded}
-                  onToggleExpand={handleToggleRightSidebarExpand}
-                  onExpandSidebar={handleExpandRightSidebar}
-                  onSelectBlock={handleSelectBlock}
-                  toolboxItems={toolboxItems}
-                  onRequestGeminiHelp={handleRequestGeminiHelp}
-                />
-            ) : selectedBlock ? (
-                <BlockSidebar
-                    block={selectedBlock}
-                    survey={survey}
-                    onClose={() => handleSelectBlock(null)}
-                    onUpdateBlock={handleUpdateBlock}
-                    isExpanded={isRightSidebarExpanded}
-                    onToggleExpand={handleToggleRightSidebarExpand}
-                    onExpandSidebar={handleExpandRightSidebar}
-                    focusTarget={focusTarget}
-                    onFocusHandled={handleFocusHandled}
-                />
-            ) : (activeMainTab === 'Flow' && !isAnyRightPanelOpen) ? (
-                <PathAnalysisPanel survey={survey} />
-            ) : (activeMainTab === 'Build' && (
-                <div className="pt-4 pr-4 pb-8 pl-4">
-                    <SurveyStructureWidget 
-                        survey={survey} 
-                        paths={paths}
-                        selectedPathId={selectedPathId}
-                        onPathChange={setSelectedPathId}
-                        onBackToTop={handleBackToTop}
-                        onToggleCollapseAll={handleToggleCollapseAll}
-                        allBlocksCollapsed={allBlocksCollapsed}
-                        onPagingModeChange={handlePagingModeChange}
-                        onGlobalAutoAdvanceChange={handleGlobalAutoAdvanceChange}
+
+                {activeMainTab === 'Build' && isBuildPanelOpen && (
+                    <BuildPanel
+                        onClose={() => setIsBuildPanelOpen(false)}
+                        survey={survey}
+                        onSelectQuestion={handleSelectQuestion}
+                        selectedQuestion={selectedQuestion}
+                        selectedBlock={selectedBlock}
+                        onSelectBlock={handleSelectBlock}
+                        checkedQuestions={checkedQuestions}
+                        collapsedBlocks={collapsedBlocks}
+                        toolboxItems={toolboxItems}
+                        logicIssues={logicIssues}
+                        onReorderToolbox={actions.handleReorderToolbox}
+                        onReorderQuestion={actions.handleReorderQuestion}
+                        onReorderBlock={actions.handleReorderBlock}
+                        onMoveBlockUp={actions.handleMoveBlockUp}
+                        onMoveBlockDown={actions.handleMoveBlockDown}
+                        onAddBlock={actions.handleAddBlock}
+                        onCopyBlock={actions.handleCopyBlock}
+                        onAddQuestionToBlock={actions.handleAddQuestionToBlock}
+                        onExpandAllBlocks={handleExpandAllBlocks}
+                        onCollapseAllBlocks={handleCollapseAllBlocks}
+                        onExpandBlock={handleExpandBlock}
+                        onCollapseBlock={handleCollapseBlock}
+                        onDeleteBlock={actions.handleDeleteBlock}
+                        onDeleteQuestion={actions.handleDeleteQuestion}
+                        onCopyQuestion={actions.handleCopyQuestion}
+                        onMoveQuestionToNewBlock={actions.handleMoveQuestionToNewBlock}
+                        onMoveQuestionToExistingBlock={actions.handleMoveQuestionToExistingBlock}
+                        onAddPageBreakAfterQuestion={actions.handleAddPageBreakAfterQuestion}
+                        onSelectAllInBlock={actions.handleSelectAllInBlock}
+                        onUnselectAllInBlock={actions.handleUnselectAllInBlock}
+                        onUpdateQuestion={actions.handleUpdateQuestion}
                     />
-                </div>
-            ))}
-          </div>
-        </main>
-      </div>
-      {isPreviewMode && (
-        <SurveyPreview survey={survey} onClose={handleTogglePreviewMode} />
-      )}
-      {isImportModalOpen && (
-        <ImportSurveyModal
-          isOpen={isImportModalOpen}
-          onClose={() => setIsImportModalOpen(false)}
-          onImport={handleImportSurvey}
-        />
-      )}
-      <div className="fixed bottom-8 right-8 z-50 flex flex-col-reverse items-end gap-2">
-        {toasts.map((toast) => (
-            <Toast key={toast.id} message={toast.message} type={toast.type} onDismiss={() => dismissToast(toast.id)} onUndo={toast.onUndo} />
-        ))}
-      </div>
-    </div>
-  );
+                )}
+
+                <main className="flex-1 flex flex-col relative overflow-hidden transition-all duration-300">
+                    {activeMainTab === 'Build' && !isBuildPanelOpen && (
+                        <div className="absolute top-4 left-4 z-10">
+                            <button
+                                onClick={() => setIsBuildPanelOpen(true)}
+                                className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high bg-surface-container border border-outline-variant shadow-sm"
+                                aria-label="Expand build panel"
+                            >
+                                <PanelRightIcon className="text-xl" />
+                            </button>
+                        </div>
+                    )}
+
+                    <div
+                        ref={canvasContainerRef}
+                        className="flex-1 overflow-y-auto overflow-x-hidden bg-surface relative scroll-smooth"
+                    >
+                        {isDiagramView ? (
+                            <div className="h-full w-full">
+                                <DiagramCanvas
+                                    survey={survey}
+                                    selectedQuestion={selectedQuestion}
+                                    onSelectQuestion={handleSelectQuestion}
+                                    onUpdateQuestion={actions.handleUpdateQuestion}
+                                    activeMainTab={activeMainTab}
+                                />
+                                <PathAnalysisPanel
+                                    survey={survey}
+                                />
+                            </div>
+                        ) : (
+                            <div className="p-8 pb-32 min-h-full">
+                                <SurveyCanvas
+                                    survey={displaySurvey}
+                                    selectedQuestion={selectedQuestion}
+                                    selectedBlock={selectedBlock}
+                                    checkedQuestions={checkedQuestions}
+                                    logicIssues={logicIssues}
+                                    onSelectQuestion={handleSelectQuestion}
+                                    onSelectBlock={handleSelectBlock}
+                                    onUpdateQuestion={actions.handleUpdateQuestion}
+                                    onUpdateBlock={actions.handleUpdateBlock}
+                                    onDeleteQuestion={actions.handleDeleteQuestion}
+                                    onCopyQuestion={actions.handleCopyQuestion}
+                                    onMoveQuestionToNewBlock={actions.handleMoveQuestionToNewBlock}
+                                    onMoveQuestionToExistingBlock={actions.handleMoveQuestionToExistingBlock}
+                                    onDeleteBlock={actions.handleDeleteBlock}
+                                    onReorderQuestion={actions.handleReorderQuestion}
+                                    onReorderBlock={actions.handleReorderBlock}
+                                    onAddBlockFromToolbox={actions.handleAddBlockFromToolbox}
+                                    onAddQuestion={actions.handleAddQuestion}
+                                    onAddBlock={actions.handleAddBlock}
+                                    onAddQuestionToBlock={actions.handleAddQuestionToBlock}
+                                    onToggleQuestionCheck={actions.handleToggleQuestionCheck}
+                                    onSelectAllInBlock={actions.handleSelectAllInBlock}
+                                    onUnselectAllInBlock={actions.handleUnselectAllInBlock}
+                                    toolboxItems={toolboxItems}
+                                    collapsedBlocks={collapsedBlocks}
+                                    onToggleBlockCollapse={handleToggleBlockCollapse}
+                                    onCopyBlock={actions.handleCopyBlock}
+                                    onExpandAllBlocks={handleExpandAllBlocks}
+                                    onCollapseAllBlocks={handleCollapseAllBlocks}
+                                    onExpandBlock={handleExpandBlock}
+                                    onCollapseBlock={handleCollapseBlock}
+                                    onAddChoice={actions.handleAddChoice}
+                                    onAddPageBreakAfterQuestion={actions.handleAddPageBreakAfterQuestion}
+                                    onUpdateBlockTitle={actions.handleUpdateBlockTitle}
+                                    onUpdateSurveyTitle={actions.handleUpdateSurveyTitle}
+                                    onAddFromLibrary={() => { }}
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Floating Action Buttons */}
+                    <div className="absolute bottom-6 right-6 flex flex-col gap-3">
+                        {/* Add buttons here if needed */}
+                    </div>
+                </main>
+
+                {/* Right Sidebar */}
+                {(isAnyRightPanelOpen || activeMainTab === 'Build') && (
+                    <div
+                        ref={rightPanelRef}
+                        className={`bg-surface border-l border-outline-variant shadow-xl transition-all duration-300 flex flex-col z-20`}
+                        style={{ width: isRightSidebarExpanded ? '800px' : '400px' }}
+                    >
+                        {isGeminiPanelOpen ? (
+                            <GeminiPanel
+                                onClose={() => setIsGeminiPanelOpen(false)}
+                                survey={survey}
+                                onAddQuestion={actions.handleAddQuestionFromAI}
+                                onUpdateQuestion={actions.handleUpdateQuestionFromAI}
+                                onRepositionQuestion={actions.handleRepositionQuestion}
+                                onDeleteQuestion={actions.handleDeleteQuestionFromAI}
+                                helpTopic={geminiHelpTopic}
+                                selectedQuestion={selectedQuestion}
+                                logicIssues={logicIssues}
+                            />
+                        ) : showBulkEditPanel ? (
+                            <BulkEditPanel
+                                checkedQuestionCount={checkedQuestions.size}
+                                onClose={() => setCheckedQuestions(new Set())}
+                                onDuplicate={actions.handleBulkDuplicate}
+                                onAddToLibrary={() => { }}
+                                onMoveQuestions={() => { }}
+                                onMoveToNewBlock={actions.handleBulkMoveToNewBlock}
+                                onHideQuestion={actions.handleBulkHideQuestion}
+                                onHideBackButton={actions.handleBulkHideBackButton}
+                                onForceResponse={actions.handleBulkForceResponse}
+                                showForceResponse={true}
+                                onUnforceResponse={() => actions.handleBulkForceResponse()}
+                                showUnforceResponse={true}
+                                onDelete={actions.handleBulkDelete}
+                            />
+                        ) : selectedBlock ? (
+                            <BlockSidebar
+                                block={selectedBlock}
+                                survey={survey}
+                                onClose={() => handleSelectBlock(null)}
+                                onUpdateBlock={actions.handleUpdateBlock}
+                                isExpanded={isRightSidebarExpanded}
+                                onToggleExpand={handleToggleRightSidebarExpand}
+                                onExpandSidebar={handleExpandRightSidebar}
+                                focusTarget={focusTarget}
+                                onFocusHandled={handleFocusHandled}
+                            />
+                        ) : selectedQuestion ? (
+                            <RightSidebar
+                                question={selectedQuestion}
+                                survey={survey}
+                                logicIssues={logicIssues}
+                                activeTab={activeRightSidebarTab}
+                                onTabChange={setActiveRightSidebarTab}
+                                focusedLogicSource={focusedLogicSource}
+                                onUpdateQuestion={actions.handleUpdateQuestion}
+                                onAddChoice={actions.handleAddChoice}
+                                onDeleteChoice={actions.handleDeleteChoice}
+                                isExpanded={isRightSidebarExpanded}
+                                onToggleExpand={handleToggleRightSidebarExpand}
+                                onExpandSidebar={handleExpandRightSidebar}
+                                onSelectBlock={handleSelectBlock}
+                                onClose={() => handleSelectQuestion(null)}
+                                toolboxItems={toolboxItems}
+                                onRequestGeminiHelp={handleRequestGeminiHelp}
+                            />
+                        ) : (
+                            <div className="p-4">
+                                <SurveyStructureWidget
+                                    survey={survey}
+                                    paths={paths}
+                                    selectedPathId={selectedPathId}
+                                    onPathChange={setSelectedPathId}
+                                    onBackToTop={handleBackToTop}
+                                    onToggleCollapseAll={() => {
+                                        if (allBlocksCollapsed) {
+                                            handleExpandAllBlocks();
+                                        } else {
+                                            handleCollapseAllBlocks();
+                                        }
+                                    }}
+                                    allBlocksCollapsed={allBlocksCollapsed}
+                                    onPagingModeChange={(mode) => dispatchAndRecord({ type: SurveyActionType.SET_PAGING_MODE, payload: { pagingMode: mode } })}
+                                    onGlobalAutoAdvanceChange={(enabled) => dispatchAndRecord({ type: SurveyActionType.SET_GLOBAL_AUTOADVANCE, payload: { enabled: enabled } })}
+                                />
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            <ImportSurveyModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onImport={(importedSurvey) => {
+                    dispatch({ type: SurveyActionType.RESTORE_STATE, payload: importedSurvey });
+                    setIsImportModalOpen(false);
+                    showToast("Survey imported successfully!", 'success');
+                }}
+            />
+
+            {/* Toast Notifications */}
+            <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-2 pointer-events-none">
+                {toasts.map(toast => (
+                    <div key={toast.id} className="pointer-events-auto">
+                        <Toast
+                            message={toast.message}
+                            type={toast.type}
+                            onDismiss={() => dismissToast(toast.id)}
+                            onUndo={toast.onUndo}
+                        />
+                    </div>
+                ))}
+            </div>
+        </div >
+    );
 };
 
 export default App;

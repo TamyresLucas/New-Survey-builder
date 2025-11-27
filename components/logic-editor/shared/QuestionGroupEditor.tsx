@@ -35,7 +35,7 @@ export const QuestionGroupEditor: React.FC<QuestionGroupEditorProps> = ({ questi
         if (!inputValue) {
             return existingGroups;
         }
-        return existingGroups.filter(group => 
+        return existingGroups.filter(group =>
             group.toLowerCase().includes(inputValue.toLowerCase())
         );
     }, [existingGroups, inputValue]);
@@ -50,7 +50,7 @@ export const QuestionGroupEditor: React.FC<QuestionGroupEditorProps> = ({ questi
             if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
                 const trimmedValue = inputValue.trim();
                 if (trimmedValue !== (question.groupName || '')) {
-                     onUpdate({ groupName: trimmedValue || undefined });
+                    onUpdate({ groupName: trimmedValue || undefined });
                 }
                 setIsDropdownOpen(false);
             }
@@ -77,7 +77,7 @@ export const QuestionGroupEditor: React.FC<QuestionGroupEditorProps> = ({ questi
     const handleInputFocus = () => {
         setIsDropdownOpen(true);
     };
-    
+
     const confirmNewGroup = () => {
         const trimmedValue = inputValue.trim();
         if (trimmedValue) {
@@ -96,7 +96,7 @@ export const QuestionGroupEditor: React.FC<QuestionGroupEditorProps> = ({ questi
             inputRef.current?.blur();
         }
     };
-    
+
     const handleIconClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (isCreatingNew) {
@@ -123,7 +123,7 @@ export const QuestionGroupEditor: React.FC<QuestionGroupEditorProps> = ({ questi
                     onChange={handleInputChange}
                     onFocus={handleInputFocus}
                     onKeyDown={handleKeyDown}
-                    className="w-full bg-surface border border-outline rounded-md p-2 pr-10 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                    className="w-full bg-transparent border border-input-border rounded-md p-2 pr-10 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
                     placeholder="Enter or select a group name..."
                     autoComplete="off"
                 />
@@ -133,9 +133,9 @@ export const QuestionGroupEditor: React.FC<QuestionGroupEditorProps> = ({ questi
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-on-surface-variant hover:bg-surface-container-high"
                     aria-label={isCreatingNew ? "Confirm new group" : "Toggle dropdown"}
                 >
-                    {isCreatingNew ? <CheckmarkIcon className="text-xl text-primary" /> : <ChevronDownIcon className="text-xl" />}
+                    {isCreatingNew ? <CheckmarkIcon className="text-xl text-primary" /> : <ChevronDownIcon className="text-lg" />}
                 </button>
-                
+
                 {isDropdownOpen && (
                     <div className="absolute top-full left-0 right-0 mt-1 w-full max-h-60 overflow-y-auto bg-surface-container border border-outline-variant rounded-md shadow-lg z-20 py-1">
                         <ul>

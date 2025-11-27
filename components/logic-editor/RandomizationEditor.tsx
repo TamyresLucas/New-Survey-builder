@@ -39,7 +39,7 @@ export const RandomizeChoicesEditor: React.FC<{
         </div>
         <label className="relative inline-flex items-center cursor-pointer">
           <input type="checkbox" id="randomize-choices" checked={isRandomized} onChange={handleToggle} className="sr-only peer" />
-          <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+          <div className="w-11 h-6 bg-surface-container-high border border-outline-variant peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
         </label>
       </div>
       {isRandomized && (
@@ -52,7 +52,7 @@ export const RandomizeChoicesEditor: React.FC<{
               id="randomization-method"
               value={answerBehavior.randomizationMethod || 'permutation'}
               onChange={handleMethodChange}
-              className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+              className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
             >
               <option value="permutation">Permutation</option>
               <option value="random_reverse">Random Reverse</option>
@@ -61,7 +61,7 @@ export const RandomizeChoicesEditor: React.FC<{
               <option value="sort_by_text">Sort by Text</option>
               <option value="synchronized">Synchronized</option>
             </select>
-            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-lg" />
           </div>
         </div>
       )}

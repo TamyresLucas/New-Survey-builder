@@ -17,10 +17,10 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
     const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof BranchingLogicCondition | 'skipTo'>>>(new Map());
     const [isPasting, setIsPasting] = useState(false);
 
-    const questionsForConditions = useMemo(() => 
+    const questionsForConditions = useMemo(() =>
         survey.blocks
             .flatMap(b => b.id === block.id ? [] : b.questions)
-            .filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak), 
+            .filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak),
         [survey, block.id]
     );
 
@@ -31,51 +31,51 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
     const handleUpdate = (updates: Partial<Block>) => {
         onUpdateBlock(block.id, updates);
     };
-    
+
     const handlePasteLogic = (text: string): { success: boolean; error?: string } => {
         const lines = text.split('\n').filter(line => line.trim() !== '');
         const newBranches: BranchingLogicBranch[] = [];
         const validOperators = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than', 'is_empty', 'is_not_empty'];
-    
+
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
             const lineNum = i + 1;
-    
+
             const parts = line.split(/ THEN SKIP TO | -> /i);
             if (parts.length !== 2) {
                 return { success: false, error: `Line ${lineNum}: Invalid syntax. Use "IF <condition> THEN SKIP TO <destination>" or "<condition> -> <destination>".` };
             }
-    
+
             let conditionStr = parts[0].trim();
             const destinationStr = parts[1].trim();
-    
+
             if (conditionStr.toLowerCase().startsWith('if ')) {
                 conditionStr = conditionStr.substring(3).trim();
             }
-    
+
             const condParts = conditionStr.split(/\s+/);
             const [qidCandidate, operator, ...valueParts] = condParts;
             const value = valueParts.join(' ');
-            
+
             if (!qidCandidate || !operator) { return { success: false, error: `Line ${lineNum}: Invalid condition syntax.` }; }
-    
+
             const qid = qidCandidate.toUpperCase();
             if (!questionsForConditions.some(q => q.qid === qid)) {
                 return { success: false, error: `Line ${lineNum}: Question "${qid}" is not a valid question for logic.` };
             }
-    
+
             const operatorCleaned = operator.toLowerCase();
             if (!validOperators.includes(operatorCleaned)) { return { success: false, error: `Line ${lineNum}: Operator "${operator}" is not recognized.` }; }
-            
+
             const requiresValue = !['is_empty', 'is_not_empty'].includes(operatorCleaned);
             if (requiresValue && !value.trim()) { return { success: false, error: `Line ${lineNum}: Missing value for operator "${operator}".` }; }
-    
+
             const condition: BranchingLogicCondition = {
                 id: generateId('cond'), questionId: qid,
                 operator: operatorCleaned as BranchingLogicCondition['operator'],
                 value: value.trim(), isConfirmed: true,
             };
-    
+
             let thenSkipTo = '';
             const destUpper = destinationStr.toUpperCase();
             if (destUpper === 'END') { thenSkipTo = 'end'; }
@@ -84,17 +84,17 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
                 if (block) { thenSkipTo = `block:${block.id}`; }
                 else { return { success: false, error: `Line ${lineNum}: Destination block "${destinationStr}" not found.` }; }
             } else if (destUpper.startsWith('Q')) {
-                 const question = survey.blocks.flatMap(b=>b.questions).find(q => q.qid === destUpper);
-                 if (question) { thenSkipTo = question.id; }
-                 else { return { success: false, error: `Line ${lineNum}: Destination question "${destinationStr}" not found.` }; }
+                const question = survey.blocks.flatMap(b => b.questions).find(q => q.qid === destUpper);
+                if (question) { thenSkipTo = question.id; }
+                else { return { success: false, error: `Line ${lineNum}: Destination question "${destinationStr}" not found.` }; }
             } else { return { success: false, error: `Line ${lineNum}: Invalid destination "${destinationStr}". Use a Block ID (BL2), Question ID (Q5), or "End".` }; }
-    
+
             newBranches.push({
                 id: generateId('branch'), operator: 'AND', conditions: [condition],
                 thenSkipTo, thenSkipToIsConfirmed: true
             });
         }
-    
+
         if (newBranches.length > 0) {
             handleUpdate({
                 branchingLogic: {
@@ -106,7 +106,7 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
             onExpandSidebar();
             return { success: true };
         }
-    
+
         return { success: false, error: "No valid logic found." };
     };
 
@@ -115,7 +115,7 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
             <div>
                 <p className="text-xs text-on-surface-variant mb-3">Create rules to skip this entire block based on previous answers.</p>
                 {isPasting ? (
-                     <PasteInlineForm
+                    <PasteInlineForm
                         onSave={handlePasteLogic}
                         onCancel={() => setIsPasting(false)}
                         placeholder={"IF Q1 equals Yes THEN SKIP TO BL4\nQ2 is_empty -> End"}
@@ -133,7 +133,7 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
                                             conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
                                             thenSkipTo: '', thenSkipToIsConfirmed: false,
                                         }],
-                                        otherwiseSkipTo: '', 
+                                        otherwiseSkipTo: '',
                                         otherwiseIsConfirmed: true,
                                     }
                                 });
@@ -149,7 +149,7 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
             </div>
         );
     }
-    
+
     const handleUpdateBranch = (branchId: string, updates: Partial<BranchingLogicBranch>) => {
         const newBranches = branchingLogic.branches.map(b => b.id === branchId ? { ...b, ...updates } : b);
         handleUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
@@ -175,7 +175,7 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
         const newConditions = branch.conditions.filter(c => c.id !== conditionId);
         handleUpdateBranch(branchId, { conditions: newConditions });
     };
-    
+
     const handleConfirmBranch = (branchId: string) => {
         const branch = branchingLogic.branches.find(b => b.id === branchId);
         if (!branch) return;
@@ -207,7 +207,7 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
             handleUpdateBranch(branchId, { conditions: newConditions, thenSkipToIsConfirmed: true });
         }
     };
-    
+
     const handleAddBranch = () => {
         const newBranch: BranchingLogicBranch = {
             id: generateId('branch'), operator: 'AND',
@@ -225,7 +225,7 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
             handleUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
         }
     };
-    
+
     return (
         <div>
             <div className="flex items-center justify-between gap-2 mb-4">
@@ -242,14 +242,14 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
                                 <span className="font-bold text-primary">IF</span>
                                 <div className="pl-4">
                                     {branch.conditions.length > 1 && (
-                                        <select value={branch.operator} onChange={e => handleUpdateBranch(branch.id, { operator: e.target.value as 'AND' | 'OR' })} className="text-xs font-semibold p-1 rounded-md bg-surface-container-high border border-outline mb-2">
+                                        <select value={branch.operator} onChange={e => handleUpdateBranch(branch.id, { operator: e.target.value as 'AND' | 'OR' })} className="text-xs font-semibold p-1 rounded-md bg-transparent border border-input-border mb-2">
                                             <option value="AND">All conditions are met (AND)</option>
                                             <option value="OR">Any condition is met (OR)</option>
                                         </select>
                                     )}
                                 </div>
                             </div>
-                            <button onClick={() => handleRemoveBranch(branch.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full"><XIcon className="text-lg"/></button>
+                            <button onClick={() => handleRemoveBranch(branch.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full"><XIcon className="text-lg" /></button>
                         </div>
                         <div className="space-y-2 mb-3">
                             {branch.conditions.map((condition, index) => (

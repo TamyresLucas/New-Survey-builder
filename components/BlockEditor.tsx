@@ -5,15 +5,15 @@ import { XIcon, ChevronDownIcon, PlusIcon, ExpandIcon, CollapseIcon, CheckmarkIc
 import { generateId, truncate, parseChoice, CHOICE_BASED_QUESTION_TYPES, isBranchingLogicExhaustive } from '../utils';
 
 interface BlockEditorProps {
-  block: Block;
-  survey: Survey;
-  onClose: () => void;
-  onUpdateBlock: (blockId: string, updates: Partial<Block>) => void;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
-  onExpandSidebar: () => void;
-  focusTarget: { type: string; id: string; tab: string; element: string } | null;
-  onFocusHandled: () => void;
+    block: Block;
+    survey: Survey;
+    onClose: () => void;
+    onUpdateBlock: (blockId: string, updates: Partial<Block>) => void;
+    isExpanded: boolean;
+    onToggleExpand: () => void;
+    onExpandSidebar: () => void;
+    focusTarget: { type: string; id: string; tab: string; element: string } | null;
+    onFocusHandled: () => void;
 }
 
 // ====================================================================================
@@ -21,65 +21,65 @@ interface BlockEditorProps {
 // ====================================================================================
 
 const PasteInlineForm: React.FC<{
-  onSave: (text: string) => { success: boolean; error?: string };
-  onCancel: () => void;
-  placeholder: string;
-  primaryActionLabel: string;
-  disclosureText: string;
+    onSave: (text: string) => { success: boolean; error?: string };
+    onCancel: () => void;
+    placeholder: string;
+    primaryActionLabel: string;
+    disclosureText: string;
 }> = ({ onSave, onCancel, placeholder, primaryActionLabel, disclosureText }) => {
-  const [text, setText] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const [text, setText] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
+    useEffect(() => {
+        textareaRef.current?.focus();
+    }, []);
 
-  const handleSave = () => {
-    if (!text.trim()) {
-      onCancel();
-      return;
-    }
-    const result = onSave(text.trim());
-    if (result.success) {
-      onCancel(); 
-    } else {
-      setError(result.error || 'Invalid syntax.');
-    }
-  };
+    const handleSave = () => {
+        if (!text.trim()) {
+            onCancel();
+            return;
+        }
+        const result = onSave(text.trim());
+        if (result.success) {
+            onCancel();
+        } else {
+            setError(result.error || 'Invalid syntax.');
+        }
+    };
 
-  return (
-    <div className={`p-3 bg-surface-container-high rounded-md border ${error ? 'border-error' : 'border-outline-variant'}`}>
-      <div className="text-xs text-on-surface-variant mb-2 flex items-center gap-1 flex-wrap">
-        <InfoIcon className="text-sm flex-shrink-0" />
-        <span>{disclosureText}</span>
-      </div>
-      <textarea
-        ref={textareaRef}
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value);
-          if (error) setError(null);
-        }}
-        rows={4}
-        className={`w-full bg-surface border rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary font-mono ${error ? 'border-error' : 'border-outline'}`}
-        placeholder={placeholder}
-      />
-      {error && (
-        <p className="text-xs text-error mt-2">{error}</p>
-      )}
-      <div className="mt-2 flex justify-end gap-2">
-        <button onClick={onCancel} className="px-3 py-1.5 text-xs font-semibold text-primary rounded-full hover:bg-primary-container">Cancel</button>
-        <button onClick={handleSave} className="px-4 py-1.5 text-xs font-semibold text-on-primary bg-primary rounded-full hover:opacity-90">{primaryActionLabel}</button>
-      </div>
-    </div>
-  );
+    return (
+        <div className={`p-3 bg-surface-container-high rounded-md border ${error ? 'border-error' : 'border-outline-variant'}`}>
+            <div className="text-xs text-on-surface-variant mb-2 flex items-center gap-1 flex-wrap">
+                <InfoIcon className="text-sm flex-shrink-0" />
+                <span>{disclosureText}</span>
+            </div>
+            <textarea
+                ref={textareaRef}
+                value={text}
+                onChange={(e) => {
+                    setText(e.target.value);
+                    if (error) setError(null);
+                }}
+                rows={4}
+                className={`w-full bg-surface border rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary font-mono ${error ? 'border-error' : 'border-outline'}`}
+                placeholder={placeholder}
+            />
+            {error && (
+                <p className="text-xs text-error mt-2">{error}</p>
+            )}
+            <div className="mt-2 flex justify-end gap-2">
+                <button onClick={onCancel} className="px-3 py-1.5 text-xs font-semibold text-primary rounded-full hover:bg-primary-container">Cancel</button>
+                <button onClick={handleSave} className="px-4 py-1.5 text-xs font-semibold text-on-primary bg-primary rounded-full hover:opacity-90">{primaryActionLabel}</button>
+            </div>
+        </div>
+    );
 };
 
 
 const CopyAndPasteButton: React.FC<{ onClick: () => void; className?: string; disabled?: boolean; }> = ({ onClick, className = 'text-sm', disabled = false }) => (
-    <button 
-        onClick={onClick} 
+    <button
+        onClick={onClick}
         disabled={disabled}
         className={`flex items-center gap-1 ${className} font-medium text-primary hover:underline transition-colors disabled:text-on-surface-variant disabled:no-underline disabled:cursor-not-allowed`}
     >
@@ -125,11 +125,11 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
     const referencedQuestion = useMemo(() => availableQuestions.find(q => q.qid === condition.questionId), [availableQuestions, condition.questionId]);
     const isNumericInput = referencedQuestion?.type === QuestionType.NumericAnswer;
     const isChoiceBasedInput = referencedQuestion && CHOICE_BASED_QUESTION_TYPES.has(referencedQuestion.type);
-    
+
     const valueIsDisabled = !referencedQuestion || ['is_empty', 'is_not_empty'].includes(condition.operator);
-    const questionBorderClass = invalidFields.has('questionId') ? 'border-error' : 'border-outline focus:outline-primary';
-    const operatorBorderClass = invalidFields.has('operator') ? 'border-error' : 'border-outline focus:outline-primary';
-    const valueBorderClass = invalidFields.has('value') ? 'border-error' : 'border-outline focus:outline-primary';
+    const questionBorderClass = invalidFields.has('questionId') ? 'border-error' : 'border-input-border focus:outline-primary';
+    const operatorBorderClass = invalidFields.has('operator') ? 'border-error' : 'border-input-border focus:outline-primary';
+    const valueBorderClass = invalidFields.has('value') ? 'border-error' : 'border-input-border focus:outline-primary';
 
     const handleOperatorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newOperator = e.target.value;
@@ -142,21 +142,21 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
     return (
         <div className="flex items-center gap-2 p-2 bg-surface-container-high rounded-md min-w-max">
             <div className="relative w-48 flex-shrink-0">
-                <select 
-                    value={condition.questionId} 
-                    onChange={(e) => onUpdateCondition('questionId', e.target.value)} 
-                    className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${questionBorderClass}`} 
+                <select
+                    value={condition.questionId}
+                    onChange={(e) => onUpdateCondition('questionId', e.target.value)}
+                    className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${questionBorderClass}`}
                 >
                     <option value="">select question</option>
                     {availableQuestions.map(q => <option key={q.id} value={q.qid}>{q.qid}: {truncate(q.text, 50)}</option>)}
                 </select>
-                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-lg" />
             </div>
             <div className="relative w-40 flex-shrink-0">
-                <select 
-                    value={condition.operator} 
-                    onChange={handleOperatorChange} 
-                    className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`} 
+                <select
+                    value={condition.operator}
+                    onChange={handleOperatorChange}
+                    className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`}
                     disabled={!referencedQuestion}
                 >
                     <option value="">select interaction</option>
@@ -168,15 +168,15 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
                     <option value="is_empty">is empty</option>
                     <option value="is_not_empty">is not empty</option>
                 </select>
-                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-lg" />
             </div>
             <div className="relative flex-1 min-w-[150px]">
                 {isChoiceBasedInput && referencedQuestion?.choices ? (
-                     <div className="relative">
+                    <div className="relative">
                         <select
                             value={condition.value}
                             onChange={(e) => onUpdateCondition('value', e.target.value)}
-                            className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high ${valueBorderClass}`}
+                            className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high ${valueBorderClass}`}
                             disabled={valueIsDisabled}
                         >
                             <option value="">select answer</option>
@@ -184,15 +184,15 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
                                 <option key={choice.id} value={choice.text}>{parseChoice(choice.text).label}</option>
                             ))}
                         </select>
-                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
-                     </div>
+                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-lg" />
+                    </div>
                 ) : (
-                    <input 
-                        type={isNumericInput ? "number" : "text"} 
-                        value={condition.value} 
-                        onChange={(e) => onUpdateCondition('value', e.target.value)} 
+                    <input
+                        type={isNumericInput ? "number" : "text"}
+                        value={condition.value}
+                        onChange={(e) => onUpdateCondition('value', e.target.value)}
                         placeholder="select answer"
-                        className={`w-full bg-surface border rounded-md px-2 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 disabled:bg-surface-container-high ${valueBorderClass}`}
+                        className={`w-full bg-transparent border rounded-md px-2 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 disabled:bg-surface-container-high ${valueBorderClass}`}
                         disabled={valueIsDisabled}
                     />
                 )}
@@ -208,27 +208,27 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
 };
 
 interface DestinationRowProps {
-  label: string | React.ReactNode;
-  value: string;
-  onChange: (value: string) => void;
-  onConfirm?: () => void;
-  onRemove?: () => void;
-  isConfirmed?: boolean;
-  invalid?: boolean;
-  followingBlocks: Block[];
-  followingQuestions: Question[];
-  className?: string;
-  [key: string]: any;
+    label: string | React.ReactNode;
+    value: string;
+    onChange: (value: string) => void;
+    onConfirm?: () => void;
+    onRemove?: () => void;
+    isConfirmed?: boolean;
+    invalid?: boolean;
+    followingBlocks: Block[];
+    followingQuestions: Question[];
+    className?: string;
+    [key: string]: any;
 }
 
 const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange, onConfirm, onRemove, isConfirmed = true, invalid = false, followingBlocks, followingQuestions, className = '', ...rest }) => (
     <div className={`flex items-center gap-2 ${className}`} {...rest}>
         <span className="text-sm text-on-surface flex-shrink-0">{label}</span>
         <div className="relative flex-1">
-            <select 
-                value={value} 
-                onChange={e => onChange(e.target.value)} 
-                className={`w-full bg-surface border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none ${invalid ? 'border-error' : 'border-outline'}`}
+            <select
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none ${invalid ? 'border-error' : 'border-input-border'}`}
             >
                 <option value="">Select destination...</option>
                 <optgroup label="Default">
@@ -247,7 +247,7 @@ const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange,
                     </optgroup>
                 )}
             </select>
-            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-lg" />
         </div>
         {onRemove && <button onClick={onRemove} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full"><XIcon className="text-lg" /></button>}
         {!isConfirmed && onConfirm && <button onClick={onConfirm} className="p-1.5 bg-primary text-on-primary rounded-full hover:opacity-90"><CheckmarkIcon className="text-lg" /></button>}
@@ -273,7 +273,7 @@ const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = ({ block
         const allBlocks = survey.blocks;
         const currentBlockIndex = allBlocks.findIndex(b => b.id === block.id);
         if (currentBlockIndex === -1) return [];
-        
+
         return allBlocks
             .slice(0, currentBlockIndex)
             .flatMap(b => b.questions)
@@ -305,36 +305,36 @@ const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = ({ block
         const lines = text.split('\n').filter(line => line.trim() !== '');
         const newConditions: DisplayLogicCondition[] = [];
         const validOperators = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than', 'is_empty', 'is_not_empty'];
-    
+
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
             const lineNum = i + 1;
             const lineParts = line.split(/\s+/);
             const [qidCandidate, operator, ...valueParts] = lineParts;
             const value = valueParts.join(' ');
-            
+
             if (!qidCandidate || !operator) {
                 return { success: false, error: `Line ${lineNum}: Syntax error. Use "QuestionID operator value".` };
             }
-            
+
             const qid = qidCandidate.toUpperCase();
             if (!previousQuestions.some(q => q.qid === qid)) {
                 return { success: false, error: `Line ${lineNum}: Question "${qid}" is not a valid preceding question.` };
             }
-            
+
             const operatorCleaned = operator.toLowerCase();
             if (!validOperators.includes(operatorCleaned)) {
                 return { success: false, error: `Line ${lineNum}: Operator "${operator}" is not recognized.` };
             }
-    
+
             const requiresValue = !['is_empty', 'is_not_empty'].includes(operatorCleaned);
             if (requiresValue && !value.trim()) {
                 return { success: false, error: `Line ${lineNum}: Missing value for operator "${operator}".` };
             }
-    
+
             newConditions.push({ id: generateId('cond'), questionId: qid, operator: operatorCleaned as DisplayLogicCondition['operator'], value: value.trim(), isConfirmed: true });
         }
-        
+
         if (newConditions.length > 0) {
             handleUpdate({
                 displayLogic: {
@@ -356,7 +356,7 @@ const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = ({ block
         const tempErrors = new Set<keyof DisplayLogicCondition>();
         if (!condition.questionId) tempErrors.add('questionId');
         if (!condition.operator) tempErrors.add('operator');
-        
+
         const requiresValue = !['is_empty', 'is_not_empty'].includes(condition.operator);
         if (!String(condition.value).trim() && requiresValue) {
             tempErrors.add('value');
@@ -366,7 +366,7 @@ const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = ({ block
             setValidationErrors(prev => new Map(prev).set(conditionId, tempErrors));
             return;
         }
-        
+
         const newConditions = displayLogic.conditions.map(c => c.id === conditionId ? { ...c, isConfirmed: true } : c);
         handleUpdate({ displayLogic: { ...displayLogic, conditions: newConditions } });
         setValidationErrors(prev => {
@@ -397,7 +397,7 @@ const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = ({ block
         if (!displayLogic) return;
         handleUpdate({ displayLogic: { ...displayLogic, operator } });
     };
-    
+
     if (!displayLogic || displayLogic.conditions.length === 0) {
         return (
             <div>
@@ -427,18 +427,18 @@ const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = ({ block
     return (
         <div>
             <div className="flex items-center justify-between gap-2 mb-3">
-                 <div>
+                <div>
                     <h3 className="text-sm font-medium text-on-surface">Display Logic</h3>
                     <p className="text-xs text-on-surface-variant mt-0.5">Control when this block is shown to respondents.</p>
                 </div>
-                <button 
+                <button
                     onClick={() => handleUpdate({ displayLogic: undefined, draftDisplayLogic: undefined })}
                     className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50"
                 >
                     Remove
                 </button>
             </div>
-            
+
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                     <p className="text-xs font-medium text-on-surface">Show this block if:</p>
@@ -454,7 +454,7 @@ const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = ({ block
                     Add condition
                 </button>
             </div>
-            
+
             <div className="space-y-2 mb-3">
                 {displayLogic.conditions.map((condition, index) => (
                     <LogicConditionRow
@@ -488,10 +488,10 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
     const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof BranchingLogicCondition | 'skipTo'>>>(new Map());
     const [isPasting, setIsPasting] = useState(false);
 
-    const questionsForConditions = useMemo(() => 
+    const questionsForConditions = useMemo(() =>
         survey.blocks
             .flatMap(b => b.id === block.id ? [] : b.questions)
-            .filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak), 
+            .filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak),
         [survey, block.id]
     );
 
@@ -502,51 +502,51 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
     const handleUpdate = (updates: Partial<Block>) => {
         onUpdateBlock(block.id, updates);
     };
-    
+
     const handlePasteLogic = (text: string): { success: boolean; error?: string } => {
         const lines = text.split('\n').filter(line => line.trim() !== '');
         const newBranches: BranchingLogicBranch[] = [];
         const validOperators = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than', 'is_empty', 'is_not_empty'];
-    
+
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
             const lineNum = i + 1;
-    
+
             const parts = line.split(/ THEN SKIP TO | -> /i);
             if (parts.length !== 2) {
                 return { success: false, error: `Line ${lineNum}: Invalid syntax. Use "IF <condition> THEN SKIP TO <destination>" or "<condition> -> <destination>".` };
             }
-    
+
             let conditionStr = parts[0].trim();
             const destinationStr = parts[1].trim();
-    
+
             if (conditionStr.toLowerCase().startsWith('if ')) {
                 conditionStr = conditionStr.substring(3).trim();
             }
-    
+
             const condParts = conditionStr.split(/\s+/);
             const [qidCandidate, operator, ...valueParts] = condParts;
             const value = valueParts.join(' ');
-            
+
             if (!qidCandidate || !operator) { return { success: false, error: `Line ${lineNum}: Invalid condition syntax.` }; }
-    
+
             const qid = qidCandidate.toUpperCase();
             if (!questionsForConditions.some(q => q.qid === qid)) {
                 return { success: false, error: `Line ${lineNum}: Question "${qid}" is not a valid question for logic.` };
             }
-    
+
             const operatorCleaned = operator.toLowerCase();
             if (!validOperators.includes(operatorCleaned)) { return { success: false, error: `Line ${lineNum}: Operator "${operator}" is not recognized.` }; }
-            
+
             const requiresValue = !['is_empty', 'is_not_empty'].includes(operatorCleaned);
             if (requiresValue && !value.trim()) { return { success: false, error: `Line ${lineNum}: Missing value for operator "${operator}".` }; }
-    
+
             const condition: BranchingLogicCondition = {
                 id: generateId('cond'), questionId: qid,
                 operator: operatorCleaned as BranchingLogicCondition['operator'],
                 value: value.trim(), isConfirmed: true,
             };
-    
+
             let thenSkipTo = '';
             const destUpper = destinationStr.toUpperCase();
             if (destUpper === 'END') { thenSkipTo = 'end'; }
@@ -555,17 +555,17 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
                 if (block) { thenSkipTo = `block:${block.id}`; }
                 else { return { success: false, error: `Line ${lineNum}: Destination block "${destinationStr}" not found.` }; }
             } else if (destUpper.startsWith('Q')) {
-                 const question = survey.blocks.flatMap(b=>b.questions).find(q => q.qid === destUpper);
-                 if (question) { thenSkipTo = question.id; }
-                 else { return { success: false, error: `Line ${lineNum}: Destination question "${destinationStr}" not found.` }; }
+                const question = survey.blocks.flatMap(b => b.questions).find(q => q.qid === destUpper);
+                if (question) { thenSkipTo = question.id; }
+                else { return { success: false, error: `Line ${lineNum}: Destination question "${destinationStr}" not found.` }; }
             } else { return { success: false, error: `Line ${lineNum}: Invalid destination "${destinationStr}". Use a Block ID (BL2), Question ID (Q5), or "End".` }; }
-    
+
             newBranches.push({
                 id: generateId('branch'), operator: 'AND', conditions: [condition],
                 thenSkipTo, thenSkipToIsConfirmed: true
             });
         }
-    
+
         if (newBranches.length > 0) {
             handleUpdate({
                 branchingLogic: {
@@ -577,7 +577,7 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
             onExpandSidebar();
             return { success: true };
         }
-    
+
         return { success: false, error: "No valid logic found." };
     };
 
@@ -586,7 +586,7 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
             <div>
                 <p className="text-xs text-on-surface-variant mb-3">Create rules to skip this entire block based on previous answers.</p>
                 {isPasting ? (
-                     <PasteInlineForm
+                    <PasteInlineForm
                         onSave={handlePasteLogic}
                         onCancel={() => setIsPasting(false)}
                         placeholder={"IF Q1 equals Yes THEN SKIP TO BL4\nQ2 is_empty -> End"}
@@ -604,7 +604,7 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
                                             conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
                                             thenSkipTo: '', thenSkipToIsConfirmed: false,
                                         }],
-                                        otherwiseSkipTo: '', 
+                                        otherwiseSkipTo: '',
                                         otherwiseIsConfirmed: true,
                                     }
                                 });
@@ -620,7 +620,7 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
             </div>
         );
     }
-    
+
     const handleUpdateBranch = (branchId: string, updates: Partial<BranchingLogicBranch>) => {
         const newBranches = branchingLogic.branches.map(b => b.id === branchId ? { ...b, ...updates } : b);
         handleUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
@@ -646,7 +646,7 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
         const newConditions = branch.conditions.filter(c => c.id !== conditionId);
         handleUpdateBranch(branchId, { conditions: newConditions });
     };
-    
+
     const handleConfirmBranch = (branchId: string) => {
         const branch = branchingLogic.branches.find(b => b.id === branchId);
         if (!branch) return;
@@ -678,7 +678,7 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
             handleUpdateBranch(branchId, { conditions: newConditions, thenSkipToIsConfirmed: true });
         }
     };
-    
+
     const handleAddBranch = () => {
         const newBranch: BranchingLogicBranch = {
             id: generateId('branch'), operator: 'AND',
@@ -696,7 +696,7 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
             handleUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
         }
     };
-    
+
     return (
         <div>
             <div className="flex items-center justify-between gap-2 mb-4">
@@ -713,13 +713,107 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
                                 <span className="font-bold text-primary">IF</span>
                                 <div className="pl-4">
                                     {branch.conditions.length > 1 && (
-                                        <select value={branch.operator} onChange={e => handleUpdateBranch(branch.id, { operator: e.target.value as 'AND' | 'OR' })} className="text-xs font-semibold p-1 rounded-md bg-surface-container-high border border-outline mb-2">
+                                        <select value={branch.operator} onChange={e => handleUpdateBranch(branch.id, { operator: e.target.value as 'AND' | 'OR' })} className="text-xs font-semibold p-1 rounded-md bg-transparent border border-input-border mb-2">
                                             <option value="AND">All conditions are met (AND)</option>
                                             <option value="OR">Any condition is met (OR)</option>
                                         </select>
                                     )}
                                 </div>
                             </div>
-                            <button onClick={() => handleRemoveBranch(branch.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full"><XIcon className="text-lg"/></button>
+                            <button onClick={() => handleRemoveBranch(branch.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full"><XIcon className="text-lg" /></button>
                         </div>
                         <div className="space-y-2 mb-3">
+                            {branch.conditions.map((condition, index) => (
+                                <LogicConditionRow
+                                    key={condition.id || index}
+                                    condition={condition}
+                                    onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
+                                    onRemoveCondition={() => handleRemoveCondition(branch.id, condition.id)}
+                                    onConfirm={() => handleConfirmBranch(branch.id)}
+                                    availableQuestions={questionsForConditions}
+                                    isConfirmed={condition.isConfirmed === true}
+                                    invalidFields={validationErrors.get(condition.id)}
+                                />
+                            ))}
+                            <button onClick={() => handleAddCondition(branch.id)} className="text-xs font-medium text-primary hover:underline ml-1">+ Add condition</button>
+                        </div>
+
+                        <div className="flex items-center gap-2 pl-4 border-l-2 border-outline-variant ml-2">
+                            <span className="text-xs font-bold text-on-surface-variant">THEN SKIP TO</span>
+                            <DestinationRow
+                                label=""
+                                value={branch.thenSkipTo}
+                                onChange={(val) => handleUpdateBranch(branch.id, { thenSkipTo: val, thenSkipToIsConfirmed: false })}
+                                onConfirm={() => handleConfirmBranch(branch.id)}
+                                isConfirmed={branch.thenSkipToIsConfirmed === true}
+                                invalid={validationErrors.get(branch.id)?.has('skipTo')}
+                                followingBlocks={followingBlocks}
+                                followingQuestions={followingQuestions}
+                                className="flex-1"
+                            />
+                        </div>
+                    </div>
+                ))}
+
+                <div className="pt-2">
+                    <button onClick={handleAddBranch} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                        <PlusIcon className="text-base" /> Add Rule (OR)
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default function BlockEditor({ block, survey, onClose, onUpdateBlock, isExpanded, onToggleExpand, onExpandSidebar, focusTarget, onFocusHandled }: BlockEditorProps) {
+    const [activeTab, setActiveTab] = useState<'Display' | 'Skip'>('Display');
+
+    // Handle focus target
+    useEffect(() => {
+        if (focusTarget && focusTarget.type === 'block' && focusTarget.id === block.id) {
+            if (focusTarget.element === 'logic') {
+                // Logic focusing is handled by expanding the relevant section
+            }
+            onFocusHandled();
+        }
+    }, [focusTarget, block.id, onFocusHandled]);
+
+    return (
+        <div className={`bg-surface border-b border-outline-variant transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+            <div className="p-4 space-y-6">
+                <div>
+                    <label className="block text-xs font-medium text-on-surface-variant mb-1">Block Title</label>
+                    <input
+                        type="text"
+                        value={block.title}
+                        onChange={(e) => onUpdateBlock(block.id, { title: e.target.value })}
+                        className="w-full bg-surface border border-outline rounded-md px-3 py-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                    />
+                </div>
+
+                <div>
+                    <div className="flex border-b border-outline-variant mb-4">
+                        <button
+                            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'Display' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
+                            onClick={() => setActiveTab('Display')}
+                        >
+                            Display Logic
+                        </button>
+                        <button
+                            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'Skip' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
+                            onClick={() => setActiveTab('Skip')}
+                        >
+                            Skip Logic
+                        </button>
+                    </div>
+
+                    {activeTab === 'Display' ? (
+                        <BlockDisplayLogicEditor block={block} survey={survey} onUpdateBlock={onUpdateBlock} onExpandSidebar={onExpandSidebar} />
+                    ) : (
+                        <BlockSkipLogicEditor block={block} survey={survey} onUpdateBlock={onUpdateBlock} onExpandSidebar={onExpandSidebar} />
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}

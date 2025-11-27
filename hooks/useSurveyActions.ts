@@ -133,12 +133,6 @@ export const useSurveyActions = ({
             if (updatesFromAI.text !== undefined) finalUpdates.text = updatesFromAI.text;
             if (updatesFromAI.type !== undefined) finalUpdates.type = updatesFromAI.type;
             if (updatesFromAI.forceResponse !== undefined) finalUpdates.forceResponse = updatesFromAI.forceResponse;
-            if (updatesFromAI.minSelections !== undefined) {
-                finalUpdates.choiceValidation = { ...question.choiceValidation, minSelections: updatesFromAI.minSelections };
-            }
-            if (updatesFromAI.maxSelections !== undefined) {
-                finalUpdates.choiceValidation = { ...question.choiceValidation, maxSelections: updatesFromAI.maxSelections };
-            }
 
             if (updatesFromAI.answerFormat !== undefined) {
                 finalUpdates.answerFormat = updatesFromAI.answerFormat;
@@ -167,7 +161,6 @@ export const useSurveyActions = ({
             // Handle logic updates. The entire logic object is passed. 'undefined' is used for removal.
             if ('displayLogic' in updatesFromAI) finalUpdates.displayLogic = updatesFromAI.displayLogic;
             if ('skipLogic' in updatesFromAI) finalUpdates.skipLogic = updatesFromAI.skipLogic;
-            if ('branchingLogic' in updatesFromAI) finalUpdates.branchingLogic = updatesFromAI.branchingLogic;
 
             // Handle 'choices' transformation from string array to Choice object array
             if (updatesFromAI.choices) {
@@ -322,22 +315,6 @@ export const useSurveyActions = ({
         dispatch({ type: SurveyActionType.UPDATE_BLOCK, payload: { blockId, updates } });
     }, [dispatch]);
 
-    const handleAddBlockFromAI = useCallback((title: string, insertAfterBid?: string) => {
-        dispatchAndRecord({ type: SurveyActionType.ADD_BLOCK_FROM_AI, payload: { title, insertAfterBid } });
-    }, [dispatchAndRecord]);
-
-    const handleUpdateBlockFromAI = useCallback((args: any) => {
-        const { bid, ...updates } = args;
-        const block = surveyRef.current.blocks.find(b => b.bid === bid || b.id === bid);
-        if (block) {
-            const finalUpdates: Partial<Block> = {};
-            if (updates.title) finalUpdates.title = updates.title;
-            if (updates.branchingLogic) finalUpdates.branchingLogic = updates.branchingLogic;
-
-            handleUpdateBlock(block.id, finalUpdates);
-        }
-    }, [handleUpdateBlock, surveyRef]);
-
     const handleUpdateSurveyTitle = useCallback((title: string) => {
         dispatch({ type: SurveyActionType.UPDATE_SURVEY_TITLE, payload: { title } });
     }, [dispatch]);
@@ -403,8 +380,6 @@ export const useSurveyActions = ({
         handleAddQuestionFromAI,
         handleRepositionQuestion,
         handleUpdateQuestionFromAI,
-        handleAddBlockFromAI,
-        handleUpdateBlockFromAI,
         handleAddBlock,
         handleCopyBlock,
         handleDeleteQuestion,

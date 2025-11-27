@@ -38,7 +38,7 @@ const QuestionTypeSelector: React.FC<QuestionTypeSelectorProps> = ({ question, o
             <div className="relative" ref={typeMenuRef}>
                 <button
                     onClick={() => setIsTypeMenuOpen(prev => !prev)}
-                    className="w-full flex items-center gap-2 text-left bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                    className="w-full flex items-center gap-2 text-left bg-transparent border border-input-border rounded-md px-2 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
                     aria-haspopup="true"
                     aria-expanded={isTypeMenuOpen}
                 >

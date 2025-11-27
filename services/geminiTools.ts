@@ -14,11 +14,11 @@ export const addQuestionFunctionDeclaration: FunctionDeclaration = {
             type: {
                 type: Type.STRING,
                 description: 'The type of question.',
-                enum: Object.values(QTEnum),
+                enum: [QTEnum.Radio, QTEnum.Checkbox, QTEnum.Description, QTEnum.TextEntry],
             },
             choices: {
                 type: Type.ARRAY,
-                description: 'An array of strings for the choices. Applicable for choice-based questions like Radio, Checkbox, Dropdown.',
+                description: 'An array of strings for the choices. Only applicable for Radio Button and Checkbox types.',
                 items: {
                     type: Type.STRING,
                 },
@@ -78,11 +78,7 @@ export const updateQuestionFunctionDeclaration: FunctionDeclaration = {
             multipleSelection: {
                 type: Type.BOOLEAN,
                 description: "For Radio Button or Checkbox questions, set to true to allow multiple answers (Checkbox), or false for a single answer (Radio Button). This will change the question's type.",
-            },
-            // Advanced Properties
-            minSelections: { type: Type.INTEGER, description: "Minimum number of choices required." },
-            maxSelections: { type: Type.INTEGER, description: "Maximum number of choices allowed." },
-            message: { type: Type.STRING, description: "Custom error message or instruction text." }
+            }
         },
         required: ['qid'],
     },
@@ -163,7 +159,7 @@ export const removeDisplayLogicFunctionDeclaration: FunctionDeclaration = {
 
 export const setSkipLogicFunctionDeclaration: FunctionDeclaration = {
     name: 'set_skip_logic',
-    description: 'Sets or updates the simple skip logic for a question. This determines where the respondent goes after answering. Calling this will overwrite any existing skip logic. Do NOT use this for branching logic or complex conditions.',
+    description: 'Sets or updates the skip logic for a question. This determines where the respondent goes after answering. Calling this will overwrite any existing skip logic. For questions with choices (like Radio Button), you must provide a rule for each choice. For other questions (like Text Entry), provide one rule without a specific choice.',
     parameters: {
         type: Type.OBJECT,
         properties: {
@@ -208,89 +204,6 @@ export const removeSkipLogicFunctionDeclaration: FunctionDeclaration = {
         required: ['qid'],
     },
 };
-
-// --- NEW TOOLS ---
-
-export const setBranchingLogicFunctionDeclaration: FunctionDeclaration = {
-    name: 'set_branching_logic',
-    description: 'Sets or updates the branching logic for a question or block. This is for complex logic like "IF Q1=Yes AND Q2=No THEN -> Q5". Overwrites existing branching logic.',
-    parameters: {
-        type: Type.OBJECT,
-        properties: {
-            targetId: {
-                type: Type.STRING,
-                description: "The variable name of the question (e.g., 'Q1') OR block (e.g., 'BL1') to apply the logic to.",
-            },
-            branches: {
-                type: Type.ARRAY,
-                description: "List of branches to evaluate in order.",
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        conditions: {
-                            type: Type.ARRAY,
-                            description: "Conditions for this branch (e.g., Q1=Yes).",
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    sourceQid: { type: Type.STRING },
-                                    operator: { type: Type.STRING, enum: ['equals', 'not_equals', 'contains', 'is_empty', 'is_not_empty', 'greater_than', 'less_than'] },
-                                    value: { type: Type.STRING }
-                                },
-                                required: ['sourceQid', 'operator']
-                            }
-                        },
-                        conditionOperator: {
-                            type: Type.STRING,
-                            description: "How to combine conditions in this branch (AND/OR).",
-                            enum: ['AND', 'OR'],
-                            default: 'AND'
-                        },
-                        destination: {
-                            type: Type.STRING,
-                            description: "Where to go if conditions match (QID, 'next', 'end')."
-                        },
-                        pathName: { type: Type.STRING, description: "Optional name for this branch." }
-                    },
-                    required: ['conditions', 'destination']
-                }
-            },
-            otherwiseDestination: {
-                type: Type.STRING,
-                description: "Where to go if NO branches match. Defaults to 'next'.",
-            }
-        },
-        required: ['targetId', 'branches']
-    }
-};
-
-export const addBlockFunctionDeclaration: FunctionDeclaration = {
-    name: 'add_block',
-    description: 'Adds a new block to the survey.',
-    parameters: {
-        type: Type.OBJECT,
-        properties: {
-            title: { type: Type.STRING, description: "Title of the new block." },
-            insertAfterBid: { type: Type.STRING, description: "Optional. The BID of the block to insert after (e.g., 'BL1')." }
-        },
-        required: ['title']
-    }
-};
-
-export const updateBlockFunctionDeclaration: FunctionDeclaration = {
-    name: 'update_block',
-    description: 'Updates a block title or other properties.',
-    parameters: {
-        type: Type.OBJECT,
-        properties: {
-            bid: { type: Type.STRING, description: "The BID of the block (e.g., 'BL1')." },
-            title: { type: Type.STRING, description: "New title for the block." }
-        },
-        required: ['bid', 'title']
-    }
-};
-
-// --- END NEW TOOLS ---
 
 export const repositionQuestionFunctionDeclaration: FunctionDeclaration = {
     name: 'reposition_question',

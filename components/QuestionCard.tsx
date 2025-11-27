@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo, memo, useCallback } from 'react';
 import type { Question, ToolboxItemData, Choice, Survey, LogicIssue, Block } from '../types';
 import { QuestionType } from '../types';
-import { 
-    DotsHorizontalIcon, RadioIcon, ChevronDownIcon, 
+import {
+    DotsHorizontalIcon, RadioIcon, ChevronDownIcon,
     CheckboxOutlineIcon, XIcon, DragIndicatorIcon, PlusIcon,
     RadioButtonUncheckedIcon,
     WarningIcon,
@@ -83,17 +83,17 @@ const ChoiceDropIndicator = () => (
 
 const TableDropIndicator: React.FC<{ colSpan: number }> = ({ colSpan }) => (
     <tr className="h-0 p-0 m-0">
-      <td colSpan={colSpan} className="p-0 border-0 h-0 m-0 relative">
-        <div className="absolute inset-x-0 top-[-1px] h-px bg-primary">
-           <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-primary" />
-           <div className="absolute right-0 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-primary" />
-        </div>
-      </td>
+        <td colSpan={colSpan} className="p-0 border-0 h-0 m-0 relative">
+            <div className="absolute inset-x-0 top-[-1px] h-px bg-primary">
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-primary" />
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-primary" />
+            </div>
+        </td>
     </tr>
 );
 
-const QuestionCard: React.FC<{ 
-    question: Question, 
+const QuestionCard: React.FC<{
+    question: Question,
     survey: Survey,
     parentBlock: Block,
     currentBlockId: string,
@@ -116,20 +116,20 @@ const QuestionCard: React.FC<{
     onAddChoice: (questionId: string) => void;
     onAddPageBreakAfterQuestion: (questionId: string) => void;
     pageInfo?: PageInfo;
-}> = memo(({ 
-    question, survey, parentBlock, currentBlockId, logicIssues, isSelected, isChecked, onSelect, onToggleCheck, id, 
+}> = memo(({
+    question, survey, parentBlock, currentBlockId, logicIssues, isSelected, isChecked, onSelect, onToggleCheck, id,
     onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, toolboxItems,
     isDragging, onDragStart, onDragEnd, onAddChoice, onAddPageBreakAfterQuestion, pageInfo
 }) => {
-    
+
     const [isTypeMenuOpen, setIsTypeMenuOpen] = useState(false);
     const typeMenuContainerRef = useRef<HTMLDivElement>(null);
     const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
     const actionsMenuContainerRef = useRef<HTMLDivElement>(null);
-    
+
     const [draggedChoiceId, setDraggedChoiceId] = useState<string | null>(null);
     const [dropTargetChoiceId, setDropTargetChoiceId] = useState<string | null>(null);
-    
+
     const [isEditingPageName, setIsEditingPageName] = useState(false);
     const [pageNameValue, setPageNameValue] = useState('');
     const pageNameInputRef = useRef<HTMLInputElement>(null);
@@ -143,11 +143,11 @@ const QuestionCard: React.FC<{
     const questionTypeOptions = useMemo(() => toolboxItems
         .filter(item => item.name !== 'Block' && item.name !== 'Page Break')
         .map(item => ({
-        type: item.name as QuestionType,
-        label: item.name,
-        icon: item.icon,
+            type: item.name as QuestionType,
+            label: item.name,
+            icon: item.icon,
         })), [toolboxItems]);
-        
+
     useEffect(() => {
         if (pageInfo) {
             setPageNameValue(pageInfo.pageName);
@@ -186,10 +186,10 @@ const QuestionCard: React.FC<{
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [isTypeMenuOpen, isActionsMenuOpen]);
-    
+
     const handleTypeSelect = useCallback((newType: QuestionType) => {
         const updates: Partial<Question> = { type: newType };
-        
+
         const typeInfo = questionTypeOptions.find(o => o.type === newType);
         const hasChoices = typeInfo && (typeInfo.label.includes('Radio') || typeInfo.label.includes('Check') || typeInfo.label.includes('Drop-Down'));
 
@@ -205,7 +205,7 @@ const QuestionCard: React.FC<{
         onUpdateQuestion(question.id, updates);
         setIsTypeMenuOpen(false);
     }, [onUpdateQuestion, question.id, question.choices, question.qid, questionTypeOptions]);
-    
+
     const handleChoiceDragStart = useCallback((e: React.DragEvent, choiceId: string) => {
         e.stopPropagation();
         setDraggedChoiceId(choiceId);
@@ -223,15 +223,15 @@ const QuestionCard: React.FC<{
     const handleChoiceDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        
+
         if (!draggedChoiceId || !question.choices) return;
-        
+
         const choices = [...question.choices];
         const draggedIndex = choices.findIndex(c => c.id === draggedChoiceId);
         if (draggedIndex === -1) return;
-        
+
         const [draggedItem] = choices.splice(draggedIndex, 1);
-        
+
         if (dropTargetChoiceId === null) {
             choices.push(draggedItem);
         } else {
@@ -242,12 +242,12 @@ const QuestionCard: React.FC<{
                 choices.push(draggedItem); // Fallback
             }
         }
-        
+
         onUpdateQuestion(question.id, { choices });
         setDraggedChoiceId(null);
         setDropTargetChoiceId(null);
     }, [draggedChoiceId, dropTargetChoiceId, question.id, question.choices, onUpdateQuestion]);
-    
+
     const handleChoiceDragEnd = useCallback((e: React.DragEvent) => {
         e.stopPropagation();
         setDraggedChoiceId(null);
@@ -280,7 +280,7 @@ const QuestionCard: React.FC<{
         }
         setIsEditingPageName(false);
     }, [pageInfo, pageNameValue, onUpdateBlock, onUpdateQuestion]);
-    
+
     const handlePageNameKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             handleSavePageName();
@@ -295,39 +295,39 @@ const QuestionCard: React.FC<{
         setLabelValue(question.label || '');
         setIsEditingLabel(true);
     };
-    
+
     const saveLabel = () => {
         const trimmedValue = labelValue.trim();
-    
+
         if (!trimmedValue && !question.label) {
             setIsEditingLabel(false);
             return;
         }
-    
+
         if (trimmedValue) {
             const isDuplicate = survey.blocks
                 .flatMap(b => b.questions)
-                .some(q => 
-                    q.id !== question.id && 
+                .some(q =>
+                    q.id !== question.id &&
                     q.type === QuestionType.Description &&
                     q.label?.trim().toLowerCase() === trimmedValue.toLowerCase()
                 );
-    
+
             if (isDuplicate) {
                 setLabelError(`Label "${trimmedValue}" is already in use.`);
                 return;
             }
         }
-    
+
         const newLabel = trimmedValue ? trimmedValue : undefined;
         if (newLabel !== question.label) {
             onUpdateQuestion(question.id, { label: newLabel });
         }
-    
+
         setIsEditingLabel(false);
         setLabelError(null);
     };
-    
+
     const handleLabelKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -373,16 +373,16 @@ const QuestionCard: React.FC<{
         const content = (
             <div className="flex items-center gap-4 text-on-surface-variant w-full">
                 <div className="flex-grow h-px bg-outline-variant"></div>
-                
+
                 <div className="flex-shrink-0 flex items-stretch border border-outline-variant rounded-full overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 ring-offset-surface-container transition-shadow">
-                    <span 
+                    <span
                         className="bg-surface-container-high px-3 py-1.5 text-sm font-bold text-on-surface border-r border-outline-variant"
                         style={{ fontFamily: "'Open Sans', sans-serif" }}
                     >
                         P{pageInfo.pageNumber}
                     </span>
                     {isEditingPageName ? (
-                         <input
+                        <input
                             ref={pageNameInputRef}
                             type="text"
                             value={pageNameValue}
@@ -411,7 +411,7 @@ const QuestionCard: React.FC<{
         // Render interactive indicator for explicit PageBreak questions
         if (question.type === QuestionType.PageBreak) {
             return (
-                 <div
+                <div
                     id={id}
                     data-question-id={question.id}
                     draggable="true"
@@ -444,7 +444,7 @@ const QuestionCard: React.FC<{
                     </div>
                 </div>
             );
-        } 
+        }
         // Render non-interactive indicator for implicit page starts
         else {
             return (
@@ -454,11 +454,11 @@ const QuestionCard: React.FC<{
             );
         }
     }, [pageInfo, isEditingPageName, pageNameValue, handleSavePageName, handlePageNameKeyDown, question, id, onDragStart, onDragEnd, isDragging, onSelect, onDeleteQuestion, isActionsMenuOpen, onMoveQuestionToNewBlock]);
-    
+
     if (question.type === QuestionType.PageBreak) {
         return pageIndicator;
     }
-    
+
     const CurrentQuestionTypeIcon = questionTypeOptions.find(o => o.type === question.type)?.icon || RadioIcon;
     const hasLogicIssues = logicIssues.length > 0;
 
@@ -477,20 +477,19 @@ const QuestionCard: React.FC<{
                 onDragStart={onDragStart}
                 onDragEnd={onDragEnd}
                 onClick={(e) => { e.stopPropagation(); onSelect(question); }}
-                className={`p-4 rounded-lg border-2 transition-all cursor-grab group grid grid-cols-[auto_1fr] items-start gap-x-3 relative ${
-                    isSelected
-                        ? 'border-primary bg-surface-container-high shadow-md'
-                        : (hasLogicIssues)
-                            ? 'border-error bg-surface-container' // Added error state styling
-                            : question.isHidden
-                                ? 'border-outline-variant bg-surface-container opacity-60'
-                                : 'border-outline-variant hover:border-outline'
-                } ${isDragging ? 'opacity-50' : ''} ${isAnyMenuOpen ? 'z-10' : ''}`}
+                className={`p-4 rounded-lg border transition-all cursor-grab group grid grid-cols-[auto_1fr] items-start gap-x-3 relative ${isSelected
+                    ? 'border-primary shadow-md'
+                    : (hasLogicIssues)
+                        ? 'border-error bg-surface-container'
+                        : question.isHidden
+                            ? 'border-outline-variant bg-surface-container opacity-60'
+                            : 'border-outline-variant hover:border-outline hover:shadow-md'
+                    } ${isDragging ? 'opacity-50' : ''} ${isAnyMenuOpen ? 'z-10' : ''}`}
             >
                 {/* Grid Cell 1: Checkbox */}
                 <input
                     type="checkbox"
-                    className="h-4 w-4 rounded border-outline text-primary focus:ring-primary accent-primary mt-1"
+                    className="h-4 w-4 rounded border-input-border text-primary focus:ring-primary accent-primary self-center dark:border-outline-variant dark:bg-transparent"
                     checked={isChecked}
                     onChange={(e) => {
                         e.stopPropagation();
@@ -522,7 +521,7 @@ const QuestionCard: React.FC<{
                                         />
                                     </div>
                                 ) : (
-                                    <span 
+                                    <span
                                         onClick={handleLabelEditClick}
                                         className="font-semibold text-on-surface-variant cursor-pointer hover:underline"
                                     >
@@ -535,12 +534,12 @@ const QuestionCard: React.FC<{
                             <span className="font-bold text-on-surface mr-2">{question.qid}</span>
                         )}
                         {question.forceResponse && (
-                            <span className="px-2 py-0.5 text-xs font-medium bg-primary-container text-on-primary-container rounded-full">
+                            <span className="px-2 py-0.5 text-xs font-medium bg-primary text-on-primary rounded-full">
                                 Required
                             </span>
                         )}
                         {willAutoadvance && (
-                            <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-primary-container text-on-primary-container rounded-full">
+                            <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-primary text-on-primary rounded-full">
                                 Autoadvance
                             </span>
                         )}
@@ -573,16 +572,16 @@ const QuestionCard: React.FC<{
                                     e.stopPropagation();
                                     setIsTypeMenuOpen(prev => !prev);
                                 }}
-                                className="flex items-center gap-2 rounded-md px-2 py-1 border border-outline-variant hover:bg-surface-container-highest"
+                                className="flex items-center gap-2 rounded-md px-2 py-1.5 border border-input-border bg-transparent hover:bg-surface-container-high"
                             >
                                 <CurrentQuestionTypeIcon className="text-base text-primary" />
                                 <span className="font-medium text-sm text-on-surface">{question.type}</span>
-                                <ChevronDownIcon className="text-base" />
+                                <ChevronDownIcon className="text-lg text-on-surface-variant" />
                             </button>
                             {isTypeMenuOpen && (
-                            <div className="absolute top-full right-0 mt-2 w-64 z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-                                <QuestionTypeSelectionMenuContent onSelect={handleTypeSelect} toolboxItems={toolboxItems} />
-                            </div>
+                                <div className="absolute top-full right-0 mt-2 w-64 z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+                                    <QuestionTypeSelectionMenuContent onSelect={handleTypeSelect} toolboxItems={toolboxItems} />
+                                </div>
                             )}
                         </div>
                         <div ref={actionsMenuContainerRef} className="relative transition-opacity">
@@ -591,7 +590,7 @@ const QuestionCard: React.FC<{
                                     e.stopPropagation();
                                     setIsActionsMenuOpen(prev => !prev);
                                 }}
-                                className="p-1.5 rounded-full hover:bg-surface-container-highest"
+                                className="p-1.5 rounded-full hover:bg-surface-container-high"
                                 aria-label="Question actions"
                             >
                                 <DotsHorizontalIcon className="text-xl" />
@@ -620,18 +619,18 @@ const QuestionCard: React.FC<{
                         onFocus={() => onSelect(question)}
                         className="text-on-surface min-h-[24px]"
                     />
-                    
+
                     {question.type === QuestionType.TextEntry && (
                         <div className="mt-4">
                             <textarea
-                                className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface resize-y cursor-default"
+                                className="w-full bg-transparent border border-input-border rounded-md p-2 text-sm text-on-surface resize-y cursor-default"
                                 rows={question.textEntrySettings?.answerLength === 'long' ? 8 : 1}
                                 placeholder={question.textEntrySettings?.placeholder || ''}
                                 readOnly
                             />
                         </div>
                     )}
-                    
+
                     {question.type === QuestionType.ChoiceGrid && (
                         <div className="mt-4">
                             <div className="overflow-x-auto">
@@ -734,7 +733,7 @@ const QuestionCard: React.FC<{
                                         e.stopPropagation();
                                         onAddChoice(question.id);
                                     }}
-                                    className="flex items-center text-sm text-primary font-medium hover:underline"
+                                    className="flex items-center text-sm text-on-surface hover:text-primary font-medium transition-colors"
                                 >
                                     <PlusIcon className="text-base mr-1" /> Add row
                                 </button>
@@ -743,7 +742,7 @@ const QuestionCard: React.FC<{
                                         e.stopPropagation();
                                         handleAddColumn();
                                     }}
-                                    className="flex items-center text-sm text-primary font-medium hover:underline"
+                                    className="flex items-center text-sm text-on-surface hover:text-primary font-medium transition-colors"
                                 >
                                     <PlusIcon className="text-base mr-1" /> Add column
                                 </button>
@@ -753,7 +752,7 @@ const QuestionCard: React.FC<{
 
 
                     {question.choices && question.type !== QuestionType.ChoiceGrid && (
-                        <div 
+                        <div
                             className="mt-4 space-y-2"
                             onDrop={handleChoiceDrop}
                             onDragOver={(e) => {
@@ -766,7 +765,7 @@ const QuestionCard: React.FC<{
                                 return (
                                     <React.Fragment key={choice.id}>
                                         {dropTargetChoiceId === choice.id && <ChoiceDropIndicator />}
-                                        <div 
+                                        <div
                                             className={`flex items-center group/choice transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
                                             draggable={true}
                                             onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
@@ -783,14 +782,14 @@ const QuestionCard: React.FC<{
                                             ) : (
                                                 <CheckboxOutlineIcon className="text-xl text-on-surface-variant mr-2" />
                                             )}
-                                            
+
                                             <div className="text-on-surface flex-grow min-h-[24px] flex items-center gap-2">
                                                 {variable && <span className="font-bold text-on-surface-variant mr-2">{variable}</span>}
                                                 <EditableText
                                                     html={label}
                                                     onChange={(newLabel) => {
                                                         const newText = variable ? `${variable} ${newLabel}` : newLabel;
-                                                        const newChoices = (question.choices || []).map(c => 
+                                                        const newChoices = (question.choices || []).map(c =>
                                                             c.id === choice.id ? { ...c, text: newText } : c
                                                         );
                                                         onUpdateQuestion(question.id, { choices: newChoices });
@@ -799,7 +798,7 @@ const QuestionCard: React.FC<{
                                                     className="text-on-surface flex-grow"
                                                 />
                                             </div>
-                                            
+
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -817,12 +816,12 @@ const QuestionCard: React.FC<{
                             })}
                             {dropTargetChoiceId === null && draggedChoiceId && <ChoiceDropIndicator />}
                             <button
-                                onClick={(e) => { 
-                                    e.stopPropagation(); 
+                                onClick={(e) => {
+                                    e.stopPropagation();
                                     if (!isSelected) {
                                         onSelect(question);
                                     }
-                                    onAddChoice(question.id); 
+                                    onAddChoice(question.id);
                                 }}
                                 className="flex items-center text-sm text-primary font-medium mt-2 hover:underline"
                             >
@@ -830,7 +829,6 @@ const QuestionCard: React.FC<{
                             </button>
                         </div>
                     )}
-                    
                     {hasDisplayLogic && (
                         <DisplayLogicDisplay
                             logic={question.displayLogic!}
@@ -838,17 +836,20 @@ const QuestionCard: React.FC<{
                             onClick={() => onSelect(question, { tab: 'Behavior' })}
                             issues={logicIssues.filter(i => i.type === 'display' || i.type === 'hide')}
                         />
-                    )}
-                    {question.branchingLogic && question.branchingLogic.branches.length > 0 && (
-                        <BranchingLogicDisplay
-                            logic={question.branchingLogic}
-                            survey={survey}
-                            question={question}
-                            onClick={() => onSelect(question, { tab: 'Advanced' })}
-                        />
-                    )}
-                </div>
-            </div>
+                    )
+                    }
+                    {
+                        question.branchingLogic && question.branchingLogic.branches.length > 0 && (
+                            <BranchingLogicDisplay
+                                logic={question.branchingLogic}
+                                survey={survey}
+                                question={question}
+                                onClick={() => onSelect(question, { tab: 'Advanced' })}
+                            />
+                        )
+                    }
+                </div >
+            </div >
         </>
     );
 });

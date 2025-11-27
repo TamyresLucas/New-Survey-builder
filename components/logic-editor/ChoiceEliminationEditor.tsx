@@ -15,21 +15,21 @@ export const ChoiceEliminationEditor: React.FC<{
     onUpdate({ choiceEliminationLogic: { sourceQuestionId: '' } });
     onAddLogic();
   };
-  
+
   const handleRemove = () => {
     onUpdate({ choiceEliminationLogic: undefined });
   };
-  
+
   const handleSourceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     onUpdate({ choiceEliminationLogic: { sourceQuestionId: e.target.value } });
   };
 
-  const compatibleSourceQuestions = useMemo(() => 
-    previousQuestions.filter(q => 
-      q.choices && q.choices.length > 0 && 
+  const compatibleSourceQuestions = useMemo(() =>
+    previousQuestions.filter(q =>
+      q.choices && q.choices.length > 0 &&
       (q.type === 'Radio Button' || q.type === 'Checkbox' || q.type === 'Drop-Down List')
-    ), 
-  [previousQuestions]);
+    ),
+    [previousQuestions]);
 
   if (!choiceEliminationLogic) {
     return (
@@ -37,8 +37,8 @@ export const ChoiceEliminationEditor: React.FC<{
         <h3 className="text-sm font-medium text-on-surface mb-1">Carry Forward Choices</h3>
         <p className="text-xs text-on-surface-variant mb-3">Only show choices that were NOT selected in a previous question.</p>
         <button onClick={handleEnable} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-            <PlusIcon className="text-base" />
-            Add carry forward rule
+          <PlusIcon className="text-base" />
+          Add carry forward rule
         </button>
       </div>
     );
@@ -55,7 +55,7 @@ export const ChoiceEliminationEditor: React.FC<{
           Remove
         </button>
       </div>
-      
+
       <div className="relative">
         <label htmlFor="carry-forward-source" className="block text-sm font-medium text-on-surface-variant mb-1">
           Source Question
@@ -65,14 +65,14 @@ export const ChoiceEliminationEditor: React.FC<{
             id="carry-forward-source"
             value={choiceEliminationLogic.sourceQuestionId}
             onChange={handleSourceChange}
-            className="w-full bg-surface border border-outline rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+            className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
           >
             <option value="">Select a source question...</option>
             {compatibleSourceQuestions.map(q => (
               <option key={q.id} value={q.qid}>{q.qid}: {truncate(q.text, 50)}</option>
             ))}
           </select>
-          <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+          <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-lg" />
         </div>
       </div>
     </div>

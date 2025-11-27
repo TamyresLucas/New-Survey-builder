@@ -2,6 +2,8 @@ import React, { memo } from 'react';
 import type { NavItem } from '../types';
 import { mainNavItems } from '../constants';
 
+import { PanelLeftIcon } from './icons';
+
 interface LeftSidebarProps {
   activeTab: string;
   onTabSelect: (tabId: string) => void;
@@ -14,11 +16,10 @@ const LeftSidebar: React.FC<LeftSidebarProps> = memo(({ activeTab, onTabSelect }
         <button
           key={item.id}
           onClick={() => onTabSelect(item.id)}
-          className={`flex flex-col items-center justify-center w-16 h-16 rounded-lg mb-2 transition-colors ${
-            activeTab === item.id 
-              ? 'bg-primary-container text-primary' 
-              : 'text-on-surface-variant hover:bg-surface-container-high'
-          }`}
+          className={`flex flex-col items-center justify-center w-16 h-16 rounded-lg mb-2 transition-colors ${activeTab === item.id
+            ? 'bg-primary text-on-primary'
+            : 'text-on-surface-variant hover:bg-surface-container-high'
+            }`}
           aria-label={item.label}
         >
           <item.icon className="text-2xl" />

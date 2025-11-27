@@ -55,7 +55,7 @@ const ChoiceItem: React.FC<ChoiceItemProps> = ({
                 <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing" aria-label="Reorder choice">
                     <DragIndicatorIcon className="text-lg" />
                 </span>
-                <div className="flex-grow flex items-stretch bg-surface border border-outline rounded-md focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-primary">
+                <div className="flex-grow flex items-stretch bg-transparent border border-input-border rounded-md focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-primary">
                     <input
                         type="text"
                         value={parseChoice(choice.text).label}

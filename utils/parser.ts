@@ -44,142 +44,33 @@ export const parseDestinationString = (
     return '';
 };
 
-export const parseVoxcoLogic = (
-    rawLogic: string,
-    qidToQuestionMap: Map<string, Question>
-): Omit<DisplayLogic, 'conditions'> & { conditions: Omit<DisplayLogicCondition, 'id'>[] } | undefined => {
-    let logic = rawLogic.trim();
-
-    // Handle implicit SHOW IF / HIDE IF
-    let isHide = false;
-    if (logic.toUpperCase().startsWith('HIDE IF ')) {
-        isHide = true;
-        logic = logic.substring(8).trim();
-    } else if (logic.toUpperCase().startsWith('SHOW IF ')) {
-        logic = logic.substring(8).trim();
-    }
-
-    // Basic splitting by AND/OR (Does not support complex nested parentheses mixing AND/OR yet)
-    // We assume the top level is consistent (all AND or all OR)
-    const upperLogic = logic.toUpperCase();
-    const operator = upperLogic.includes(' OR ') ? 'OR' : 'AND';
-    const splitRegex = new RegExp(`\\s+${operator}\\s+`, 'i');
-    const parts = logic.split(splitRegex);
-
-    const conditions: Omit<DisplayLogicCondition, 'id'>[] = [];
-
-    // Regex for Voxco syntax: Q1.A1 = 1, Q1 = "Yes", Q1 > 5, Q1 = Q2, etc.
-    // Groups: 1=QID, 2=AnswerIndex(opt), 3=ColIndex(opt), 4=Operator, 5=Value (quoted), 6=Value (numeric), 7=Value (Question Ref)
-    const voxcoRegex = /^(Q\d+)(?:\.A(\d+))?(?:\.C(\d+))?\s*(=|<>|>|>=|<|<=|LIKE|RLIKE)\s*(?:"([^"]*)"|(\d+)|(Q\d+(?:_\d+)?))$/i;
-
-    for (const part of parts) {
-        // Remove outer parens if simple wrapper
-        let cleanPart = part.trim();
-        if (cleanPart.startsWith('(') && cleanPart.endsWith(')')) {
-            cleanPart = cleanPart.slice(1, -1).trim();
-        }
-
-        const match = cleanPart.match(voxcoRegex);
-        if (match) {
-            const [, qid, ansIdx, colIdx, opStr, strVal, numVal, qRefVal] = match;
-            const questionId = qid.toUpperCase();
-            const question = qidToQuestionMap.get(questionId);
-
-            if (!question) {
-                // If question not found, we can't resolve A1/C1, but we can return raw
-                conditions.push({
-                    questionId,
-                    operator: 'equals', // Default fallback
-                    value: strVal || numVal || qRefVal || '',
-                    isConfirmed: true
-                });
-                continue;
-            }
-
-            let operator: DisplayLogicCondition['operator'] = 'equals';
-            let value = strVal !== undefined ? strVal : (numVal !== undefined ? numVal : qRefVal);
-
-            // Map Operators
-            switch (opStr.toUpperCase()) {
-                case '=': operator = 'equals'; break;
-                case '<>': operator = 'not_equals'; break;
-                case '>': operator = 'greater_than'; break;
-                case '<': operator = 'less_than'; break;
-                case 'LIKE': operator = 'contains'; break;
-                // RLIKE not directly supported in simple model, mapping to contains or equals
-                case 'RLIKE': operator = 'contains'; break;
-            }
-
-            // Handle Qx.Ay notation (Choice Index)
-            if (ansIdx) {
-                const index = parseInt(ansIdx) - 1; // 1-based to 0-based
-                if (question.choices && question.choices[index]) {
-                    // Q1.A1 = 1 -> Selected (Equals Choice Value)
-                    // Q1.A1 = 0 -> Not Selected (Not Equals Choice Value)
-                    const choiceValue = question.choices[index].text; // Assuming value matches text for now
-
-                    if (value === '1') {
-                        value = choiceValue;
-                        // Operator remains as mapped (usually '=')
-                    } else if (value === '0') {
-                        value = choiceValue;
-                        operator = 'not_equals';
-                    } else {
-                        // Fallback for weird cases like Q1.A1 = "Something"
-                    }
-                }
-            }
-            // Handle Qx = 1 / Qx = 0 (Empty/Not Empty)
-            else if (!ansIdx && (value === '1' || value === '0') && (question.type === QuestionType.Radio || question.type === QuestionType.Checkbox)) {
-                if (value === '1') {
-                    operator = 'is_not_empty';
-                    value = '';
-                } else {
-                    operator = 'is_empty';
-                    value = '';
-                }
-            }
-            // Handle Qx = Qy (Question Comparison)
-            else if (qRefVal) {
-                // If the value is a question reference (e.g. Q1_1), we treat it as a string value for now
-                // or ideally, we'd have a specific operator for 'equals_question' but our type system might be limited.
-                // For now, we pass it as a value.
-                value = qRefVal;
-            }
-
-            conditions.push({
-                questionId,
-                operator,
-                value: value || '',
-                isConfirmed: true
-            });
-
-        } else {
-            // Fallback to old parser regex for "Q1 equals Yes" style
-            const oldRegex = /(Q\d+)\s+([a-z_]+)\s*(?:"([^"]*)")?/i;
-            const oldMatch = cleanPart.match(oldRegex);
-            if (oldMatch) {
-                const [, questionId, op, val] = oldMatch;
-                conditions.push({
-                    questionId: questionId.toUpperCase(),
-                    operator: op.toLowerCase() as DisplayLogicCondition['operator'],
-                    value: val || '',
-                    isConfirmed: true,
-                });
-            }
-        }
-    }
-
-    if (conditions.length === 0) return undefined;
-    return { operator, conditions };
-};
-
 export const parseDisplayLogicString = (
     rawLogic: string
 ): Omit<DisplayLogic, 'conditions'> & { conditions: Omit<DisplayLogicCondition, 'id'>[] } | undefined => {
-    // Deprecated wrapper, but kept for compatibility if needed without context
-    // Ideally, we should migrate all calls to parseVoxcoLogic
-    return undefined;
+    const match = rawLogic.match(/^SHOW IF (.*)$/i);
+    if (!match) return undefined;
+
+    const conditionsStr = match[1];
+    const operator = conditionsStr.toUpperCase().includes(' OR ') ? 'OR' : 'AND';
+    const conditionParts = conditionsStr.split(new RegExp(` ${operator} `, 'i'));
+
+    const conditions: Omit<DisplayLogicCondition, 'id'>[] = [];
+    const conditionRegex = /(Q\d+)\s+([a-z_]+)\s*(?:"([^"]*)")?/i;
+
+    for (const part of conditionParts) {
+        const condMatch = part.trim().match(conditionRegex);
+        if (condMatch) {
+            const [, questionId, op, value] = condMatch;
+            conditions.push({
+                questionId: questionId.toUpperCase(),
+                operator: op.toLowerCase() as DisplayLogicCondition['operator'],
+                value: value || '',
+                isConfirmed: true,
+            });
+        }
+    }
+    if (conditions.length === 0) return undefined;
+    return { operator, conditions };
 };
 
 export const parseSkipLogicString = (

@@ -16,21 +16,43 @@ export const DisplayLogicSet: React.FC<DisplayLogicSetProps> = ({
     targetContent,
     ...logicSetProps
 }) => {
-    // We now construct the header content here, but LogicSet also handles actionValue internally if we pass it.
-    // However, since we want full control, we can pass it as extraActionContent or rely on LogicSet's built-in support.
-    // Since I restored LogicSet's internal actionValue support in the previous file, we can just pass props through.
-    // But wait, LogicSet's actionValue renders ABOVE the box.
-    // If we want it inside, we use headerContent.
-    
-    // Let's assume LogicSet handles it via actionValue prop now (based on Step 35/37).
-    
+    const headerContent = (
+        <div className="flex items-center gap-2 w-full">
+            <div className="relative w-24 flex-shrink-0">
+                <select
+                    value={actionValue}
+                    onChange={(e) => onActionChange(e.target.value as 'show' | 'hide')}
+                    className="w-full bg-surface border border-outline rounded-md pl-2 pr-6 py-1.5 text-sm text-on-surface font-medium focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                    aria-label="Logic Action"
+                >
+                    <option value="show">Show</option>
+                    <option value="hide">Hide</option>
+                </select>
+                <ChevronDownIcon className="absolute right-1.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-base" />
+            </div>
+            
+            {targetContent && (
+                <div className="relative flex-1">
+                    {targetContent}
+                </div>
+            )}
+
+            {label && (
+                <div className="flex-shrink-0">
+                    {typeof label === 'string' ? (
+                        <span className="text-sm font-bold text-on-surface">{label}</span>
+                    ) : (
+                        label
+                    )}
+                </div>
+            )}
+        </div>
+    );
+
     return (
         <LogicSet
             {...logicSetProps}
-            actionValue={actionValue}
-            onActionChange={onActionChange}
-            headerContent={label} // Label (e.g. QID) goes here
-            extraActionContent={targetContent} // Target choice dropdown goes here
+            headerContent={headerContent}
         />
     );
 };

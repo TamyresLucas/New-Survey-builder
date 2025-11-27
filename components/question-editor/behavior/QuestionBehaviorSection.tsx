@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import type { Question, Survey, Block, DisplayLogicCondition, DisplayLogic, LogicSet as ILogicSet, LogicIssue } from '../../../types';
 import { ArrowRightAltIcon, PlusIcon, ChevronDownIcon, GridIcon } from '../../icons';
-import { QuestionGroupEditor, PasteInlineForm, CopyAndPasteButton, LogicConditionRow, LogicSet } from '../../logic-editor/shared';
+import { QuestionGroupEditor, PasteInlineForm, CopyAndPasteButton, LogicConditionRow, LogicSet, DisplayLogicSet } from '../../logic-editor/shared';
 import { generateId } from '../../../utils';
 
 interface QuestionBehaviorSectionProps {
@@ -248,9 +248,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
                      {items.map((item) => (
                         <React.Fragment key={item.id}>
                         {item.itemType === 'condition' ? (
-                             // This block is effectively hidden due to filtering in previous steps/requests,
-                             // but logic kept for code integrity if filtering is relaxed.
-                             // If rendered, it would be the legacy condition format.
+                             // Condition rendering logic
                             <div className="w-full">
                                 <LogicConditionRow
                                     condition={item}
@@ -262,7 +260,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
                                 />
                             </div>
                         ) : (
-                            <LogicSet 
+                            <DisplayLogicSet 
                                 logicSet={item}
                                 availableQuestions={previousQuestions}
                                 onUpdate={(updates) => handleUpdateLogicSet(item.id, item.logicType, updates)}
@@ -270,12 +268,9 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
                                 questionWidth="w-[28%]"
                                 operatorWidth="w-[28%]"
                                 valueWidth="w-[28%]"
-                                // actionValue and onActionChange REMOVED here
-                                headerContent={
-                                    <div className="flex items-center gap-2">
-                                         <span className="text-sm font-bold text-on-surface">{question.qid}</span>
-                                    </div>
-                                }
+                                actionValue={item.logicType === 'display' ? 'show' : 'hide'}
+                                onActionChange={(val) => handleTypeChange(item.id, item.itemType, item.logicType, val === 'show' ? 'display' : 'hide')}
+                                label={question.qid}
                                 issues={issues.filter(i => i.sourceId === item.id)}
                             />
                         )}

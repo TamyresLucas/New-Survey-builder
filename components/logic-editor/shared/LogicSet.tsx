@@ -4,7 +4,7 @@ import { LogicConditionRow } from './LogicConditionRow';
 import { PlusIcon, XIcon, CheckmarkIcon, ChevronDownIcon, WarningIcon } from '../../icons';
 import { generateId } from '../../../utils';
 
-interface LogicSetProps {
+export interface LogicSetProps {
     logicSet: ILogicSet;
     availableQuestions: Question[];
     onUpdate: (updates: Partial<ILogicSet>) => void;
@@ -210,7 +210,7 @@ export const LogicSet: React.FC<LogicSetProps> = ({
                     {logicSet.conditions.map((condition, index) => (
                         <div key={condition.id} className="flex items-center gap-2">
                             {hasMultipleConditions && (
-                                <span className="text-xs font-medium text-on-surface-variant w-4 text-center flex-shrink-0">{index + 1}.</span>
+                                <span className="text-xs font-medium text-on-surface-variant w-4 text-center">{index + 1}.</span>
                             )}
                             {showRowIfLabel && (
                                 <span className="text-sm font-bold text-primary flex-shrink-0 w-6 text-center">IF</span>
@@ -241,15 +241,12 @@ export const LogicSet: React.FC<LogicSetProps> = ({
                     </button>
                     
                     <div className="flex items-center gap-2">
-                        {logicSet.isConfirmed ? (
-                             <button onClick={onRemove} className="px-3 py-1.5 text-xs font-bold text-error hover:bg-error-container rounded-md transition-colors">
-                                Delete
-                            </button>
-                        ) : (
-                            <button onClick={handleCancel} className="px-3 py-1.5 text-xs font-bold text-on-surface-variant hover:bg-surface-container-highest rounded-md transition-colors">
-                                Cancel
-                            </button>
-                        )}
+                        <button 
+                            onClick={logicSet.isConfirmed ? onRemove : handleCancel} 
+                            className="px-3 py-1.5 text-xs font-bold text-on-surface-variant hover:bg-surface-container-highest rounded-md transition-colors"
+                        >
+                            {logicSet.isConfirmed ? 'Delete' : 'Cancel'}
+                        </button>
                         {!logicSet.isConfirmed && (
                             <button onClick={handleConfirmSet} className="px-3 py-1.5 text-xs font-bold text-on-primary bg-primary rounded-md hover:opacity-90 transition-opacity">
                                 Apply Logic

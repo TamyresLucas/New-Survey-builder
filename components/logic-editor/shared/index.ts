@@ -3,6 +3,7 @@ export * from './ActivateQuestionSection';
 export * from './CollapsibleSection';
 export * from './CopyAndPasteButton';
 export * from './DestinationRow';
+export * from './DisplayLogicSet';
 export * from './ForceResponseSection';
 export * from './LogicConditionRow';
 export * from './PasteInlineForm';

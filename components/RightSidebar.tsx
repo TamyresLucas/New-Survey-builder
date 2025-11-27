@@ -85,7 +85,7 @@ export const RightSidebar: React.FC<{
                 <QuestionEditor 
                     question={question}
                     survey={survey}
-                    logicIssues={logicIssues}
+                    logicIssues={logicIssues} // Passed here
                     focusedLogicSource={focusedLogicSource}
                     activeTab={activeTab}
                     onUpdateQuestion={onUpdateQuestion}

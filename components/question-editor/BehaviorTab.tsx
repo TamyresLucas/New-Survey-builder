@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Question, Survey, LogicIssue, Block } from '../../types';
+import { CHOICE_BASED_QUESTION_TYPES } from '../../utils';
 import { CollapsibleSection } from '../logic-editor/shared';
 import {
     ChoiceBehaviorSection,
@@ -35,6 +36,8 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({
     isFirstInteractiveQuestion,
     onSelectBlock
 }) => {
+    const isChoiceBased = CHOICE_BASED_QUESTION_TYPES.has(question.type);
+
     return (
         <div className="p-6 space-y-8">
             <CollapsibleSection title="Navigation" defaultExpanded={true}>
@@ -66,20 +69,24 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({
                         onUpdate={onUpdate} 
                         onSelectBlock={onSelectBlock}
                         onAddLogic={onAddLogic}
+                        issues={issues} // Pass issues down
                     />
                 </div>
             </CollapsibleSection>
             
-            <CollapsibleSection title="Choices" defaultExpanded={true}>
-                <ChoiceBehaviorSection
-                    question={question}
-                    survey={survey}
-                    previousQuestions={previousQuestions}
-                    onUpdate={onUpdate}
-                    onAddLogic={onAddLogic}
-                    isFirstInteractiveQuestion={isFirstInteractiveQuestion}
-                />
-            </CollapsibleSection>
+            {isChoiceBased && (
+                <CollapsibleSection title="Choices" defaultExpanded={true}>
+                    <ChoiceBehaviorSection
+                        question={question}
+                        survey={survey}
+                        previousQuestions={previousQuestions}
+                        onUpdate={onUpdate}
+                        onAddLogic={onAddLogic}
+                        isFirstInteractiveQuestion={isFirstInteractiveQuestion}
+                        issues={issues} // Pass issues down
+                    />
+                </CollapsibleSection>
+            )}
         </div>
     );
 };

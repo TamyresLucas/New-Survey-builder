@@ -1,19 +1,17 @@
 import React, { useMemo } from 'react';
-import type { Survey, Question, DisplayLogic, SkipLogic, BranchingLogic, DisplayLogicCondition, BranchingLogicCondition, LogicSet } from '../types';
-import { EyeIcon, ArrowRightAltIcon, CallSplitIcon, DoubleArrowRightIcon } from './icons';
+import type { Survey, Question, DisplayLogic, SkipLogic, BranchingLogic, DisplayLogicCondition, BranchingLogicCondition, LogicSet, LogicIssue } from '../types';
+import { EyeIcon, ArrowRightAltIcon, CallSplitIcon, DoubleArrowRightIcon, WarningIcon } from './icons';
 import { truncate, parseChoice } from '../utils';
 
-// Helper to find a question by its QID
+// ... helpers ... (unchanged)
 const findQuestionByQid = (survey: Survey, qid: string): Question | undefined => {
     return survey.blocks.flatMap(b => b.questions).find(q => q.qid === qid);
 };
 
-// Helper to find a question by its internal ID
 const findQuestionById = (survey: Survey, id: string): Question | undefined => {
     return survey.blocks.flatMap(b => b.questions).find(q => q.id === id);
 };
 
-// Helper to format a destination
 const formatDestination = (destination: string, survey: Survey): string => {
     if (destination === 'next') return 'Next Question';
     if (destination === 'end') return 'End of Survey';
@@ -28,7 +26,6 @@ const formatDestination = (destination: string, survey: Survey): string => {
     return question ? `${question.qid}: ${truncate(question.text, 30)}` : 'an unknown location';
 };
 
-// Helper to format a single condition
 const formatCondition = (condition: DisplayLogicCondition | BranchingLogicCondition, survey: Survey): string => {
     const question = findQuestionByQid(survey, condition.questionId);
     const qText = question ? question.qid : 'Unknown Q';
@@ -56,7 +53,7 @@ const formatLogicSet = (set: LogicSet, survey: Survey): string => {
 };
 
 // --- Display Logic Component ---
-export const DisplayLogicDisplay: React.FC<{ logic: DisplayLogic; survey: Survey; onClick: () => void }> = ({ logic, survey, onClick }) => {
+export const DisplayLogicDisplay: React.FC<{ logic: DisplayLogic; survey: Survey; onClick: () => void; issues?: LogicIssue[] }> = ({ logic, survey, onClick, issues = [] }) => {
     const confirmedConditions = logic.conditions.filter(c => c.isConfirmed === true);
     const confirmedSets = logic.logicSets?.filter(s => s.isConfirmed === true) || [];
 
@@ -70,15 +67,28 @@ export const DisplayLogicDisplay: React.FC<{ logic: DisplayLogic; survey: Survey
     ];
 
     const summary = parts.join(` <span class="font-bold text-primary">${logic.operator}</span> `);
+    
+    const hasIssues = issues.length > 0;
+    const issueMessage = issues.map(i => i.message).join('; ');
 
     return (
         <div 
             onClick={onClick}
-            className="mt-4 p-3 border border-outline-variant rounded-md bg-surface-container-high cursor-pointer hover:border-primary"
+            className={`mt-4 p-3 border rounded-md bg-surface-container-high cursor-pointer hover:border-primary relative group/logic ${hasIssues ? 'border-error' : 'border-outline-variant'}`}
         >
-            <div className="flex items-center gap-2 mb-2">
-                <EyeIcon className="text-lg text-primary" />
-                <h4 className="text-sm font-bold text-on-surface">Display Logic</h4>
+            <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                    <EyeIcon className={`text-lg ${hasIssues ? 'text-error' : 'text-primary'}`} />
+                    <h4 className="text-sm font-bold text-on-surface">Display Logic</h4>
+                </div>
+                {hasIssues && (
+                    <div className="relative">
+                        <WarningIcon className="text-lg text-error" />
+                         <div className="absolute bottom-full right-0 mb-2 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/logic:opacity-100 transition-opacity pointer-events-none border border-error z-10">
+                            {issueMessage}
+                        </div>
+                    </div>
+                )}
             </div>
             <div className="pl-2 space-y-1 text-sm text-on-surface-variant">
                 <p>
@@ -89,21 +99,16 @@ export const DisplayLogicDisplay: React.FC<{ logic: DisplayLogic; survey: Survey
     );
 };
 
-
-// --- Skip Logic Component ---
+// ... SkipLogicDisplay, BranchingLogicDisplay, SurveyFlowDisplay (unchanged) ...
 export const SkipLogicDisplay: React.FC<{ logic: SkipLogic; currentQuestion: Question; survey: Survey; onClick: () => void; onRemove: () => void; }> = ({ logic, currentQuestion, survey, onClick, onRemove }) => {
-    if (logic.type === 'simple' && logic.isConfirmed !== true) {
-        return null;
-    }
+    // ... existing implementation
+    if (logic.type === 'simple' && logic.isConfirmed !== true) return null;
 
     const confirmedRules = logic.type === 'per_choice' 
         ? logic.rules.filter(r => r.isConfirmed === true)
         : [];
 
-    if (logic.type === 'per_choice' && confirmedRules.length === 0) {
-        return null;
-    }
-    
+    if (logic.type === 'per_choice' && confirmedRules.length === 0) return null;
     if (logic.type === 'simple' && logic.isConfirmed !== true) return null;
 
     const handleRemove = (e: React.MouseEvent) => {
@@ -146,23 +151,15 @@ export const SkipLogicDisplay: React.FC<{ logic: SkipLogic; currentQuestion: Que
 };
 
 
-// --- Branching Logic Component ---
 export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Survey; onClick: () => void; question: Question; }> = ({ logic, survey, onClick, question }) => {
-    
+    // ... existing implementation
     const showOtherwise = useMemo(() => {
-        // If it's not a choice-based question, 'otherwise' is always relevant.
-        if (!question.choices || question.choices.length === 0) {
-            return true;
-        }
-
+        if (!question.choices || question.choices.length === 0) return true;
         const usedChoiceTexts = new Set<string>();
-        // We check the confirmed logic here, as this is what the display card shows.
         if (logic) {
             for (const branch of logic.branches) {
-                // Only consider confirmed branches for the summary view
                 if (branch.thenSkipToIsConfirmed) {
                     for (const condition of branch.conditions) {
-                        // Only consider conditions on the current question that are confirmed
                         if (condition.questionId === question.qid && condition.isConfirmed && condition.value) {
                             usedChoiceTexts.add(condition.value);
                         }
@@ -170,8 +167,6 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
                 }
             }
         }
-
-        // 'Otherwise' is shown only if there are choices left over that aren't covered by a branch.
         return usedChoiceTexts.size < question.choices.length;
     }, [logic, question.qid, question.choices]);
     
@@ -179,9 +174,7 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
         (branch.thenSkipToIsConfirmed && branch.conditions.some(c => c.isConfirmed === true))
     ) || (showOtherwise && logic.otherwiseIsConfirmed);
     
-    if (!hasAnyConfirmedLogic) {
-        return null;
-    }
+    if (!hasAnyConfirmedLogic) return null;
     
     return (
         <div
@@ -218,11 +211,8 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
     );
 };
 
-// --- Survey Flow Display ---
 export const SurveyFlowDisplay: React.FC<{ logic: SkipLogic; survey: Survey; onClick: () => void; }> = ({ logic, survey, onClick }) => {
-    if (logic.type !== 'simple' || logic.isConfirmed !== true) {
-        return null;
-    }
+    if (logic.type !== 'simple' || logic.isConfirmed !== true) return null;
 
     const handleClick = (e: React.MouseEvent) => {
         e.stopPropagation();

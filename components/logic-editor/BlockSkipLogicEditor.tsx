@@ -3,7 +3,7 @@ import type { Block, Survey, BranchingLogic, BranchingLogicBranch, BranchingLogi
 import { QuestionType } from '../../types';
 import { PlusIcon, XIcon } from '../icons';
 import { generateId } from '../../utils';
-import { PasteInlineForm, CopyAndPasteButton, LogicConditionRow, DestinationRow } from './shared';
+import { AdvancedLogicEditor, CopyAndPasteButton, LogicConditionRow, DestinationRow } from './shared';
 
 interface BlockSkipLogicEditorProps {
     block: Block;
@@ -115,7 +115,7 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
             <div>
                 <p className="text-xs text-on-surface-variant mb-3">Create rules to skip this entire block based on previous answers.</p>
                 {isPasting ? (
-                    <PasteInlineForm
+                    <AdvancedLogicEditor
                         onSave={handlePasteLogic}
                         onCancel={() => setIsPasting(false)}
                         placeholder={"IF Q1 equals Yes THEN SKIP TO BL4\nQ2 is_empty -> End"}

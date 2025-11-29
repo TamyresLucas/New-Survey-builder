@@ -18,6 +18,7 @@ export interface LogicSetProps {
     extraActionContent?: React.ReactNode;
     issues?: LogicIssue[];
     showRowIfLabel?: boolean;
+    transparentBackground?: boolean;
 }
 
 export const LogicSet: React.FC<LogicSetProps> = ({
@@ -33,11 +34,12 @@ export const LogicSet: React.FC<LogicSetProps> = ({
     onActionChange,
     extraActionContent,
     issues = [],
-    showRowIfLabel = false
+    showRowIfLabel = false,
+    transparentBackground = false
 }) => {
-    
+
     const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof DisplayLogicCondition>>>(new Map());
-    
+
     const originalLogicSetRef = useRef<ILogicSet | null>(null);
 
     useEffect(() => {
@@ -49,16 +51,16 @@ export const LogicSet: React.FC<LogicSetProps> = ({
     const handleUpdateCondition = (index: number, field: keyof DisplayLogicCondition, value: any) => {
         const newConditions = [...logicSet.conditions];
         newConditions[index] = { ...newConditions[index], [field]: value, isConfirmed: false };
-        
+
         if (field === 'questionId') {
             newConditions[index].operator = '';
             newConditions[index].value = '';
         }
-        
+
         if (validationErrors.has(newConditions[index].id)) {
-             const newErrors = new Map(validationErrors);
-             newErrors.delete(newConditions[index].id);
-             setValidationErrors(newErrors);
+            const newErrors = new Map(validationErrors);
+            newErrors.delete(newConditions[index].id);
+            setValidationErrors(newErrors);
         }
 
         onUpdate({ conditions: newConditions, isConfirmed: false });
@@ -66,7 +68,7 @@ export const LogicSet: React.FC<LogicSetProps> = ({
 
     const handleRemoveCondition = (index: number) => {
         const newConditions = logicSet.conditions.filter((_, i) => i !== index);
-        
+
         if (newConditions.length === 0) {
             // If no conditions left, remove the entire set
             onRemove();
@@ -74,7 +76,7 @@ export const LogicSet: React.FC<LogicSetProps> = ({
             onUpdate({ conditions: newConditions, isConfirmed: false });
         }
     };
-    
+
     const handleAddCondition = () => {
         const newCondition: DisplayLogicCondition = {
             id: generateId('cond'),
@@ -146,14 +148,14 @@ export const LogicSet: React.FC<LogicSetProps> = ({
 
     return (
         <div className="w-full">
-             {(onActionChange || extraActionContent) && (
+            {(onActionChange || extraActionContent) && (
                 <div className="flex items-center gap-2 mb-2 w-full">
                     {onActionChange && actionValue && (
                         <div className="relative w-24 flex-shrink-0">
                             <select
                                 value={actionValue === 'show' ? 'Show' : 'Hide'}
                                 onChange={e => onActionChange(e.target.value === 'Show' ? 'show' : 'hide')}
-                                className="w-full bg-surface border border-outline rounded-md pl-2 pr-6 py-1.5 text-sm text-on-surface font-medium focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                                className="w-full bg-transparent border border-input-border rounded-md pl-2 pr-6 py-1.5 text-sm text-on-surface font-medium focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
                                 aria-label="Logic Action"
                             >
                                 <option value="Show">Show</option>
@@ -166,15 +168,15 @@ export const LogicSet: React.FC<LogicSetProps> = ({
                 </div>
             )}
 
-            <div className={`p-3 border rounded-md relative transition-colors ${
-                setIssues.length > 0 ? 'border-error bg-error-container/5' : 
-                logicSet.isConfirmed ? 'border-outline-variant bg-surface-container' : 'border-primary bg-surface-container-high shadow-sm'
-            }`}>
-                
+            <div className={`p-3 border rounded-md relative transition-colors ${setIssues.length > 0 ? 'border-error bg-error-container/5' :
+                transparentBackground ? 'border-outline-variant bg-transparent' :
+                    logicSet.isConfirmed ? 'border-outline-variant bg-surface-container' : 'border-primary bg-surface-container-high shadow-sm'
+                }`}>
+
                 {setIssues.length > 0 && (
                     <div className="absolute -top-2 -right-2 text-error z-10 group/issues">
                         <WarningIcon className="text-xl bg-surface rounded-full" />
-                         <div className="absolute bottom-full right-0 mb-2 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/issues:opacity-100 transition-opacity pointer-events-none border border-error z-20">
+                        <div className="absolute bottom-full right-0 mb-2 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/issues:opacity-100 transition-opacity pointer-events-none border border-error z-20">
                             <ul className="list-disc list-inside">
                                 {setIssues.map((issue, idx) => <li key={idx}>{issue.message}</li>)}
                             </ul>
@@ -222,7 +224,7 @@ export const LogicSet: React.FC<LogicSetProps> = ({
                                     onRemoveCondition={hasMultipleConditions ? () => handleRemoveCondition(index) : undefined}
                                     onAddCondition={() => handleAddConditionAtIndex(index)}
                                     availableQuestions={availableQuestions}
-                                    isConfirmed={true} 
+                                    isConfirmed={true}
                                     questionWidth={questionWidth}
                                     operatorWidth={operatorWidth}
                                     valueWidth={valueWidth}
@@ -233,16 +235,16 @@ export const LogicSet: React.FC<LogicSetProps> = ({
                         </div>
                     ))}
                 </div>
-                
+
                 <div className="mt-3 flex items-center justify-between">
                     <button onClick={handleAddCondition} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
                         <PlusIcon className="text-base" />
                         Add condition
                     </button>
-                    
+
                     <div className="flex items-center gap-2">
-                        <button 
-                            onClick={logicSet.isConfirmed ? onRemove : handleCancel} 
+                        <button
+                            onClick={logicSet.isConfirmed ? onRemove : handleCancel}
                             className="px-3 py-1.5 text-xs font-bold text-on-surface-variant hover:bg-surface-container-highest rounded-md transition-colors"
                         >
                             {logicSet.isConfirmed ? 'Delete' : 'Cancel'}

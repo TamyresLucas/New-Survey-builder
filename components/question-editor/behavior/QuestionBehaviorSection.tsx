@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import type { Question, Survey, Block, DisplayLogicCondition, DisplayLogic, LogicSet as ILogicSet, LogicIssue } from '../../../types';
 import { ArrowRightAltIcon, PlusIcon, ChevronDownIcon, GridIcon } from '../../icons';
-import { QuestionGroupEditor, PasteInlineForm, CopyAndPasteButton, LogicConditionRow, LogicSet, DisplayLogicSet } from '../../logic-editor/shared';
-import { generateId } from '../../../utils';
+import { QuestionGroupEditor, CopyAndPasteButton, CollapsibleSection, LogicSet, DisplayLogicSet, AdvancedLogicEditor, LogicConditionRow } from '../../logic-editor/shared';
+import { generateId, parseDisplayLogicString, parseVoxcoLogic } from '../../../utils';
 
 interface QuestionBehaviorSectionProps {
     question: Question;
@@ -12,34 +12,35 @@ interface QuestionBehaviorSectionProps {
     onSelectBlock: (block: Block | null, options?: { tab: string; focusOn: string; }) => void;
     onAddLogic: () => void;
     issues?: LogicIssue[];
+    onRequestGeminiHelp: (topic: string) => void;
 }
 
 // Extended type to include Logic Sets
-type ExtendedConditionItem = 
+type ExtendedConditionItem =
     | (DisplayLogicCondition & { logicType: 'display' | 'hide'; itemType: 'condition' })
     | (ILogicSet & { logicType: 'display' | 'hide'; itemType: 'set' });
 
 
-const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ question, survey, previousQuestions = [], onUpdate, onSelectBlock, onAddLogic, issues = [] }) => {
+const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ question, survey, previousQuestions = [], onUpdate, onSelectBlock, onAddLogic, issues = [], onRequestGeminiHelp }) => {
     const [isPasting, setIsPasting] = useState(false);
-    
+
     const displayLogic = question.draftDisplayLogic ?? question.displayLogic;
     const hideLogic = question.draftHideLogic ?? question.hideLogic;
 
     // Merge conditions and sets for unified UI
     const items = useMemo(() => {
         const list: ExtendedConditionItem[] = [];
-        
+
         if (displayLogic) {
             // displayLogic.conditions.forEach(c => list.push({ ...c, logicType: 'display', itemType: 'condition' }));
             if (displayLogic.logicSets) {
                 displayLogic.logicSets.forEach(s => list.push({ ...s, logicType: 'display', itemType: 'set' }));
             }
         }
-        
+
         if (hideLogic) {
             // hideLogic.conditions.forEach(c => list.push({ ...c, logicType: 'hide', itemType: 'condition' }));
-             if (hideLogic.logicSets) {
+            if (hideLogic.logicSets) {
                 hideLogic.logicSets.forEach(s => list.push({ ...s, logicType: 'hide', itemType: 'set' }));
             }
         }
@@ -50,7 +51,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
             return 0;
         });
     }, [displayLogic, hideLogic]);
-    
+
     const currentOperator = useMemo(() => {
         return displayLogic?.operator || hideLogic?.operator || 'AND';
     }, [displayLogic, hideLogic]);
@@ -82,7 +83,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
             value: '',
             isConfirmed: false,
         };
-        
+
         const currentDisplayLogic = displayLogic || { operator: currentOperator, conditions: [] };
         handleUpdateLogics({
             displayLogic: {
@@ -119,8 +120,80 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
 
     // ... (Paste logic preserved) ...
     const handlePasteLogic = (text: string): { success: boolean; error?: string } => {
-        // ... existing implementation ...
-        return { success: false, error: "Not implemented for brevity." };
+        const lines = text.split('\n').filter(l => l.trim());
+        if (lines.length === 0) return { success: false, error: "No logic to paste." };
+
+        const displayConditions: DisplayLogicCondition[] = [];
+        const hideConditions: DisplayLogicCondition[] = [];
+
+        // Build maps for validation
+        const allQuestions = survey.blocks.flatMap(b => b.questions);
+        const qidToQuestion = new Map(allQuestions.filter(q => q.qid).map(q => [q.qid, q]));
+        const questionIndexMap = new Map(allQuestions.map((q, i) => [q.id, i]));
+        const currentQuestionIndex = questionIndexMap.get(question.id) ?? -1;
+
+        for (const line of lines) {
+            let rawLogic = line.trim();
+            let isHide = false;
+
+            if (rawLogic.toUpperCase().startsWith('HIDE IF ')) {
+                isHide = true;
+                rawLogic = 'SHOW IF ' + rawLogic.substring(8);
+            } else if (!rawLogic.toUpperCase().startsWith('SHOW IF ')) {
+                rawLogic = 'SHOW IF ' + rawLogic;
+            }
+
+            const parsed = parseVoxcoLogic(rawLogic, qidToQuestion);
+            if (!parsed || !parsed.conditions || parsed.conditions.length === 0) {
+                return { success: false, error: `Syntax error in line: "${line}". Expected format: "Q1.A1 = 1" or "Q1 = 1"` };
+            }
+
+            for (const cond of parsed.conditions) {
+                const refQ = qidToQuestion.get(cond.questionId);
+                if (!refQ) {
+                    return { success: false, error: `Question "${cond.questionId}" not found in survey.` };
+                }
+
+                const refIndex = questionIndexMap.get(refQ.id) ?? -1;
+                if (refIndex >= currentQuestionIndex) {
+                    return { success: false, error: `Invalid reference: "${cond.questionId}" must appear before the current question.` };
+                }
+            }
+
+            const newConditions = parsed.conditions.map(c => ({
+                ...c,
+                id: generateId('cond'),
+                isConfirmed: true
+            }));
+
+            if (isHide) {
+                hideConditions.push(...newConditions);
+            } else {
+                displayConditions.push(...newConditions);
+            }
+        }
+
+        if (displayConditions.length > 0) {
+            const currentLogic = displayLogic || { operator: 'AND', conditions: [], logicSets: [] };
+            handleUpdateLogics({
+                displayLogic: {
+                    ...currentLogic,
+                    conditions: [...currentLogic.conditions, ...displayConditions]
+                }
+            });
+        }
+
+        if (hideConditions.length > 0) {
+            const currentLogic = hideLogic || { operator: 'AND', conditions: [], logicSets: [] };
+            handleUpdateLogics({
+                hideLogic: {
+                    ...currentLogic,
+                    conditions: [...currentLogic.conditions, ...hideConditions]
+                }
+            });
+        }
+
+        return { success: true };
     };
 
     const handleUpdateCondition = (conditionId: string, logicType: 'display' | 'hide', field: keyof DisplayLogicCondition, value: any) => {
@@ -138,7 +211,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
 
         handleUpdateLogics({ [logicType === 'display' ? 'displayLogic' : 'hideLogic']: { ...targetLogic, conditions: newConditions } });
     };
-    
+
     const handleUpdateLogicSet = (setId: string, logicType: 'display' | 'hide', updates: Partial<ILogicSet>) => {
         const targetLogic = logicType === 'display' ? displayLogic : hideLogic;
         if (!targetLogic || !targetLogic.logicSets) return;
@@ -152,13 +225,13 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
         const sourceLogic = currentType === 'display' ? displayLogic : hideLogic;
         const targetLogic = newType === 'display' ? displayLogic : hideLogic;
         const targetOperator = targetLogic?.operator || currentOperator;
-        
+
         const updates: { displayLogic?: DisplayLogic, hideLogic?: DisplayLogic } = {};
 
         if (itemType === 'condition') {
             const item = sourceLogic?.conditions.find(c => c.id === itemId);
             if (!item) return;
-            
+
             // Update Source
             const newSourceConditions = sourceLogic!.conditions.filter(c => c.id !== itemId);
             updates[currentType === 'display' ? 'displayLogic' : 'hideLogic'] = newSourceConditions.length > 0 || (sourceLogic?.logicSets?.length ?? 0) > 0 ? { ...sourceLogic!, conditions: newSourceConditions } : undefined;
@@ -179,7 +252,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
             const newTargetSets = [...(targetLogic?.logicSets || []), item];
             updates[newType === 'display' ? 'displayLogic' : 'hideLogic'] = { ...targetLogic, operator: targetOperator, conditions: targetLogic?.conditions || [], logicSets: newTargetSets };
         }
-        
+
         handleUpdateLogics(updates);
     };
 
@@ -195,7 +268,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
             handleUpdateLogics({ [logicType === 'display' ? 'displayLogic' : 'hideLogic']: { ...targetLogic, logicSets: newSets } });
         }
     };
-    
+
     const handleConfirmCondition = (conditionId: string, logicType: 'display' | 'hide') => {
         const targetLogic = logicType === 'display' ? displayLogic : hideLogic;
         if (!targetLogic) return;
@@ -206,7 +279,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
     return (
         <div className="space-y-4">
             <QuestionGroupEditor question={question} survey={survey} onUpdate={onUpdate} />
-            
+
             <button
                 onClick={handleSetRandomization}
                 className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors"
@@ -218,7 +291,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
             <div className="border-t border-outline-variant pt-4">
                 <h3 className="text-sm font-medium text-on-surface mb-0.5">Question display logic</h3>
                 <p className="text-xs text-on-surface-variant mb-3">Display this question only if the following condition is met.</p>
-                
+
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-4">
                         {/* Add condition button hidden as per previous request */}
@@ -234,46 +307,50 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
 
                 {isPasting && (
                     <div className="mb-4">
-                        <PasteInlineForm
+                        <AdvancedLogicEditor
                             onSave={handlePasteLogic}
                             onCancel={() => setIsPasting(false)}
                             placeholder={"Q1 equals Yes\nHIDE IF Q2 equals No"}
-                            primaryActionLabel="Add Logic"
+                            primaryActionLabel="Apply Logic"
                             disclosureText="Enter one condition per line. Use 'HIDE IF' or 'SHOW IF'."
+                            transparentBackground={true}
+                            onRequestGeminiHelp={onRequestGeminiHelp}
+                            helpTopic="Advanced Logic Syntax"
                         />
                     </div>
                 )}
 
                 <div className="space-y-2">
-                     {items.map((item) => (
+                    {items.map((item) => (
                         <React.Fragment key={item.id}>
-                        {item.itemType === 'condition' ? (
-                             // Condition rendering logic
-                            <div className="w-full">
-                                <LogicConditionRow
-                                    condition={item}
-                                    onUpdateCondition={(field, value) => handleUpdateCondition(item.id, item.logicType, field, value)}
-                                    onRemoveCondition={() => handleRemoveItem(item.id, 'condition', item.logicType)}
-                                    onConfirm={() => handleConfirmCondition(item.id, item.logicType)}
+                            {item.itemType === 'condition' ? (
+                                // Condition rendering logic
+                                <div className="w-full">
+                                    <LogicConditionRow
+                                        condition={item}
+                                        onUpdateCondition={(field, value) => handleUpdateCondition(item.id, item.logicType, field, value)}
+                                        onRemoveCondition={() => handleRemoveItem(item.id, 'condition', item.logicType)}
+                                        onConfirm={() => handleConfirmCondition(item.id, item.logicType)}
+                                        availableQuestions={previousQuestions}
+                                        isConfirmed={item.isConfirmed === true}
+                                    />
+                                </div>
+                            ) : (
+                                <DisplayLogicSet
+                                    logicSet={item}
                                     availableQuestions={previousQuestions}
-                                    isConfirmed={item.isConfirmed === true}
+                                    onUpdate={(updates) => handleUpdateLogicSet(item.id, item.logicType, updates)}
+                                    onRemove={() => handleRemoveItem(item.id, 'set', item.logicType)}
+                                    questionWidth="w-[28%]"
+                                    operatorWidth="w-[28%]"
+                                    valueWidth="w-[28%]"
+                                    actionValue={item.logicType === 'display' ? 'show' : 'hide'}
+                                    onActionChange={(val) => handleTypeChange(item.id, item.itemType, item.logicType, val === 'show' ? 'display' : 'hide')}
+                                    label={question.qid}
+                                    issues={issues.filter(i => i.sourceId === item.id)}
+                                    transparentBackground={true}
                                 />
-                            </div>
-                        ) : (
-                            <DisplayLogicSet 
-                                logicSet={item}
-                                availableQuestions={previousQuestions}
-                                onUpdate={(updates) => handleUpdateLogicSet(item.id, item.logicType, updates)}
-                                onRemove={() => handleRemoveItem(item.id, 'set', item.logicType)}
-                                questionWidth="w-[28%]"
-                                operatorWidth="w-[28%]"
-                                valueWidth="w-[28%]"
-                                actionValue={item.logicType === 'display' ? 'show' : 'hide'}
-                                onActionChange={(val) => handleTypeChange(item.id, item.itemType, item.logicType, val === 'show' ? 'display' : 'hide')}
-                                label={question.qid}
-                                issues={issues.filter(i => i.sourceId === item.id)}
-                            />
-                        )}
+                            )}
                         </React.Fragment>
                     ))}
                 </div>

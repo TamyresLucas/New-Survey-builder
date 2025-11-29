@@ -62,18 +62,19 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({
 
             <CollapsibleSection title="Question" defaultExpanded={true}>
                 <div className="py-6 first:pt-0">
-                    <QuestionBehaviorSection 
-                        question={question} 
+                    <QuestionBehaviorSection
+                        question={question}
                         survey={survey}
                         previousQuestions={previousQuestions}
-                        onUpdate={onUpdate} 
+                        onUpdate={onUpdate}
                         onSelectBlock={onSelectBlock}
                         onAddLogic={onAddLogic}
                         issues={issues} // Pass issues down
+                        onRequestGeminiHelp={onRequestGeminiHelp}
                     />
                 </div>
             </CollapsibleSection>
-            
+
             {isChoiceBased && (
                 <CollapsibleSection title="Choices" defaultExpanded={true}>
                     <ChoiceBehaviorSection

@@ -92,7 +92,7 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onClick={() => onSelectQuestion(question)}
-        className={`box-border flex flex-row items-center p-2 gap-2 h-[35px] rounded text-sm transition-all group relative border cursor-grab ${isSelected ? 'bg-primary border-primary text-on-primary' : 'border-outline-variant hover:bg-surface-container-high'} ${isQuestionDragged ? 'opacity-30' : ''}`}
+        className={`box-border flex flex-row items-center p-2 gap-2 h-[35px] rounded text-sm transition-all group relative border cursor-grab ${isSelected ? 'bg-primary border-primary text-on-primary' : 'bg-surface-container border-outline-variant hover:bg-surface-container-high'} ${isQuestionDragged ? 'opacity-30' : ''}`}
       >
         <div className="flex items-center flex-shrink-0">
           <TypeIcon className={`text-base mr-2 ${isSelected ? 'text-on-primary' : 'text-primary'}`} />
@@ -532,6 +532,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
         {activeTab === 'Content' && (
           <div
             ref={contentListRef}
+            className="bg-surface min-h-full"
             style={{ fontFamily: "'Open Sans', sans-serif" }}
             onDragOver={!isSearching ? handleBlockDragOver : undefined}
             onDrop={!isSearching ? handleBlockDrop : undefined}
@@ -568,7 +569,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                       onDragStart={!isSearching ? (e) => handleBlockDragStart(e, block.id) : undefined}
                       onDragEnd={!isSearching ? handleBlockDragEnd : undefined}
                       onClick={() => onSelectBlock(block)}
-                      className={`px-4 py-2 cursor-pointer border-b border-t border-outline-variant flex items-center justify-between ${isSelected ? 'bg-primary-container' : 'bg-surface-container-high'}`}
+                      className={`px-4 py-2 cursor-pointer border-b border-t border-outline-variant flex items-center justify-between ${isSelected ? 'bg-primary-container' : 'bg-surface-container hover:bg-surface-container-high'}`}
                     >
                       <div className="flex items-center cursor-grab flex-grow truncate">
                         <DragIndicatorIcon className="text-base mr-2 text-on-surface-variant flex-shrink-0" />

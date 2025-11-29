@@ -2,45 +2,44 @@ import React, { useState, useMemo } from 'react';
 import type { Question, QuestionType, ToolboxItemData, Survey } from '../types';
 import { ChevronRightIcon } from './icons';
 
-export const QuestionTypeSelectionMenuContent: React.FC<{ 
+export const QuestionTypeSelectionMenuContent: React.FC<{
   onSelect: (type: QuestionType) => void;
   toolboxItems: ToolboxItemData[];
 }> = ({ onSelect, toolboxItems }) => {
-    const enabledTypes = new Set(['Description', 'Checkbox', 'Radio Button', 'Text Entry', 'Choice Grid']);
+  const enabledTypes = new Set(['Description', 'Checkbox', 'Radio Button', 'Text Entry', 'Choice Grid']);
 
-    const questionTypeOptions = toolboxItems
-      .filter(item => item.name !== 'Block' && item.name !== 'Page Break')
-      .map(item => ({
-        type: item.name as QuestionType,
-        label: item.name,
-        icon: item.icon,
-        isEnabled: enabledTypes.has(item.name),
-      }));
+  const questionTypeOptions = toolboxItems
+    .filter(item => item.name !== 'Block' && item.name !== 'Page Break')
+    .map(item => ({
+      type: item.name as QuestionType,
+      label: item.name,
+      icon: item.icon,
+      isEnabled: enabledTypes.has(item.name),
+    }));
 
-    return (
-      <ul className="w-full max-h-80 overflow-y-auto bg-surface-container border border-outline-variant rounded-md shadow-lg z-20 py-1" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-        {questionTypeOptions.map(({ type, label, icon: Icon, isEnabled }) => (
-          <li key={type}>
-            <button
-              onClick={(e) => {
-                if (!isEnabled) return;
-                e.stopPropagation();
-                onSelect(type);
-              }}
-              disabled={!isEnabled}
-              className={`w-full text-left px-4 py-2 text-sm flex items-center ${
-                  isEnabled 
-                  ? 'text-on-surface hover:bg-surface-container-high' 
-                  : 'text-on-surface-variant opacity-70 cursor-not-allowed'
+  return (
+    <ul className="w-full max-h-80 overflow-y-auto bg-surface-container border border-outline-variant rounded-md shadow-lg z-20 py-1" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+      {questionTypeOptions.map(({ type, label, icon: Icon, isEnabled }) => (
+        <li key={type}>
+          <button
+            onClick={(e) => {
+              if (!isEnabled) return;
+              e.stopPropagation();
+              onSelect(type);
+            }}
+            disabled={!isEnabled}
+            className={`w-full text-left px-4 py-2 text-sm flex items-center ${isEnabled
+                ? 'text-on-surface hover:bg-surface-container-high'
+                : 'text-on-surface-variant opacity-70 cursor-not-allowed'
               }`}
-            >
-              <Icon className={`text-base mr-3 flex-shrink-0 ${isEnabled ? 'text-primary' : 'text-on-surface-variant'}`} />
-              <span className="truncate">{label}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    );
+          >
+            <Icon className={`text-base mr-3 flex-shrink-0 ${isEnabled ? 'text-primary' : 'text-on-surface-variant'}`} />
+            <span className="truncate">{label}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
 };
 
 
@@ -72,19 +71,19 @@ export const BlockActionsMenu: React.FC<BlockActionsMenuProps> = ({ onEdit, onMo
     <div className="absolute top-full right-0 mt-2 w-48 bg-surface-container border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
       {onEdit && (
         <>
-            <div className="py-1">
-                <button onClick={onEdit} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Edit block</button>
-            </div>
-            <div className="border-t border-dotted border-outline-variant mx-2" />
+          <div className="py-1">
+            <button onClick={onEdit} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Edit block</button>
+          </div>
+          <div className="border-t border-dotted border-outline-variant mx-2" />
         </>
       )}
       {(onMoveUp || onMoveDown) && (
         <>
-            <div className="py-1">
-                {onMoveUp && <button onClick={onMoveUp} disabled={!canMoveUp} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high disabled:opacity-50 disabled:cursor-not-allowed">Move up</button>}
-                {onMoveDown && <button onClick={onMoveDown} disabled={!canMoveDown} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high disabled:opacity-50 disabled:cursor-not-allowed">Move down</button>}
-            </div>
-            <div className="border-t border-dotted border-outline-variant mx-2" />
+          <div className="py-1">
+            {onMoveUp && <button onClick={onMoveUp} disabled={!canMoveUp} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high disabled:opacity-50 disabled:cursor-not-allowed">Move up</button>}
+            {onMoveDown && <button onClick={onMoveDown} disabled={!canMoveDown} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high disabled:opacity-50 disabled:cursor-not-allowed">Move down</button>}
+          </div>
+          <div className="border-t border-dotted border-outline-variant mx-2" />
         </>
       )}
       {onDuplicate && (
@@ -97,7 +96,7 @@ export const BlockActionsMenu: React.FC<BlockActionsMenuProps> = ({ onEdit, onMo
       )}
       <div className="py-1">
         {onAddSimpleQuestion && (
-            <button onClick={onAddSimpleQuestion} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add new question</button>
+          <button onClick={onAddSimpleQuestion} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add new question</button>
         )}
         {onAddFromLibrary && <button onClick={onAddFromLibrary} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add from library</button>}
         {onAddBlockAbove && <button onClick={onAddBlockAbove} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add block above</button>}
@@ -114,12 +113,12 @@ export const BlockActionsMenu: React.FC<BlockActionsMenuProps> = ({ onEdit, onMo
         {canCollapse && onCollapse && <button onClick={onCollapse} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Collapse block</button>}
       </div>
       {onDelete && (
-          <>
-            <div className="border-t border-dotted border-outline-variant mx-2" />
-            <div className="py-1">
-                <button onClick={onDelete} className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container">Delete</button>
-            </div>
-          </>
+        <>
+          <div className="border-t border-dotted border-outline-variant mx-2" />
+          <div className="py-1">
+            <button onClick={onDelete} className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container">Delete</button>
+          </div>
+        </>
       )}
     </div>
   );
@@ -140,59 +139,59 @@ interface QuestionActionsMenuProps {
 }
 
 export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ question, onDuplicate, onDelete, onAddPageBreak, onMoveToNewBlock, onReplaceFromLibrary, onPreview, onActivate, onDeactivate }) => {
-    return (
-        <div className="absolute top-full right-0 mt-2 w-56 bg-surface-container-high border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-            <ul className="py-1">
-                {onMoveToNewBlock && (
-                    <li>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onMoveToNewBlock(); }}
-                            className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest"
-                        >
-                            Move to new block
-                        </button>
-                    </li>
-                )}
-                {onDuplicate && <li><button onClick={(e) => { e.stopPropagation(); onDuplicate(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Duplicate</button></li>}
-                {onReplaceFromLibrary && <li><button onClick={(e) => { e.stopPropagation(); onReplaceFromLibrary(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Replace from library</button></li>}
-                <li><button onClick={(e) => { e.stopPropagation(); alert('Not implemented'); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Add to library</button></li>
-                {onAddPageBreak && <li><button onClick={(e) => { e.stopPropagation(); onAddPageBreak(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Add page break</button></li>}
-            </ul>
-            {onPreview && (
-                <>
-                    <div className="border-t border-dotted border-outline-variant mx-2" />
-                    <ul className="py-1">
-                        <li><button onClick={(e) => { e.stopPropagation(); onPreview(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Preview</button></li>
-                    </ul>
-                </>
+  return (
+    <div className="absolute top-full right-0 mt-2 w-56 bg-surface-container border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+      <ul className="py-1">
+        {onMoveToNewBlock && (
+          <li>
+            <button
+              onClick={(e) => { e.stopPropagation(); onMoveToNewBlock(); }}
+              className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high"
+            >
+              Move to new block
+            </button>
+          </li>
+        )}
+        {onDuplicate && <li><button onClick={(e) => { e.stopPropagation(); onDuplicate(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Duplicate</button></li>}
+        {onReplaceFromLibrary && <li><button onClick={(e) => { e.stopPropagation(); onReplaceFromLibrary(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Replace from library</button></li>}
+        <li><button onClick={(e) => { e.stopPropagation(); alert('Not implemented'); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add to library</button></li>
+        {onAddPageBreak && <li><button onClick={(e) => { e.stopPropagation(); onAddPageBreak(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add page break</button></li>}
+      </ul>
+      {onPreview && (
+        <>
+          <div className="border-t border-dotted border-outline-variant mx-2" />
+          <ul className="py-1">
+            <li><button onClick={(e) => { e.stopPropagation(); onPreview(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Preview</button></li>
+          </ul>
+        </>
+      )}
+      {(onActivate || onDeactivate) && (
+        <>
+          <div className="border-t border-dotted border-outline-variant mx-2" />
+          <ul className="py-1">
+            {question.isHidden ? (
+              onActivate && <li><button onClick={(e) => { e.stopPropagation(); onActivate(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Activate</button></li>
+            ) : (
+              onDeactivate && <li><button onClick={(e) => { e.stopPropagation(); onDeactivate(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Deactivate</button></li>
             )}
-            {(onActivate || onDeactivate) && (
-                <>
-                    <div className="border-t border-dotted border-outline-variant mx-2" />
-                    <ul className="py-1">
-                        {question.isHidden ? (
-                            onActivate && <li><button onClick={(e) => { e.stopPropagation(); onActivate(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Activate</button></li>
-                        ) : (
-                            onDeactivate && <li><button onClick={(e) => { e.stopPropagation(); onDeactivate(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest">Deactivate</button></li>
-                        )}
-                    </ul>
-                </>
-            )}
-            {onDelete && (
-                <>
-                    <div className="border-t border-dotted border-outline-variant mx-2" />
-                    <div className="py-1">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                            className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container"
-                        >
-                            Delete
-                        </button>
-                    </div>
-                </>
-            )}
-        </div>
-    );
+          </ul>
+        </>
+      )}
+      {onDelete && (
+        <>
+          <div className="border-t border-dotted border-outline-variant mx-2" />
+          <div className="py-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container"
+            >
+              Delete
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
 };
 
 // Simplified menu for Page Break elements
@@ -202,33 +201,33 @@ interface PageBreakActionsMenuProps {
 }
 
 export const PageBreakActionsMenu: React.FC<PageBreakActionsMenuProps> = ({ onMoveToNewBlock, onDelete }) => {
-    return (
-        <div className="absolute top-full right-0 mt-2 w-56 bg-surface-container-high border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-            <ul className="py-1">
-                {onMoveToNewBlock && (
-                    <li>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onMoveToNewBlock(); }}
-                            className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-highest"
-                        >
-                            Move to new block
-                        </button>
-                    </li>
-                )}
-            </ul>
-            {onDelete && (
-                <>
-                    <div className="border-t border-dotted border-outline-variant mx-2" />
-                    <div className="py-1">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                            className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container"
-                        >
-                            Delete
-                        </button>
-                    </div>
-                </>
-            )}
-        </div>
-    );
+  return (
+    <div className="absolute top-full right-0 mt-2 w-56 bg-surface-container border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+      <ul className="py-1">
+        {onMoveToNewBlock && (
+          <li>
+            <button
+              onClick={(e) => { e.stopPropagation(); onMoveToNewBlock(); }}
+              className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high"
+            >
+              Move to new block
+            </button>
+          </li>
+        )}
+      </ul>
+      {onDelete && (
+        <>
+          <div className="border-t border-dotted border-outline-variant mx-2" />
+          <div className="py-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container"
+            >
+              Delete
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
 };

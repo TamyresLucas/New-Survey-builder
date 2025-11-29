@@ -290,7 +290,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
       data-block-id={block.id}
     >
       <div
-        className={`flex items-center justify-between p-4 rounded-t-lg transition-colors ${isSelected ? 'bg-primary-container' : 'bg-surface-container-high'}`}
+        className={`flex items-center justify-between p-4 rounded-t-lg ${!isCollapsed ? 'border-b border-outline-variant' : ''}`}
         draggable="true"
         onDragStart={(e) => {
           if ((e.target as HTMLElement).closest('.collapse-toggle-area, .actions-menu-area, input')) {

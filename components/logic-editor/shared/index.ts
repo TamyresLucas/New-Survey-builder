@@ -6,6 +6,6 @@ export * from './DestinationRow';
 export * from './DisplayLogicSet';
 export * from './ForceResponseSection';
 export * from './LogicConditionRow';
-export * from './PasteInlineForm';
+export * from './AdvancedLogicEditor';
 export * from './QuestionGroupEditor';
 export * from './LogicSet';

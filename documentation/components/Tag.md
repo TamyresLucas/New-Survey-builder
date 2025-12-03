@@ -14,12 +14,18 @@ Used primarily in the Header to indicate the survey's lifecycle state.
 
 ### Variants
 
-| State | Background | Border | Text Color | Example |
-| :--- | :--- | :--- | :--- | :--- |
-| **Active** | `bg-success-container` | `border-success` | `text-on-success-container` | Active |
-| **Stopped** | `bg-error-container` | `border-error` | `text-on-error-container` | Stopped |
-| **Draft** | `bg-surface-container-high` | `border-outline` | `text-on-surface` | Draft |
 | **Pending** | `bg-warning-container` | `border-warning` | `text-on-warning-container` | Pending update |
+
+## States
+
+| State | Visual Change |
+| :--- | :--- |
+| **Default** | See Variants table above. |
+| **Hover** | None (Tags are typically static indicators). |
+| **Focused** | None (unless interactive). |
+| **Disabled** | `opacity-50` (if applicable). |
+
+## Feature Tags
 
 ## Feature Tags
 

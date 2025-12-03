@@ -52,9 +52,9 @@ The Dropdown component provides a user-friendly way to select a single option fr
 -   **Typography**: `text-sm` (14px), `text-on-surface`
 
 ### Dropdown List (Container)
-Inherits styling and behavior from the [Dropdown List](./DropdownList.md) component.
-
 -   **Background**: `bg-surface-container`
+    -   *Light Mode*: White / Light Grey
+    -   *Dark Mode*: Dark Grey (Surface Container)
 -   **Border**: `border border-outline-variant`
 -   **Shadow**: `shadow-lg`
 -   **Spacing**: `mt-1` (4px margin from trigger)

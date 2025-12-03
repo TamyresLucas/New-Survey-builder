@@ -1,47 +1,84 @@
-# QuestionCard
+# Question Card Component
 
-The `QuestionCard` component is the primary interface for viewing and editing individual survey questions. It supports various question types, drag-and-drop operations, and a specialized **Print View**.
+The Question Card is the primary interface for editing questions within the Survey Canvas. It encapsulates all settings, content, and actions for a single question.
 
-## Props
+## Structure
 
-The component accepts standard question data and callbacks, plus:
+The card uses a grid layout to align the selection checkbox with the content.
 
-*   `printMode` (boolean): Optional. If `true`, renders the card in a simplified "Print View" state, hiding interactive controls. Defaults to `false`.
+```tsx
+<div className="p-4 rounded-lg border transition-all cursor-grab group grid grid-cols-[auto_1fr] items-start gap-x-3 relative ...">
+  {/* Column 1: Selection Checkbox */}
+  <input type="checkbox" className="h-4 w-4 ..." />
 
-## Print View State
+  {/* Column 2: Content */}
+  <div className="col-start-2 min-w-0">
+    {/* Header: ID, Tags, Type Selector, Actions */}
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center ...">
+        <span className="font-bold ...">QID</span>
+        {/* Tags */}
+      </div>
+      <div className="flex items-center gap-2">
+        <QuestionTypeSelector />
+        <QuestionActionsButton />
+      </div>
+    </div>
 
-The Print View state is designed for generating static, printable representations of questions. It modifies the component structure as follows:
+    {/* Body: Question Text */}
+    <EditableText className="text-on-surface min-h-[24px] ..." />
 
-### Hidden Elements
-In `printMode`, the following interactive elements are hidden to produce a clean output:
+    {/* Body: Input Area (Varies by Type) */}
+    <div className="mt-4">
+      {/* Radio, Checkbox, Text Entry, etc. */}
+    </div>
+  </div>
+</div>
+```
 
-1.  **Question Type Selector**: The dropdown menu button in the header is removed.
-2.  **Question Actions Menu**: The "More Actions" (three dots) button is removed.
-3.  **Add/Remove Controls**:
-    *   "Add row" / "Add column" buttons (Choice Grid).
-    *   "Add choice" button (Radio/Checkbox).
-    *   "Remove row" / "Remove column" / "Remove choice" buttons (X icons).
-4.  **Drag Indicators**: Handles for reordering choices, rows, or questions are hidden.
-5.  **Page Break Actions**: Interactive controls for Page Break questions are removed.
+## Styling Specifications
 
-### Visual Changes
-*   The overall card layout remains consistent (Grid based), maintaining visual parity with the editor but without "chrome".
-*   The card border and spacing remain to distinguish questions in the printed list.
-*   Field inputs (Text Entry areas) remain visible but static placeholders.
+-   **Padding**: `p-4` (16px)
+-   **Border**: `border` (1px)
+-   **Radius**: `rounded-lg` (8px)
+-   **Layout**: `grid grid-cols-[auto_1fr]` with `gap-x-3` (12px)
+-   **Cursor**: `cursor-grab` (Indicates draggability)
+-   **Transition**: `transition-all`
+
+## States & Color Tokens
+
+| State | Background | Border | Shadow | Opacity |
+| :--- | :--- | :--- | :--- | :--- |
+| **Default** | `bg-surface` (Implicit) | `border-outline-variant` | None | 100% |
+| **Hover** | `bg-surface` | `border-outline` | `shadow-md` | 100% |
+| **Selected** | `bg-surface` | `border-primary` | `shadow-md` | 100% |
+| **Selected (Error)** | `bg-surface` | `border-error` | `shadow-md` | 100% |
+| **Hidden** | `bg-surface-container` | `border-outline-variant` | None | 60% |
+| **Dragged** | `bg-surface` | `border-outline-variant` | None | 50% |
+
+### Child Elements
+
+-   **Checkbox**:
+    -   Size: `h-4 w-4`
+    -   Color: `text-primary`
+    -   Border: `border-input-border`
+-   **Question ID**: `font-bold text-on-surface`
+-   **Question Text**: `text-on-surface`
+-   **Input Elements**:
+    -   Radio/Checkbox Icons: `text-xl` (`text-primary` for selected, `text-on-surface-variant` for unselected)
+    -   Text Inputs: `border-input-border rounded-md p-2 text-sm`
+
+## Components Used
+
+-   **Question Type Selector**: See `QuestionSelectorDropdown.md` (Note: Uses specific 32px height implementation).
+-   **Question Actions**: Small Tertiary Button (`w-8 h-8`).
+-   **Tags**: See `Tag.md`.
 
 ## Usage
 
-```tsx
-<QuestionCard
-  question={questionData}
-  survey={surveyData}
-  // ... required callbacks
-  printMode={true} // Enable Print View
-/>
-```
-
-## Design Compliance
-
-- [x] Supports `printMode` prop for static rendering.
-- [x] Hides all non-essential UI elements (buttons, menus, drag handles) in Print View.
-- [x] Preserves core layout and content visibility.
+-   **Survey Canvas**: Represents individual questions within a Block.
+-   **Interaction**:
+    -   Click anywhere to select.
+    -   Drag to reorder.
+    -   Use the header controls to change type or perform actions.
+    -   Edit text inline.

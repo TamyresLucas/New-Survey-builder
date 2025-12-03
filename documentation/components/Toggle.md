@@ -37,6 +37,16 @@ The toggle component typically consists of a label and the switch itself, wrappe
 -   **Transition**: `transition-all`
 -   **Interaction**: Translates horizontally when checked (`peer-checked:after:translate-x-full`)
 
+## States
+
+| State | Track Color | Knob Position |
+| :--- | :--- | :--- |
+| **Default (Off)** | `bg-outline` | Left (`left-[2px]`) |
+| **Checked (On)** | `bg-primary` | Right (`translate-x-full`) |
+| **Hover** | `cursor-pointer` (on label) | - |
+| **Focused** | `focus:ring-2` `focus:ring-primary` (on input) | - |
+| **Disabled** | `opacity-50` `cursor-not-allowed` | - |
+
 ## Usage Examples
 
 -   **Activate Survey**: Used in the Header to toggle the survey's active status.

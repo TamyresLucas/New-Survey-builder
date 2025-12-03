@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Block, Survey, Question, QuestionRandomizationRule, RandomizationPattern, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, DisplayLogic, DisplayLogicCondition } from '../types';
 import { QuestionType } from '../types';
-import { XIcon, ChevronDownIcon, PlusIcon, InfoIcon } from './icons';
+import { XIcon, ChevronDownIcon, PlusIcon, InfoIcon, ExpandIcon, CollapseIcon } from './icons';
 import { generateId, truncate, parseChoice, isBranchingLogicExhaustive } from '../utils';
 import { CollapsibleSection } from './logic-editor/shared';
 import { BlockDisplayLogicEditor } from './logic-editor/BlockDisplayLogicEditor';
 import { BlockSkipLogicEditor } from './logic-editor/BlockSkipLogicEditor';
+import { Button } from './Button';
 
 
 interface BlockSidebarProps {
@@ -562,10 +563,12 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
           Edit Block {block.bid}
         </h2>
         <div className="flex items-center gap-2">
-          {/* Expand/Collapse buttons would go here */}
-          <button onClick={onClose} className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high" aria-label="Close panel">
+          <Button variant="tertiary" iconOnly onClick={onToggleExpand} aria-label={isExpanded ? 'Collapse panel' : 'Expand panel'}>
+            {isExpanded ? <CollapseIcon className="text-xl" /> : <ExpandIcon className="text-xl" />}
+          </Button>
+          <Button variant="tertiary" iconOnly onClick={onClose} aria-label="Close panel">
             <XIcon className="text-xl" />
-          </button>
+          </Button>
         </div>
       </header>
 

@@ -3,6 +3,7 @@ import type { Question, DisplayLogicCondition, BranchingLogicCondition, LogicIss
 import { QuestionType } from '../../../types';
 import { CHOICE_BASED_QUESTION_TYPES, parseChoice, truncate } from '../../../utils';
 import { XIcon, ChevronDownIcon, CheckmarkIcon, InfoIcon, PlusIcon } from '../../icons';
+import { QuestionSelectorDropdown } from '../../QuestionSelectorDropdown';
 
 export const LogicConditionRow: React.FC<{
     condition: DisplayLogicCondition | BranchingLogicCondition;
@@ -151,16 +152,12 @@ export const LogicConditionRow: React.FC<{
                         </div>
                     ) : (
                         <>
-                            <select
-                                value={condition.questionId}
-                                onChange={(e) => onUpdateCondition('questionId', e.target.value)}
-                                className={`w-full bg-transparent border rounded-md px-4 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${questionBorderClass}`}
-                                aria-label="Select question"
-                            >
-                                <option value="">Select question</option>
-                                {availableQuestions.map(q => <option key={q.id} value={q.qid}>{q.qid}: {truncate(q.text, 30)}</option>)}
-                            </select>
-                            <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl" />
+                            <QuestionSelectorDropdown
+                                questions={availableQuestions}
+                                selectedQuestionId={condition.questionId}
+                                onSelect={(qid) => onUpdateCondition('questionId', qid)}
+                                className={`w-full ${questionBorderClass}`}
+                            />
                         </>
                     )}
                     <Tooltip issue={questionIssue} />

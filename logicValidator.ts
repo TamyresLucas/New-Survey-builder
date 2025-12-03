@@ -21,10 +21,10 @@ const checkAndLogicForContradictions = (
     type: 'display' | 'hide' | 'branching'
 ): LogicIssue[] => {
     const issues: LogicIssue[] = [];
-    
+
     // Group conditions by the source question they reference
     const conditionsBySource = new Map<string, (DisplayLogicCondition | BranchingLogicCondition)[]>();
-    
+
     for (const condition of conditions) {
         if (!condition.questionId) continue;
         if (!conditionsBySource.has(condition.questionId)) {
@@ -76,7 +76,7 @@ const checkAndLogicForContradictions = (
 
         // 3. Check for Mutually Exclusive Equals (Single Choice Questions)
         const isSingleChoice = sourceQuestion.type === QuestionType.Radio || sourceQuestion.type === QuestionType.DropDownList;
-        
+
         if (isSingleChoice && equalsValues.size > 1) {
             issues.push({
                 questionId: currentQuestionId,
@@ -86,10 +86,10 @@ const checkAndLogicForContradictions = (
                 field: 'value'
             });
         }
-        
+
         // 4. Check for Value Requirement vs Empty Requirement
         if (requiresEmpty && (equalsValues.size > 0 || notEqualsValues.size > 0)) {
-             issues.push({
+            issues.push({
                 questionId: currentQuestionId,
                 type,
                 message: `Contradiction: Logic requires ${sourceQid} to be empty, but also checks for a value.`,
@@ -124,8 +124,8 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
             const currentBlockIndex = blockOfQuestionMap.get(question.id)!;
 
             const validateCondition = (condition: any, type: 'display' | 'hide', sourceId: string) => {
-                if (!condition.questionId) return; 
-                
+                if (!condition.questionId) return;
+
                 const sourceQuestion = byQid.get(condition.questionId);
                 if (!sourceQuestion) {
                     issues.push({
@@ -158,7 +158,7 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
                     logic.logicSets.forEach(set => {
                         // Check conditions within the set
                         set.conditions.forEach(c => validateCondition(c, 'display', set.id));
-                        
+
                         // Advanced Semantic Check for Sets (AND)
                         if (set.operator === 'AND') {
                             const contradictions = checkAndLogicForContradictions(set.conditions, byQid, question.id, set.id, 'display');
@@ -166,7 +166,7 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
                         }
                     });
                 }
-                
+
                 // Advanced Semantic Check for Top Level (AND)
                 if (logic.operator === 'AND') {
                     const contradictions = checkAndLogicForContradictions(logic.conditions, byQid, question.id, 'root', 'display');
@@ -178,18 +178,18 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
             if (question.hideLogic) {
                 const logic = question.hideLogic;
                 logic.conditions.forEach(c => validateCondition(c, 'hide', c.id));
-                 if (logic.logicSets) {
+                if (logic.logicSets) {
                     logic.logicSets.forEach(set => {
                         set.conditions.forEach(c => validateCondition(c, 'hide', set.id));
                         if (set.operator === 'AND') {
                             const contradictions = checkAndLogicForContradictions(set.conditions, byQid, question.id, set.id, 'hide');
-                             issues.push(...contradictions);
+                            issues.push(...contradictions);
                         }
                     });
                 }
                 if (logic.operator === 'AND') {
-                     const contradictions = checkAndLogicForContradictions(logic.conditions, byQid, question.id, 'root', 'hide');
-                     issues.push(...contradictions);
+                    const contradictions = checkAndLogicForContradictions(logic.conditions, byQid, question.id, 'root', 'hide');
+                    issues.push(...contradictions);
                 }
             }
 
@@ -248,7 +248,7 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
                 } else if (question.skipLogic.type === 'per_choice') {
                     for (const rule of question.skipLogic.rules) {
                         if (!question.choices?.some(c => c.id === rule.choiceId)) {
-                             issues.push({
+                            issues.push({
                                 questionId: question.id,
                                 type: 'skip',
                                 message: `A choice associated with this skip rule has been deleted.`,
@@ -264,13 +264,13 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
             // 3. Validate Branching Logic
             if (question.branchingLogic) {
                 const validateBranchTarget = (target: string, sourceId?: string) => {
-                     if (target === 'next' || target === 'end' || !target) return;
-                     
-                     if (target.startsWith('block:')) {
+                    if (target === 'next' || target === 'end' || !target) return;
+
+                    if (target.startsWith('block:')) {
                         const blockId = target.substring(6);
                         const targetBlockIndex = survey.blocks.findIndex(b => b.id === blockId);
                         if (targetBlockIndex === -1) {
-                             issues.push({
+                            issues.push({
                                 questionId: question.id,
                                 type: 'branching',
                                 message: `The destination block no longer exists.`,
@@ -278,7 +278,7 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
                                 field: 'skipTo',
                             });
                         } else if (targetBlockIndex < currentBlockIndex) {
-                             issues.push({
+                            issues.push({
                                 questionId: question.id,
                                 type: 'branching',
                                 message: `Branching backward to a previous block can cause loops.`,
@@ -286,33 +286,33 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
                                 field: 'skipTo',
                             });
                         }
-                     } else {
+                    } else {
                         const targetQuestion = byId.get(target);
                         if (!targetQuestion) {
-                           issues.push({
-                               questionId: question.id,
-                               type: 'branching',
-                               message: `The destination question no longer exists.`,
-                               sourceId,
-                               field: 'skipTo',
-                           });
+                            issues.push({
+                                questionId: question.id,
+                                type: 'branching',
+                                message: `The destination question no longer exists.`,
+                                sourceId,
+                                field: 'skipTo',
+                            });
                         } else {
-                           const targetQuestionIndex = byIndex.get(targetQuestion.id)!;
-                           if (targetQuestionIndex <= currentQuestionIndex) {
+                            const targetQuestionIndex = byIndex.get(targetQuestion.id)!;
+                            if (targetQuestionIndex <= currentQuestionIndex) {
                                 issues.push({
-                                   questionId: question.id,
-                                   type: 'branching',
-                                   message: `Branching backward to ${targetQuestion.qid} can cause loops.`,
-                                   sourceId,
-                                   field: 'skipTo',
-                               });
-                           }
+                                    questionId: question.id,
+                                    type: 'branching',
+                                    message: `Branching backward to ${targetQuestion.qid} can cause loops.`,
+                                    sourceId,
+                                    field: 'skipTo',
+                                });
+                            }
                         }
-                     }
+                    }
                 }
-                
+
                 if (question.branchingLogic.branches) {
-                    for(const branch of question.branchingLogic.branches) {
+                    for (const branch of question.branchingLogic.branches) {
                         for (const condition of branch.conditions) {
                             if (!condition.questionId) continue; // Temporary state
 
@@ -339,11 +339,11 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
                             }
                         }
                         validateBranchTarget(branch.thenSkipTo, branch.id);
-                        
+
                         // Advanced Semantic Check for Branches
                         if (branch.operator === 'AND') {
-                             const contradictions = checkAndLogicForContradictions(branch.conditions, byQid, question.id, branch.id, 'branching');
-                             issues.push(...contradictions);
+                            const contradictions = checkAndLogicForContradictions(branch.conditions, byQid, question.id, branch.id, 'branching');
+                            issues.push(...contradictions);
                         }
                     }
                 }

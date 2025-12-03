@@ -2,6 +2,8 @@ import React, { useState, useCallback } from 'react';
 import type { Choice } from '../../../types';
 import { parseChoice } from '../../../utils';
 import { XIcon, DragIndicatorIcon, MoreVertIcon } from '../../icons';
+import { TextField } from '../../TextField';
+import { Button } from '../../Button';
 
 interface ChoiceItemProps {
     choice: Choice;
@@ -55,22 +57,20 @@ const ChoiceItem: React.FC<ChoiceItemProps> = ({
                 <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing" aria-label="Reorder choice">
                     <DragIndicatorIcon className="text-lg" />
                 </span>
-                <div className="flex-grow flex items-stretch bg-transparent border border-input-border rounded-md hover:border-input-border-hover focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-primary transition-colors">
-                    <input
-                        type="text"
+                <div className="flex-grow">
+                    <TextField
                         value={parseChoice(choice.text).label}
                         onChange={(e) => onTextChange(choice.id, e.target.value)}
                         onPaste={createPasteHandler((newValue) => onTextChange(choice.id, newValue))}
-                        className="w-full bg-transparent p-2 text-sm text-on-surface focus:outline-none"
                         placeholder="Enter choice text"
                     />
                 </div>
-                <button onClick={() => setIsExpanded(prev => !prev)} className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-md" aria-label="More options">
+                <Button variant="tertiary" iconOnly onClick={() => setIsExpanded(prev => !prev)} aria-label="More options">
                     <MoreVertIcon className="text-lg" />
-                </button>
-                <button onClick={() => onDelete(choice.id)} className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-md" aria-label="Delete choice">
+                </Button>
+                <Button variant="danger" iconOnly onClick={() => onDelete(choice.id)} aria-label="Delete choice">
                     <XIcon className="text-lg" />
-                </button>
+                </Button>
             </div>
             {isExpanded && (
                 <div className="ml-8 mt-2 p-3 bg-surface-container-high rounded-md space-y-3">

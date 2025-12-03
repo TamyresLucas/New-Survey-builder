@@ -33,14 +33,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
 
     // Size styles
     const sizeStyles = {
-        large: iconOnly ? "w-8 h-8 text-sm" : "h-[32px] px-4 py-1.5 text-sm",
+        large: iconOnly ? "w-8 h-8 text-sm" : "h-[32px] px-2 py-1.5 text-sm",
         small: iconOnly ? "w-6 h-6 text-xs" : "h-[24px] px-3 py-0.5 text-xs",
     };
 
     // Variant styles
     const variantStyles = {
         primary: "bg-primary text-on-primary hover:opacity-90",
-        secondary: "bg-transparent border border-outline text-primary hover:bg-surface-container-high",
+        secondary: "bg-transparent border border-outline text-on-surface hover:bg-surface-container-high",
         tertiary: "bg-transparent text-on-surface hover:bg-surface-container-high",
         'tertiary-primary': "bg-transparent text-primary hover:bg-primary hover:text-on-primary",
         danger: "bg-transparent text-error hover:bg-error-container",

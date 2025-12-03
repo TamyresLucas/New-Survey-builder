@@ -4,6 +4,7 @@ import { QuestionType } from '../../types';
 import { generateId, parseChoice, truncate } from '../../utils';
 import { PlusIcon, XIcon, InfoIcon } from '../icons';
 import { DestinationRow } from './shared';
+import { Button } from '../Button';
 
 export const SkipLogicEditor: React.FC<{
     question: Question;
@@ -71,9 +72,9 @@ export const SkipLogicEditor: React.FC<{
                     <h3 className="text-sm font-medium text-on-surface mb-1">Skip Logic</h3>
                     <p className="text-xs text-on-surface-variant mb-3">Send respondents to a future point in the survey based on their answer.</p>
                     <div className="flex items-center gap-4">
-                        <button onClick={handleEnable} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5">
-                            <PlusIcon className="text-base" /> Add skip logic
-                        </button>
+                        <Button variant="tertiary-primary" size="large" onClick={handleEnable}>
+                            <PlusIcon className="text-xl mr-2" /> Add skip logic
+                        </Button>
                     </div>
                 </div>
             );

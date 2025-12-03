@@ -1,6 +1,8 @@
 import React, { useCallback } from 'react';
 import type { Choice } from '../../../types';
 import { XIcon, DragIndicatorIcon } from '../../icons';
+import { TextField } from '../../TextField';
+import { Button } from '../../Button';
 
 interface ScalePointItemProps {
     scalePoint: Choice;
@@ -41,7 +43,6 @@ const ScalePointItem: React.FC<ScalePointItemProps> = ({
     return (
         <div
             className="group"
-            // FIX: The `draggable` attribute should be set to a boolean value.
             draggable={true}
             onDragStart={(e) => onDragStart(e, scalePoint.id)}
             onDragOver={(e) => onDragOver(e, scalePoint.id)}
@@ -51,20 +52,18 @@ const ScalePointItem: React.FC<ScalePointItemProps> = ({
                 <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing" aria-label="Reorder column">
                     <DragIndicatorIcon className="text-lg" />
                 </span>
-                <div className="flex-grow flex items-stretch bg-transparent border border-input-border rounded-md hover:border-input-border-hover focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-primary transition-colors">
-                    <input
-                        type="text"
+                <div className="flex-grow">
+                    <TextField
                         value={scalePoint.text}
                         onChange={(e) => onTextChange(scalePoint.id, e.target.value)}
                         onPaste={createPasteHandler((newValue) => onTextChange(scalePoint.id, newValue))}
-                        className="w-full bg-transparent p-2 text-sm text-on-surface focus:outline-none"
                         placeholder="Enter column text"
                     />
                 </div>
                 <div className="w-10 h-10"></div>
-                <button onClick={() => onDelete(scalePoint.id)} className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-md" aria-label="Delete column">
+                <Button variant="danger" iconOnly onClick={() => onDelete(scalePoint.id)} aria-label="Delete column">
                     <XIcon className="text-lg" />
-                </button>
+                </Button>
             </div>
         </div>
     );

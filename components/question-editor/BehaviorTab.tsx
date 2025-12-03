@@ -71,6 +71,7 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({
                         onAddLogic={onAddLogic}
                         issues={issues} // Pass issues down
                         onRequestGeminiHelp={onRequestGeminiHelp}
+                        focusedLogicSource={focusedLogicSource}
                     />
                 </div>
             </CollapsibleSection>

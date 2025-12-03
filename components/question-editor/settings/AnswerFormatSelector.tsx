@@ -12,7 +12,7 @@ const AnswerFormatSelector: React.FC<AnswerFormatSelectorProps> = ({ question, o
         <div>
             <label htmlFor="answer-format" className="block text-sm font-medium text-on-surface-variant mb-1">Answer Format</label>
             <div className="relative">
-                <select id="answer-format" value={question.answerFormat || 'list'} onChange={e => onUpdate({ answerFormat: e.target.value as any })} className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none">
+                <select id="answer-format" value={question.answerFormat || 'list'} onChange={e => onUpdate({ answerFormat: e.target.value as any })} className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none transition-colors">
                     <option value="list">List (Vertical)</option>
                     <option value="grid">Grid</option>
                 </select>

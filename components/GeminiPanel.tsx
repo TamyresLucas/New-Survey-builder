@@ -98,7 +98,7 @@ const GeminiPanel: React.FC<GeminiPanelProps> = ({
                     <SparkleIcon className="w-5 h-5" />
                     <h2 className="font-semibold text-lg">AI Assistant</h2>
                 </div>
-                <button onClick={onClose} className="p-1 hover:bg-surface-container-high rounded-full text-on-surface-variant">
+                <button onClick={onClose} className="p-1 hover:bg-surface-container-high rounded-md text-on-surface-variant">
                     <XIcon className="w-5 h-5" />
                 </button>
             </div>

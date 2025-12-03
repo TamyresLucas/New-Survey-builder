@@ -138,13 +138,13 @@ export const LogicConditionRow: React.FC<{
         };
 
         return (
-            <div className="flex items-center gap-2 p-2 rounded-md w-full">
+            <div id={condition.id} className="flex items-center gap-2 p-2 rounded-md w-full">
                 {/* 1. Question */}
                 <div className={`relative group/tooltip ${questionWidth} flex-shrink-0`}>
                     {isFirstCondition && currentQuestion ? (
                         <div
                             title={`${currentQuestion.qid}: ${currentQuestion.text}`}
-                            className="w-full bg-surface-container-high border border-input-border rounded-md px-2 py-1.5 text-sm text-on-surface-variant flex items-center gap-2 cursor-not-allowed"
+                            className="w-full bg-surface-container-high border border-input-border rounded-md px-4 py-1.5 text-sm text-on-surface-variant flex items-center gap-2 cursor-not-allowed"
                         >
                             <span className="font-semibold">{currentQuestion.qid}:</span>
                             <span className="truncate">{truncate(currentQuestion.text, 50)}</span>
@@ -154,7 +154,7 @@ export const LogicConditionRow: React.FC<{
                             <select
                                 value={condition.questionId}
                                 onChange={(e) => onUpdateCondition('questionId', e.target.value)}
-                                className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${questionBorderClass}`}
+                                className={`w-full bg-transparent border rounded-md px-4 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${questionBorderClass}`}
                                 aria-label="Select question"
                             >
                                 <option value="">Select question</option>
@@ -175,7 +175,7 @@ export const LogicConditionRow: React.FC<{
                                     <select
                                         value={(condition as BranchingLogicCondition).value}
                                         onChange={(e) => onUpdateCondition('value', e.target.value)}
-                                        className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                                        className={`w-full bg-transparent border rounded-md px-4 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                                         aria-label="Condition row"
                                         disabled={valueIsDisabled}
                                     >
@@ -194,7 +194,7 @@ export const LogicConditionRow: React.FC<{
                                 <select
                                     value={condition.operator}
                                     onChange={handleOperatorChange}
-                                    className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`}
+                                    className={`w-full bg-transparent border rounded-md px-4 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`}
                                     aria-label="Select interaction"
                                     disabled={!referencedQuestion}
                                 >
@@ -211,7 +211,7 @@ export const LogicConditionRow: React.FC<{
                                     <select
                                         value={(condition as BranchingLogicCondition).gridValue || ''}
                                         onChange={(e) => onUpdateCondition('gridValue', e.target.value)}
-                                        className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                                        className={`w-full bg-transparent border rounded-md px-4 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                                         aria-label="Condition scale point value"
                                         disabled={valueIsDisabled}
                                     >
@@ -231,7 +231,7 @@ export const LogicConditionRow: React.FC<{
                                         <select
                                             value={(condition as BranchingLogicCondition).value}
                                             onChange={(e) => onUpdateCondition('value', e.target.value)}
-                                            className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                                            className={`w-full bg-transparent border rounded-md px-4 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                                             aria-label="Condition value"
                                             disabled={valueIsDisabled}
                                         >
@@ -248,7 +248,7 @@ export const LogicConditionRow: React.FC<{
                                         value={(condition as BranchingLogicCondition).value}
                                         onChange={(e) => onUpdateCondition('value', e.target.value)}
                                         placeholder="select answer"
-                                        className={`w-full bg-transparent border rounded-md px-2 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                                        className={`w-full bg-transparent border rounded-md px-4 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                                         aria-label="Condition value"
                                         disabled={valueIsDisabled}
                                     />
@@ -261,7 +261,7 @@ export const LogicConditionRow: React.FC<{
                                 <select
                                     value={condition.operator}
                                     onChange={handleOperatorChange}
-                                    className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`}
+                                    className={`w-full bg-transparent border rounded-md px-4 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`}
                                     aria-label="Select interaction"
                                     disabled={!referencedQuestion}
                                 >
@@ -275,17 +275,17 @@ export const LogicConditionRow: React.FC<{
                     ))}
 
                 {onRemoveCondition && (
-                    <button onClick={onRemoveCondition} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-colors flex-shrink-0" aria-label="Remove condition">
+                    <button onClick={onRemoveCondition} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-md transition-colors flex-shrink-0" aria-label="Remove condition">
                         <XIcon className="text-lg" />
                     </button>
                 )}
                 {onAddCondition && (
-                    <button onClick={onAddCondition} className="p-1.5 text-primary hover:text-on-primary hover:bg-primary rounded-full transition-colors flex-shrink-0" aria-label="Add condition below">
+                    <button onClick={onAddCondition} className="p-1.5 text-primary hover:text-on-primary hover:bg-primary rounded-md transition-colors flex-shrink-0" aria-label="Add condition below">
                         <PlusIcon className="text-lg" />
                     </button>
                 )}
                 {!isConfirmed && onConfirm && (
-                    <button onClick={onConfirm} className="p-1.5 bg-primary text-on-primary rounded-full hover:opacity-90 transition-colors flex-shrink-0" aria-label="Confirm condition">
+                    <button onClick={onConfirm} className="p-1.5 bg-primary text-on-primary rounded-md hover:opacity-90 transition-colors flex-shrink-0" aria-label="Confirm condition">
                         <CheckmarkIcon className="text-lg" />
                     </button>
                 )}

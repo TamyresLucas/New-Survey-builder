@@ -30,13 +30,3 @@ The avatar is a circular element containing the user's initials.
 ## Interactions
 
 -   **Hover/Focus**: When used as a button trigger, it should have focus rings for accessibility: `focus:ring-2 focus:ring-offset-2 focus:ring-primary`.
-
-## States
-
-| State | Visual Style |
-| :--- | :--- |
-| **Default** | `bg-primary` `text-on-primary` |
-| **Hover** | No specific hover state for the avatar itself, but the parent button may have one. |
-| **Focused** | `focus:ring-2` `focus:ring-primary` `focus:ring-offset-2` (on parent button). |
-| **Disabled** | `opacity-50` `cursor-not-allowed`. |
-

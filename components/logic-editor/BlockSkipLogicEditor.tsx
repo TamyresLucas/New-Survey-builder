@@ -3,7 +3,7 @@ import type { Block, Survey, BranchingLogic, BranchingLogicBranch, BranchingLogi
 import { QuestionType } from '../../types';
 import { PlusIcon, XIcon } from '../icons';
 import { generateId } from '../../utils';
-import { AdvancedLogicEditor, CopyAndPasteButton, LogicConditionRow, DestinationRow } from './shared';
+import { LogicConditionRow, DestinationRow } from './shared';
 
 interface BlockSkipLogicEditorProps {
     block: Block;
@@ -15,7 +15,7 @@ interface BlockSkipLogicEditorProps {
 export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, survey, onUpdateBlock, onExpandSidebar }) => {
     const branchingLogic = block.draftBranchingLogic ?? block.branchingLogic;
     const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof BranchingLogicCondition | 'skipTo'>>>(new Map());
-    const [isPasting, setIsPasting] = useState(false);
+
 
     const questionsForConditions = useMemo(() =>
         survey.blocks
@@ -32,120 +32,33 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
         onUpdateBlock(block.id, updates);
     };
 
-    const handlePasteLogic = (text: string): { success: boolean; error?: string } => {
-        const lines = text.split('\n').filter(line => line.trim() !== '');
-        const newBranches: BranchingLogicBranch[] = [];
-        const validOperators = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than', 'is_empty', 'is_not_empty'];
 
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            const lineNum = i + 1;
-
-            const parts = line.split(/ THEN SKIP TO | -> /i);
-            if (parts.length !== 2) {
-                return { success: false, error: `Line ${lineNum}: Invalid syntax. Use "IF <condition> THEN SKIP TO <destination>" or "<condition> -> <destination>".` };
-            }
-
-            let conditionStr = parts[0].trim();
-            const destinationStr = parts[1].trim();
-
-            if (conditionStr.toLowerCase().startsWith('if ')) {
-                conditionStr = conditionStr.substring(3).trim();
-            }
-
-            const condParts = conditionStr.split(/\s+/);
-            const [qidCandidate, operator, ...valueParts] = condParts;
-            const value = valueParts.join(' ');
-
-            if (!qidCandidate || !operator) { return { success: false, error: `Line ${lineNum}: Invalid condition syntax.` }; }
-
-            const qid = qidCandidate.toUpperCase();
-            if (!questionsForConditions.some(q => q.qid === qid)) {
-                return { success: false, error: `Line ${lineNum}: Question "${qid}" is not a valid question for logic.` };
-            }
-
-            const operatorCleaned = operator.toLowerCase();
-            if (!validOperators.includes(operatorCleaned)) { return { success: false, error: `Line ${lineNum}: Operator "${operator}" is not recognized.` }; }
-
-            const requiresValue = !['is_empty', 'is_not_empty'].includes(operatorCleaned);
-            if (requiresValue && !value.trim()) { return { success: false, error: `Line ${lineNum}: Missing value for operator "${operator}".` }; }
-
-            const condition: BranchingLogicCondition = {
-                id: generateId('cond'), questionId: qid,
-                operator: operatorCleaned as BranchingLogicCondition['operator'],
-                value: value.trim(), isConfirmed: true,
-            };
-
-            let thenSkipTo = '';
-            const destUpper = destinationStr.toUpperCase();
-            if (destUpper === 'END') { thenSkipTo = 'end'; }
-            else if (destUpper.startsWith('BL')) {
-                const block = survey.blocks.find(b => b.bid === destUpper);
-                if (block) { thenSkipTo = `block:${block.id}`; }
-                else { return { success: false, error: `Line ${lineNum}: Destination block "${destinationStr}" not found.` }; }
-            } else if (destUpper.startsWith('Q')) {
-                const question = survey.blocks.flatMap(b => b.questions).find(q => q.qid === destUpper);
-                if (question) { thenSkipTo = question.id; }
-                else { return { success: false, error: `Line ${lineNum}: Destination question "${destinationStr}" not found.` }; }
-            } else { return { success: false, error: `Line ${lineNum}: Invalid destination "${destinationStr}". Use a Block ID (BL2), Question ID (Q5), or "End".` }; }
-
-            newBranches.push({
-                id: generateId('branch'), operator: 'AND', conditions: [condition],
-                thenSkipTo, thenSkipToIsConfirmed: true
-            });
-        }
-
-        if (newBranches.length > 0) {
-            handleUpdate({
-                branchingLogic: {
-                    branches: [...(branchingLogic?.branches || []), ...newBranches],
-                    otherwiseSkipTo: 'next', // This is for block logic, so 'next' isn't applicable. Maybe default to nothing.
-                    otherwiseIsConfirmed: branchingLogic?.otherwiseIsConfirmed || true,
-                },
-            });
-            onExpandSidebar();
-            return { success: true };
-        }
-
-        return { success: false, error: "No valid logic found." };
-    };
 
     if (!branchingLogic) {
         return (
             <div>
                 <p className="text-xs text-on-surface-variant mb-3">Create rules to skip this entire block based on previous answers.</p>
-                {isPasting ? (
-                    <AdvancedLogicEditor
-                        onSave={handlePasteLogic}
-                        onCancel={() => setIsPasting(false)}
-                        placeholder={"IF Q1 equals Yes THEN SKIP TO BL4\nQ2 is_empty -> End"}
-                        primaryActionLabel="Add Skip Logic"
-                        disclosureText="Enter one rule per line."
-                    />
-                ) : (
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => {
-                                handleUpdate({
-                                    branchingLogic: {
-                                        branches: [{
-                                            id: generateId('branch'), operator: 'AND',
-                                            conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
-                                            thenSkipTo: '', thenSkipToIsConfirmed: false,
-                                        }],
-                                        otherwiseSkipTo: '',
-                                        otherwiseIsConfirmed: true,
-                                    }
-                                });
-                                onExpandSidebar();
-                            }}
-                            className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-                        >
-                            <PlusIcon className="text-base" /> Add Skip Logic
-                        </button>
-                        <CopyAndPasteButton onClick={() => setIsPasting(true)} />
-                    </div>
-                )}
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => {
+                            handleUpdate({
+                                branchingLogic: {
+                                    branches: [{
+                                        id: generateId('branch'), operator: 'AND',
+                                        conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
+                                        thenSkipTo: '', thenSkipToIsConfirmed: false,
+                                    }],
+                                    otherwiseSkipTo: '',
+                                    otherwiseIsConfirmed: true,
+                                }
+                            });
+                            onExpandSidebar();
+                        }}
+                        className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5"
+                    >
+                        <PlusIcon className="text-base" /> Add Skip Logic
+                    </button>
+                </div>
             </div>
         );
     }
@@ -232,7 +145,7 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
                 <div>
                     <p className="text-xs text-on-surface-variant">Create rules to skip this entire block based on previous answers.</p>
                 </div>
-                <button onClick={() => handleUpdate({ branchingLogic: undefined, draftBranchingLogic: undefined })} className="text-sm font-medium text-error hover:underline">Remove</button>
+                <button onClick={() => handleUpdate({ branchingLogic: undefined, draftBranchingLogic: undefined })} className="text-sm font-semibold text-error hover:underline">Remove</button>
             </div>
             <div className="space-y-4">
                 {branchingLogic.branches.map((branch) => (
@@ -264,7 +177,7 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
                                     invalidFields={validationErrors.get(condition.id)}
                                 />
                             ))}
-                            <button onClick={() => handleAddCondition(branch.id)} className="text-xs font-medium text-primary hover:underline">+ Add condition</button>
+                            <button onClick={() => handleAddCondition(branch.id)} className="text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors">+ Add condition</button>
                         </div>
                         <DestinationRow
                             label={<span className="font-bold text-primary">THEN SKIP TO</span>}
@@ -279,7 +192,7 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
                     </div>
                 ))}
             </div>
-            <button onClick={handleAddBranch} className="mt-4 flex items-center gap-1 text-sm font-medium text-primary hover:underline"><PlusIcon className="text-base" /> Add branch</button>
+            <button onClick={handleAddBranch} className="mt-4 flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors"><PlusIcon className="text-base" /> Add branch</button>
         </div>
     );
 };

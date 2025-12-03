@@ -126,11 +126,10 @@ export const ImportSurveyModal: React.FC<ImportSurveyModalProps> = ({ isOpen, on
             onDragOver={handleDragEvents}
             onDrop={handleDrop}
             onClick={() => inputRef.current?.click()}
-            className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-              isDragging
-                ? 'border-primary bg-primary-container'
-                : 'border-outline-variant hover:border-primary hover:bg-surface-container-high'
-            }`}
+            className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isDragging
+              ? 'border-primary bg-primary-container'
+              : 'border-outline-variant hover:border-primary hover:bg-surface-container-high'
+              }`}
           >
             <FileUploadIcon className="text-4xl text-on-surface-variant mb-3" />
             <p className="text-on-surface font-semibold">
@@ -146,14 +145,14 @@ export const ImportSurveyModal: React.FC<ImportSurveyModalProps> = ({ isOpen, on
         <div className="p-4 border-t border-outline-variant flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-semibold text-primary rounded-full hover:bg-primary-container"
+            className="px-4 py-2 text-sm font-button-primary text-on-surface rounded-full hover:bg-surface-container-high"
           >
             Cancel
           </button>
           <button
             onClick={handleImportClick}
             disabled={!file}
-            className="px-6 py-2 text-sm font-semibold text-on-primary bg-primary rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2 text-sm font-button-primary text-on-primary bg-primary rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Import
           </button>

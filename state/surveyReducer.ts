@@ -36,29 +36,33 @@ export enum SurveyActionType {
     SET_PAGING_MODE = 'SET_PAGING_MODE',
     REPLACE_SURVEY = 'REPLACE_SURVEY',
     SET_GLOBAL_AUTOADVANCE = 'SET_GLOBAL_AUTOADVANCE',
+    CLEAR_LOGIC_VALIDATION_MESSAGE = 'CLEAR_LOGIC_VALIDATION_MESSAGE',
 }
 
 export interface Action {
     type: SurveyActionType;
-    payload: any;
+    payload?: any;
 }
 
 // Helper function to perform post-move logic validation
 const validateAndCleanLogicAfterMove = (
-    survey: Survey, 
-    onLogicRemoved: (message: string) => void
-) => {
+    survey: Survey
+): string | undefined => {
     const allQuestions = survey.blocks.flatMap((b: Block) => b.questions);
     const questionIndexMap = new Map(allQuestions.map((q, i) => [q.id, i]));
     const blockIndexMap = new Map(survey.blocks.map((b, i) => [b.id, i]));
 
     // We need to iterate through ALL questions because moving one question (e.g., Q1)
     // can invalidate logic on another question (e.g., Q2 which depended on Q1).
+    const affectedQuestions: string[] = [];
+
     for (const question of allQuestions) {
         const questionIndex = questionIndexMap.get(question.id);
         if (questionIndex === undefined) continue;
-        
+
         const currentBlockIndex = survey.blocks.findIndex(b => b.questions.some(q => q.id === question.id));
+
+        let hasIssues = false;
 
         // --- 1. Validate Skip Logic (preventing backward skips) ---
         if (question.skipLogic) {
@@ -66,18 +70,18 @@ const validateAndCleanLogicAfterMove = (
             const logic = question.skipLogic;
 
             const checkTarget = (targetId: string): boolean => {
-                 if (!targetId || targetId === 'next' || targetId === 'end') return false;
-                 
-                 if (targetId.startsWith('block:')) {
-                     const blockId = targetId.substring(6);
-                     const targetBlockIndex = blockIndexMap.get(blockId);
-                     // Invalid if skipping to a previous block
-                     return targetBlockIndex !== undefined && targetBlockIndex < currentBlockIndex;
-                 } else {
-                     const targetIndex = questionIndexMap.get(targetId);
-                     // Invalid if skipping to a previous question
-                     return targetIndex !== undefined && targetIndex <= questionIndex;
-                 }
+                if (!targetId || targetId === 'next' || targetId === 'end') return false;
+
+                if (targetId.startsWith('block:')) {
+                    const blockId = targetId.substring(6);
+                    const targetBlockIndex = blockIndexMap.get(blockId);
+                    // Invalid if skipping to a previous block
+                    return targetBlockIndex !== undefined && targetBlockIndex < currentBlockIndex;
+                } else {
+                    const targetIndex = questionIndexMap.get(targetId);
+                    // Invalid if skipping to a previous question
+                    return targetIndex !== undefined && targetIndex <= questionIndex;
+                }
             };
 
             if (logic.type === 'simple') {
@@ -90,112 +94,98 @@ const validateAndCleanLogicAfterMove = (
                     }
                 }
             }
-            
+
             if (isLogicInvalid) {
-                question.skipLogic = undefined;
-                question.draftSkipLogic = undefined;
-                onLogicRemoved?.(`Skip Logic on ${question.qid} removed. Reason: Target is now before the question. Impact: Logic removed to prevent infinite loops.`);
+                hasIssues = true;
             }
         }
 
         // --- 2. Validate Branching Logic (Loops & Dependencies) ---
         if (question.branchingLogic) {
             const logic = question.branchingLogic;
-            let isBranchingModified = false;
             let loopErrorFound = false;
             let dependencyErrorFound = false;
 
             // A. Check Destinations (Loops)
             const checkBranchTarget = (targetId: string): boolean => {
                 if (!targetId || targetId === 'next' || targetId === 'end') return false;
-                 if (targetId.startsWith('block:')) {
-                     const blockId = targetId.substring(6);
-                     const targetBlockIndex = blockIndexMap.get(blockId);
-                     return targetBlockIndex !== undefined && targetBlockIndex < currentBlockIndex;
-                 } else {
+                if (targetId.startsWith('block:')) {
+                    const blockId = targetId.substring(6);
+                    const targetBlockIndex = blockIndexMap.get(blockId);
+                    return targetBlockIndex !== undefined && targetBlockIndex < currentBlockIndex;
+                } else {
                     const targetIndex = questionIndexMap.get(targetId);
                     return targetIndex !== undefined && targetIndex <= questionIndex;
-                 }
+                }
             };
 
             // Check "Otherwise" path
             if (checkBranchTarget(logic.otherwiseSkipTo)) {
-                logic.otherwiseSkipTo = 'next'; // Reset to default
-                logic.otherwiseIsConfirmed = true;
-                isBranchingModified = true;
                 loopErrorFound = true;
             }
 
             // Check specific branches
             if (logic.branches) {
-                 logic.branches.forEach(branch => {
+                logic.branches.forEach(branch => {
                     if (branch.thenSkipToIsConfirmed && checkBranchTarget(branch.thenSkipTo)) {
-                        branch.thenSkipTo = '';
-                        branch.thenSkipToIsConfirmed = false;
-                        isBranchingModified = true;
                         loopErrorFound = true;
                     }
-                    
+
                     // B. Check Conditions (Dependencies)
-                    const validConditions = branch.conditions.filter(condition => {
-                        if (!condition.questionId) return true;
+                    const invalidConditions = branch.conditions.some(condition => {
+                        if (!condition.questionId) return false;
                         const sourceQ = allQuestions.find(q => q.qid === condition.questionId);
-                        if (!sourceQ) return true; // Let standard validator catch missing questions
+                        if (!sourceQ) return false; // Let standard validator catch missing questions
                         const sourceIndex = questionIndexMap.get(sourceQ.id);
                         // Condition valid only if source is BEFORE current question
-                        return sourceIndex !== undefined && sourceIndex < questionIndex;
+                        return sourceIndex !== undefined && sourceIndex >= questionIndex;
                     });
 
-                    if (validConditions.length < branch.conditions.length) {
-                        branch.conditions = validConditions.length > 0 ? validConditions : [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }];
-                        if (validConditions.length === 0) {
-                             branch.thenSkipToIsConfirmed = false; // Invalidate branch if no conditions left
-                        }
-                        isBranchingModified = true;
+                    if (invalidConditions) {
                         dependencyErrorFound = true;
                     }
-                 });
-                 
-                 // Filter out branches that became empty/invalid if necessary, or leave them unconfirmed
+                });
             }
 
-            if (isBranchingModified) {
-                // Sync draft
-                question.draftBranchingLogic = JSON.parse(JSON.stringify(logic));
-                
-                if (loopErrorFound) {
-                    onLogicRemoved?.(`Branching Logic on ${question.qid} reset. Reason: A destination is now before the question. Impact: Logic updated to prevent infinite loops.`);
-                } else if (dependencyErrorFound) {
-                    onLogicRemoved?.(`Branching Logic conditions on ${question.qid} removed. Reason: A dependent question is now located after this question. Impact: Conditions removed to ensure valid flow.`);
-                }
+            if (loopErrorFound || dependencyErrorFound) {
+                hasIssues = true;
             }
         }
 
         // --- 3. Validate Display Logic (Dependencies) ---
         if (question.displayLogic) {
-            const validConditions = question.displayLogic.conditions.filter(condition => {
-                if (!condition.questionId) return true; 
+            const invalidConditions = question.displayLogic.conditions.some(condition => {
+                if (!condition.questionId) return false;
                 const sourceQ = allQuestions.find(q => q.qid === condition.questionId);
-                if (!sourceQ) return true; 
-                
+                if (!sourceQ) return false;
+
                 const sourceIndex = questionIndexMap.get(sourceQ.id);
-                return sourceIndex !== undefined && sourceIndex < questionIndex;
+                return sourceIndex !== undefined && sourceIndex >= questionIndex;
             });
 
-            if (validConditions.length < question.displayLogic.conditions.length) {
-                if (validConditions.length === 0) {
-                    question.displayLogic = undefined;
-                    question.draftDisplayLogic = undefined;
-                } else {
-                    question.displayLogic.conditions = validConditions;
-                    if (question.draftDisplayLogic) {
-                        question.draftDisplayLogic.conditions = validConditions;
-                    }
-                }
-                onLogicRemoved?.(`Display Logic on ${question.qid} removed. Reason: Dependent question is now located after this question. Impact: Question is now visible to everyone.`);
+            if (invalidConditions) {
+                hasIssues = true;
             }
         }
+
+        if (hasIssues) {
+            affectedQuestions.push(question.qid);
+        }
     }
+
+    if (affectedQuestions.length > 0) {
+        const displayCount = 3;
+        const shownQids = affectedQuestions.slice(0, displayCount).join(', ');
+        const remaining = affectedQuestions.length - displayCount;
+
+        let message = `Logic on ${shownQids}`;
+        if (remaining > 0) message += ` and ${remaining} others`;
+        message += ` is now invalid. Please review.`;
+
+        return message;
+    }
+
+    return undefined;
 };
 
 const applyPagingRules = (survey: Survey, oldPagingMode?: Survey['pagingMode']): Survey => {
@@ -213,7 +203,7 @@ const applyPagingRules = (survey: Survey, oldPagingMode?: Survey['pagingMode']):
         for (let i = 0; i < block.questions.length; i++) {
             const currentQuestion = block.questions[i];
             const prevQuestion = cleanedQuestions[cleanedQuestions.length - 1];
-            
+
             if (currentQuestion.type === QTEnum.PageBreak && prevQuestion?.type === QTEnum.PageBreak) {
                 continue;
             }
@@ -244,13 +234,13 @@ const applyPagingRules = (survey: Survey, oldPagingMode?: Survey['pagingMode']):
                         hasSeenInteractiveQuestionInPage = false; // Reset for the *new* page
                     }
                 }
-                
+
                 if (question.type === QTEnum.PageBreak && !question.isAutomatic) { // Only manual page breaks reset the counter
                     hasSeenInteractiveQuestionInPage = false;
                 }
 
                 newQuestionsForBlock.push(question);
-                
+
                 if (isInteractive) {
                     hasSeenInteractiveQuestionInPage = true;
                 }
@@ -258,7 +248,7 @@ const applyPagingRules = (survey: Survey, oldPagingMode?: Survey['pagingMode']):
             block.questions = newQuestionsForBlock;
         }
     });
-    
+
     return newSurvey;
 };
 
@@ -297,7 +287,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                         q.hideBackButton = updates.hideBackButton;
                     });
                 }
-                
+
                 if (updates.autoAdvance === false) {
                     newState.globalAutoAdvance = false;
                 }
@@ -321,16 +311,16 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             for (const block of newState.blocks) {
                 const q = block.questions.find((q: Question) => q.id === questionId);
                 if (q) {
-                  originalQuestion = JSON.parse(JSON.stringify(q));
-                  questionInState = q;
-                  break;
+                    originalQuestion = JSON.parse(JSON.stringify(q));
+                    questionInState = q;
+                    break;
                 }
             }
-    
+
             if (!originalQuestion || !questionInState) return state;
-    
+
             const finalUpdates = { ...updates };
-            
+
             if (
                 updates.type === QTEnum.Description &&
                 originalQuestion.type !== QTEnum.Description &&
@@ -341,7 +331,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 const choicesText = originalQuestion.choices.map((c: Choice) => c.text).join('\n');
                 finalUpdates.text = `${questionText}${choicesText}`.trim();
             }
-    
+
             if (
                 updates.type &&
                 CHOICE_BASED_QUESTION_TYPES.has(updates.type) &&
@@ -352,7 +342,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 // Regex to find variables with optional parentheses, like (Q1_1) or Q1_1
                 const choiceRegex = /\s*\(?\w+_\d+\)?.*?(?=\s*\(?\w+_\d+\)?|$)/g;
                 const potentialChoices = questionText.match(choiceRegex);
-    
+
                 if (potentialChoices && potentialChoices.length > 0) {
                     const firstChoiceMatch = potentialChoices[0];
                     const firstChoiceIndex = questionText.indexOf(firstChoiceMatch);
@@ -360,17 +350,17 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                     if (mainQuestionText === '') {
                         mainQuestionText = 'Click to write the question text';
                     }
-    
+
                     const newChoices: Choice[] = potentialChoices.map((choiceText: string) => ({
                         id: generateId('c'),
                         text: choiceText.trim(),
                     }));
-                    
+
                     finalUpdates.text = mainQuestionText;
                     finalUpdates.choices = newChoices;
                 }
             }
-    
+
             if (updates.type && !CHOICE_BASED_QUESTION_TYPES.has(updates.type)) {
                 finalUpdates.choices = undefined;
             }
@@ -394,7 +384,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             } else if (updates.type && updates.type !== QTEnum.ChoiceGrid) {
                 finalUpdates.scalePoints = undefined;
             }
-            
+
             // Handle linking choices
             if ('linkedChoicesSource' in updates) {
                 const sourceQuestionId = updates.linkedChoicesSource;
@@ -407,7 +397,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                             questionInState.choices = sourceQuestion.choices.map((c: Choice) => ({ ...c, id: generateId('c') }));
                         }
                         if (sourceQuestion.scalePoints) {
-                             questionInState.scalePoints = sourceQuestion.scalePoints.map((sp: Choice) => ({ ...sp, id: generateId('s') }));
+                            questionInState.scalePoints = sourceQuestion.scalePoints.map((sp: Choice) => ({ ...sp, id: generateId('s') }));
                         }
                     }
                 }
@@ -422,11 +412,11 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                     delete questionInState.draftDisplayLogic;
                 } else {
                     questionInState.draftDisplayLogic = finalUpdates.displayLogic;
-                    
+
                     // Check both top-level conditions AND logic sets
                     const conditionsConfirmed = questionInState.draftDisplayLogic.conditions?.every((c: any) => c.isConfirmed) ?? true;
                     const logicSetsConfirmed = questionInState.draftDisplayLogic.logicSets?.every((s: any) => s.isConfirmed) ?? true;
-                    
+
                     if (conditionsConfirmed && logicSetsConfirmed) {
                         questionInState.displayLogic = questionInState.draftDisplayLogic;
                         delete questionInState.draftDisplayLogic;
@@ -440,7 +430,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                     delete questionInState.draftHideLogic;
                 } else {
                     questionInState.draftHideLogic = finalUpdates.hideLogic;
-                    
+
                     const conditionsConfirmed = questionInState.draftHideLogic.conditions?.every((c: any) => c.isConfirmed) ?? true;
                     const logicSetsConfirmed = questionInState.draftHideLogic.logicSets?.every((s: any) => s.isConfirmed) ?? true;
 
@@ -477,10 +467,10 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 } else {
                     questionInState.draftBranchingLogic = finalUpdates.branchingLogic;
                     const allConfirmed = questionInState.draftBranchingLogic.otherwiseIsConfirmed === true &&
-                                         questionInState.draftBranchingLogic.branches?.every(b => 
-                                            b.thenSkipToIsConfirmed === true &&
-                                            b.conditions.every(c => c.isConfirmed === true)
-                                         );
+                        questionInState.draftBranchingLogic.branches?.every(b =>
+                            b.thenSkipToIsConfirmed === true &&
+                            b.conditions.every(c => c.isConfirmed === true)
+                        );
                     if (allConfirmed) {
                         questionInState.branchingLogic = questionInState.draftBranchingLogic;
                         delete questionInState.draftBranchingLogic;
@@ -557,7 +547,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                     ];
                 }
             }
-            
+
             if (questionType === QTEnum.TextEntry) {
                 newQuestion.textEntrySettings = {
                     answerLength: 'long',
@@ -727,7 +717,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             if (targetBlock) {
                 let targetQuestionIndex = targetBlock.questions.findIndex((q: Question) => q.id === targetQuestionId);
                 if (targetQuestionId === null) targetQuestionIndex = targetBlock.questions.length;
-                
+
                 if (targetQuestionIndex !== -1) {
                     targetBlock.questions.splice(targetQuestionIndex, 0, draggedQuestion);
                 } else {
@@ -742,8 +732,8 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 }
             }
 
-            validateAndCleanLogicAfterMove(newState, onLogicRemoved);
-            
+            newState.lastLogicValidationMessage = validateAndCleanLogicAfterMove(newState);
+
             return applyPagingAndRenumber(newState);
         }
 
@@ -758,9 +748,9 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             if (targetQuestion) {
                 if (!targetQuestion.choices) targetQuestion.choices = [];
                 const choiceNum = targetQuestion.choices.length + 1;
-                
-                const defaultText = targetQuestion.type === QTEnum.ChoiceGrid 
-                    ? `Row ${choiceNum}` 
+
+                const defaultText = targetQuestion.type === QTEnum.ChoiceGrid
+                    ? `Row ${choiceNum}`
                     : `Click to write choice ${choiceNum}`;
 
                 const newChoice: Choice = {
@@ -769,10 +759,10 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 };
                 targetQuestion.choices.push(newChoice);
             }
-            
+
             return renumberSurveyVariables(newState);
         }
-        
+
         case SurveyActionType.DELETE_CHOICE: {
             const { questionId, choiceId } = action.payload;
             for (const block of newState.blocks) {
@@ -807,7 +797,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             const newBlock: Block = { id: generateId('block'), title: 'New block', questions: [] };
             const targetIndex = newState.blocks.findIndex((b: Block) => b.id === blockId);
             if (targetIndex === -1) return state;
-            
+
             const insertionIndex = position === 'above' ? targetIndex : targetIndex + 1;
             newState.blocks.splice(insertionIndex, 0, newBlock);
             return renumberSurveyVariables(newState);
@@ -876,7 +866,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                     }
                 }
             });
-            
+
             newState.blocks.splice(blockToCopyIndex + 1, 0, newBlock);
             return renumberSurveyVariables(newState);
         }
@@ -928,7 +918,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
         case SurveyActionType.ADD_BLOCK_FROM_TOOLBOX: {
             const { targetBlockId } = action.payload;
             const newBlock: Block = { id: generateId('block'), title: 'New block', questions: [] };
-            
+
             if (targetBlockId === null) {
                 // Dropped at the end
                 newState.blocks.push(newBlock);
@@ -1016,7 +1006,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 questionsToMove.push(...questionsInBlock);
                 block.questions = block.questions.filter(q => !questionIds.has(q.id));
             });
-            
+
             if (questionsToMove.length === 0) return state;
 
             const newBlock: Block = {
@@ -1036,7 +1026,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
             return renumberSurveyVariables(newState);
         }
-        
+
         case SurveyActionType.MOVE_QUESTION_TO_NEW_BLOCK: {
             const { questionId, onLogicRemoved, onQuestionMoved } = action.payload;
             let questionToMove: Question | undefined;
@@ -1090,9 +1080,9 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             }
 
             onQuestionMoved?.(questionId);
-            
-            validateAndCleanLogicAfterMove(newState, onLogicRemoved);
-            
+
+            newState.lastLogicValidationMessage = validateAndCleanLogicAfterMove(newState);
+
             return applyPagingAndRenumber(newState);
         }
 
@@ -1132,18 +1122,18 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 }
             }
 
-            validateAndCleanLogicAfterMove(newState, onLogicRemoved);
-            
+            newState.lastLogicValidationMessage = validateAndCleanLogicAfterMove(newState);
+
             return applyPagingAndRenumber(newState);
         }
 
 
         case SurveyActionType.REPOSITION_QUESTION: {
             const { qid, after_qid, before_qid, onLogicRemoved } = action.payload;
-        
+
             let draggedQuestion: Question | undefined;
             let originalBlock: Block | undefined;
-        
+
             // Find and remove the question to be moved
             for (const block of newState.blocks) {
                 const qIndex = block.questions.findIndex((q: Question) => q.qid === qid);
@@ -1153,16 +1143,16 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                     break;
                 }
             }
-        
+
             if (!draggedQuestion) {
                 console.warn(`[Reducer] Could not find question with QID ${qid} to reposition.`);
                 return state; // No change
             }
-        
+
             let targetPlaced = false;
             const targetQid = before_qid || after_qid;
             const isAfter = !!after_qid;
-        
+
             if (targetQid) {
                 for (const block of newState.blocks) {
                     const targetQIndex = block.questions.findIndex((q: Question) => q.qid === targetQid);
@@ -1174,7 +1164,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                     }
                 }
             }
-        
+
             if (!targetPlaced) {
                 console.warn(`[Reducer] Could not find target QID ${targetQid}. Reverting move.`);
                 if (originalBlock) {
@@ -1185,14 +1175,14 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                     newState.blocks[newState.blocks.length - 1].questions.push(draggedQuestion);
                 }
             }
-        
+
             // Cleanup original block if it becomes empty
             if (originalBlock && originalBlock.questions.length === 0 && newState.blocks.length > 1) {
                 newState.blocks = newState.blocks.filter((b: Block) => b.id !== originalBlock.id);
             }
-            
-            validateAndCleanLogicAfterMove(newState, onLogicRemoved);
-            
+
+            newState.lastLogicValidationMessage = validateAndCleanLogicAfterMove(newState);
+
             return applyPagingAndRenumber(newState);
         }
 
@@ -1232,10 +1222,10 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
             const nextState = JSON.parse(JSON.stringify(state));
             nextState.pagingMode = pagingMode;
-            
+
             return applyPagingAndRenumber(nextState, oldPagingMode);
         }
-        
+
         case SurveyActionType.REPLACE_SURVEY: {
             return applyPagingAndRenumber(action.payload);
         }
@@ -1267,6 +1257,11 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 });
             }
             return newState; // No renumbering needed for this property change
+        }
+
+        case SurveyActionType.CLEAR_LOGIC_VALIDATION_MESSAGE: {
+            newState.lastLogicValidationMessage = undefined;
+            return newState;
         }
 
         default:

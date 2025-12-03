@@ -1,5 +1,5 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
-import { ChevronDownIcon, EyeIcon } from './icons';
+import { DotsHorizontalIcon, EyeIcon } from './icons';
 
 interface SubHeaderProps {
   onTogglePreview: () => void;
@@ -49,15 +49,23 @@ const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurve
 
       {/* Right-aligned Actions */}
       <div className="flex-1 flex items-center justify-end gap-2">
+        <button
+          onClick={onTogglePreview}
+          className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-on-primary bg-primary rounded-md hover:opacity-90 transition-opacity"
+        >
+          <EyeIcon className="text-base leading-none" />
+          <span>Preview</span>
+        </button>
+
         <div className="relative" ref={actionsMenuRef}>
           <button
             onClick={() => setIsActionsOpen(prev => !prev)}
-            className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-on-surface bg-transparent border border-input-border rounded-full hover:bg-surface-container-high transition-colors"
+            className="w-8 h-8 flex items-center justify-center text-on-surface bg-transparent rounded-md hover:bg-surface-container-high transition-colors"
             aria-haspopup="true"
             aria-expanded={isActionsOpen}
+            aria-label="Actions"
           >
-            <span>Actions</span>
-            <ChevronDownIcon className={`text-base transition-transform ${isActionsOpen ? 'rotate-180' : ''}`} />
+            <DotsHorizontalIcon className="text-xl" />
           </button>
           {isActionsOpen && (
             <div className="absolute top-full right-0 mt-2 w-56 bg-surface-container border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
@@ -91,14 +99,6 @@ const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurve
             </div>
           )}
         </div>
-
-        <button
-          onClick={onTogglePreview}
-          className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-on-primary bg-primary rounded-full transition-opacity"
-        >
-          <EyeIcon className="text-base" />
-          <span>Preview</span>
-        </button>
       </div>
     </nav>
   );

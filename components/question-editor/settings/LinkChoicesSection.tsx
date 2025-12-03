@@ -30,7 +30,7 @@ const LinkChoicesSection: React.FC<LinkChoicesSectionProps> = ({ question, onUpd
                         }}
                         className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </label>
             </div>
 
@@ -42,7 +42,7 @@ const LinkChoicesSection: React.FC<LinkChoicesSectionProps> = ({ question, onUpd
                             id="linked-choices-source"
                             value={question.linkedChoicesSource || ''}
                             onChange={(e) => onUpdate({ linkedChoicesSource: e.target.value || undefined })}
-                            className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                            className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none transition-colors"
                         >
                             <option value="">Select a source question...</option>
                             {previousQuestions.filter(q => q.id !== question.id && CHOICE_BASED_QUESTION_TYPES.has(q.type)).map(q => (

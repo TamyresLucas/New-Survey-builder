@@ -117,7 +117,7 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
                 <div className="py-6 first:pt-0">
                     <h4 className="text-sm font-medium text-on-surface mb-1">{title}</h4>
                     <div className="flex items-center gap-4">
-                        <button onClick={() => handleAddCondition(type)} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                        <button onClick={() => handleAddCondition(type)} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5">
                             <PlusIcon className="text-base" /> Add condition
                         </button>
                     </div>
@@ -132,12 +132,12 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
                         <h4 className="text-sm font-medium text-on-surface">{title}</h4>
                         {conditions.length > 1 && (
                             <div className="flex gap-1">
-                                <button onClick={() => handleSetOperator('AND')} className={`px-2 py-0.5 text-xs font-medium rounded-full ${operator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
-                                <button onClick={() => handleSetOperator('OR')} className={`px-2 py-0.5 text-xs font-medium rounded-full ${operator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
+                                <button onClick={() => handleSetOperator('AND')} className={`px-2 py-0.5 text-xs font-semibold rounded-full ${operator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
+                                <button onClick={() => handleSetOperator('OR')} className={`px-2 py-0.5 text-xs font-semibold rounded-full ${operator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
                             </div>
                         )}
                     </div>
-                    <button onClick={() => handleAddCondition(type)} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                    <button onClick={() => handleAddCondition(type)} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5">
                         <PlusIcon className="text-base" /> Add
                     </button>
                 </div>
@@ -185,7 +185,7 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
             <div>
                 <h3 className="text-sm font-medium text-on-surface mb-1">Choice Display Logic</h3>
                 <p className="text-xs text-on-surface-variant mb-3">Conditionally show or hide choices based on previous answers.</p>
-                <button onClick={() => handleAddCondition('show')} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                <button onClick={() => handleAddCondition('show')} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5">
                     <PlusIcon className="text-base" /> Add display rule
                 </button>
             </div>
@@ -196,7 +196,7 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
         <div>
             <div className="flex items-center justify-between gap-2 mb-2">
                 <h3 className="text-sm font-medium text-on-surface">Choice Display Logic</h3>
-                <button onClick={handleRemoveAllLogic} className="text-sm font-medium text-error hover:underline">Remove</button>
+                <button onClick={handleRemoveAllLogic} className="text-sm font-semibold text-error hover:underline">Remove</button>
             </div>
             <div className="divide-y divide-outline-variant">
                 {renderLogicSection('show')}

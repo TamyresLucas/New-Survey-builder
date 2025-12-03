@@ -20,14 +20,14 @@ import { useSelection } from './hooks/useSelection';
 import { useSurveyActions } from './hooks/useSurveyActions';
 
 // Types
-import { ToolboxItemData, LogicIssue, SurveyStatus } from './types';
+import { ToolboxItemData, LogicIssue, SurveyStatus, Question, Block } from './types';
 import { SurveyActionType } from './state/surveyReducer';
 import { toolboxItems as initialToolboxItems } from './constants';
 import { validateSurveyLogic } from './logicValidator';
 import { analyzeSurveyPaths, generateSurveyCsv } from './utils';
 
 // Icons
-import { WarningIcon, CheckmarkIcon, XIcon, PanelRightIcon } from './components/icons';
+import { WarningIcon, CheckmarkIcon, XIcon, PanelRightIcon, CheckCircleIcon } from './components/icons';
 
 type ToastType = 'error' | 'success';
 
@@ -40,38 +40,31 @@ const Toast: React.FC<{ message: string; type: ToastType; onDismiss: () => void;
 
     const isError = type === 'error';
 
+    // Styles based on the provided design reference
     const containerClasses = isError
-        ? 'bg-error-container text-on-error-container'
-        : 'bg-success-container text-on-success-container';
+        ? 'bg-[#FEEFF1] border border-[#EF576B] text-[#232323] w-[460px]'
+        : 'bg-[#E6F6F2] border border-[#00A078] text-[#232323] w-[460px] h-[60px]';
 
     const icon = isError
-        ? <WarningIcon className="text-xl flex-shrink-0" />
-        : <CheckmarkIcon className="text-xl flex-shrink-0" />;
+        ? <WarningIcon className="text-base text-[#CF455C] flex-shrink-0" />
+        : <CheckCircleIcon className="text-base text-[#008563] flex-shrink-0" />;
 
     return (
-        <div
-            className={`flex items-center gap-4 px-4 py-3 rounded-lg shadow-2xl animate-fade-in-up w-auto max-w-md ${containerClasses}`}
-            role="alert"
-        >
+        <div className={`flex items-center gap-2 p-4 rounded-[4px] shadow-lg animate-slide-up box-border ${containerClasses}`}>
             {icon}
-            <p className="text-sm font-medium flex-grow">{message}</p>
-            <div className={`flex-shrink-0 flex items-center gap-2 border-l pl-3 ml-2 ${isError ? 'border-on-error-container/20' : 'border-on-success-container/20'}`}>
-                {onUndo && (
-                    <button
-                        onClick={onUndo}
-                        className={`px-3 py-1 text-xs font-bold uppercase rounded-full hover:bg-black/10 ${isError ? 'text-on-error-container' : 'text-on-success-container'}`}
-                    >
-                        Undo
-                    </button>
-                )}
-                <button
-                    onClick={onDismiss}
-                    className="p-1 -mr-1 rounded-full hover:bg-black/10"
-                    aria-label="Dismiss"
-                >
-                    <XIcon className="text-lg" />
+            <span className="flex-1 text-sm font-normal font-['Open_Sans'] leading-[19px] flex items-center">{message}</span>
+            {onUndo && (
+                <button onClick={onUndo} className="px-3 py-1 text-sm font-bold rounded-full hover:bg-black/5 ml-2 transition-colors">
+                    Undo
                 </button>
-            </div>
+            )}
+            <button
+                onClick={onDismiss}
+                className="flex items-center justify-center w-7 h-7 hover:bg-black/5 rounded"
+                aria-label="Dismiss"
+            >
+                <XIcon className="text-base text-[#232323]" />
+            </button>
         </div>
     );
 };
@@ -115,15 +108,41 @@ const App: React.FC = () => {
     const {
         selectedQuestion,
         selectedBlock,
-        handleSelectQuestion,
-        handleSelectBlock,
+        handleSelectQuestion: originalHandleSelectQuestion,
+        handleSelectBlock: originalHandleSelectBlock,
         focusTarget,
         setFocusTarget,
         setSelectedQuestion,
-        setSelectedBlock
+        setSelectedBlock,
+        focusedLogicSource
     } = useSelection(survey, dispatch);
 
     const handleFocusHandled = useCallback(() => setFocusTarget(null), [setFocusTarget]);
+
+    // Wrapper for handleSelectQuestion to also update the active tab and collapse sidebar
+    const handleSelectQuestion = useCallback((question: Question | null, options?: { tab?: string; focusOn?: string }) => {
+        // Determine if we are switching from one question to another
+        const isSwitching = !!selectedQuestion && !!question && selectedQuestion.id !== question.id;
+
+        originalHandleSelectQuestion(question, options);
+        if (question) {
+            setIsRightSidebarExpanded(false); // Ensure sidebar is collapsed when selecting a question
+        }
+        if (options?.tab) {
+            setActiveRightSidebarTab(options.tab);
+        } else if (!isSwitching && question) {
+            // If not switching (i.e. fresh selection) and no specific tab requested, default to Settings
+            setActiveRightSidebarTab('Settings');
+        }
+    }, [originalHandleSelectQuestion, selectedQuestion]);
+
+    // Wrapper for handleSelectBlock to collapse sidebar
+    const handleSelectBlock = useCallback((block: Block | null, options?: { tab: string, focusOn: string }) => {
+        originalHandleSelectBlock(block, options);
+        if (block) {
+            setIsRightSidebarExpanded(false); // Ensure sidebar is collapsed when selecting a block
+        }
+    }, [originalHandleSelectBlock]);
 
     // --- Toast Logic ---
     const showToast = useCallback((message: string, type: ToastType = 'error', onUndo?: () => void) => {
@@ -133,6 +152,13 @@ const App: React.FC = () => {
             setToasts(prev => prev.filter(t => t.id !== id));
         }, 3000);
     }, []);
+
+    useEffect(() => {
+        if (survey.lastLogicValidationMessage) {
+            showToast(survey.lastLogicValidationMessage, 'error', handleUndo);
+            dispatch({ type: SurveyActionType.CLEAR_LOGIC_VALIDATION_MESSAGE });
+        }
+    }, [survey.lastLogicValidationMessage, showToast, dispatch, handleUndo]);
 
     const dismissToast = useCallback((id: string) => {
         setToasts(prev => prev.filter(t => t.id !== id));
@@ -240,12 +266,6 @@ const App: React.FC = () => {
     // --- Derived UI State ---
     const showBulkEditPanel = checkedQuestions.size > 0;
     const isAnyRightPanelOpen = isGeminiPanelOpen || showBulkEditPanel || selectedBlock || selectedQuestion;
-
-    // Logic to determine focused logic source for QuestionEditor
-    const focusedLogicSource = useMemo(() => {
-        // This could be enhanced to detect if we clicked a logic node in the diagram
-        return '';
-    }, []);
 
     // Prepare display survey (with filters if needed, e.g. search)
     const displaySurvey = survey;
@@ -423,6 +443,7 @@ const App: React.FC = () => {
                                     onUpdateBlockTitle={actions.handleUpdateBlockTitle}
                                     onUpdateSurveyTitle={actions.handleUpdateSurveyTitle}
                                     onAddFromLibrary={() => { }}
+                                    focusedLogicSource={focusedLogicSource}
                                 />
                             </div>
                         )}
@@ -439,7 +460,11 @@ const App: React.FC = () => {
                     <div
                         ref={rightPanelRef}
                         className={`bg-surface border-l border-outline-variant shadow-xl transition-all duration-300 flex flex-col z-20`}
-                        style={{ width: isRightSidebarExpanded ? '800px' : '400px' }}
+                        style={{
+                            width: (selectedBlock || selectedQuestion || showBulkEditPanel || isGeminiPanelOpen)
+                                ? (isRightSidebarExpanded ? '800px' : '400px')
+                                : '400px'
+                        }}
                     >
                         {isGeminiPanelOpen ? (
                             <GeminiPanel
@@ -518,6 +543,7 @@ const App: React.FC = () => {
                                     allBlocksCollapsed={allBlocksCollapsed}
                                     onPagingModeChange={(mode) => dispatchAndRecord({ type: SurveyActionType.SET_PAGING_MODE, payload: { pagingMode: mode } })}
                                     onGlobalAutoAdvanceChange={(enabled) => dispatchAndRecord({ type: SurveyActionType.SET_GLOBAL_AUTOADVANCE, payload: { enabled: enabled } })}
+                                    logicIssues={logicIssues}
                                 />
                             </div>
                         )}
@@ -536,7 +562,7 @@ const App: React.FC = () => {
             />
 
             {/* Toast Notifications */}
-            <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-2 pointer-events-none">
+            <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none items-end">
                 {toasts.map(toast => (
                     <div key={toast.id} className="pointer-events-auto">
                         <Toast

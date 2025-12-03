@@ -123,7 +123,7 @@ export const QuestionGroupEditor: React.FC<QuestionGroupEditorProps> = ({ questi
                     onChange={handleInputChange}
                     onFocus={handleInputFocus}
                     onKeyDown={handleKeyDown}
-                    className="w-full bg-transparent border border-input-border rounded-md p-2 pr-10 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                    className="w-full bg-transparent border border-input-border rounded-md px-4 py-2 pr-10 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
                     placeholder="Enter or select a group name..."
                     autoComplete="off"
                 />

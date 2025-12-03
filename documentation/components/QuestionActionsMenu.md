@@ -11,7 +11,7 @@ The `QuestionActionsMenu` is a unified dropdown component providing a consistent
 
 This component is triggered by clicking the "three-dots" icon on a question and is used in two locations:
 
-1.  **Build Panel > Content Tab (`BuildPanel.tsx`)**: In the list ofThe Question Actions Menu provides contextual operations for individual questions. It is built upon the [Dropdown List](./DropdownList.md) component. from the sidebar.
+1.  **Build Panel > Content Tab (`BuildPanel.tsx`)**: In the list of survey content, this menu provides a full set of actions for managing questions from the sidebar.
 2.  **Survey Canvas (`QuestionCard.tsx`)**: Directly on the question card, this menu offers quick access to the most common actions.
 
 Like the `BlockActionsMenu`, its props-driven rendering ensures flexibility. An action is only displayed if its corresponding `on...` callback is provided.
@@ -20,7 +20,7 @@ Like the `BlockActionsMenu`, its props-driven rendering ensures flexibility. An 
 
 -   **Appearance**: Styled as an MD3-style menu, appearing as an absolutely positioned floating panel.
 -   **Grouping**: Actions are logically grouped with dotted dividers for clarity:
-    -   **Structural Actions**: Modifying the question's position or content (Move, Duplicate, Add to library, Add page break).
+    -   **Structural Actions**: Modifying the question's position or content (Move, Duplicate, Add to Library, Add Page Break).
     -   **State & Interaction**: Actions that change the question's state or allow inspection (Preview, Activate/Deactivate).
     -   **Destructive Actions**: Actions that permanently remove the question (Delete), styled in red.
 -   **Contextual Actions**: The menu intelligently displays "Activate" for a hidden question and "Deactivate" for a visible one, providing a clear toggle for the question's state.

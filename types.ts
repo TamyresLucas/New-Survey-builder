@@ -75,18 +75,18 @@ export interface DisplayLogic {
 
 export interface ChoiceDisplayCondition {
   id: string;
-  targetChoiceId: string; 
-  sourceQuestionId: string; 
+  targetChoiceId: string;
+  sourceQuestionId: string;
   operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty' | '';
   value: string;
   isConfirmed?: boolean;
 }
-  
+
 export interface ChoiceDisplayLogic {
-    showOperator: 'AND' | 'OR';
-    showConditions: ChoiceDisplayCondition[];
-    hideOperator: 'AND' | 'OR';
-    hideConditions: ChoiceDisplayCondition[];
+  showOperator: 'AND' | 'OR';
+  showConditions: ChoiceDisplayCondition[];
+  hideOperator: 'AND' | 'OR';
+  hideConditions: ChoiceDisplayCondition[];
 }
 
 export interface SkipLogicRule {
@@ -141,7 +141,7 @@ export interface BranchingLogicCondition {
 }
 
 export interface BranchingLogicBranch {
-  id:string;
+  id: string;
   operator: 'AND' | 'OR';
   conditions: BranchingLogicCondition[];
   thenSkipTo: string; // 'next' | question ID (internal id) | 'end'
@@ -170,12 +170,12 @@ export interface ActionLogic {
     conditions?: { id: string; variable: string; operator: string; value: string; }[];
     row?: string;
     assignedVariables?: { id: string; variable: string; value: string; }[];
-    selections?: { 
-      id: string; 
-      value: string; 
-      inclusionFormula: string; 
-      priority: string; 
-      scoreFormula: string; 
+    selections?: {
+      id: string;
+      value: string;
+      inclusionFormula: string;
+      priority: string;
+      scoreFormula: string;
     }[];
   };
 }
@@ -249,7 +249,7 @@ export interface Question {
     customFontSize?: number | null;
     customSpacing?: number | null;
   };
-  
+
   // --- NEW BEHAVIOR PROPERTIES ---
   displayLogic?: DisplayLogic;
   hideLogic?: DisplayLogic;
@@ -312,6 +312,7 @@ export interface Survey {
   blocks: Block[];
   pagingMode: 'one-per-page' | 'multi-per-page';
   globalAutoAdvance?: boolean;
+  lastLogicValidationMessage?: string;
 }
 
 export interface ToolboxItemData {

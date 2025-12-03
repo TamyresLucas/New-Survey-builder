@@ -5,22 +5,22 @@ import { XIcon, ExpandIcon, CollapseIcon } from './icons';
 import { QuestionType } from '../types';
 
 export const RightSidebar: React.FC<{
-  question: Question;
-  survey: Survey;
-  logicIssues: LogicIssue[];
-  focusedLogicSource: string | null;
-  onClose: () => void;
-  activeTab: string;
-  onTabChange: (tabId: string) => void;
-  onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
-  onAddChoice: (questionId: string) => void;
-  onDeleteChoice: (questionId: string, choiceId: string) => void;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
-  onExpandSidebar: () => void;
-  onSelectBlock: (block: Block | null, options?: { tab: string, focusOn: string }) => void;
-  toolboxItems: ToolboxItemData[];
-  onRequestGeminiHelp: (topic: string) => void;
+    question: Question;
+    survey: Survey;
+    logicIssues: LogicIssue[];
+    focusedLogicSource: string | null;
+    onClose: () => void;
+    activeTab: string;
+    onTabChange: (tabId: string) => void;
+    onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
+    onAddChoice: (questionId: string) => void;
+    onDeleteChoice: (questionId: string, choiceId: string) => void;
+    isExpanded: boolean;
+    onToggleExpand: () => void;
+    onExpandSidebar: () => void;
+    onSelectBlock: (block: Block | null, options?: { tab: string, focusOn: string }) => void;
+    toolboxItems: ToolboxItemData[];
+    onRequestGeminiHelp: (topic: string) => void;
 }> = memo(({
     question,
     survey,
@@ -50,14 +50,14 @@ export const RightSidebar: React.FC<{
     return (
         <aside className="w-full h-full bg-surface-container border-l border-outline-variant flex flex-col">
             <header className="p-4 border-b border-outline-variant flex items-center justify-between flex-shrink-0">
-                <h2 className="text-lg font-bold text-on-surface" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+                <h2 className="text-lg font-medium text-on-surface" style={{ fontFamily: "'Outfit', sans-serif" }}>
                     Edit {question.qid}
                 </h2>
                 <div className="flex items-center gap-2">
-                    <button onClick={onToggleExpand} className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high" aria-label={isExpanded ? 'Collapse panel' : 'Expand panel'}>
+                    <button onClick={onToggleExpand} className="p-1.5 rounded-md text-on-surface-variant hover:bg-surface-container-high" aria-label={isExpanded ? 'Collapse panel' : 'Expand panel'}>
                         {isExpanded ? <CollapseIcon className="text-xl" /> : <ExpandIcon className="text-xl" />}
                     </button>
-                    <button onClick={onClose} className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high" aria-label="Close panel">
+                    <button onClick={onClose} className="p-1.5 rounded-md text-on-surface-variant hover:bg-surface-container-high" aria-label="Close panel">
                         <XIcon className="text-xl" />
                     </button>
                 </div>
@@ -69,20 +69,19 @@ export const RightSidebar: React.FC<{
                         <button
                             key={tab}
                             onClick={() => onTabChange(tab)}
-                            className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-                                activeTab === tab
+                            className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab
                                 ? 'border-primary text-primary'
-                                : 'border-transparent text-on-surface-variant hover:text-on-surface'
-                            }`}
+                                : 'border-transparent text-on-surface-variant hover:text-primary'
+                                }`}
                         >
                             {tab}
                         </button>
                     ))}
                 </nav>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto">
-                <QuestionEditor 
+                <QuestionEditor
                     question={question}
                     survey={survey}
                     logicIssues={logicIssues} // Passed here

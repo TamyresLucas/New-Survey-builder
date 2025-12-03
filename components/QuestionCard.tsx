@@ -116,10 +116,11 @@ const QuestionCard: React.FC<{
     onAddChoice: (questionId: string) => void;
     onAddPageBreakAfterQuestion: (questionId: string) => void;
     pageInfo?: PageInfo;
+    focusedLogicSource: string | null;
 }> = memo(({
     question, survey, parentBlock, currentBlockId, logicIssues, isSelected, isChecked, onSelect, onToggleCheck, id,
     onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, toolboxItems,
-    isDragging, onDragStart, onDragEnd, onAddChoice, onAddPageBreakAfterQuestion, pageInfo
+    isDragging, onDragStart, onDragEnd, onAddChoice, onAddPageBreakAfterQuestion, pageInfo, focusedLogicSource
 }) => {
 
     const [isTypeMenuOpen, setIsTypeMenuOpen] = useState(false);
@@ -374,7 +375,7 @@ const QuestionCard: React.FC<{
             <div className="flex items-center gap-4 text-on-surface-variant w-full">
                 <div className="flex-grow h-px bg-outline-variant"></div>
 
-                <div className="flex-shrink-0 flex items-stretch border border-outline-variant rounded-full overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 ring-offset-surface-container transition-shadow">
+                <div className="flex-shrink-0 flex items-stretch border border-outline-variant rounded-full overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 ring-offset-surface-container transition-shadow hover:border-outline-hover">
                     <span
                         className="bg-surface-container-high px-3 py-1.5 text-sm font-bold text-on-surface border-r border-outline-variant"
                         style={{ fontFamily: "'Open Sans', sans-serif" }}
@@ -390,7 +391,7 @@ const QuestionCard: React.FC<{
                             onBlur={handleSavePageName}
                             onKeyDown={handlePageNameKeyDown}
                             onClick={e => e.stopPropagation()}
-                            className="font-semibold text-sm text-on-surface bg-surface-container px-3 py-1.5 focus:outline-none w-32"
+                            className="font-semibold text-sm text-on-surface bg-surface-container px-3 py-1.5 border border-transparent hover:border-input-border-hover focus:outline-none w-32 rounded-md transition-colors"
                             style={{ fontFamily: "'Open Sans', sans-serif" }}
                         />
                     ) : (
@@ -430,7 +431,7 @@ const QuestionCard: React.FC<{
                     <div ref={actionsMenuContainerRef} className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                             onClick={(e) => { e.stopPropagation(); setIsActionsMenuOpen(prev => !prev); }}
-                            className="p-1.5 rounded-full hover:bg-surface-container-high"
+                            className="p-1.5 rounded-md hover:bg-surface-container-high"
                             aria-label="Page break actions"
                         >
                             <DotsHorizontalIcon className="text-xl" />
@@ -478,12 +479,10 @@ const QuestionCard: React.FC<{
                 onDragEnd={onDragEnd}
                 onClick={(e) => { e.stopPropagation(); onSelect(question); }}
                 className={`p-4 rounded-lg border transition-all cursor-grab group grid grid-cols-[auto_1fr] items-start gap-x-3 relative ${isSelected
-                    ? 'border-primary shadow-md'
-                    : (hasLogicIssues)
-                        ? 'border-error bg-surface-container'
-                        : question.isHidden
-                            ? 'border-outline-variant bg-surface-container opacity-60'
-                            : 'border-outline-variant hover:border-outline hover:shadow-md'
+                    ? (hasLogicIssues ? 'border-error shadow-md' : 'border-primary shadow-md')
+                    : question.isHidden
+                        ? 'border-outline-variant bg-surface-container opacity-60'
+                        : 'border-outline-variant hover:border-outline hover:shadow-md'
                     } ${isDragging ? 'opacity-50' : ''} ${isAnyMenuOpen ? 'z-10' : ''}`}
             >
                 {/* Grid Cell 1: Checkbox */}
@@ -552,18 +551,7 @@ const QuestionCard: React.FC<{
                                 </div>
                             </div>
                         )}
-                        {hasLogicIssues && (
-                            <div className={`relative group/tooltip ${question.forceResponse || question.isHidden || willAutoadvance ? 'ml-2' : ''}`}>
-                                <WarningIcon className="text-error" />
-                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
-                                    <h4 className="font-bold mb-1">Logic Issues:</h4>
-                                    <ul className="list-disc list-inside space-y-1">
-                                        {logicIssues.map((issue, index) => <li key={index}>{issue.message}</li>)}
-                                    </ul>
-                                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-surface-container-highest"></div>
-                                </div>
-                            </div>
-                        )}
+
                     </div>
                     <div className="flex items-center gap-2">
                         <div ref={typeMenuContainerRef} className="relative">
@@ -572,10 +560,10 @@ const QuestionCard: React.FC<{
                                     e.stopPropagation();
                                     setIsTypeMenuOpen(prev => !prev);
                                 }}
-                                className="flex items-center gap-2 rounded-md px-2 py-1.5 border border-input-border bg-transparent hover:bg-surface-container-high"
+                                className="flex items-center gap-2 rounded-md px-2 py-1.5 border border-input-border bg-transparent hover:border-input-border-hover transition-colors"
                             >
                                 <CurrentQuestionTypeIcon className="text-base text-primary" />
-                                <span className="font-medium text-sm text-on-surface">{question.type}</span>
+                                <span className="font-semibold text-sm text-on-surface">{question.type}</span>
                                 <ChevronDownIcon className="text-lg text-on-surface-variant" />
                             </button>
                             {isTypeMenuOpen && (
@@ -590,7 +578,7 @@ const QuestionCard: React.FC<{
                                     e.stopPropagation();
                                     setIsActionsMenuOpen(prev => !prev);
                                 }}
-                                className="p-1.5 rounded-full hover:bg-surface-container-high"
+                                className="p-1.5 rounded-md hover:bg-surface-container-high"
                                 aria-label="Question actions"
                             >
                                 <DotsHorizontalIcon className="text-xl" />
@@ -623,7 +611,7 @@ const QuestionCard: React.FC<{
                     {question.type === QuestionType.TextEntry && (
                         <div className="mt-4">
                             <textarea
-                                className="w-full bg-transparent border border-input-border rounded-md p-2 text-sm text-on-surface resize-y cursor-default"
+                                className="w-full bg-transparent border border-input-border rounded-md p-2 text-sm text-on-surface resize-y cursor-default hover:border-input-border-hover transition-colors"
                                 rows={question.textEntrySettings?.answerLength === 'long' ? 8 : 1}
                                 placeholder={question.textEntrySettings?.placeholder || ''}
                                 readOnly
@@ -652,7 +640,7 @@ const QuestionCard: React.FC<{
                                                             const newScalePoints = question.scalePoints?.filter(p => p.id !== sp.id);
                                                             onUpdateQuestion(question.id, { scalePoints: newScalePoints });
                                                         }}
-                                                        className="absolute -top-1 -right-1 p-0.5 rounded-full bg-surface-container-highest text-on-surface-variant hover:bg-error-container hover:text-on-error-container opacity-0 group-hover/header:opacity-100"
+                                                        className="absolute -top-1 -right-1 p-0.5 rounded bg-surface-container-highest text-on-surface-variant hover:bg-error-container hover:text-on-error-container opacity-0 group-hover/header:opacity-100"
                                                         aria-label="Remove column"
                                                     >
                                                         <XIcon className="text-sm" />
@@ -686,7 +674,7 @@ const QuestionCard: React.FC<{
                                                         <td className="p-2 text-sm text-on-surface pr-4">
                                                             <div className="flex items-center gap-1">
                                                                 <DragIndicatorIcon className="text-xl text-on-surface-variant cursor-grab opacity-0 group-hover/choice:opacity-100 transition-opacity" />
-                                                                {variable && <span className="font-bold text-on-surface-variant">{variable}</span>}
+                                                                {variable && <span className="font-semibold text-on-surface">{variable}</span>}
                                                                 <EditableText
                                                                     html={label}
                                                                     onChange={(newLabel) => {
@@ -713,7 +701,7 @@ const QuestionCard: React.FC<{
                                                                     const newChoices = question.choices?.filter(c => c.id !== choice.id);
                                                                     onUpdateQuestion(question.id, { choices: newChoices });
                                                                 }}
-                                                                className="ml-auto p-1 rounded-full text-on-surface-variant hover:bg-surface-container-highest opacity-0 group-hover/choice:opacity-100"
+                                                                className="ml-auto p-1 rounded-md text-on-surface-variant hover:bg-surface-container-highest opacity-0 group-hover/choice:opacity-100"
                                                                 aria-label="Remove row"
                                                             >
                                                                 <XIcon className="text-base" />
@@ -733,7 +721,7 @@ const QuestionCard: React.FC<{
                                         e.stopPropagation();
                                         onAddChoice(question.id);
                                     }}
-                                    className="flex items-center text-sm text-on-surface hover:text-primary font-medium transition-colors"
+                                    className="flex items-center text-xs text-primary font-semibold transition-colors hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5"
                                 >
                                     <PlusIcon className="text-base mr-1" /> Add row
                                 </button>
@@ -742,7 +730,7 @@ const QuestionCard: React.FC<{
                                         e.stopPropagation();
                                         handleAddColumn();
                                     }}
-                                    className="flex items-center text-sm text-on-surface hover:text-primary font-medium transition-colors"
+                                    className="flex items-center text-xs text-primary font-semibold transition-colors hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5"
                                 >
                                     <PlusIcon className="text-base mr-1" /> Add column
                                 </button>
@@ -775,7 +763,7 @@ const QuestionCard: React.FC<{
                                             <DragIndicatorIcon className="text-xl text-on-surface-variant mr-1 cursor-grab opacity-0 group-hover/choice:opacity-100" />
                                             {question.type === QuestionType.Radio ? (
                                                 index === 0 ? (
-                                                    <RadioIcon className="text-xl text-on-surface-variant mr-2" />
+                                                    <RadioIcon className="text-xl text-primary mr-2" />
                                                 ) : (
                                                     <RadioButtonUncheckedIcon className="text-xl text-on-surface-variant mr-2" />
                                                 )
@@ -784,7 +772,7 @@ const QuestionCard: React.FC<{
                                             )}
 
                                             <div className="text-on-surface flex-grow min-h-[24px] flex items-center gap-2">
-                                                {variable && <span className="font-bold text-on-surface-variant mr-2">{variable}</span>}
+                                                {variable && <span className="font-semibold text-on-surface mr-2">{variable}</span>}
                                                 <EditableText
                                                     html={label}
                                                     onChange={(newLabel) => {
@@ -805,7 +793,7 @@ const QuestionCard: React.FC<{
                                                     const newChoices = question.choices?.filter(c => c.id !== choice.id);
                                                     onUpdateQuestion(question.id, { choices: newChoices });
                                                 }}
-                                                className="ml-2 p-1 rounded-full text-on-surface-variant hover:bg-surface-container-highest opacity-0 group-hover/choice:opacity-100"
+                                                className="p-1 rounded-md text-on-surface-variant hover:bg-surface-container-highest opacity-0 group-hover/choice:opacity-100"
                                                 aria-label="Remove choice"
                                             >
                                                 <XIcon className="text-base" />
@@ -818,38 +806,52 @@ const QuestionCard: React.FC<{
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    if (!isSelected) {
-                                        onSelect(question);
-                                    }
                                     onAddChoice(question.id);
                                 }}
-                                className="flex items-center text-sm text-primary font-medium mt-2 hover:underline"
+                                className="flex items-center text-xs text-primary font-semibold mt-2 transition-colors hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5"
                             >
                                 <PlusIcon className="text-base mr-1" /> Add choice
                             </button>
                         </div>
                     )}
-                    {hasDisplayLogic && (
+
+                    {/* Logic Displays */}
+                    {question.displayLogic && (
                         <DisplayLogicDisplay
-                            logic={question.displayLogic!}
+                            logic={question.displayLogic}
                             survey={survey}
-                            onClick={() => onSelect(question, { tab: 'Behavior' })}
-                            issues={logicIssues.filter(i => i.type === 'display' || i.type === 'hide')}
+                            onClick={(id) => onSelect(question, { tab: 'Behavior', focusOn: id || 'display' })}
+                            issues={logicIssues.filter(i => i.type === 'display')}
+                            isFocused={focusedLogicSource === 'display'}
+                            focusedId={focusedLogicSource}
+                            onRemove={() => onUpdateQuestion(question.id, { displayLogic: undefined })}
                         />
-                    )
-                    }
-                    {
-                        question.branchingLogic && question.branchingLogic.branches.length > 0 && (
-                            <BranchingLogicDisplay
-                                logic={question.branchingLogic}
-                                survey={survey}
-                                question={question}
-                                onClick={() => onSelect(question, { tab: 'Advanced' })}
-                            />
-                        )
-                    }
-                </div >
-            </div >
+                    )}
+                    {question.skipLogic && (
+                        <SkipLogicDisplay
+                            logic={question.skipLogic}
+                            currentQuestion={question}
+                            survey={survey}
+                            onClick={() => onSelect(question, { tab: 'Behavior', focusOn: 'skip' })}
+                            onRemove={() => onUpdateQuestion(question.id, { skipLogic: undefined })}
+                            issues={logicIssues.filter(i => i.type === 'skip')}
+                            isFocused={focusedLogicSource === 'skip'}
+                        />
+                    )}
+                    {question.branchingLogic && (
+                        <BranchingLogicDisplay
+                            logic={question.branchingLogic}
+                            survey={survey}
+                            question={question}
+                            onClick={(id) => onSelect(question, { tab: 'Advanced', focusOn: id || 'branching' })}
+                            issues={logicIssues.filter(i => i.type === 'branching')}
+                            isFocused={focusedLogicSource === 'branching'}
+                            focusedId={focusedLogicSource}
+                            onRemove={() => onUpdateQuestion(question.id, { branchingLogic: undefined, draftBranchingLogic: undefined })}
+                        />
+                    )}
+                </div>
+            </div>
         </>
     );
 });

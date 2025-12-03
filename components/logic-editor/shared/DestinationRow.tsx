@@ -37,7 +37,7 @@ export const DestinationRow: React.FC<{
                 <select
                     value={value}
                     onChange={e => onChange(e.target.value)}
-                    className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none ${invalid ? 'border-error' : 'border-input-border'}`}
+                    className={`w-full bg-transparent border rounded-md px-4 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none ${invalid ? 'border-error' : 'border-input-border'}`}
                 >
                     <option value="">Select destination...</option>
                     <optgroup label="Default">
@@ -59,8 +59,8 @@ export const DestinationRow: React.FC<{
                 </select>
                 <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-lg" />
             </div>
-            {onRemove && <button onClick={onRemove} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full"><XIcon className="text-lg" /></button>}
-            {!isConfirmed && onConfirm && <button onClick={onConfirm} className="p-1.5 bg-primary text-on-primary rounded-full hover:opacity-90"><CheckmarkIcon className="text-lg" /></button>}
+            {onRemove && <button onClick={onRemove} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-md"><XIcon className="text-lg" /></button>}
+            {!isConfirmed && onConfirm && <button onClick={onConfirm} className="p-1.5 bg-primary text-on-primary rounded-md hover:opacity-90"><CheckmarkIcon className="text-lg" /></button>}
         </div>
     );
 };

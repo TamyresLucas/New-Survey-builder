@@ -61,7 +61,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
     );
 
     const isFirstInteractiveQuestion = useMemo(() => {
-        const firstInteractive = allSurveyQuestions.find(q => 
+        const firstInteractive = allSurveyQuestions.find(q =>
             q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak
         );
         return firstInteractive?.id === question.id;
@@ -107,7 +107,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                 );
             }
             return <p className="p-6 text-sm text-on-surface-variant text-center">This question type has no editable settings.</p>;
-        
+
         case 'Behavior':
             return (
                 <BehaviorTab
@@ -124,7 +124,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     onSelectBlock={onSelectBlock}
                 />
             );
-        
+
         case 'Advanced':
             return (
                 <AdvancedTab
@@ -136,11 +136,12 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     onUpdate={handleUpdate}
                     onAddLogic={onExpandSidebar}
                     onRequestGeminiHelp={onRequestGeminiHelp}
+                    focusedLogicSource={focusedLogicSource}
                 />
             );
 
         case 'Preview':
-             return (
+            return (
                 <PreviewTab
                     question={question}
                     survey={survey}

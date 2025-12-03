@@ -47,7 +47,7 @@ const QuestionTextEditor: React.FC<QuestionTextEditorProps> = ({ text, onTextCha
                 onBlur={handleTextBlur}
                 onPaste={createPasteHandler(setQuestionText)}
                 rows={4}
-                className="w-full bg-transparent border border-input-border rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                className="w-full bg-transparent border border-input-border rounded-md p-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary transition-colors"
                 placeholder="Enter your question here..."
             />
             <p className="text-xs text-on-surface-variant mt-1">Maximum 5000 characters</p>

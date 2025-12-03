@@ -8,57 +8,24 @@ interface AppChangelogModalProps {
 
 export const AppChangelogModal: React.FC<AppChangelogModalProps> = ({ onClose }) => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedDateRange, setSelectedDateRange] = useState('24h');
+    const [selectedDate, setSelectedDate] = useState('');
     const [selectedVersion, setSelectedVersion] = useState('');
 
     const currentVersion = changelogs[0]?.version || 'v1.0.0';
-
-    const parseLogDate = (dateStr: string, timeStr: string) => {
-        const [year, month, day] = dateStr.split('-').map(Number);
-        const [time, period] = timeStr.split(' ');
-        let [hours, minutes] = time.split(':').map(Number);
-        if (period === 'PM' && hours !== 12) hours += 12;
-        if (period === 'AM' && hours === 12) hours = 0;
-        return new Date(year, month - 1, day, hours, minutes);
-    };
 
     const filteredLogs = useMemo(() => {
         return changelogs.filter(log => {
             const matchesSearch = log.request.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 log.improvements.some(i => i.toLowerCase().includes(searchQuery.toLowerCase()));
-
-            let matchesDate = true;
-            if (selectedDateRange !== 'all') {
-                const logDate = parseLogDate(log.date, log.time);
-                const now = new Date();
-                const diff = now.getTime() - logDate.getTime();
-                const hour = 60 * 60 * 1000;
-                const day = 24 * hour;
-
-                switch (selectedDateRange) {
-                    case '24h': matchesDate = diff <= 24 * hour; break;
-                    case '48h': matchesDate = diff <= 48 * hour; break;
-                    case '7d': matchesDate = diff <= 7 * day; break;
-                    case '30d': matchesDate = diff <= 30 * day; break;
-                    case '90d': matchesDate = diff <= 90 * day; break;
-                }
-            }
-
+            const matchesDate = selectedDate ? log.date === selectedDate : true;
             const matchesVersion = selectedVersion ? log.version === selectedVersion : true;
             return matchesSearch && matchesDate && matchesVersion;
         });
-    }, [searchQuery, selectedDateRange, selectedVersion]);
+    }, [searchQuery, selectedDate, selectedVersion]);
 
+    // Get unique dates for filter
+    const availableDates = useMemo(() => Array.from(new Set(changelogs.map(log => log.date))).sort().reverse(), []);
     const availableVersions = useMemo(() => Array.from(new Set(changelogs.map(log => log.version))), []);
-
-    const dateRanges = [
-        { value: 'all', label: 'All Dates' },
-        { value: '24h', label: 'Last 24 Hours' },
-        { value: '48h', label: 'Last 48 Hours' },
-        { value: '7d', label: 'Last Week' },
-        { value: '30d', label: 'Last Month' },
-        { value: '90d', label: 'Past 90 Days' },
-    ];
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -68,7 +35,7 @@ export const AppChangelogModal: React.FC<AppChangelogModalProps> = ({ onClose })
                         <h2 className="text-xl font-bold text-on-surface font-outfit">App Changelog</h2>
                         <span className="text-sm text-on-surface-variant font-mono">({currentVersion})</span>
                     </div>
-                    <button onClick={onClose} className="p-2 text-on-surface-variant hover:bg-surface-container-lowest rounded-full transition-colors">
+                    <button onClick={onClose} className="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors">
                         <XIcon className="text-xl" />
                     </button>
                 </div>
@@ -101,12 +68,13 @@ export const AppChangelogModal: React.FC<AppChangelogModalProps> = ({ onClose })
                         <div className="relative min-w-[140px]">
                             <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg pointer-events-none" />
                             <select
-                                value={selectedDateRange}
-                                onChange={(e) => setSelectedDateRange(e.target.value)}
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
                                 className="w-full pl-10 pr-8 py-2 bg-white dark:bg-surface-container-high border border-outline rounded-md text-sm text-on-surface hover:border-input-border-hover focus:outline-none focus:ring-2 focus:ring-primary appearance-none cursor-pointer transition-all"
                             >
-                                {dateRanges.map(range => (
-                                    <option key={range.value} value={range.value}>{range.label}</option>
+                                <option value="">All Dates</option>
+                                {availableDates.map(date => (
+                                    <option key={date} value={date}>{date}</option>
                                 ))}
                             </select>
                             <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg pointer-events-none" />

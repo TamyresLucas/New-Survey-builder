@@ -47,6 +47,7 @@ export const useSelection = (survey: Survey, dispatch: React.Dispatch<any>) => {
     const handleSelectBlock = useCallback((block: Block | null, options?: { tab: string, focusOn: string }) => {
         if (block) {
             setSelectedQuestion(null);
+            setIsRightSidebarExpanded(false); // Ensure it starts collapsed
             if (options) {
                 setFocusTarget({ type: 'block', id: block.id, tab: options.tab, element: options.focusOn });
             } else {

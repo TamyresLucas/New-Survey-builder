@@ -51,7 +51,7 @@ const ScalePointItem: React.FC<ScalePointItemProps> = ({
                 <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing" aria-label="Reorder column">
                     <DragIndicatorIcon className="text-lg" />
                 </span>
-                <div className="flex-grow flex items-stretch bg-surface border border-outline rounded-md focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-primary">
+                <div className="flex-grow flex items-stretch bg-transparent border border-input-border rounded-md hover:border-input-border-hover focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-primary transition-colors">
                     <input
                         type="text"
                         value={scalePoint.text}
@@ -62,7 +62,7 @@ const ScalePointItem: React.FC<ScalePointItemProps> = ({
                     />
                 </div>
                 <div className="w-10 h-10"></div>
-                <button onClick={() => onDelete(scalePoint.id)} className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Delete column">
+                <button onClick={() => onDelete(scalePoint.id)} className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-md" aria-label="Delete column">
                     <XIcon className="text-lg" />
                 </button>
             </div>

@@ -194,7 +194,7 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
           onBlur={handleTitleBlur}
           onKeyDown={handleTitleKeyDown}
           rows={2}
-          className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+          className="w-full bg-transparent border border-outline rounded-md p-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary transition-colors"
           placeholder="Enter block title..."
         />
       </div>
@@ -207,7 +207,7 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
             id="survey-path"
             value={block.branchName || ''}
             onChange={e => onUpdateBlock(block.id, { branchName: e.target.value || undefined })}
-            className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+            className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none transition-colors"
           >
             <option value="">None</option>
             {surveyPaths.map(path => (
@@ -228,7 +228,7 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" id="set-as-section" checked={block.isSurveySection || false} onChange={handleIsSectionToggle} className="sr-only peer" />
-            <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
           </label>
         </div>
         {block.isSurveySection && (
@@ -243,7 +243,7 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
               onChange={(e) => setSectionName(e.target.value)}
               onBlur={handleSectionNameBlur}
               onKeyDown={handleSectionNameKeyDown}
-              className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+              className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary transition-colors"
               placeholder="Enter section name..."
             />
           </div>
@@ -283,7 +283,7 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
                 ref={continueToRef}
                 value={block.continueTo || 'next'}
                 onChange={e => onUpdateBlock(block.id, { continueTo: e.target.value })}
-                className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed disabled:text-on-surface-variant/70"
+                className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed disabled:text-on-surface-variant/70 transition-colors"
                 disabled={isDefaultPathDisabled}
               >
                 <option value="next">Default (next block)</option>
@@ -302,9 +302,9 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
             </div>
             <p className="text-xs text-on-surface-variant mt-1">Define the block's default exit path.</p>
             {isDefaultPathDisabled && (
-              <div className="mt-2 p-2 bg-primary-container/20 border border-primary-container/30 rounded-md text-xs text-on-primary-container flex items-start gap-2">
-                <InfoIcon className="text-base flex-shrink-0 mt-0.5" />
-                <span>This is disabled because the last question in the block has exhaustive branching logic that defines all possible exits.</span>
+              <div className="mt-2 flex items-center gap-4 p-2 bg-outline-variant border border-primary rounded-sm">
+                <InfoIcon className="text-base text-primary flex-shrink-0" />
+                <span className="text-sm text-on-surface" style={{ fontFamily: "'Open Sans', sans-serif" }}>This is disabled because the last question in the block has exhaustive branching logic that defines all possible exits.</span>
               </div>
             )}
           </div>
@@ -324,7 +324,7 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
                   onChange={e => onUpdateBlock(block.id, { loopingEnabled: e.target.checked })}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
               </label>
             </div>
             {block.loopingEnabled && (
@@ -340,7 +340,7 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
                     const value = e.target.value ? parseInt(e.target.value, 10) : undefined;
                     onUpdateBlock(block.id, { maxLoopSize: value });
                   }}
-                  className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                  className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary transition-colors"
                   placeholder="e.g., 5"
                   min="1"
                 />
@@ -364,7 +364,7 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
                   onChange={(e) => onUpdateBlock(block.id, { autoAdvance: e.target.checked })}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
               </label>
             </div>
           </div>
@@ -385,7 +385,7 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
                   onChange={(e) => onUpdateBlock(block.id, { hideBackButton: e.target.checked })}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
               </label>
             </div>
           </div>
@@ -514,12 +514,12 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
                 onChange={e => handleToggleRandomization(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
             </label>
           </div>
           {block.questionRandomization && (
             <div className="mt-4 space-y-4">
-              <button onClick={handleAddRandomizationRule} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+              <button onClick={handleAddRandomizationRule} className="flex items-center gap-1 text-sm font-button-text text-primary hover:underline">
                 <PlusIcon className="text-base" /> Add randomization
               </button>
               <div className="space-y-3">
@@ -558,7 +558,7 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
   return (
     <aside className="w-full h-full bg-surface-container border-l border-outline-variant flex flex-col">
       <header className="p-4 border-b border-outline-variant flex items-center justify-between flex-shrink-0">
-        <h2 className="text-lg font-bold text-on-surface" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+        <h2 className="text-lg font-medium text-on-surface" style={{ fontFamily: "'Outfit', sans-serif" }}>
           Edit Block {block.bid}
         </h2>
         <div className="flex items-center gap-2">

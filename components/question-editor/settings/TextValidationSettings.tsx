@@ -45,7 +45,7 @@ const TextValidationSettings: React.FC<TextValidationSettingsProps> = ({ questio
                         id="content-type"
                         value={validation.contentType || 'none'}
                         onChange={e => handleUpdateValidation({ contentType: e.target.value as any })}
-                        className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                        className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none transition-colors"
                     >
                         <option value="none">None (any text)</option>
                         <option value="email">Email Address</option>
@@ -66,7 +66,7 @@ const TextValidationSettings: React.FC<TextValidationSettingsProps> = ({ questio
                             id="custom-regex"
                             value={validation.customRegex || ''}
                             onChange={(e) => handleUpdateValidation({ customRegex: e.target.value })}
-                            className="w-full bg-transparent border border-input-border rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary font-mono"
+                            className="w-full bg-transparent border border-input-border rounded-md p-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary font-mono transition-colors"
                             placeholder="^[A-Z]{2}[0-9]{4}$"
                         />
                     </div>
@@ -80,7 +80,7 @@ const TextValidationSettings: React.FC<TextValidationSettingsProps> = ({ questio
                             id="answer-length"
                             value={textEntrySettings.answerLength || 'long'}
                             onChange={e => handleUpdateSettings({ answerLength: e.target.value as any })}
-                            className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                            className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none transition-colors"
                         >
                             <option value="short">Short Answer</option>
                             <option value="long">Long Answer (8+ lines)</option>
@@ -97,7 +97,7 @@ const TextValidationSettings: React.FC<TextValidationSettingsProps> = ({ questio
                     value={textEntrySettings.placeholder || ''}
                     onChange={(e) => handleUpdateSettings({ placeholder: e.target.value })}
                     onPaste={createPasteHandler((newValue) => handleUpdateSettings({ placeholder: newValue }))}
-                    className="w-full bg-transparent border border-input-border rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                    className="w-full bg-transparent border border-input-border rounded-md p-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary transition-colors"
                     placeholder="e.g., Enter your answer here..."
                 />
             </div>

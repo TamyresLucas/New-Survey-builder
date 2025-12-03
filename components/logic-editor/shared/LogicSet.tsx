@@ -147,7 +147,7 @@ export const LogicSet: React.FC<LogicSetProps> = ({
     const setIssues = issues.filter(i => i.sourceId === logicSet.id);
 
     return (
-        <div className="w-full">
+        <div id={logicSet.id} className="w-full">
             {(onActionChange || extraActionContent) && (
                 <div className="flex items-center gap-2 mb-2 w-full">
                     {onActionChange && actionValue && (
@@ -178,7 +178,9 @@ export const LogicSet: React.FC<LogicSetProps> = ({
                         <WarningIcon className="text-xl bg-surface rounded-full" />
                         <div className="absolute bottom-full right-0 mb-2 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/issues:opacity-100 transition-opacity pointer-events-none border border-error z-20">
                             <ul className="list-disc list-inside">
-                                {setIssues.map((issue, idx) => <li key={idx}>{issue.message}</li>)}
+                                {Array.from(new Set(setIssues.map(i => i.message))).map((msg, idx) => (
+                                    <li key={idx}>{msg}</li>
+                                ))}
                             </ul>
                         </div>
                     </div>
@@ -200,8 +202,8 @@ export const LogicSet: React.FC<LogicSetProps> = ({
                         {hasMultipleConditions && (
                             <div className="flex items-center gap-2 ml-auto">
                                 <div className="flex gap-1">
-                                    <button onClick={() => handleSetOperator('AND')} className={`px-2 py-0.5 text-[10px] font-bold rounded-full transition-colors ${logicSet.operator === 'AND' ? 'bg-primary text-on-primary' : 'bg-surface border border-outline text-on-surface-variant'}`}>AND</button>
-                                    <button onClick={() => handleSetOperator('OR')} className={`px-2 py-0.5 text-[10px] font-bold rounded-full transition-colors ${logicSet.operator === 'OR' ? 'bg-primary text-on-primary' : 'bg-surface border border-outline text-on-surface-variant'}`}>OR</button>
+                                    <button onClick={() => handleSetOperator('AND')} className={`px-2 py-0.5 text-[10px] font-button-operator rounded-full transition-colors ${logicSet.operator === 'AND' ? 'bg-primary text-on-primary' : 'bg-surface border border-outline text-on-surface-variant'}`}>AND</button>
+                                    <button onClick={() => handleSetOperator('OR')} className={`px-2 py-0.5 text-[10px] font-button-operator rounded-full transition-colors ${logicSet.operator === 'OR' ? 'bg-primary text-on-primary' : 'bg-surface border border-outline text-on-surface-variant'}`}>OR</button>
                                 </div>
                             </div>
                         )}
@@ -237,7 +239,7 @@ export const LogicSet: React.FC<LogicSetProps> = ({
                 </div>
 
                 <div className="mt-3 flex items-center justify-between">
-                    <button onClick={handleAddCondition} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                    <button onClick={handleAddCondition} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors">
                         <PlusIcon className="text-base" />
                         Add condition
                     </button>
@@ -245,13 +247,13 @@ export const LogicSet: React.FC<LogicSetProps> = ({
                     <div className="flex items-center gap-2">
                         <button
                             onClick={logicSet.isConfirmed ? onRemove : handleCancel}
-                            className="px-3 py-1.5 text-xs font-bold text-on-surface-variant hover:bg-surface-container-highest rounded-md transition-colors"
+                            className="px-3 py-1.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container-highest rounded-md transition-colors"
                         >
                             {logicSet.isConfirmed ? 'Delete' : 'Cancel'}
                         </button>
                         {!logicSet.isConfirmed && (
-                            <button onClick={handleConfirmSet} className="px-3 py-1.5 text-xs font-bold text-on-primary bg-primary rounded-md hover:opacity-90 transition-opacity">
-                                Apply Logic
+                            <button onClick={handleConfirmSet} className="px-3 py-1.5 text-xs font-button-operator text-on-primary bg-primary rounded-md hover:opacity-90 transition-opacity">
+                                Apply
                             </button>
                         )}
                     </div>

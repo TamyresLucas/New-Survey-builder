@@ -49,7 +49,7 @@ const DropIndicator = ({ small = false }: { small?: boolean }) => (
   </div>
 );
 
-const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, showDropIndicator, onSelectQuestion, onDragStart, onDragEnd, TypeIcon, onCopyQuestion, onDeleteQuestion, onAddPageBreakAfterQuestion, onMoveQuestionToNewBlock, onUpdateQuestion }: any) => {
+const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, showDropIndicator, onSelectQuestion, onDragStart, onDragEnd, TypeIcon, onCopyQuestion, onDeleteQuestion, onAddPageBreakAfterQuestion, onMoveQuestionToNewBlock, onUpdateQuestion, hasIssues }: any) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -83,6 +83,29 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
     setIsMenuOpen(false);
   };
 
+  const DisplayIcon = hasIssues ? WarningIcon : TypeIcon;
+
+  let containerClasses = `box-border flex flex-row items-center p-2 gap-2 h-[35px] rounded text-sm transition-all group relative border cursor-grab`;
+  if (isSelected) {
+    if (hasIssues) {
+      containerClasses += ' bg-error border-error text-on-error';
+    } else {
+      containerClasses += ' bg-primary border-primary text-on-primary';
+    }
+  } else {
+    containerClasses += ' bg-surface-container border-outline-variant hover:bg-surface-container-high hover:border-outline-hover';
+  }
+
+  if (isQuestionDragged) {
+    containerClasses += ' opacity-30';
+  }
+
+  const iconClasses = `text-base mr-2 ${isSelected ? (hasIssues ? 'text-on-error' : 'text-on-primary') : (hasIssues ? 'text-error' : 'text-primary')}`;
+  const textClasses = `font-semibold text-sm ${isSelected ? (hasIssues ? 'text-on-error' : 'text-on-primary') : 'text-on-surface'}`;
+  const labelClasses = `font-normal text-sm ${isSelected ? (hasIssues ? 'text-on-error' : 'text-on-primary') : 'text-on-surface-variant'}`;
+  const bodyTextClasses = `font-normal truncate flex-grow ${isSelected ? (hasIssues ? 'text-on-error' : 'text-on-primary') : 'text-on-surface'}`;
+  const menuButtonClasses = `p-1 rounded-md transition-opacity ${isSelected ? (hasIssues ? 'text-on-error hover:bg-white/20' : 'text-on-primary hover:bg-white/20') : 'text-on-surface-variant hover:bg-surface-container-highest'} ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`;
+
   return (
     <>
       {showDropIndicator && <DropIndicator small />}
@@ -92,22 +115,22 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onClick={() => onSelectQuestion(question)}
-        className={`box-border flex flex-row items-center p-2 gap-2 h-[35px] rounded text-sm transition-all group relative border cursor-grab ${isSelected ? 'bg-primary border-primary text-on-primary' : 'bg-surface-container border-outline-variant hover:bg-surface-container-high'} ${isQuestionDragged ? 'opacity-30' : ''}`}
+        className={containerClasses}
       >
         <div className="flex items-center flex-shrink-0">
-          <TypeIcon className={`text-base mr-2 ${isSelected ? 'text-on-primary' : 'text-primary'}`} />
+          <DisplayIcon className={iconClasses} />
           {question.type === QTEnum.Description ? (
-            <span className={`font-normal text-sm ${isSelected ? 'text-on-primary' : 'text-on-surface-variant'}`}>{question.label || 'Description'}</span>
+            <span className={labelClasses}>{question.label || 'Description'}</span>
           ) : (
-            <span className={`font-semibold text-sm ${isSelected ? 'text-on-primary' : 'text-on-surface'}`}>{question.qid}</span>
+            <span className={textClasses}>{question.qid}</span>
           )}
         </div>
-        <span className={`font-normal truncate flex-grow ${isSelected ? 'text-on-primary' : 'text-on-surface'}`}>{question.text}</span>
+        <span className={bodyTextClasses}>{question.text}</span>
 
         <div className="relative ml-2 flex-shrink-0" ref={menuRef}>
           <button
             onClick={handleOpenMenu}
-            className={`p-1 rounded-full transition-opacity ${isSelected ? 'text-on-primary hover:bg-white/20' : 'text-on-surface-variant hover:bg-surface-container-highest'} ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+            className={menuButtonClasses}
             aria-haspopup="true"
             aria-expanded={isMenuOpen}
             aria-label="Question actions"
@@ -405,8 +428,8 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
     <div className="w-80 bg-surface-container border-r border-outline-variant flex flex-col flex-shrink-0">
       <div className="p-4 border-b border-outline-variant">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-on-surface" style={{ fontFamily: "'Open Sans', sans-serif" }}>Build</h2>
-          <button onClick={onClose} className="p-1 rounded-full text-on-surface-variant hover:bg-surface-container-high" aria-label="Collapse build panel">
+          <h2 className="text-lg font-medium text-on-surface" style={{ fontFamily: "'Outfit', sans-serif" }}>Build</h2>
+          <button onClick={onClose} className="p-1 rounded-md text-on-surface-variant hover:bg-surface-container-high" aria-label="Collapse build panel">
             <PanelLeftIcon className="text-xl" />
           </button>
         </div>
@@ -419,7 +442,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
               onClick={() => handleTabClick(tab)}
               className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab
                 ? 'border-primary text-primary'
-                : 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant'
+                : 'border-transparent text-on-surface-variant hover:text-primary'
                 }`}
               style={{ fontFamily: "'Open Sans', sans-serif" }}
             >
@@ -438,7 +461,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search..."
-            className="w-full bg-transparent border border-input-border rounded-md py-2 pl-10 pr-4 text-sm text-on-surface focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+            className="w-full bg-transparent border border-input-border rounded-md py-2 pl-10 pr-4 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-2 focus:outline-primary transition-colors"
             style={{ fontFamily: "'Open Sans', sans-serif" }}
           />
         </div>
@@ -446,7 +469,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
           <div className="relative mt-3" ref={filterDropdownRef}>
             <button
               onClick={() => setIsFilterDropdownOpen(prev => !prev)}
-              className="w-full flex items-center justify-between bg-transparent border border-input-border rounded-md py-2 px-4 text-sm text-left text-on-surface focus:outline-2 focus:outline-offset-2 focus:outline-primary"
+              className="w-full flex items-center justify-between bg-transparent border border-input-border rounded-md py-2 px-4 text-sm text-left text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-2 focus:outline-primary transition-colors"
             >
               <div className="flex items-center truncate">
                 {(() => {
@@ -515,12 +538,12 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                     draggable={isEnabled && !isTextSearching}
                     onDragStart={isEnabled && !isTextSearching ? (e) => handleToolboxDragStart(e, index, item) : undefined}
                     onDragEnd={isEnabled && !isTextSearching ? handleToolboxDragEnd : undefined}
-                    className={`flex items-center px-4 py-3 border-b border-outline-variant/50 transition-all ${isEnabled ? 'hover:bg-surface-container-high cursor-grab' : 'opacity-50 cursor-not-allowed'
+                    className={`flex items-center px-4 py-3 border-b border-outline-variant transition-all ${isEnabled ? 'hover:bg-surface-container-high cursor-grab' : 'cursor-not-allowed'
                       } ${draggedToolboxIndex === index ? 'opacity-30' : ''}`}
                   >
                     <div className="flex items-center">
-                      <item.icon className={`text-xl mr-3 ${isEnabled ? 'text-primary' : 'text-on-surface-variant'}`} />
-                      <span className={`text-sm ${isEnabled ? 'text-on-surface' : 'text-on-surface-variant'}`} style={{ fontFamily: "'Open Sans', sans-serif" }}>{item.name}</span>
+                      <item.icon className={`text-xl mr-3 ${isEnabled ? 'text-primary' : 'text-on-surface-disabled'}`} />
+                      <span className={`text-sm ${isEnabled ? 'text-on-surface' : 'text-on-surface-disabled'}`} style={{ fontFamily: "'Open Sans', sans-serif" }}>{item.name}</span>
                     </div>
                   </li>
                 </React.Fragment>
@@ -569,20 +592,20 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                       onDragStart={!isSearching ? (e) => handleBlockDragStart(e, block.id) : undefined}
                       onDragEnd={!isSearching ? handleBlockDragEnd : undefined}
                       onClick={() => onSelectBlock(block)}
-                      className={`px-4 py-2 cursor-pointer border-b border-t border-outline-variant flex items-center justify-between ${isSelected ? 'bg-primary-container' : 'bg-surface-container hover:bg-surface-container-high'}`}
+                      className={`px-4 py-2 cursor-pointer border-b border-t border-outline-variant flex items-center justify-between ${isSelected ? 'bg-primary text-on-primary' : 'bg-surface-container hover:bg-surface-container-high hover:border-outline-hover'}`}
                     >
                       <div className="flex items-center cursor-grab flex-grow truncate">
-                        <DragIndicatorIcon className="text-base mr-2 text-on-surface-variant flex-shrink-0" />
-                        <h3 className="text-sm font-semibold text-on-surface truncate">
+                        <DragIndicatorIcon className={`text-base mr-2 flex-shrink-0 ${isSelected ? 'text-on-primary' : 'text-on-surface-variant'}`} />
+                        <h3 className={`text-sm font-semibold truncate ${isSelected ? 'text-on-primary' : 'text-on-surface'}`}>
                           <span className="font-bold mr-2">{block.bid}</span>
                           {block.title}
-                          <span className="font-normal text-on-surface-variant ml-1">({questionCount})</span>
+                          <span className={`font-normal ml-1 ${isSelected ? 'text-on-primary' : 'text-on-surface-variant'}`}>({questionCount})</span>
                         </h3>
                       </div>
                       <div className="relative flex-shrink-0" ref={openMenuBlockId === block.id ? actionsMenuRef : null}>
                         <button
                           onClick={(e) => { e.stopPropagation(); setOpenMenuBlockId(openMenuBlockId === block.id ? null : block.id); }}
-                          className="text-on-surface-variant hover:bg-surface-container-highest p-1 rounded-full"
+                          className={`p-1 rounded-md ${isSelected ? 'text-on-primary hover:bg-white/20' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
                         >
                           <DotsHorizontalIcon className="text-base" />
                         </button>
@@ -633,6 +656,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                           onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
                           onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
                           onUpdateQuestion={onUpdateQuestion}
+                          hasIssues={logicIssues.some(i => i.questionId === question.id)}
                         />
                       ))}
                       {!isSearching && dropContentTarget?.blockId === block.id && dropContentTarget.questionId === null && <DropIndicator small />}

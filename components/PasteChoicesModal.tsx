@@ -94,13 +94,13 @@ Choice 3..."
         <div className="p-4 border-t border-outline-variant flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-semibold text-primary rounded-full hover:bg-primary-container"
+            className="px-4 py-2 text-sm font-button-primary text-primary rounded-full hover:bg-primary-container"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-6 py-2 text-sm font-semibold text-on-primary bg-primary rounded-full hover:opacity-90"
+            className="px-6 py-2 text-sm font-button-primary text-on-primary bg-primary rounded-full hover:opacity-90"
           >
             {primaryActionLabel}
           </button>

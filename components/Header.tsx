@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
-import { LinkIcon, BellIcon, QuestionIcon, GridIcon, CheckmarkIcon, SunIcon, MoonIcon, SparkleIcon, PublishIcon } from './icons';
+import { changelogs } from '../changelogs/changelogData';
+import { LinkIcon, BellIcon, QuestionIcon, GridIcon, CheckmarkIcon, SunIcon, MoonIcon, SparkleIcon, PublishIcon, HistoryIcon } from './icons';
+import { AppChangelogModal } from './AppChangelogModal';
 import { useTheme } from '../contexts/ThemeContext';
 import type { SurveyStatus } from '../types';
 
@@ -17,8 +19,11 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onToggleGeminiPanel, onUpdateSurveyName, surveyStatus, isDirty, onToggleActivateSurvey, onUpdateLiveSurvey }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
+
+  const currentVersion = changelogs[0]?.version || 'v1.0.0';
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(surveyName);
@@ -172,6 +177,15 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
         )}
         <div className="flex items-center text-sm text-on-surface-variant ml-4" style={{ fontFamily: "'Open Sans', sans-serif" }}>
           {renderStatusBadge()}
+          {surveyStatus === 'active' && isDirty && (
+            <button
+              onClick={onUpdateLiveSurvey}
+              className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-on-success bg-success rounded-md hover:opacity-90 transition-opacity ml-2"
+            >
+              <PublishIcon className="text-base leading-none" />
+              <span>Update</span>
+            </button>
+          )}
         </div>
       </div>
       <div className="flex items-center space-x-5">
@@ -189,20 +203,12 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
           </div>
         </label>
 
-        {surveyStatus === 'active' && isDirty && (
-          <button
-            onClick={onUpdateLiveSurvey}
-            className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-on-primary bg-success rounded-full hover:opacity-90 transition-opacity"
-          >
-            <PublishIcon className="text-base" />
-            <span>Update</span>
-          </button>
-        )}
+
 
         <div className="flex items-center space-x-2">
           <button
             onClick={handleCopyClick}
-            className={`w-9 h-9 rounded-md transition-colors flex items-center justify-center ${isCopied
+            className={`w-9 h-9 flex items-center justify-center rounded-md transition-colors ${isCopied
               ? 'bg-success text-on-success'
               : 'border border-outline text-on-surface-variant hover:bg-surface-container-high'
               }`}
@@ -213,7 +219,7 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
           <div className="h-6 w-px bg-outline-variant mx-1"></div>
           <button
             onClick={onToggleGeminiPanel}
-            className={`p-1.5 text-on-surface rounded-full transition-colors ${isGeminiPanelOpen
+            className={`w-9 h-9 flex items-center justify-center text-on-surface rounded-md transition-colors ${isGeminiPanelOpen
               ? 'bg-primary-container'
               : 'hover:bg-surface-container-high'
               }`}
@@ -222,10 +228,10 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
           >
             <SparkleIcon className="text-2xl" />
           </button>
-          <button className="p-1.5 text-on-surface hover:bg-surface-container-high rounded-full transition-colors" aria-label="Notifications">
+          <button className="w-9 h-9 flex items-center justify-center text-on-surface hover:bg-surface-container-high rounded-md transition-colors" aria-label="Notifications">
             <BellIcon className="text-2xl" />
           </button>
-          <button className="text-on-surface hover:opacity-80 transition-opacity" aria-label="Help">
+          <button className="w-9 h-9 flex items-center justify-center text-on-surface hover:bg-surface-container-high rounded-md transition-colors" aria-label="Help">
             <QuestionIcon className="text-2xl" />
           </button>
         </div>
@@ -242,18 +248,31 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
                 <div className="px-4 py-2 border-b border-outline-variant">
                   <p className="text-sm text-on-surface-variant" id="user-menu-email-label">Signed in as</p>
                   <p className="text-sm font-medium text-on-surface truncate" aria-labelledby="user-menu-email-label">tamyres.lucas@voxco.com</p>
+                  <p className="text-xs text-on-surface-variant mt-1">Version: {currentVersion}</p>
                 </div>
                 <div className="p-2">
                   <div className="flex justify-between items-center px-2 py-1">
                     <span className="text-sm font-medium text-on-surface">Theme</span>
                     <div className="flex items-center rounded-full bg-surface-container-high p-1">
-                      <button onClick={() => setTheme('light')} className={`p-1 rounded-full transition-colors ${theme === 'light' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'}`} aria-label="Switch to light mode">
+                      <button onClick={() => setTheme('light')} className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${theme === 'light' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'}`} aria-label="Switch to light mode">
                         <SunIcon className="text-base" />
                       </button>
-                      <button onClick={() => setTheme('dark')} className={`p-1 rounded-full transition-colors ${theme === 'dark' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'}`} aria-label="Switch to dark mode">
+                      <button onClick={() => setTheme('dark')} className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${theme === 'dark' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'}`} aria-label="Switch to dark mode">
                         <MoonIcon className="text-base" />
                       </button>
                     </div>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-outline-variant">
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        setIsChangelogOpen(true);
+                      }}
+                      className="w-full text-left px-2 py-1.5 text-sm text-on-surface hover:bg-surface-container-high rounded-md flex items-center gap-2 transition-colors"
+                    >
+                      <HistoryIcon className="text-base text-on-surface-variant" />
+                      See app changelog
+                    </button>
                   </div>
                 </div>
               </div>
@@ -261,6 +280,7 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
           )}
         </div>
       </div>
+      {isChangelogOpen && <AppChangelogModal onClose={() => setIsChangelogOpen(false)} />}
     </header>
   );
 });

@@ -161,7 +161,7 @@ export const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = (
                     />
                 ) : (
                     <div className="flex items-center gap-4">
-                        <button onClick={handleAddDisplayLogic} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                        <button onClick={handleAddDisplayLogic} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors">
                             <PlusIcon className="text-base" />
                             Add Display Logic
                         </button>
@@ -181,7 +181,7 @@ export const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = (
                 </div>
                 <button
                     onClick={() => handleUpdate({ displayLogic: undefined, draftDisplayLogic: undefined })}
-                    className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50"
+                    className="text-sm font-semibold text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50"
                 >
                     Remove
                 </button>
@@ -192,12 +192,12 @@ export const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = (
                     <p className="text-xs font-medium text-on-surface">Show this block if:</p>
                     {displayLogic.conditions.length > 1 && (
                         <div className="flex gap-1">
-                            <button onClick={() => setLogicOperator('AND')} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${displayLogic.operator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
-                            <button onClick={() => setLogicOperator('OR')} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${displayLogic.operator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
+                            <button onClick={() => setLogicOperator('AND')} className={`px-2 py-0.5 text-xs font-semibold rounded-full transition-colors ${displayLogic.operator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
+                            <button onClick={() => setLogicOperator('OR')} className={`px-2 py-0.5 text-xs font-semibold rounded-full transition-colors ${displayLogic.operator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
                         </div>
                     )}
                 </div>
-                <button onClick={handleAddDisplayLogic} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                <button onClick={handleAddDisplayLogic} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors">
                     <PlusIcon className="text-base" />
                     Add condition
                 </button>

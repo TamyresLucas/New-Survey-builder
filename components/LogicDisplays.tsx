@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import type { Survey, Question, DisplayLogic, SkipLogic, BranchingLogic, DisplayLogicCondition, BranchingLogicCondition, LogicSet, LogicIssue } from '../types';
-import { EyeIcon, ArrowRightAltIcon, CallSplitIcon, DoubleArrowRightIcon, WarningIcon } from './icons';
+import { EyeIcon, ArrowRightAltIcon, CallSplitIcon, DoubleArrowRightIcon, WarningIcon, XIcon } from './icons';
 import { truncate, parseChoice } from '../utils';
 
 // ... helpers ... (unchanged)
@@ -15,7 +15,7 @@ const findQuestionById = (survey: Survey, id: string): Question | undefined => {
 const formatDestination = (destination: string, survey: Survey): string => {
     if (destination === 'next') return 'Next Question';
     if (destination === 'end') return 'End of Survey';
-    
+
     if (destination.startsWith('block:')) {
         const blockId = destination.substring(6);
         const block = survey.blocks.find(b => b.id === blockId);
@@ -52,8 +52,24 @@ const formatLogicSet = (set: LogicSet, survey: Survey): string => {
     return `(${joined})`;
 };
 
+// Helper for Issue Card
+const IssueCard: React.FC<{ issues: LogicIssue[] }> = ({ issues }) => {
+    if (issues.length === 0) return null;
+
+    return (
+        <div className="flex items-center gap-2 p-3 rounded-[4px] border border-[#EF576B] bg-[#FEEFF1] text-[#232323] mt-3">
+            <WarningIcon className="text-base text-[#CF455C] flex-shrink-0" />
+            <div className="flex-1 text-sm font-normal font-['Open_Sans']">
+                {Array.from(new Set(issues.map(i => i.message))).map((msg, index) => (
+                    <div key={index}>{msg}</div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 // --- Display Logic Component ---
-export const DisplayLogicDisplay: React.FC<{ logic: DisplayLogic; survey: Survey; onClick: () => void; issues?: LogicIssue[] }> = ({ logic, survey, onClick, issues = [] }) => {
+export const DisplayLogicDisplay: React.FC<{ logic: DisplayLogic; survey: Survey; onClick: (id?: string) => void; onRemove: () => void; issues?: LogicIssue[]; isFocused?: boolean; focusedId?: string | null }> = ({ logic, survey, onClick, onRemove, issues = [], isFocused = false, focusedId }) => {
     const confirmedConditions = logic.conditions.filter(c => c.isConfirmed === true);
     const confirmedSets = logic.logicSets?.filter(s => s.isConfirmed === true) || [];
 
@@ -61,50 +77,60 @@ export const DisplayLogicDisplay: React.FC<{ logic: DisplayLogic; survey: Survey
         return null;
     }
 
-    const parts = [
-        ...confirmedConditions.map(c => formatCondition(c, survey)),
-        ...confirmedSets.map(s => formatLogicSet(s, survey))
-    ];
-
-    const summary = parts.join(` <span class="font-bold text-primary">${logic.operator}</span> `);
-    
-    const hasIssues = issues.length > 0;
-    const issueMessage = issues.map(i => i.message).join('; ');
-
     return (
-        <div 
-            onClick={onClick}
-            className={`mt-4 p-3 border rounded-md bg-surface-container-high cursor-pointer hover:border-primary relative group/logic ${hasIssues ? 'border-error' : 'border-outline-variant'}`}
+        <div
+            className={`mt-4 p-3 border rounded-md bg-surface-container-high relative group/logic transition-colors cursor-pointer ${isFocused ? 'border-primary ring-1 ring-primary' : 'border-outline-variant'}`}
+            onClick={() => onClick()}
         >
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                    <EyeIcon className={`text-lg ${hasIssues ? 'text-error' : 'text-primary'}`} />
-                    <h4 className="text-sm font-bold text-on-surface">Display Logic</h4>
+                    <EyeIcon className="text-lg text-primary" />
+                    <h4 className="text-sm font-semibold text-on-surface">Display Logic</h4>
                 </div>
-                {hasIssues && (
-                    <div className="relative">
-                        <WarningIcon className="text-lg text-error" />
-                         <div className="absolute bottom-full right-0 mb-2 w-64 bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/logic:opacity-100 transition-opacity pointer-events-none border border-error z-10">
-                            {issueMessage}
-                        </div>
-                    </div>
-                )}
+                <button
+                    onClick={(e) => { e.stopPropagation(); onRemove(); }}
+                    className="text-on-surface-variant hover:text-error opacity-0 group-hover/logic:opacity-100 transition-opacity p-1 rounded-md hover:bg-error/10"
+                    title="Remove Display Logic"
+                >
+                    <XIcon className="text-base" />
+                </button>
             </div>
             <div className="pl-2 space-y-1 text-sm text-on-surface-variant">
-                <p>
-                    Show this question if: <span className="font-semibold text-on-surface" dangerouslySetInnerHTML={{ __html: summary }} />.
-                </p>
+                <p className="mb-1">Show this question if:</p>
+                <div className="flex flex-wrap gap-2 items-center">
+                    {confirmedConditions.map((c, index) => (
+                        <React.Fragment key={c.id}>
+                            {index > 0 && <span className="font-semibold text-primary">{logic.operator}</span>}
+                            <span
+                                onClick={(e) => { e.stopPropagation(); onClick(c.id); }}
+                                className={`font-semibold text-on-surface cursor-pointer hover:text-primary hover:underline bg-surface px-1.5 py-0.5 rounded border transition-colors ${focusedId === c.id ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-outline'}`}
+                            >
+                                {formatCondition(c, survey)}
+                            </span>
+                        </React.Fragment>
+                    ))}
+                    {confirmedSets.map((s, index) => (
+                        <React.Fragment key={s.id}>
+                            {(confirmedConditions.length > 0 || index > 0) && <span className="font-semibold text-primary">{logic.operator}</span>}
+                            <span
+                                onClick={(e) => { e.stopPropagation(); onClick(s.id); }}
+                                className={`font-semibold text-on-surface cursor-pointer hover:text-primary hover:underline bg-surface px-1.5 py-0.5 rounded border transition-colors ${focusedId === s.id ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-outline'}`}
+                                dangerouslySetInnerHTML={{ __html: formatLogicSet(s, survey) }}
+                            />
+                        </React.Fragment>
+                    ))}
+                </div>
             </div>
+            <IssueCard issues={issues} />
         </div>
     );
 };
 
 // ... SkipLogicDisplay, BranchingLogicDisplay, SurveyFlowDisplay (unchanged) ...
-export const SkipLogicDisplay: React.FC<{ logic: SkipLogic; currentQuestion: Question; survey: Survey; onClick: () => void; onRemove: () => void; }> = ({ logic, currentQuestion, survey, onClick, onRemove }) => {
-    // ... existing implementation
+export const SkipLogicDisplay: React.FC<{ logic: SkipLogic; currentQuestion: Question; survey: Survey; onClick: () => void; onRemove: () => void; issues?: LogicIssue[]; isFocused?: boolean }> = ({ logic, currentQuestion, survey, onClick, onRemove, issues = [], isFocused = false }) => {
     if (logic.type === 'simple' && logic.isConfirmed !== true) return null;
 
-    const confirmedRules = logic.type === 'per_choice' 
+    const confirmedRules = logic.type === 'per_choice'
         ? logic.rules.filter(r => r.isConfirmed === true)
         : [];
 
@@ -117,21 +143,24 @@ export const SkipLogicDisplay: React.FC<{ logic: SkipLogic; currentQuestion: Que
     };
 
     return (
-        <div 
+        <div
             onClick={onClick}
-            className="mt-4 p-3 border border-outline-variant rounded-md bg-surface-container-high cursor-pointer hover:border-primary group/skiplogic"
+            className={`mt-4 p-3 border rounded-md bg-surface-container-high cursor-pointer group/skiplogic transition-colors ${isFocused ? 'border-primary ring-1 ring-primary' : 'border-outline-variant'}`}
         >
             <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
                     <DoubleArrowRightIcon className="text-lg text-primary" />
-                    <h4 className="text-sm font-bold text-on-surface">Skip Logic</h4>
+                    <h4 className="text-sm font-semibold text-on-surface">Skip Logic</h4>
                 </div>
-                <button
-                    onClick={handleRemove}
-                    className="text-xs font-medium text-error hover:underline opacity-0 group-hover/skiplogic:opacity-100 transition-opacity"
-                >
-                    Remove
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleRemove}
+                        className="text-on-surface-variant hover:text-error opacity-0 group-hover/skiplogic:opacity-100 transition-opacity p-1 rounded-md hover:bg-error/10"
+                        title="Remove Skip Logic"
+                    >
+                        <XIcon className="text-base" />
+                    </button>
+                </div>
             </div>
             <div className="pl-2 space-y-1 text-sm text-on-surface-variant">
                 {logic.type === 'simple' && logic.isConfirmed && (
@@ -146,13 +175,13 @@ export const SkipLogicDisplay: React.FC<{ logic: SkipLogic; currentQuestion: Que
                     );
                 })}
             </div>
+            <IssueCard issues={issues} />
         </div>
     );
 };
 
 
-export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Survey; onClick: () => void; question: Question; }> = ({ logic, survey, onClick, question }) => {
-    // ... existing implementation
+export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Survey; onClick: (id?: string) => void; onRemove: () => void; question: Question; issues?: LogicIssue[]; isFocused?: boolean; focusedId?: string | null }> = ({ logic, survey, onClick, onRemove, question, issues = [], isFocused = false, focusedId }) => {
     const showOtherwise = useMemo(() => {
         if (!question.choices || question.choices.length === 0) return true;
         const usedChoiceTexts = new Set<string>();
@@ -169,44 +198,68 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
         }
         return usedChoiceTexts.size < question.choices.length;
     }, [logic, question.qid, question.choices]);
-    
+
     const hasAnyConfirmedLogic = logic.branches.some(branch =>
         (branch.thenSkipToIsConfirmed && branch.conditions.some(c => c.isConfirmed === true))
     ) || (showOtherwise && logic.otherwiseIsConfirmed);
-    
+
     if (!hasAnyConfirmedLogic) return null;
-    
+
     return (
         <div
-            onClick={onClick}
-            className="mt-4 p-3 border border-outline-variant rounded-md bg-surface-container-high cursor-pointer hover:border-primary"
+            className={`mt-4 p-3 border rounded-md group/branching transition-colors cursor-pointer ${isFocused ? 'border-primary ring-1 ring-primary' : 'border-outline-variant'}`}
+            onClick={() => onClick()}
         >
-            <div className="flex items-center gap-2 mb-2">
-                <CallSplitIcon className="text-lg text-primary" />
-                <h4 className="text-sm font-bold text-on-surface">Branching Logic</h4>
+            <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                    <CallSplitIcon className="text-lg text-primary" />
+                    <h4 className="text-sm font-semibold text-on-surface transition-colors">Branching Logic</h4>
+                </div>
+                <button
+                    onClick={(e) => { e.stopPropagation(); onRemove(); }}
+                    className="text-on-surface-variant hover:text-error opacity-0 group-hover/branching:opacity-100 transition-opacity p-1 rounded-md hover:bg-error/10"
+                    title="Remove Branching Logic"
+                >
+                    <XIcon className="text-base" />
+                </button>
             </div>
-            <div className="pl-2 space-y-2 text-sm">
+            <div className="space-y-2 text-sm">
                 {logic.branches.map((branch) => {
                     const confirmedConditions = branch.conditions.filter(c => c.isConfirmed === true);
                     if (confirmedConditions.length === 0 || !branch.thenSkipToIsConfirmed) return null;
                     return (
-                        <div key={branch.id} className="p-2 bg-surface rounded-md">
-                            {branch.pathName && <span className="font-bold text-on-surface">{branch.pathName}: </span>}
-                            <span className="font-bold text-primary">IF </span>
-                            <span>{confirmedConditions.map(c => formatCondition(c, survey)).join(` ${branch.operator} `)}</span>
-                            <span className="font-bold text-primary"> THEN </span>
+                        <div
+                            key={branch.id}
+                            onClick={(e) => { e.stopPropagation(); onClick(branch.id); }}
+                            className={`p-2 bg-surface rounded-md cursor-pointer border transition-colors ${focusedId === branch.id ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-outline'}`}
+                        >
+                            {branch.pathName && <span className="font-semibold text-on-surface">{branch.pathName}: </span>}
+                            <span className="font-semibold text-primary">IF </span>
+                            <span>{confirmedConditions.map((c, index) => (
+                                <React.Fragment key={c.id}>
+                                    {index > 0 && <span className="font-semibold text-primary"> {branch.operator} </span>}
+                                    <span
+                                        onClick={(e) => { e.stopPropagation(); onClick(c.id); }}
+                                        className="font-semibold hover:text-primary hover:underline cursor-pointer"
+                                    >
+                                        {formatCondition(c, survey)}
+                                    </span>
+                                </React.Fragment>
+                            ))}</span>
+                            <span className="font-semibold text-primary"> THEN </span>
                             <span>skip to <span className="font-semibold">{formatDestination(branch.thenSkipTo, survey)}</span>.</span>
                         </div>
                     );
                 })}
                 {showOtherwise && logic.otherwiseIsConfirmed && (
-                     <div className="p-2 bg-surface rounded-md">
-                        {logic.otherwisePathName && <span className="font-bold text-on-surface">{logic.otherwisePathName}: </span>}
-                        <span className="font-bold text-on-surface-variant">OTHERWISE </span>
+                    <div className="p-2 bg-surface rounded-md">
+                        {logic.otherwisePathName && <span className="font-semibold text-on-surface">{logic.otherwisePathName}: </span>}
+                        <span className="font-semibold text-on-surface-variant">OTHERWISE </span>
                         <span>skip to <span className="font-semibold">{formatDestination(logic.otherwiseSkipTo, survey)}</span>.</span>
-                     </div>
+                    </div>
                 )}
             </div>
+            <IssueCard issues={issues} />
         </div>
     );
 };
@@ -220,7 +273,7 @@ export const SurveyFlowDisplay: React.FC<{ logic: SkipLogic; survey: Survey; onC
     };
 
     return (
-        <div 
+        <div
             onClick={handleClick}
             className="p-3 border-2 border-dashed border-outline-variant rounded-md bg-surface-container-high cursor-pointer hover:border-primary"
         >

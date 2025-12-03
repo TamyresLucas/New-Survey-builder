@@ -1,14 +1,15 @@
 import React from 'react';
 
 // Generic props for icons
-type IconProps = { 
+type IconProps = {
   className?: string;
   style?: React.CSSProperties;
 };
 
 // Base component for rendering a Google Material Symbol
-const MaterialSymbol: React.FC<IconProps & { icon: string }> = ({ icon, className, style }) => {
-    return <span className={`material-symbols-rounded ${className}`} style={style}>{icon}</span>;
+const MaterialSymbol: React.FC<IconProps & { icon: string; fill?: number }> = ({ icon, className, style, fill }) => {
+  const unfilledClass = fill === 0 ? 'unfilled' : '';
+  return <span className={`material-symbols-rounded ${unfilledClass} ${className}`} style={style}>{icon}</span>;
 };
 
 export const GridIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="apps" className={className} style={style} />;
@@ -26,7 +27,7 @@ export const ClockIcon: React.FC<IconProps> = ({ className, style }) => <Materia
 export const SearchIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="search" className={className} style={style} />;
 export const XIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="close" className={className} style={style} />;
 export const PinIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="push_pin" className={className} style={style} />;
-export const BlockIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="rectangle" className={className} style={style} />;
+export const BlockIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="rectangle" className={className} style={style} fill={0} />;
 export const PageBreakIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="insert_page_break" className={className} style={style} />;
 export const CheckboxOutlineIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="check_box_outline_blank" className={className} style={style} />;
 export const DotsHorizontalIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="more_horiz" className={className} style={style} />;
@@ -118,3 +119,6 @@ export const CarryForwardIcon: React.FC<IconProps> = ({ className, style }) => <
 export const CallSplitIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="call_split" className={className} style={style} />;
 export const DoubleArrowRightIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="keyboard_double_arrow_right" className={className} style={style} />;
 export const PublishIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="publish" className={className} style={style} />;
+export const HistoryIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="history" className={className} style={style} />;
+export const CalendarIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="calendar_today" className={className} style={style} />;
+export const EditIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="edit" className={className} style={style} />;

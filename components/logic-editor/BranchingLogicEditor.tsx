@@ -22,6 +22,7 @@ export const BranchingLogicEditor: React.FC<{
     onUpdate: (updates: Partial<Question>) => void;
     onAddLogic: () => void;
     onRequestGeminiHelp: (topic: string) => void;
+    focusedLogicSource: string | null;
 }> = ({
     question,
     survey,
@@ -30,13 +31,28 @@ export const BranchingLogicEditor: React.FC<{
     issues,
     onUpdate,
     onAddLogic,
-    onRequestGeminiHelp
+    onRequestGeminiHelp,
+    focusedLogicSource
 }) => {
         const branchingLogic = question.draftBranchingLogic ?? question.branchingLogic;
 
         const currentBlockId = useMemo(() => {
             return survey.blocks.find(b => b.questions.some(q => q.id === question.id))?.id || null;
         }, [survey.blocks, question.id]);
+
+        React.useEffect(() => {
+            if (focusedLogicSource) {
+                // Small timeout to ensure DOM is ready
+                setTimeout(() => {
+                    const element = document.getElementById(focusedLogicSource);
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        element.classList.add('ring-2', 'ring-primary');
+                        setTimeout(() => element.classList.remove('ring-2', 'ring-primary'), 2000);
+                    }
+                }, 100);
+            }
+        }, [focusedLogicSource]);
 
         const handleUpdate = (updates: Partial<Question>) => {
             onUpdate(updates);
@@ -64,7 +80,7 @@ export const BranchingLogicEditor: React.FC<{
                 <div className="py-6 first:pt-0">
                     <h3 className="text-sm font-medium text-on-surface mb-1">Branching Logic</h3>
                     <p className="text-xs text-on-surface-variant mb-3">Create complex paths through the survey based on multiple conditions.</p>
-                    <button onClick={handleAddBranchingLogic} className="flex items-center gap-1 text-sm font-medium text-on-surface hover:text-primary transition-colors">
+                    <button onClick={handleAddBranchingLogic} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors">
                         <PlusIcon className="text-base" /> Add branch
                     </button>
                 </div>
@@ -165,7 +181,7 @@ export const BranchingLogicEditor: React.FC<{
                             branchingLogic: undefined,
                             draftBranchingLogic: undefined
                         })}
-                        className="text-sm font-medium text-error hover:underline"
+                        className="text-sm font-semibold text-error hover:underline"
                     >
                         Remove
                     </button>
@@ -175,6 +191,7 @@ export const BranchingLogicEditor: React.FC<{
                     {branchingLogic.branches.map((branch) => (
                         <div
                             key={branch.id}
+                            id={branch.id}
                             className="p-3 border border-outline-variant rounded-md bg-surface-container"
                         >
                             <div className="flex justify-between items-start mb-3">
@@ -228,7 +245,7 @@ export const BranchingLogicEditor: React.FC<{
                                 ))}
                                 <button
                                     onClick={() => handleAddCondition(branch.id)}
-                                    className="text-xs font-medium text-on-surface hover:text-primary transition-colors"
+                                    className="text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors"
                                 >
                                     + Add condition
                                 </button>
@@ -253,7 +270,7 @@ export const BranchingLogicEditor: React.FC<{
 
                 <button
                     onClick={handleAddBranch}
-                    className="mt-4 flex items-center gap-1 text-sm font-medium text-on-surface hover:text-primary transition-colors"
+                    className="mt-4 flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors"
                 >
                     <PlusIcon className="text-base" /> Add branch
                 </button>

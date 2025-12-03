@@ -9,7 +9,6 @@ interface SurveyCanvasProps {
   selectedBlock: Block | null;
   checkedQuestions: Set<string>;
   logicIssues: LogicIssue[];
-  // FIX: Updated prop signature to be consistent with App.tsx and child components.
   onSelectQuestion: (question: Question | null, options?: { tab?: string; focusOn?: string }) => void;
   onSelectBlock: (block: Block | null, options?: { tab: string; focusOn: string }) => void;
   onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
@@ -41,13 +40,14 @@ interface SurveyCanvasProps {
   onUpdateBlockTitle: (blockId: string, title: string) => void;
   onUpdateSurveyTitle: (title: string) => void;
   onAddFromLibrary: () => void;
+  focusedLogicSource: string | null;
 }
 
 const DropIndicator = () => (
-    <div className="relative h-px w-full bg-primary my-2">
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
-    </div>
+  <div className="relative h-px w-full bg-primary my-2">
+    <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
+    <div className="absolute right-0 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
+  </div>
 );
 
 export type PageInfo = {
@@ -57,14 +57,14 @@ export type PageInfo = {
   sourceId: string;
 };
 
-const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuestion, selectedBlock, checkedQuestions, logicIssues, onSelectQuestion, onSelectBlock, onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onReorderBlock, onAddBlockFromToolbox, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, collapsedBlocks, onToggleBlockCollapse, onCopyBlock, onExpandAllBlocks, onCollapseAllBlocks, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onUpdateSurveyTitle, onAddFromLibrary }) => {
+const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuestion, selectedBlock, checkedQuestions, logicIssues, onSelectQuestion, onSelectBlock, onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onReorderBlock, onAddBlockFromToolbox, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, collapsedBlocks, onToggleBlockCollapse, onCopyBlock, onExpandAllBlocks, onCollapseAllBlocks, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onUpdateSurveyTitle, onAddFromLibrary, focusedLogicSource }) => {
   const [draggedQuestionId, setDraggedQuestionId] = useState<string | null>(null);
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
   const [dropTargetBlockId, setDropTargetBlockId] = useState<string | null>(null);
   const [isDraggingNewBlock, setIsDraggingNewBlock] = useState(false);
 
-  const hasBranchingLogicInSurvey = useMemo(() => 
-    survey.blocks.flatMap(b => b.questions).some(q => q.branchingLogic), 
+  const hasBranchingLogicInSurvey = useMemo(() =>
+    survey.blocks.flatMap(b => b.questions).some(q => q.branchingLogic),
     [survey]
   );
 
@@ -97,60 +97,60 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
     let pageCounter = 1;
 
     survey.blocks.forEach((block, blockIndex) => {
-        block.questions.forEach((question, questionIndex) => {
-            let isStartOfPage = false;
-            let pageNameSource: 'block' | 'page_break' | null = null;
-            let sourceId: string | null = null;
+      block.questions.forEach((question, questionIndex) => {
+        let isStartOfPage = false;
+        let pageNameSource: 'block' | 'page_break' | null = null;
+        let sourceId: string | null = null;
 
-            // Case 1: First question of the entire survey is P1.
-            if (blockIndex === 0 && questionIndex === 0 && question.type !== QTEnum.PageBreak) {
-                isStartOfPage = true;
-                pageNameSource = 'block';
-                sourceId = block.id;
-            }
-            // Case 2: A PageBreak question itself defines the start of the *next* page.
-            else if (question.type === QTEnum.PageBreak) {
-                pageCounter++;
-                isStartOfPage = true;
-                pageNameSource = 'page_break';
-                sourceId = question.id;
-            }
-            // Case 3: The first question of a new block *might* be a new page.
-            else if (questionIndex === 0 && blockIndex > 0) {
-                const prevBlock = survey.blocks[blockIndex - 1];
-                const lastQuestionOfPrevBlock = prevBlock.questions[prevBlock.questions.length - 1];
-                // If the previous block didn't end with a page break, this new block starts a new page.
-                if (!lastQuestionOfPrevBlock || lastQuestionOfPrevBlock.type !== QTEnum.PageBreak) {
-                    pageCounter++;
-                    isStartOfPage = true;
-                    pageNameSource = 'block';
-                    sourceId = block.id;
-                }
-            }
-            
-            if (isStartOfPage && pageNameSource && sourceId) {
-                let storedPageName: string | undefined;
-                if (pageNameSource === 'block') {
-                    storedPageName = block.pageName;
-                } else { // page_break
-                    storedPageName = question.pageName;
-                }
-                
-                // A name is considered "default" if it's missing or matches the "Page X" pattern.
-                const isDefaultName = !storedPageName || /^Page \d+$/.test(storedPageName);
-                
-                // If it's a default name, generate a new one based on the current page number.
-                // Otherwise, keep the user-edited custom name.
-                const pageName = isDefaultName ? `Page ${pageCounter}` : storedPageName;
-                
-                map.set(question.id, {
-                    pageNumber: pageCounter,
-                    pageName: pageName as string,
-                    source: pageNameSource,
-                    sourceId,
-                });
-            }
-        });
+        // Case 1: First question of the entire survey is P1.
+        if (blockIndex === 0 && questionIndex === 0 && question.type !== QTEnum.PageBreak) {
+          isStartOfPage = true;
+          pageNameSource = 'block';
+          sourceId = block.id;
+        }
+        // Case 2: A PageBreak question itself defines the start of the *next* page.
+        else if (question.type === QTEnum.PageBreak) {
+          pageCounter++;
+          isStartOfPage = true;
+          pageNameSource = 'page_break';
+          sourceId = question.id;
+        }
+        // Case 3: The first question of a new block *might* be a new page.
+        else if (questionIndex === 0 && blockIndex > 0) {
+          const prevBlock = survey.blocks[blockIndex - 1];
+          const lastQuestionOfPrevBlock = prevBlock.questions[prevBlock.questions.length - 1];
+          // If the previous block didn't end with a page break, this new block starts a new page.
+          if (!lastQuestionOfPrevBlock || lastQuestionOfPrevBlock.type !== QTEnum.PageBreak) {
+            pageCounter++;
+            isStartOfPage = true;
+            pageNameSource = 'block';
+            sourceId = block.id;
+          }
+        }
+
+        if (isStartOfPage && pageNameSource && sourceId) {
+          let storedPageName: string | undefined;
+          if (pageNameSource === 'block') {
+            storedPageName = block.pageName;
+          } else { // page_break
+            storedPageName = question.pageName;
+          }
+
+          // A name is considered "default" if it's missing or matches the "Page X" pattern.
+          const isDefaultName = !storedPageName || /^Page \d+$/.test(storedPageName);
+
+          // If it's a default name, generate a new one based on the current page number.
+          // Otherwise, keep the user-edited custom name.
+          const pageName = isDefaultName ? `Page ${pageCounter}` : storedPageName;
+
+          map.set(question.id, {
+            pageNumber: pageCounter,
+            pageName: pageName as string,
+            source: pageNameSource,
+            sourceId,
+          });
+        }
+      });
     });
     return map;
   }, [survey]);
@@ -169,7 +169,7 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
 
   const handleDragEnter = (e: React.DragEvent) => {
     if (e.dataTransfer.types.includes('application/survey-toolbox-block')) {
-        setIsDraggingNewBlock(true);
+      setIsDraggingNewBlock(true);
     }
   };
 
@@ -180,43 +180,43 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
     // This handler is only for blocks. If we're not dragging a block, do nothing.
     // This allows the dragOver event to be handled by child SurveyBlock components for question dragging.
     if (!isDraggingExistingBlock && !isAddingNewBlock) return;
-    
+
     e.preventDefault();
-    
+
     const blockElements = [...(e.currentTarget as HTMLDivElement).querySelectorAll('div[data-block-id]')] as HTMLDivElement[];
-    
+
     const closest = blockElements.reduce(
-        (acc, child) => {
-            if (isDraggingExistingBlock && child.dataset.blockId === draggedBlockId) return acc;
-            
-            const box = child.getBoundingClientRect();
-            const offset = e.clientY - (box.top + box.height / 2);
-            
-            if (offset < 0 && offset > acc.offset) {
-                return { offset, element: child };
-            }
-            return acc;
-        },
-        { offset: Number.NEGATIVE_INFINITY, element: null as HTMLElement | null }
+      (acc, child) => {
+        if (isDraggingExistingBlock && child.dataset.blockId === draggedBlockId) return acc;
+
+        const box = child.getBoundingClientRect();
+        const offset = e.clientY - (box.top + box.height / 2);
+
+        if (offset < 0 && offset > acc.offset) {
+          return { offset, element: child };
+        }
+        return acc;
+      },
+      { offset: Number.NEGATIVE_INFINITY, element: null as HTMLElement | null }
     );
-    
+
     setDropTargetBlockId(closest.element?.dataset.blockId || null);
   };
-  
+
   const handleBlockDrop = (e: React.DragEvent) => {
     const isAddingNewBlock = e.dataTransfer.types.includes('application/survey-toolbox-block');
 
     // This handler is only for blocks. If we're not dropping a block, do nothing.
     if (isAddingNewBlock || draggedBlockId) {
-        e.preventDefault();
+      e.preventDefault();
 
-        if (isAddingNewBlock) {
-            onAddBlockFromToolbox(dropTargetBlockId);
-        } else if (draggedBlockId) {
-            onReorderBlock(draggedBlockId, dropTargetBlockId);
-        }
+      if (isAddingNewBlock) {
+        onAddBlockFromToolbox(dropTargetBlockId);
+      } else if (draggedBlockId) {
+        onReorderBlock(draggedBlockId, dropTargetBlockId);
+      }
     }
-    
+
     // Always reset block-dragging state on drop
     setDraggedBlockId(null);
     setDropTargetBlockId(null);
@@ -225,11 +225,11 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
 
   const handleBlockLeave = (e: React.DragEvent) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-        setDropTargetBlockId(null);
-        setIsDraggingNewBlock(false);
+      setDropTargetBlockId(null);
+      setIsDraggingNewBlock(false);
     }
   };
-  
+
   return (
     <div
       onDragEnter={handleDragEnter}
@@ -241,48 +241,49 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
       {survey.blocks.map(block => (
         <React.Fragment key={block.id}>
           {dropTargetBlockId === block.id && <DropIndicator />}
-          <SurveyBlock 
-              key={block.id} 
-              block={block} 
-              survey={survey}
-              selectedQuestion={selectedQuestion} 
-              selectedBlock={selectedBlock}
-              checkedQuestions={checkedQuestions}
-              logicIssues={logicIssues}
-              hasBranchingLogicInSurvey={hasBranchingLogicInSurvey}
-              branchedToBlockIds={branchedToBlockIds}
-              onSelectQuestion={onSelectQuestion}
-              onSelectBlock={onSelectBlock}
-              onUpdateQuestion={onUpdateQuestion}
-              onUpdateBlock={onUpdateBlock}
-              onDeleteQuestion={onDeleteQuestion}
-              onCopyQuestion={onCopyQuestion}
-              onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
-              onMoveQuestionToExistingBlock={onMoveQuestionToExistingBlock}
-              onDeleteBlock={onDeleteBlock}
-              onReorderQuestion={onReorderQuestion}
-              onAddQuestion={onAddQuestion}
-              onAddBlock={onAddBlock}
-              onAddQuestionToBlock={onAddQuestionToBlock}
-              onToggleQuestionCheck={onToggleQuestionCheck}
-              onSelectAllInBlock={onSelectAllInBlock}
-              onUnselectAllInBlock={onUnselectAllInBlock}
-              toolboxItems={toolboxItems}
-              draggedQuestionId={draggedQuestionId}
-              setDraggedQuestionId={setDraggedQuestionId}
-              isBlockDragging={draggedBlockId === block.id}
-              onBlockDragStart={() => setDraggedBlockId(block.id)}
-              onBlockDragEnd={() => { setDraggedBlockId(null); setDropTargetBlockId(null); }}
-              isCollapsed={collapsedBlocks.has(block.id)}
-              onToggleCollapse={() => onToggleBlockCollapse(block.id)}
-              onCopyBlock={onCopyBlock}
-              onExpandBlock={onExpandBlock}
-              onCollapseBlock={onCollapseBlock}
-              onAddChoice={onAddChoice}
-              onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
-              onUpdateBlockTitle={onUpdateBlockTitle}
-              onAddFromLibrary={onAddFromLibrary}
-              pageInfoMap={pageInfoMap}
+          <SurveyBlock
+            key={block.id}
+            block={block}
+            survey={survey}
+            selectedQuestion={selectedQuestion}
+            selectedBlock={selectedBlock}
+            checkedQuestions={checkedQuestions}
+            logicIssues={logicIssues}
+            hasBranchingLogicInSurvey={hasBranchingLogicInSurvey}
+            branchedToBlockIds={branchedToBlockIds}
+            onSelectQuestion={onSelectQuestion}
+            onSelectBlock={onSelectBlock}
+            onUpdateQuestion={onUpdateQuestion}
+            onUpdateBlock={onUpdateBlock}
+            onDeleteQuestion={onDeleteQuestion}
+            onCopyQuestion={onCopyQuestion}
+            onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
+            onMoveQuestionToExistingBlock={onMoveQuestionToExistingBlock}
+            onDeleteBlock={onDeleteBlock}
+            onReorderQuestion={onReorderQuestion}
+            onAddQuestion={onAddQuestion}
+            onAddBlock={onAddBlock}
+            onAddQuestionToBlock={onAddQuestionToBlock}
+            onToggleQuestionCheck={onToggleQuestionCheck}
+            onSelectAllInBlock={onSelectAllInBlock}
+            onUnselectAllInBlock={onUnselectAllInBlock}
+            toolboxItems={toolboxItems}
+            draggedQuestionId={draggedQuestionId}
+            setDraggedQuestionId={setDraggedQuestionId}
+            isBlockDragging={draggedBlockId === block.id}
+            onBlockDragStart={() => setDraggedBlockId(block.id)}
+            onBlockDragEnd={() => { setDraggedBlockId(null); setDropTargetBlockId(null); }}
+            isCollapsed={collapsedBlocks.has(block.id)}
+            onToggleCollapse={() => onToggleBlockCollapse(block.id)}
+            onCopyBlock={onCopyBlock}
+            onExpandBlock={onExpandBlock}
+            onCollapseBlock={onCollapseBlock}
+            onAddChoice={onAddChoice}
+            onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
+            onUpdateBlockTitle={onUpdateBlockTitle}
+            onAddFromLibrary={onAddFromLibrary}
+            pageInfoMap={pageInfoMap}
+            focusedLogicSource={focusedLogicSource}
           />
         </React.Fragment>
       ))}

@@ -148,14 +148,14 @@ const PreviewContent: React.FC<PreviewContentProps> = ({
         {shouldShowBackButton && (
           <button
             onClick={onBack}
-            className={`px-6 py-3 text-sm font-semibold text-primary rounded-full hover:bg-primary-container ${device === 'mobile' ? 'flex-1' : ''}`}
+            className={`px-6 py-3 text-sm font-button-primary text-primary rounded-full hover:bg-primary-container ${device === 'mobile' ? 'flex-1' : ''}`}
           >
             Back
           </button>
         )}
         <button
           onClick={onNext}
-          className={`flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-on-primary bg-primary rounded-full hover:opacity-90 ${device === 'mobile' ? 'flex-1' : ''}`}
+          className={`flex items-center justify-center gap-2 px-6 py-3 text-sm font-button-primary text-on-primary bg-primary rounded-full hover:opacity-90 ${device === 'mobile' ? 'flex-1' : ''}`}
         >
           <span>{isLastPage ? 'Submit' : 'Next'}</span>
           {!isLastPage && <ArrowRightAltIcon />}

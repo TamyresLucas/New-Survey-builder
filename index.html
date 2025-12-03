@@ -14,7 +14,7 @@
       theme: {
         extend: {
           colors: {
-            primary: 'var(--semantic-pri)',
+            primary: 'var(--semantic-pri)', /* Used for primary actions, links, and "Add" buttons */
             'on-primary': 'var(--text-txt-on-primary)',
             'primary-container': 'var(--notification-info-bg)',
             'on-primary-container': 'var(--notification-info-txt)',
@@ -26,10 +26,14 @@
 
             'on-surface': 'var(--text-txt-pri)',
             'on-surface-variant': 'var(--text-txt-sec)',
+            'on-surface-disabled': 'var(--text-txt-on-color-disable)',
 
             outline: 'var(--border-bd-def)',
             'outline-variant': 'var(--border-bd-dis)',
+            'outline-hover': 'var(--border-bd-hov)',
             'input-border': 'var(--input-field-input-bd-def)',
+            'input-border-hover': 'var(--input-field-input-bd-hov)',
+            'input-bg': 'var(--input-field-input-bg-def)',
 
             error: 'var(--semantic-err)',
             'on-error': 'var(--text-txt-on-color)',
@@ -48,6 +52,11 @@
           },
           accentColor: {
             primary: 'var(--semantic-pri)',
+          },
+          fontWeight: {
+            'button-text': 'var(--button-text-weight)',
+            'button-primary': 'var(--button-primary-weight)',
+            'button-operator': 'var(--button-operator-weight)',
           }
         }
       }
@@ -81,10 +90,10 @@
       --notification-warn-bg: var(--foundation-tangerine-light);
       --notification-suc-bg: var(--foundation-green-light);
       --notification-info-bg: var(--foundation-primary-gradients-primary-20);
-      --border-bd-def: var(--foundation-neutral-scale-primary-20);
-      --border-bd-hov: var(--foundation-periwinkle);
+      --border-bd-def: #232323;
+      --border-bd-hov: #232323;
       --border-bd-sel: var(--foundation-periwinkle-dark);
-      --border-bd-dis: var(--foundation-primary-gradients-primary-40);
+      --border-bd-dis: #DEE2FF;
       --notification-err-bd: var(--foundation-coral);
       --notification-err-txt: var(--foundation-coral-dark);
       --notification-info-txt: var(--foundation-periwinkle-dark);
@@ -93,7 +102,7 @@
       --input-field-input-txt: var(--text-txt-pri);
       --input-field-input-bd-dis: var(--background--surface-bg-dis);
       --input-field-input-bg-def: var(--foundation-white);
-      --input-field-input-bd-hov: var(--foundation-periwinkle);
+      --input-field-input-bd-hov: var(--semantic-pri);
       --button-button-tertiary: var(--foundation-neutral-scale-primary-100);
       --button-button-secondary-alt: var(--foundation-neutral);
       --button-button-secondary: transparent;
@@ -116,9 +125,9 @@
       --text-txt-sec: var(--foundation-neutral-80);
       --text-hyperlink-def: var(--foundation-neutral);
       --text-hyperlink-hov: var(--foundation-periwinkle);
-      --thumbnail-thumbnail-bd-def: var(--foundation-primary-gradients-primary-40);
+      --thumbnail-thumbnail-bd-def: #DEE2FF;
       --thumbnail-thumbnail-bd-sel: var(--foundation-periwinkle);
-      --thumbnail-thumbnail-bd-hov: var(--foundation-periwinkle);
+      --thumbnail-thumbnail-bd-hov: #232323;
       --thumbnail-thumbnail-icon-def: var(--foundation-primary-gradients-primary-60);
       --thumbnail-thumbnail-icon-sel: var(--foundation-periwinkle-dark);
       --menu-menu-def: var(--foundation-neutral);
@@ -281,6 +290,11 @@
       --text-highlight-highlight-tool: var(--foundation-periwinkle);
       --text-highlight-highlight-selection: var(--foundation-primary-gradients-primary-40);
       --foundation-primary-gradients-primary-80: #7b8bff;
+
+      /* Button font weights */
+      --button-text-weight: 600;
+      --button-primary-weight: 600;
+      --button-operator-weight: 600;
     }
 
     .dark {
@@ -303,10 +317,10 @@
       --notification-warn-bg: var(--foundation-tangerine-light);
       --notification-suc-bg: var(--foundation-green-light);
       --notification-info-bg: var(--foundation-primary-gradients-primary-20);
-      --border-bd-def: hsl(223 6% 59%);
-      --border-bd-hov: var(--foundation-periwinkle);
+      --border-bd-def: #ffffff;
+      --border-bd-hov: #ffffff;
       --border-bd-sel: var(--foundation-periwinkle-dark);
-      --border-bd-dis: hsl(221 7% 28%);
+      --border-bd-dis: rgba(255, 255, 255, 0.3);
       --notification-err-bd: var(--foundation-coral);
       --notification-err-txt: var(--foundation-coral-dark);
       --notification-info-txt: var(--foundation-periwinkle-dark);
@@ -315,7 +329,7 @@
       --input-field-input-txt: var(--text-txt-pri);
       --input-field-input-bd-dis: var(--background--surface-bg-dis);
       --input-field-input-bg-def: var(--foundation-off-black);
-      --input-field-input-bd-hov: var(--foundation-periwinkle);
+      --input-field-input-bd-hov: var(--semantic-pri);
       --button-button-tertiary: var(--foundation-neutral);
       --button-button-secondary-alt: var(--foundation-neutral);
       --button-button-secondary: transparent;
@@ -340,7 +354,7 @@
       --text-hyperlink-hov: var(--foundation-periwinkle);
       --thumbnail-thumbnail-bd-def: var(--foundation-primary-gradients-primary-40);
       --thumbnail-thumbnail-bd-sel: var(--foundation-periwinkle);
-      --thumbnail-thumbnail-bd-hov: var(--foundation-periwinkle);
+      --thumbnail-thumbnail-bd-hov: #ffffff;
       --thumbnail-thumbnail-icon-def: var(--foundation-primary-gradients-primary-60);
       --thumbnail-thumbnail-icon-sel: var(--foundation-periwinkle-dark);
       --menu-menu-def: var(--foundation-neutral);
@@ -517,6 +531,10 @@
       vertical-align: middle;
       /* As per user request, fill all icons */
       font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    .material-symbols-rounded.unfilled {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     }
 
     /* Custom React Flow Styles */

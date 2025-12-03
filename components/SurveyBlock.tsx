@@ -23,7 +23,6 @@ interface SurveyBlockProps {
   logicIssues: LogicIssue[];
   hasBranchingLogicInSurvey: boolean;
   branchedToBlockIds: Set<string>;
-  // FIX: Updated prop signature to be consistent with App.tsx and child components.
   onSelectQuestion: (question: Question | null, options?: { tab?: string; focusOn?: string }) => void;
   onSelectBlock: (block: Block | null, options?: { tab: string; focusOn: string }) => void;
   onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
@@ -56,13 +55,14 @@ interface SurveyBlockProps {
   onUpdateBlockTitle: (blockId: string, title: string) => void;
   onAddFromLibrary: () => void;
   pageInfoMap: Map<string, PageInfo>;
+  focusedLogicSource: string | null;
 }
 
 const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
   block, survey, selectedQuestion, selectedBlock, checkedQuestions, logicIssues, hasBranchingLogicInSurvey, branchedToBlockIds, onSelectQuestion, onSelectBlock, onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
   isBlockDragging, onBlockDragStart, onBlockDragEnd, isCollapsed, onToggleCollapse,
   onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onAddFromLibrary,
-  pageInfoMap
+  pageInfoMap, focusedLogicSource
 }) => {
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [isToolboxDragOver, setIsToolboxDragOver] = useState(false);
@@ -323,7 +323,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                 onKeyDown={handleTitleKeyDown}
                 onClick={e => e.stopPropagation()}
                 onPaste={createPasteHandler(setTitleValue)}
-                className="font-semibold text-base text-on-surface bg-transparent border-b border-primary focus:outline-none w-full"
+                className="font-semibold text-base text-on-surface bg-input-bg border-b border-outline-variant hover:border-input-border-hover focus:border-primary focus:outline-none w-full transition-colors"
                 style={{ fontFamily: "'Open Sans', sans-serif" }}
               />
             ) : (
@@ -353,7 +353,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
         <div className="relative actions-menu-area flex-shrink-0" ref={actionsMenuRef}>
           <button
             onClick={(e) => { e.stopPropagation(); setIsActionsMenuOpen(prev => !prev); }}
-            className="text-on-surface-variant hover:bg-surface-container-high p-1 rounded-full"
+            className="text-on-surface-variant hover:bg-surface-container-high p-1 rounded-md"
             aria-haspopup="true"
             aria-expanded={isActionsMenuOpen}
             aria-label="Block actions"
@@ -429,6 +429,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                       onAddChoice={onAddChoice}
                       onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
                       pageInfo={pageInfoMap.get(question.id)}
+                      focusedLogicSource={focusedLogicSource}
                     />
                   </div>
                 </React.Fragment>
@@ -450,7 +451,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                 <div className="relative" ref={addQuestionMenuRef}>
                   <button
                     onClick={() => setIsAddQuestionMenuOpen(prev => !prev)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-on-primary bg-primary rounded-md hover:opacity-90 transition-opacity"
+                    className="flex items-center gap-2 px-4 py-1.5 text-sm font-button-primary text-on-primary bg-primary rounded-md hover:opacity-90 transition-opacity"
                     aria-haspopup="true"
                     aria-expanded={isAddQuestionMenuOpen}
                   >
@@ -471,7 +472,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                 </div>
                 <button
                   onClick={() => alert('Add from library functionality not implemented.')}
-                  className="px-4 py-2 text-sm font-semibold text-on-surface bg-surface-container-high border border-outline rounded-md hover:bg-surface-container-highest transition-colors"
+                  className="px-4 py-1.5 text-sm font-semibold text-on-surface bg-surface-container-high border border-outline rounded-md hover:bg-surface-container-highest transition-colors"
                 >
                   Add from library
                 </button>

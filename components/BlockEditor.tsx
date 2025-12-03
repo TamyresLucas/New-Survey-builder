@@ -62,15 +62,15 @@ const PasteInlineForm: React.FC<{
                     if (error) setError(null);
                 }}
                 rows={4}
-                className={`w-full bg-surface border rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary font-mono ${error ? 'border-error' : 'border-outline'}`}
+                className={`w-full bg-surface border rounded-md p-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary font-mono transition-colors ${error ? 'border-error' : 'border-outline'}`}
                 placeholder={placeholder}
             />
             {error && (
                 <p className="text-xs text-error mt-2">{error}</p>
             )}
             <div className="mt-2 flex justify-end gap-2">
-                <button onClick={onCancel} className="px-3 py-1.5 text-xs font-semibold text-primary rounded-full hover:bg-primary-container">Cancel</button>
-                <button onClick={handleSave} className="px-4 py-1.5 text-xs font-semibold text-on-primary bg-primary rounded-full hover:opacity-90">{primaryActionLabel}</button>
+                <button onClick={onCancel} className="px-4 py-1.5 text-xs font-button-primary text-primary rounded-full hover:bg-primary-container">Cancel</button>
+                <button onClick={handleSave} className="px-4 py-1.5 text-xs font-button-primary text-on-primary bg-primary rounded-full hover:opacity-90">{primaryActionLabel}</button>
             </div>
         </div>
     );
@@ -84,7 +84,7 @@ const CopyAndPasteButton: React.FC<{ onClick: () => void; className?: string; di
         className={`flex items-center gap-1 ${className} font-medium text-primary hover:underline transition-colors disabled:text-on-surface-variant disabled:no-underline disabled:cursor-not-allowed`}
     >
         <ContentPasteIcon className="text-base" />
-        <span>Copy and paste</span>
+        <span>Paste</span>
     </button>
 );
 
@@ -145,7 +145,7 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
                 <select
                     value={condition.questionId}
                     onChange={(e) => onUpdateCondition('questionId', e.target.value)}
-                    className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${questionBorderClass}`}
+                    className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 appearance-none transition-colors ${questionBorderClass}`}
                 >
                     <option value="">select question</option>
                     {availableQuestions.map(q => <option key={q.id} value={q.qid}>{q.qid}: {truncate(q.text, 50)}</option>)}
@@ -156,7 +156,7 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
                 <select
                     value={condition.operator}
                     onChange={handleOperatorChange}
-                    className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`}
+                    className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 appearance-none transition-colors ${operatorBorderClass}`}
                     disabled={!referencedQuestion}
                 >
                     <option value="">select interaction</option>
@@ -176,7 +176,7 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
                         <select
                             value={condition.value}
                             onChange={(e) => onUpdateCondition('value', e.target.value)}
-                            className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high ${valueBorderClass}`}
+                            className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high transition-colors ${valueBorderClass}`}
                             disabled={valueIsDisabled}
                         >
                             <option value="">select answer</option>
@@ -192,7 +192,7 @@ const LogicConditionRow: React.FC<LogicConditionRowProps> = ({ condition, onUpda
                         value={condition.value}
                         onChange={(e) => onUpdateCondition('value', e.target.value)}
                         placeholder="select answer"
-                        className={`w-full bg-transparent border rounded-md px-2 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 disabled:bg-surface-container-high ${valueBorderClass}`}
+                        className={`w-full bg-transparent border rounded-md px-2 py-1.5 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 disabled:bg-surface-container-high transition-colors ${valueBorderClass}`}
                         disabled={valueIsDisabled}
                     />
                 )}
@@ -228,7 +228,7 @@ const DestinationRow: React.FC<DestinationRowProps> = ({ label, value, onChange,
             <select
                 value={value}
                 onChange={e => onChange(e.target.value)}
-                className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none ${invalid ? 'border-error' : 'border-input-border'}`}
+                className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none transition-colors ${invalid ? 'border-error' : 'border-input-border'}`}
             >
                 <option value="">Select destination...</option>
                 <optgroup label="Default">
@@ -413,7 +413,7 @@ const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = ({ block
                     />
                 ) : (
                     <div className="flex items-center gap-4">
-                        <button onClick={handleAddDisplayLogic} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                        <button onClick={handleAddDisplayLogic} className="flex items-center gap-1 text-sm font-button-text text-primary hover:underline transition-colors">
                             <PlusIcon className="text-base" />
                             Add Display Logic
                         </button>
@@ -433,7 +433,7 @@ const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = ({ block
                 </div>
                 <button
                     onClick={() => handleUpdate({ displayLogic: undefined, draftDisplayLogic: undefined })}
-                    className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50"
+                    className="text-sm font-button-text text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50"
                 >
                     Remove
                 </button>
@@ -444,12 +444,12 @@ const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = ({ block
                     <p className="text-xs font-medium text-on-surface">Show this block if:</p>
                     {displayLogic.conditions.length > 1 && (
                         <div className="flex gap-1">
-                            <button onClick={() => setLogicOperator('AND')} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${displayLogic.operator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
-                            <button onClick={() => setLogicOperator('OR')} className={`px-2 py-0.5 text-xs font-medium rounded-full transition-colors ${displayLogic.operator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
+                            <button onClick={() => setLogicOperator('AND')} className={`px-2 py-0.5 text-xs font-button-text rounded-full transition-colors ${displayLogic.operator === 'AND' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>AND</button>
+                            <button onClick={() => setLogicOperator('OR')} className={`px-2 py-0.5 text-xs font-button-text rounded-full transition-colors ${displayLogic.operator === 'OR' ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-high border border-outline text-on-surface'}`}>OR</button>
                         </div>
                     )}
                 </div>
-                <button onClick={handleAddDisplayLogic} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+                <button onClick={handleAddDisplayLogic} className="flex items-center gap-1 text-sm font-button-text text-primary hover:underline transition-colors">
                     <PlusIcon className="text-base" />
                     Add condition
                 </button>
@@ -486,7 +486,7 @@ interface BlockSkipLogicEditorProps {
 const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, survey, onUpdateBlock, onExpandSidebar }) => {
     const branchingLogic = block.draftBranchingLogic ?? block.branchingLogic;
     const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof BranchingLogicCondition | 'skipTo'>>>(new Map());
-    const [isPasting, setIsPasting] = useState(false);
+
 
     const questionsForConditions = useMemo(() =>
         survey.blocks
@@ -503,120 +503,33 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
         onUpdateBlock(block.id, updates);
     };
 
-    const handlePasteLogic = (text: string): { success: boolean; error?: string } => {
-        const lines = text.split('\n').filter(line => line.trim() !== '');
-        const newBranches: BranchingLogicBranch[] = [];
-        const validOperators = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than', 'is_empty', 'is_not_empty'];
 
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            const lineNum = i + 1;
-
-            const parts = line.split(/ THEN SKIP TO | -> /i);
-            if (parts.length !== 2) {
-                return { success: false, error: `Line ${lineNum}: Invalid syntax. Use "IF <condition> THEN SKIP TO <destination>" or "<condition> -> <destination>".` };
-            }
-
-            let conditionStr = parts[0].trim();
-            const destinationStr = parts[1].trim();
-
-            if (conditionStr.toLowerCase().startsWith('if ')) {
-                conditionStr = conditionStr.substring(3).trim();
-            }
-
-            const condParts = conditionStr.split(/\s+/);
-            const [qidCandidate, operator, ...valueParts] = condParts;
-            const value = valueParts.join(' ');
-
-            if (!qidCandidate || !operator) { return { success: false, error: `Line ${lineNum}: Invalid condition syntax.` }; }
-
-            const qid = qidCandidate.toUpperCase();
-            if (!questionsForConditions.some(q => q.qid === qid)) {
-                return { success: false, error: `Line ${lineNum}: Question "${qid}" is not a valid question for logic.` };
-            }
-
-            const operatorCleaned = operator.toLowerCase();
-            if (!validOperators.includes(operatorCleaned)) { return { success: false, error: `Line ${lineNum}: Operator "${operator}" is not recognized.` }; }
-
-            const requiresValue = !['is_empty', 'is_not_empty'].includes(operatorCleaned);
-            if (requiresValue && !value.trim()) { return { success: false, error: `Line ${lineNum}: Missing value for operator "${operator}".` }; }
-
-            const condition: BranchingLogicCondition = {
-                id: generateId('cond'), questionId: qid,
-                operator: operatorCleaned as BranchingLogicCondition['operator'],
-                value: value.trim(), isConfirmed: true,
-            };
-
-            let thenSkipTo = '';
-            const destUpper = destinationStr.toUpperCase();
-            if (destUpper === 'END') { thenSkipTo = 'end'; }
-            else if (destUpper.startsWith('BL')) {
-                const block = survey.blocks.find(b => b.bid === destUpper);
-                if (block) { thenSkipTo = `block:${block.id}`; }
-                else { return { success: false, error: `Line ${lineNum}: Destination block "${destinationStr}" not found.` }; }
-            } else if (destUpper.startsWith('Q')) {
-                const question = survey.blocks.flatMap(b => b.questions).find(q => q.qid === destUpper);
-                if (question) { thenSkipTo = question.id; }
-                else { return { success: false, error: `Line ${lineNum}: Destination question "${destinationStr}" not found.` }; }
-            } else { return { success: false, error: `Line ${lineNum}: Invalid destination "${destinationStr}". Use a Block ID (BL2), Question ID (Q5), or "End".` }; }
-
-            newBranches.push({
-                id: generateId('branch'), operator: 'AND', conditions: [condition],
-                thenSkipTo, thenSkipToIsConfirmed: true
-            });
-        }
-
-        if (newBranches.length > 0) {
-            handleUpdate({
-                branchingLogic: {
-                    branches: [...(branchingLogic?.branches || []), ...newBranches],
-                    otherwiseSkipTo: 'next', // This is for block logic, so 'next' isn't applicable. Maybe default to nothing.
-                    otherwiseIsConfirmed: branchingLogic?.otherwiseIsConfirmed || true,
-                },
-            });
-            onExpandSidebar();
-            return { success: true };
-        }
-
-        return { success: false, error: "No valid logic found." };
-    };
 
     if (!branchingLogic) {
         return (
             <div>
                 <p className="text-xs text-on-surface-variant mb-3">Create rules to skip this entire block based on previous answers.</p>
-                {isPasting ? (
-                    <PasteInlineForm
-                        onSave={handlePasteLogic}
-                        onCancel={() => setIsPasting(false)}
-                        placeholder={"IF Q1 equals Yes THEN SKIP TO BL4\nQ2 is_empty -> End"}
-                        primaryActionLabel="Add Skip Logic"
-                        disclosureText="Enter one rule per line."
-                    />
-                ) : (
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => {
-                                handleUpdate({
-                                    branchingLogic: {
-                                        branches: [{
-                                            id: generateId('branch'), operator: 'AND',
-                                            conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
-                                            thenSkipTo: '', thenSkipToIsConfirmed: false,
-                                        }],
-                                        otherwiseSkipTo: '',
-                                        otherwiseIsConfirmed: true,
-                                    }
-                                });
-                                onExpandSidebar();
-                            }}
-                            className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-                        >
-                            <PlusIcon className="text-base" /> Add Skip Logic
-                        </button>
-                        <CopyAndPasteButton onClick={() => setIsPasting(true)} />
-                    </div>
-                )}
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => {
+                            handleUpdate({
+                                branchingLogic: {
+                                    branches: [{
+                                        id: generateId('branch'), operator: 'AND',
+                                        conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
+                                        thenSkipTo: '', thenSkipToIsConfirmed: false,
+                                    }],
+                                    otherwiseSkipTo: '',
+                                    otherwiseIsConfirmed: true,
+                                }
+                            });
+                            onExpandSidebar();
+                        }}
+                        className="flex items-center gap-1 text-sm font-button-text text-primary hover:underline"
+                    >
+                        <PlusIcon className="text-base" /> Add Skip Logic
+                    </button>
+                </div>
             </div>
         );
     }
@@ -703,7 +616,7 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
                 <div>
                     <p className="text-xs text-on-surface-variant">Create rules to skip this entire block based on previous answers.</p>
                 </div>
-                <button onClick={() => handleUpdate({ branchingLogic: undefined, draftBranchingLogic: undefined })} className="text-sm font-medium text-error hover:underline">Remove</button>
+                <button onClick={() => handleUpdate({ branchingLogic: undefined, draftBranchingLogic: undefined })} className="text-sm font-button-text text-error hover:underline">Remove</button>
             </div>
             <div className="space-y-4">
                 {branchingLogic.branches.map((branch) => (
@@ -713,7 +626,7 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
                                 <span className="font-bold text-primary">IF</span>
                                 <div className="pl-4">
                                     {branch.conditions.length > 1 && (
-                                        <select value={branch.operator} onChange={e => handleUpdateBranch(branch.id, { operator: e.target.value as 'AND' | 'OR' })} className="text-xs font-semibold p-1 rounded-md bg-transparent border border-input-border mb-2">
+                                        <select value={branch.operator} onChange={e => handleUpdateBranch(branch.id, { operator: e.target.value as 'AND' | 'OR' })} className="text-xs font-semibold p-1 rounded-md bg-transparent border border-input-border hover:border-input-border-hover mb-2 transition-colors">
                                             <option value="AND">All conditions are met (AND)</option>
                                             <option value="OR">Any condition is met (OR)</option>
                                         </select>
@@ -735,7 +648,7 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
                                     invalidFields={validationErrors.get(condition.id)}
                                 />
                             ))}
-                            <button onClick={() => handleAddCondition(branch.id)} className="text-xs font-medium text-primary hover:underline ml-1">+ Add condition</button>
+                            <button onClick={() => handleAddCondition(branch.id)} className="text-sm font-button-text text-primary hover:underline ml-1">+ Add condition</button>
                         </div>
 
                         <div className="flex items-center gap-2 pl-4 border-l-2 border-outline-variant ml-2">
@@ -756,7 +669,7 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
                 ))}
 
                 <div className="pt-2">
-                    <button onClick={handleAddBranch} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                    <button onClick={handleAddBranch} className="flex items-center gap-1 text-sm font-button-text text-primary hover:underline">
                         <PlusIcon className="text-base" /> Add Rule (OR)
                     </button>
                 </div>
@@ -787,20 +700,20 @@ export default function BlockEditor({ block, survey, onClose, onUpdateBlock, isE
                         type="text"
                         value={block.title}
                         onChange={(e) => onUpdateBlock(block.id, { title: e.target.value })}
-                        className="w-full bg-surface border border-outline rounded-md px-3 py-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
+                        className="w-full bg-surface border border-outline rounded-md px-3 py-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary transition-colors"
                     />
                 </div>
 
                 <div>
                     <div className="flex border-b border-outline-variant mb-4">
                         <button
-                            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'Display' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
+                            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'Display' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-primary'}`}
                             onClick={() => setActiveTab('Display')}
                         >
                             Display Logic
                         </button>
                         <button
-                            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'Skip' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
+                            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'Skip' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-primary'}`}
                             onClick={() => setActiveTab('Skip')}
                         >
                             Skip Logic

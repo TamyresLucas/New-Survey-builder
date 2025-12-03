@@ -85,7 +85,7 @@ export const WorkflowSectionEditor: React.FC<{
                                 />
                             ))}
                         </div>
-                         <button onClick={() => handleAddAction(workflow.id)} className="mt-3 flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                         <button onClick={() => handleAddAction(workflow.id)} className="mt-3 flex items-center gap-1 text-sm font-button-text text-primary hover:underline">
                             <PlusIcon className="text-base" />
                             Add action
                         </button>
@@ -93,7 +93,7 @@ export const WorkflowSectionEditor: React.FC<{
                 ))}
             </div>
 
-            <button onClick={handleAddWorkflow} className="mt-4 flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+            <button onClick={handleAddWorkflow} className="mt-4 flex items-center gap-1 text-sm font-button-text text-primary hover:underline">
                 <PlusIcon className="text-base" />
                 Add workflow
             </button>

@@ -55,7 +55,7 @@ const ChoiceItem: React.FC<ChoiceItemProps> = ({
                 <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing" aria-label="Reorder choice">
                     <DragIndicatorIcon className="text-lg" />
                 </span>
-                <div className="flex-grow flex items-stretch bg-transparent border border-input-border rounded-md focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-primary">
+                <div className="flex-grow flex items-stretch bg-transparent border border-input-border rounded-md hover:border-input-border-hover focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-primary transition-colors">
                     <input
                         type="text"
                         value={parseChoice(choice.text).label}
@@ -65,10 +65,10 @@ const ChoiceItem: React.FC<ChoiceItemProps> = ({
                         placeholder="Enter choice text"
                     />
                 </div>
-                <button onClick={() => setIsExpanded(prev => !prev)} className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-full" aria-label="More options">
+                <button onClick={() => setIsExpanded(prev => !prev)} className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-md" aria-label="More options">
                     <MoreVertIcon className="text-lg" />
                 </button>
-                <button onClick={() => onDelete(choice.id)} className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full" aria-label="Delete choice">
+                <button onClick={() => onDelete(choice.id)} className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-md" aria-label="Delete choice">
                     <XIcon className="text-lg" />
                 </button>
             </div>

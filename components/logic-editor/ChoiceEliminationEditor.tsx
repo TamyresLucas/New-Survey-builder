@@ -36,7 +36,7 @@ export const ChoiceEliminationEditor: React.FC<{
       <div>
         <h3 className="text-sm font-medium text-on-surface mb-1">Carry Forward Choices</h3>
         <p className="text-xs text-on-surface-variant mb-3">Only show choices that were NOT selected in a previous question.</p>
-        <button onClick={handleEnable} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
+        <button onClick={handleEnable} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors">
           <PlusIcon className="text-base" />
           Add carry forward rule
         </button>
@@ -51,7 +51,7 @@ export const ChoiceEliminationEditor: React.FC<{
           <h3 className="text-sm font-medium text-on-surface">Carry Forward Choices</h3>
           <p className="text-xs text-on-surface-variant mt-0.5">Only show choices that were NOT selected in a previous question.</p>
         </div>
-        <button onClick={handleRemove} className="text-sm font-medium text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50">
+        <button onClick={handleRemove} className="text-sm font-semibold text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50">
           Remove
         </button>
       </div>

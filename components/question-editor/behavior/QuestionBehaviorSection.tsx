@@ -13,6 +13,7 @@ interface QuestionBehaviorSectionProps {
     onAddLogic: () => void;
     issues?: LogicIssue[];
     onRequestGeminiHelp: (topic: string) => void;
+    focusedLogicSource: string | null;
 }
 
 // Extended type to include Logic Sets
@@ -21,8 +22,21 @@ type ExtendedConditionItem =
     | (ILogicSet & { logicType: 'display' | 'hide'; itemType: 'set' });
 
 
-const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ question, survey, previousQuestions = [], onUpdate, onSelectBlock, onAddLogic, issues = [], onRequestGeminiHelp }) => {
+const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ question, survey, previousQuestions = [], onUpdate, onSelectBlock, onAddLogic, issues = [], onRequestGeminiHelp, focusedLogicSource }) => {
     const [isPasting, setIsPasting] = useState(false);
+
+    React.useEffect(() => {
+        if (focusedLogicSource) {
+            setTimeout(() => {
+                const element = document.getElementById(focusedLogicSource);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    element.classList.add('ring-2', 'ring-primary');
+                    setTimeout(() => element.classList.remove('ring-2', 'ring-primary'), 2000);
+                }
+            }, 100);
+        }
+    }, [focusedLogicSource]);
 
     const displayLogic = question.draftDisplayLogic ?? question.displayLogic;
     const hideLogic = question.draftHideLogic ?? question.hideLogic;
@@ -282,7 +296,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
 
             <button
                 onClick={handleSetRandomization}
-                className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors"
+                className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline transition-colors"
             >
                 <span>Set question randomization</span>
                 <ArrowRightAltIcon className="text-base" />
@@ -290,16 +304,18 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
 
             <div className="border-t border-outline-variant pt-4">
                 <h3 className="text-sm font-medium text-on-surface mb-0.5">Question display logic</h3>
-                <p className="text-xs text-on-surface-variant mb-3">Display this question only if the following condition is met.</p>
+                <p className="text-xs text-on-surface-variant mb-3">Conditionally show or hide this question to respondents.</p>
 
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-4">
                         {/* Add condition button hidden as per previous request */}
-                        <button onClick={handleAddLogicSet} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline transition-colors">
-                            <GridIcon className="text-base" />
-                            Add logic set
-                        </button>
-                        <CopyAndPasteButton onClick={() => setIsPasting(true)} disabled={isPasting} />
+                        {!isPasting && (
+                            <button onClick={handleAddLogicSet} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors">
+                                <PlusIcon className="text-base" />
+                                Add logic set
+                            </button>
+                        )}
+                        {!isPasting && items.length === 0 && <CopyAndPasteButton onClick={() => setIsPasting(true)} disabled={isPasting} label="Write expression" />}
                     </div>
 
                     {/* AND/OR toggle removed */}
@@ -311,7 +327,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
                             onSave={handlePasteLogic}
                             onCancel={() => setIsPasting(false)}
                             placeholder={"Q1 equals Yes\nHIDE IF Q2 equals No"}
-                            primaryActionLabel="Apply Logic"
+                            primaryActionLabel="Apply"
                             disclosureText="Enter one condition per line. Use 'HIDE IF' or 'SHOW IF'."
                             transparentBackground={true}
                             onRequestGeminiHelp={onRequestGeminiHelp}

@@ -16,7 +16,7 @@ export const AdvancedLogicEditor: React.FC<AdvancedLogicEditorProps> = ({
   onSave,
   onCancel,
   placeholder,
-  primaryActionLabel = "Apply Logic",
+  primaryActionLabel = "Apply",
   disclosureText,
   helpTopic,
   onRequestGeminiHelp,
@@ -175,25 +175,25 @@ export const AdvancedLogicEditor: React.FC<AdvancedLogicEditorProps> = ({
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={onCancel}
-            className="text-error hover:text-error-container text-xs font-bold transition-colors"
+            className="text-error hover:text-error-container text-xs font-semibold transition-colors"
           >
             Delete
           </button>
         </div>
-      </div>
+      </div >
     );
   }
 
   return (
     <div className={`${transparentBackground ? 'bg-transparent' : 'bg-surface-container'} border border-outline-variant rounded-md p-4 space-y-3`}>
-      <div className="flex justify-between items-start">
-        <label className="text-sm font-medium text-on-surface block mb-1">
-          Advanced editor
+      <div className="flex justify-between items-center">
+        <label className="text-sm font-medium text-on-surface block">
+          Write expression
         </label>
         {helpTopic && onRequestGeminiHelp && (
           <button
             onClick={() => onRequestGeminiHelp(helpTopic)}
-            className="flex items-center gap-1 text-primary hover:text-primary-container transition-colors text-xs font-medium"
+            className="flex items-center gap-1 text-primary hover:bg-surface-container-high px-2 py-1 rounded-full transition-colors text-xs font-semibold"
             title="Ask Gemini for help"
           >
             <SparkleIcon className="text-lg" />
@@ -250,14 +250,14 @@ export const AdvancedLogicEditor: React.FC<AdvancedLogicEditorProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={onCancel}
-            className="px-3 py-1.5 text-xs font-bold text-on-surface-variant hover:bg-surface-container-high rounded-md transition-colors"
+            className="px-3 py-1.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container-highest rounded-md transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={!text.trim()}
-            className="px-3 py-1.5 text-xs font-bold text-on-primary bg-primary rounded-md hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 text-xs font-button-operator text-on-primary bg-primary rounded-md hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {primaryActionLabel}
           </button>

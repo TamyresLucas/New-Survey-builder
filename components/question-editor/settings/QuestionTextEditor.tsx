@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { TextArea } from '../../TextArea';
 
 interface QuestionTextEditorProps {
     text: string;
@@ -40,14 +41,13 @@ const QuestionTextEditor: React.FC<QuestionTextEditorProps> = ({ text, onTextCha
             <label htmlFor="question-text" className="block text-sm font-medium text-on-surface-variant mb-1">
                 Question Text
             </label>
-            <textarea
+            <TextArea
                 id="question-text"
                 value={questionText}
                 onChange={(e) => setQuestionText(e.target.value)}
                 onBlur={handleTextBlur}
                 onPaste={createPasteHandler(setQuestionText)}
                 rows={4}
-                className="w-full bg-transparent border border-input-border rounded-md p-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary transition-colors"
                 placeholder="Enter your question here..."
             />
             <p className="text-xs text-on-surface-variant mt-1">Maximum 5000 characters</p>

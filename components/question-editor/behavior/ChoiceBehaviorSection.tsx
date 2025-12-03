@@ -4,8 +4,9 @@ import { CHOICE_BASED_QUESTION_TYPES, generateId, truncate, parseChoice, parseVo
 import { RandomizeChoicesEditor } from '../../logic-editor/RandomizationEditor';
 import { ChoiceEliminationEditor } from '../../logic-editor/ChoiceEliminationEditor';
 import { ChoiceDisplayLogicEditor } from '../../logic-editor/ChoiceDisplayLogicEditor';
-import { PlusIcon, ChevronDownIcon, GridIcon } from '../../icons';
+import { PlusIcon, ChevronDownIcon, GridIcon, EditIcon } from '../../icons';
 import { CopyAndPasteButton, LogicSet, AdvancedLogicEditor, DisplayLogicSet } from '../../logic-editor/shared';
+import { Button } from '../../Button';
 
 interface ChoiceBehaviorSectionProps {
     question: Question;
@@ -183,12 +184,15 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-4">
                         {!isPasting && (
-                            <button onClick={handleAddPlaceholderLogicSet} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors">
-                                <PlusIcon className="text-base" />
-                                Add logic set
-                            </button>
+                            <Button variant="tertiary-primary" size="large" onClick={handleAddPlaceholderLogicSet}>
+                                <PlusIcon className="text-xl mr-2" /> Add logic set
+                            </Button>
                         )}
-                        {!isPasting && placeholderItems.length === 0 && <CopyAndPasteButton onClick={() => setIsPasting(true)} disabled={isPasting} label="Write expression" />}
+                        {!isPasting && placeholderItems.length === 0 && (
+                            <Button variant="tertiary-primary" size="large" onClick={() => setIsPasting(true)} disabled={isPasting}>
+                                <EditIcon className="text-xl mr-2" /> Write expression
+                            </Button>
+                        )}
                     </div>
 
                     {placeholderItems.length > 1 && (

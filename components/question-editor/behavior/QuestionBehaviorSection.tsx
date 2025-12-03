@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import type { Question, Survey, Block, DisplayLogicCondition, DisplayLogic, LogicSet as ILogicSet, LogicIssue } from '../../../types';
-import { ArrowRightAltIcon, PlusIcon, ChevronDownIcon, GridIcon } from '../../icons';
+import { ArrowRightAltIcon, PlusIcon, ChevronDownIcon, GridIcon, EditIcon } from '../../icons';
 import { QuestionGroupEditor, CopyAndPasteButton, CollapsibleSection, LogicSet, DisplayLogicSet, AdvancedLogicEditor, LogicConditionRow } from '../../logic-editor/shared';
 import { generateId, parseDisplayLogicString, parseVoxcoLogic } from '../../../utils';
+import { Button } from '../../Button';
 
 interface QuestionBehaviorSectionProps {
     question: Question;
@@ -294,13 +295,14 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
         <div className="space-y-4">
             <QuestionGroupEditor question={question} survey={survey} onUpdate={onUpdate} />
 
-            <button
+            <Button
+                variant="secondary"
+                size="large"
                 onClick={handleSetRandomization}
-                className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline transition-colors"
             >
                 <span>Set question randomization</span>
-                <ArrowRightAltIcon className="text-base" />
-            </button>
+                <ArrowRightAltIcon className="text-base ml-1" />
+            </Button>
 
             <div className="border-t border-outline-variant pt-4">
                 <h3 className="text-sm font-medium text-on-surface mb-0.5">Question display logic</h3>
@@ -310,12 +312,15 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
                     <div className="flex items-center gap-4">
                         {/* Add condition button hidden as per previous request */}
                         {!isPasting && (
-                            <button onClick={handleAddLogicSet} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors">
-                                <PlusIcon className="text-base" />
-                                Add logic set
-                            </button>
+                            <Button variant="tertiary-primary" size="large" onClick={handleAddLogicSet}>
+                                <PlusIcon className="text-xl mr-2" /> Add logic set
+                            </Button>
                         )}
-                        {!isPasting && items.length === 0 && <CopyAndPasteButton onClick={() => setIsPasting(true)} disabled={isPasting} label="Write expression" />}
+                        {!isPasting && items.length === 0 && (
+                            <Button variant="tertiary-primary" size="large" onClick={() => setIsPasting(true)} disabled={isPasting}>
+                                <EditIcon className="text-xl mr-2" /> Write expression
+                            </Button>
+                        )}
                     </div>
 
                     {/* AND/OR toggle removed */}

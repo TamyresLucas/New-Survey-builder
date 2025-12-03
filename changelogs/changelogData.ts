@@ -11,6 +11,35 @@ export interface ChangelogEntry {
 // NOTE: Always update 'time' to the current local time when adding an entry.
 export const changelogs: ChangelogEntry[] = [
     {
+        id: '2025-12-03-2',
+        version: 'v1.0.9',
+        date: '2025-12-03',
+        time: '6:13 PM',
+        request: 'Refactor Edit Question Sidebar',
+        improvements: [
+            'Created and documented `TextArea` component.',
+            'Refactored question editor components to use standardized `Button`, `TextField`, `TextArea`, and `DropdownField`.',
+            'Updated all "Add Choice", "Add Row", "Column", and "Paste" buttons to Large Tertiary Primary style.',
+            'Updated all "Add logic set", "Write expression", and "Add skip logic" buttons to Large Tertiary Primary style.',
+            'Fixed Secondary Button text color to use `text-on-surface` instead of `text-primary`.',
+            'Updated Large Button padding to `px-2` (8px) for consistency.',
+            'Converted "Set question randomization" to Secondary Button style.'
+        ],
+        technicalChanges: [
+            'Created components/TextArea.tsx',
+            'Created documentation/components/TextArea.md',
+            'Refactored ChoiceItem.tsx to use TextField and Button components',
+            'Refactored ChoiceActions.tsx and ScalePointActions.tsx to use Button component',
+            'Refactored AnswerFormatSelector.tsx to use DropdownField',
+            'Refactored QuestionTextEditor.tsx to use TextArea',
+            'Refactored ScalePointItem.tsx and ScalePointActions.tsx to use Button and TextField',
+            'Updated ChoiceBehaviorSection.tsx, QuestionBehaviorSection.tsx, and SkipLogicEditor.tsx to use Button component',
+            'Updated Button.tsx: Changed large button padding from px-4 to px-2',
+            'Updated Button.tsx: Fixed secondary variant text color to text-on-surface',
+            'Updated documentation/components/Buttons.md with new padding specifications'
+        ]
+    },
+    {
         id: '2025-12-03-1',
         version: 'v1.0.9',
         date: '2025-12-03',

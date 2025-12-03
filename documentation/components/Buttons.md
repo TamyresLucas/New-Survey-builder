@@ -5,8 +5,11 @@ To ensure visual consistency across the application, standard sizes, typography,
 ## Sizes
 
 -   **Large Button**: Used for primary inputs, selectors, and main page actions.
-    -   **Dimensions**: Height 32px
-    -   **Classes**: `px-4 py-1.5 text-sm` (16px horizontal padding)
+    -   **Height**: `32px` (`h-[32px]`)
+    -   **Padding**: `px-2 py-1.5` (8px horizontal, 6px vertical)
+    -   **Typography**: `text-sm font-semibold` (14px)
+    -   **Icon Size**: `text-xl` (20px)
+    -   **Icon-Only Size**: `w-8 h-8` (32px × 32px)
     -   **Exception (Icon Only)**: If the button contains *only* an icon (no text), remove horizontal padding and ensure a square aspect ratio (e.g., `w-8 h-8` or `p-1.5` depending on icon size).
 -   **Small Button**: Used for secondary actions, compact UI elements, and local component actions.
     -   **Dimensions**: Height 24px

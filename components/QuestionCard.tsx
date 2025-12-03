@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, memo, useCallback } from 'react';
 import type { Question, ToolboxItemData, Choice, Survey, LogicIssue, Block } from '../types';
 import { QuestionType } from '../types';
+import { Button } from './Button';
 import {
     DotsHorizontalIcon, RadioIcon, ChevronDownIcon,
     CheckboxOutlineIcon, XIcon, DragIndicatorIcon, PlusIcon,
@@ -560,11 +561,13 @@ const QuestionCard: React.FC<{
                                     e.stopPropagation();
                                     setIsTypeMenuOpen(prev => !prev);
                                 }}
-                                className="flex items-center gap-2 rounded-md px-2 py-1.5 border border-input-border bg-transparent hover:border-input-border-hover transition-colors"
+                                className="h-[32px] flex items-center gap-2 rounded-md px-2 border border-input-border bg-transparent hover:border-input-border-hover transition-colors"
                             >
-                                <CurrentQuestionTypeIcon className="text-base text-primary" />
-                                <span className="font-semibold text-sm text-on-surface">{question.type}</span>
-                                <ChevronDownIcon className="text-lg text-on-surface-variant" />
+                                <div className="w-[19px] h-[19px] flex-shrink-0 flex items-center justify-center">
+                                    <CurrentQuestionTypeIcon className="text-base text-primary" />
+                                </div>
+                                <span className="font-semibold text-sm text-on-surface truncate leading-[19px]">{question.type}</span>
+                                <ChevronDownIcon className="text-lg text-on-surface-variant flex-shrink-0" />
                             </button>
                             {isTypeMenuOpen && (
                                 <div className="absolute top-full right-0 mt-2 w-64 z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
@@ -573,16 +576,17 @@ const QuestionCard: React.FC<{
                             )}
                         </div>
                         <div ref={actionsMenuContainerRef} className="relative transition-opacity">
-                            <button
+                            <Button
+                                variant="tertiary"
+                                iconOnly
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setIsActionsMenuOpen(prev => !prev);
                                 }}
-                                className="p-1.5 rounded-md hover:bg-surface-container-high"
                                 aria-label="Question actions"
                             >
                                 <DotsHorizontalIcon className="text-xl" />
-                            </button>
+                            </Button>
                             {isActionsMenuOpen && (
                                 <QuestionActionsMenu
                                     question={question}
@@ -701,7 +705,7 @@ const QuestionCard: React.FC<{
                                                                     const newChoices = question.choices?.filter(c => c.id !== choice.id);
                                                                     onUpdateQuestion(question.id, { choices: newChoices });
                                                                 }}
-                                                                className="ml-auto p-1 rounded-md text-on-surface-variant hover:bg-surface-container-highest opacity-0 group-hover/choice:opacity-100"
+                                                                className="ml-auto w-6 h-6 flex items-center justify-center rounded-md text-error hover:bg-error-container opacity-0 group-hover/choice:opacity-100"
                                                                 aria-label="Remove row"
                                                             >
                                                                 <XIcon className="text-base" />
@@ -721,7 +725,7 @@ const QuestionCard: React.FC<{
                                         e.stopPropagation();
                                         onAddChoice(question.id);
                                     }}
-                                    className="flex items-center text-xs text-primary font-semibold transition-colors hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5"
+                                    className="flex items-center text-sm text-primary font-semibold transition-colors hover:bg-primary hover:text-on-primary rounded-md px-4 py-1.5"
                                 >
                                     <PlusIcon className="text-base mr-1" /> Add row
                                 </button>
@@ -730,7 +734,7 @@ const QuestionCard: React.FC<{
                                         e.stopPropagation();
                                         handleAddColumn();
                                     }}
-                                    className="flex items-center text-xs text-primary font-semibold transition-colors hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5"
+                                    className="flex items-center text-sm text-primary font-semibold transition-colors hover:bg-primary hover:text-on-primary rounded-md px-4 py-1.5"
                                 >
                                     <PlusIcon className="text-base mr-1" /> Add column
                                 </button>
@@ -754,7 +758,7 @@ const QuestionCard: React.FC<{
                                     <React.Fragment key={choice.id}>
                                         {dropTargetChoiceId === choice.id && <ChoiceDropIndicator />}
                                         <div
-                                            className={`flex items-center group/choice transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
+                                            className={`flex items-center group/choice transition-opacity h-[32px] ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
                                             draggable={true}
                                             onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
                                             onDragOver={(e) => handleChoiceDragOver(e, choice.id)}
@@ -771,7 +775,7 @@ const QuestionCard: React.FC<{
                                                 <CheckboxOutlineIcon className="text-xl text-on-surface-variant mr-2" />
                                             )}
 
-                                            <div className="text-on-surface flex-grow min-h-[24px] flex items-center gap-2">
+                                            <div className="text-on-surface flex-grow h-full flex items-center gap-2">
                                                 {variable && <span className="font-semibold text-on-surface mr-2">{variable}</span>}
                                                 <EditableText
                                                     html={label}
@@ -793,7 +797,7 @@ const QuestionCard: React.FC<{
                                                     const newChoices = question.choices?.filter(c => c.id !== choice.id);
                                                     onUpdateQuestion(question.id, { choices: newChoices });
                                                 }}
-                                                className="p-1 rounded-md text-on-surface-variant hover:bg-surface-container-highest opacity-0 group-hover/choice:opacity-100"
+                                                className="w-6 h-6 flex items-center justify-center rounded-md text-error hover:bg-error-container opacity-0 group-hover/choice:opacity-100 transition-opacity"
                                                 aria-label="Remove choice"
                                             >
                                                 <XIcon className="text-base" />
@@ -808,7 +812,7 @@ const QuestionCard: React.FC<{
                                     e.stopPropagation();
                                     onAddChoice(question.id);
                                 }}
-                                className="flex items-center text-xs text-primary font-semibold mt-2 transition-colors hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5"
+                                className="flex items-center text-sm text-primary font-semibold mt-2 transition-colors hover:bg-primary hover:text-on-primary rounded-md px-4 py-1.5"
                             >
                                 <PlusIcon className="text-base mr-1" /> Add choice
                             </button>

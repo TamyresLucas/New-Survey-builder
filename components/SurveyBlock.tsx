@@ -353,7 +353,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
         <div className="relative actions-menu-area flex-shrink-0" ref={actionsMenuRef}>
           <button
             onClick={(e) => { e.stopPropagation(); setIsActionsMenuOpen(prev => !prev); }}
-            className="text-on-surface-variant hover:bg-surface-container-high p-1 rounded-md"
+            className="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-md transition-colors"
             aria-haspopup="true"
             aria-expanded={isActionsMenuOpen}
             aria-label="Block actions"

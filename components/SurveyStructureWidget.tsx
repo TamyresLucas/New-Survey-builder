@@ -3,6 +3,8 @@ import type { Survey, PathAnalysisResult } from '../types';
 import { QuestionIcon, PageIcon, ClockSolidIcon, ChevronDownIcon, BlockIcon, WarningIcon, CheckCircleIcon } from './icons';
 import { QuestionType as QTEnum } from '../types';
 import { calculateQuestionPoints } from '../utils';
+import { DropdownField } from './DropdownField';
+import { Button } from './Button';
 
 interface DataCardProps {
     icon: React.ComponentType<{ className?: string }>;
@@ -183,82 +185,74 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
     }
 
     return (
-        <aside className="w-full bg-surface-container border border-outline-variant rounded-lg flex-shrink-0 flex flex-col p-4 gap-4 h-fit">
-            <div className="flex flex-row items-center">
-                <h2 style={{ fontFamily: "'Outfit', sans-serif" }} className="flex-grow text-lg font-medium text-on-surface">
-                    Survey structure
-                </h2>
-            </div>
-
-            <div className="relative">
-                <select
-                    id="paging-mode"
-                    aria-label="Paging mode"
-                    value={survey.pagingMode}
-                    onChange={e => onPagingModeChange(e.target.value as Survey['pagingMode'])}
-                    className="w-full bg-transparent border border-input-border rounded-md py-2 px-3 pr-8 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-2 focus:outline-primary appearance-none transition-colors"
-                >
-                    <option value="one-per-page">One Question per Page</option>
-                    <option value="multi-per-page">Multi-Question per Page</option>
-                </select>
-                <ChevronDownIcon className="absolute right-2.5 top-1/2 -translate-y-1/2 text-base text-on-surface-variant pointer-events-none" />
-            </div>
-
-            <div className="flex items-center justify-between">
-                <div className="flex-1">
-                    <label htmlFor="global-autoadvance" className="text-sm font-medium text-on-surface block">
-                        Autoadvance
-                    </label>
-                    <p className="text-xs text-on-surface-variant mt-0.5">Globally enable autoadvance for all compatible items.</p>
+        <aside className="w-full bg-surface-container border border-outline-variant rounded-lg flex-shrink-0 flex flex-col p-4 h-fit">
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-row items-center">
+                    <h2 style={{ fontFamily: "'Outfit', sans-serif" }} className="flex-grow text-lg font-medium text-on-surface">
+                        Survey structure
+                    </h2>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                        type="checkbox"
-                        id="global-autoadvance"
-                        checked={survey.globalAutoAdvance || false}
-                        onChange={(e) => onGlobalAutoAdvanceChange(e.target.checked)}
-                        className="sr-only peer"
+
+                <div className="relative">
+                    <DropdownField
+                        value={survey.pagingMode}
+                        onChange={(value) => onPagingModeChange(value as Survey['pagingMode'])}
+                        options={[
+                            { value: 'one-per-page', label: 'One Question per Page' },
+                            { value: 'multi-per-page', label: 'Multi-Question per Page' }
+                        ]}
                     />
-                    <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                </label>
+                </div>
+
+                <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                        <label htmlFor="global-autoadvance" className="text-sm font-medium text-on-surface block">
+                            Autoadvance
+                        </label>
+                        <p className="text-xs text-on-surface-variant mt-0.5">Globally enable autoadvance for all compatible items.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            id="global-autoadvance"
+                            checked={survey.globalAutoAdvance || false}
+                            onChange={(e) => onGlobalAutoAdvanceChange(e.target.checked)}
+                            className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                </div>
+
+                <div className="relative">
+                    <DropdownField
+                        value={selectedPathId}
+                        onChange={onPathChange}
+                        options={pathOptions.map(p => ({ value: p.id, label: p.name }))}
+                        disabled={paths.length === 0}
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                        <DataCard icon={QuestionIcon} label="Total questions" value={totalQuestions} />
+                        <DataCard icon={QuestionIcon} label="Required questions" value={requiredQuestions} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <DataCard icon={BlockIcon} label="Blocks" value={survey.blocks.length} />
+                        <DataCard icon={issuesCount === 0 ? CheckCircleIcon : WarningIcon} label="Issues" value={issuesCount} state={issuesState} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <DataCard icon={PageIcon} label="Pages" value={totalPages} />
+                        <DataCard icon={ClockSolidIcon} label="Completion time" value={completionTimeString} state={completionTimeState} />
+                    </div>
+                </div>
             </div>
 
-            <div className="relative">
-                <select
-                    id="path-selector"
-                    aria-label="Survey Path"
-                    value={selectedPathId}
-                    onChange={e => onPathChange(e.target.value)}
-                    className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed disabled:text-on-surface-variant/70 transition-colors"
-                    disabled={paths.length === 0}
-                >
-                    {pathOptions.map(path => (
-                        <option key={path.id} value={path.id}>{path.name}</option>
-                    ))}
-                </select>
-                <ChevronDownIcon className="absolute right-2.5 top-1/2 -translate-y-1/2 text-base text-on-surface-variant pointer-events-none" />
-            </div>
-
-            <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                    <DataCard icon={QuestionIcon} label="Total questions" value={totalQuestions} />
-                    <DataCard icon={QuestionIcon} label="Required questions" value={requiredQuestions} />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                    <DataCard icon={BlockIcon} label="Blocks" value={survey.blocks.length} />
-                    <DataCard icon={issuesCount === 0 ? CheckCircleIcon : WarningIcon} label="Issues" value={issuesCount} state={issuesState} />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                    <DataCard icon={PageIcon} label="Pages" value={totalPages} />
-                    <DataCard icon={ClockSolidIcon} label="Completion time" value={completionTimeString} state={completionTimeState} />
-                </div>
-            </div>
-
-            <div className="flex justify-between items-center mt-2 border-t border-outline-variant pt-4">
-                <button onClick={onBackToTop} className="text-xs font-semibold text-on-surface hover:bg-primary-container rounded-md px-3 py-1.5 transition-colors" style={{ fontFamily: "'Open Sans', sans-serif" }}>Back To Top</button>
-                <button onClick={onToggleCollapseAll} className="text-xs font-semibold text-on-surface hover:bg-primary-container rounded-md px-3 py-1.5 transition-colors" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+            <div className="flex justify-between items-center mt-2 border-t border-outline-variant pt-2">
+                <Button variant="tertiary" onClick={onBackToTop} style={{ fontFamily: "'Open Sans', sans-serif" }}>Back To Top</Button>
+                <Button variant="tertiary" onClick={onToggleCollapseAll} style={{ fontFamily: "'Open Sans', sans-serif" }}>
                     {allBlocksCollapsed ? 'Expand All' : 'Collapse All'}
-                </button>
+                </Button>
             </div>
         </aside>
     );

@@ -33,10 +33,12 @@ The component consists of a pill-shaped container holding two circular buttons, 
 
 ### States
 
-| State | Background | Text Color | Icon |
-| :--- | :--- | :--- | :--- |
-| **Active** | `bg-primary` | `text-on-primary` | Sun (Light) / Moon (Dark) |
-| **Inactive** | Transparent | `text-on-surface-variant` | Sun (Light) / Moon (Dark) |
+| State | Active Button | Inactive Button |
+| :--- | :--- | :--- |
+| **Default** | `bg-primary` `text-on-primary` | `text-on-surface-variant` |
+| **Hover** | None | `hover:bg-surface-container-high` (optional) |
+| **Focused** | `focus:ring-2` `focus:ring-primary` | `focus:ring-2` `focus:ring-primary` |
+| **Disabled** | `opacity-50` `cursor-not-allowed` | `opacity-50` `cursor-not-allowed` |
 
 ## Usage
 

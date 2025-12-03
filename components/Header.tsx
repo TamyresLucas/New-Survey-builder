@@ -208,9 +208,9 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
         <div className="flex items-center space-x-2">
           <button
             onClick={handleCopyClick}
-            className={`w-9 h-9 flex items-center justify-center rounded-md transition-colors ${isCopied
+            className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors ${isCopied
               ? 'bg-success text-on-success'
-              : 'border border-outline text-on-surface-variant hover:bg-surface-container-high'
+              : 'border border-outline text-on-surface hover:bg-surface-container-high'
               }`}
             aria-label={isCopied ? "Link copied" : "Copy link"}
           >
@@ -219,7 +219,7 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
           <div className="h-6 w-px bg-outline-variant mx-1"></div>
           <button
             onClick={onToggleGeminiPanel}
-            className={`w-9 h-9 flex items-center justify-center text-on-surface rounded-md transition-colors ${isGeminiPanelOpen
+            className={`w-8 h-8 flex items-center justify-center text-on-surface rounded-md transition-colors ${isGeminiPanelOpen
               ? 'bg-primary-container'
               : 'hover:bg-surface-container-high'
               }`}
@@ -228,10 +228,10 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
           >
             <SparkleIcon className="text-2xl" />
           </button>
-          <button className="w-9 h-9 flex items-center justify-center text-on-surface hover:bg-surface-container-high rounded-md transition-colors" aria-label="Notifications">
+          <button className="w-8 h-8 flex items-center justify-center text-on-surface hover:bg-surface-container-high rounded-md transition-colors" aria-label="Notifications">
             <BellIcon className="text-2xl" />
           </button>
-          <button className="w-9 h-9 flex items-center justify-center text-on-surface hover:bg-surface-container-high rounded-md transition-colors" aria-label="Help">
+          <button className="w-8 h-8 flex items-center justify-center text-on-surface hover:bg-surface-container-high rounded-md transition-colors" aria-label="Help">
             <QuestionIcon className="text-2xl" />
           </button>
         </div>

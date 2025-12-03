@@ -8,7 +8,29 @@ export interface ChangelogEntry {
     technicalChanges: string[];
 }
 
+// NOTE: Always update 'time' to the current local time when adding an entry.
 export const changelogs: ChangelogEntry[] = [
+    {
+        id: '2025-12-03-1',
+        version: 'v1.0.9',
+        date: '2025-12-03',
+        time: '5:36 PM',
+        request: 'UI Standardization & Documentation',
+        improvements: [
+            'Standardized "Large Tertiary Buttons" across the application (Sidebar headers, Survey Structure Widget).',
+            'Created reusable `Button` component to enforce design system consistency.',
+            'Documented `Page Break` component.',
+            'Documented `Survey Flow Card` component.',
+            'Documented `Text Field` component.',
+            'Updated `Dropdown Field` documentation.',
+            'Refactored sidebars and widgets to use the new `Button` component.'
+        ],
+        technicalChanges: [
+            'Modified various components to use the new Button component.',
+            'Created documentation/components/TextField.md.',
+            'Updated documentation/components/DropdownField.md.'
+        ]
+    },
     {
         id: '2025-12-02-3',
         version: 'v1.0.8',
@@ -19,13 +41,13 @@ export const changelogs: ChangelogEntry[] = [
             'Button Standardization: Updated all "Large" buttons to use 16px horizontal padding (px-4), ensuring consistency across the application.',
             'Header Polish: Refined the Header toolbar buttons. "Preview" is now a Large Primary button, "Actions" is a square icon-only button, and "AI/Notifications/Help" are consistent square Tertiary buttons.',
             'Theme Switch: Updated the Light/Dark mode toggle buttons to be perfect circles.',
-            'Documentation: Added comprehensive documentation for Buttons, Tags, Toggles, Avatars, and the Theme Switch component.'
+            'Documentation: Added comprehensive documentation for Buttons, Tags, Toggles, Avatars, Theme Switch, Secondary Navigation, Tertiary Navigation, Search Bar, Dropdown Field, Question Selector Dropdown, Content Sidebar Item, Content Sidebar Block, Question Card, Logic Card, Logic Expression, Survey Flow Card, and Page Break components.'
         ],
         technicalChanges: [
             'Modified documentation/components/Buttons.md: Updated Large Button standards and added new visual style definitions.',
             'Modified components/Header.tsx: Updated button styles for Preview, Actions, Copy Link, and toolbar icons.',
             'Modified various components (SurveyBlock.tsx, BlockEditor.tsx, LogicConditionRow.tsx, etc.): Applied px-4 padding to large buttons and inputs.',
-            'Created documentation/components/Tag.md, Toggle.md, Avatar.md, ThemeSwitch.md.'
+            'Created documentation/components/Tag.md, Toggle.md, Avatar.md, ThemeSwitch.md, SecondaryNavigation.md, TertiaryNavigation.md, SearchBar.md, DropdownField.md, QuestionSelectorDropdown.md, ContentSidebarItem.md, ContentSidebarBlock.md, QuestionCard.md, LogicCard.md, LogicExpression.md, SurveyFlowCard.md, PageBreak.md.'
         ]
     },
     {

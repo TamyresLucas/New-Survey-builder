@@ -2,6 +2,7 @@ import React from 'react';
 import type { Question } from '../../../types';
 import { CHOICE_BASED_QUESTION_TYPES, truncate } from '../../../utils';
 import { ChevronDownIcon } from '../../icons';
+import { QuestionSelectorDropdown } from '../../QuestionSelectorDropdown';
 
 interface LinkChoicesSectionProps {
     question: Question;
@@ -38,18 +39,13 @@ const LinkChoicesSection: React.FC<LinkChoicesSectionProps> = ({ question, onUpd
                 <div className="mt-4 pl-4 border-l-2 border-outline-variant">
                     <label htmlFor="linked-choices-source" className="block text-sm font-medium text-on-surface-variant mb-1">Source question</label>
                     <div className="relative">
-                        <select
-                            id="linked-choices-source"
-                            value={question.linkedChoicesSource || ''}
-                            onChange={(e) => onUpdate({ linkedChoicesSource: e.target.value || undefined })}
-                            className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none transition-colors"
-                        >
-                            <option value="">Select a source question...</option>
-                            {previousQuestions.filter(q => q.id !== question.id && CHOICE_BASED_QUESTION_TYPES.has(q.type)).map(q => (
-                                <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>
-                            ))}
-                        </select>
-                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                        <QuestionSelectorDropdown
+                            questions={previousQuestions.filter(q => q.id !== question.id && CHOICE_BASED_QUESTION_TYPES.has(q.type))}
+                            selectedQuestionId={question.linkedChoicesSource || ''}
+                            onSelect={(qid) => onUpdate({ linkedChoicesSource: qid || undefined })}
+                            className="w-full"
+                            placeholder="Select a source question..."
+                        />
                     </div>
                 </div>
             )}

@@ -89,7 +89,7 @@ export const DisplayLogicDisplay: React.FC<{ logic: DisplayLogic; survey: Survey
                 </div>
                 <button
                     onClick={(e) => { e.stopPropagation(); onRemove(); }}
-                    className="text-on-surface-variant hover:text-error opacity-0 group-hover/logic:opacity-100 transition-opacity p-1 rounded-md hover:bg-error/10"
+                    className="w-6 h-6 flex items-center justify-center rounded-md text-error hover:bg-error-container opacity-0 group-hover/logic:opacity-100 transition-opacity"
                     title="Remove Display Logic"
                 >
                     <XIcon className="text-base" />
@@ -155,7 +155,7 @@ export const SkipLogicDisplay: React.FC<{ logic: SkipLogic; currentQuestion: Que
                 <div className="flex items-center gap-2">
                     <button
                         onClick={handleRemove}
-                        className="text-on-surface-variant hover:text-error opacity-0 group-hover/skiplogic:opacity-100 transition-opacity p-1 rounded-md hover:bg-error/10"
+                        className="w-6 h-6 flex items-center justify-center rounded-md text-error hover:bg-error-container opacity-0 group-hover/skiplogic:opacity-100 transition-opacity"
                         title="Remove Skip Logic"
                     >
                         <XIcon className="text-base" />
@@ -217,7 +217,7 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
                 </div>
                 <button
                     onClick={(e) => { e.stopPropagation(); onRemove(); }}
-                    className="text-on-surface-variant hover:text-error opacity-0 group-hover/branching:opacity-100 transition-opacity p-1 rounded-md hover:bg-error/10"
+                    className="w-6 h-6 flex items-center justify-center rounded-md text-error hover:bg-error-container opacity-0 group-hover/branching:opacity-100 transition-opacity"
                     title="Remove Branching Logic"
                 >
                     <XIcon className="text-base" />

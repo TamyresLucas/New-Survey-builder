@@ -27,7 +27,8 @@ import { validateSurveyLogic } from './logicValidator';
 import { analyzeSurveyPaths, generateSurveyCsv } from './utils';
 
 // Icons
-import { WarningIcon, CheckmarkIcon, XIcon, PanelRightIcon, CheckCircleIcon } from './components/icons';
+import { WarningIcon, CheckmarkIcon, XIcon, PanelRightIcon, CheckCircleIcon, PanelLeftIcon } from './components/icons';
+import { Button } from './components/Button';
 
 type ToastType = 'error' | 'success';
 
@@ -377,13 +378,14 @@ const App: React.FC = () => {
                 <main className="flex-1 flex flex-col relative overflow-hidden transition-all duration-300">
                     {activeMainTab === 'Build' && !isBuildPanelOpen && (
                         <div className="absolute top-4 left-4 z-10">
-                            <button
+                            <Button
+                                variant="tertiary"
+                                iconOnly
                                 onClick={() => setIsBuildPanelOpen(true)}
-                                className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high bg-surface-container border border-outline-variant shadow-sm"
-                                aria-label="Expand build panel"
+                                aria-label="Expand sidebar"
                             >
                                 <PanelRightIcon className="text-xl" />
-                            </button>
+                            </Button>
                         </div>
                     )}
 

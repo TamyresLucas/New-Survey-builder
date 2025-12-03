@@ -3,6 +3,7 @@ import { QuestionEditor } from './QuestionEditor';
 import type { Survey, Question, ToolboxItemData, LogicIssue, Block } from '../types';
 import { XIcon, ExpandIcon, CollapseIcon } from './icons';
 import { QuestionType } from '../types';
+import { Button } from './Button';
 
 export const RightSidebar: React.FC<{
     question: Question;
@@ -54,12 +55,12 @@ export const RightSidebar: React.FC<{
                     Edit {question.qid}
                 </h2>
                 <div className="flex items-center gap-2">
-                    <button onClick={onToggleExpand} className="p-1.5 rounded-md text-on-surface-variant hover:bg-surface-container-high" aria-label={isExpanded ? 'Collapse panel' : 'Expand panel'}>
+                    <Button variant="tertiary" iconOnly onClick={onToggleExpand} aria-label={isExpanded ? 'Collapse panel' : 'Expand panel'}>
                         {isExpanded ? <CollapseIcon className="text-xl" /> : <ExpandIcon className="text-xl" />}
-                    </button>
-                    <button onClick={onClose} className="p-1.5 rounded-md text-on-surface-variant hover:bg-surface-container-high" aria-label="Close panel">
+                    </Button>
+                    <Button variant="tertiary" iconOnly onClick={onClose} aria-label="Close panel">
                         <XIcon className="text-xl" />
-                    </button>
+                    </Button>
                 </div>
             </header>
 

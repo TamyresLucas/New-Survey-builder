@@ -45,7 +45,7 @@ export const Alert: React.FC<AlertProps> = ({ variant, children, className = '',
 
     return (
         <div className={`
-            flex flex-row items-start px-4 py-2 gap-4
+            flex flex-row items-start px-4 py-2 gap-2
             w-full box-border
             text-sm text-on-surface
             ${config.container}

@@ -37,15 +37,15 @@ export const Alert: React.FC<AlertProps> = ({ variant, children, className = '',
 
     return (
         <div className={`
-            flex flex-row items-center px-4 py-2 gap-4
+            flex flex-row items-start px-4 py-2 gap-4
             w-full min-h-[40px] box-border
             text-sm text-on-surface
             ${config.container}
             ${borderClass}
             ${className}
         `}>
-            <config.Icon className={`w-4 h-4 flex-shrink-0 ${config.iconColor}`} />
-            <div className="flex-grow flex items-center">
+            <config.Icon className={`w-4 h-4 flex-shrink-0 mt-0.5 ${config.iconColor}`} />
+            <div className="flex-grow">
                 {children}
             </div>
         </div>

@@ -8,8 +8,8 @@ import {
     InfoIcon
 } from '../icons';
 import {
-    LogicConditionRow,
-    DestinationRow
+    DestinationRow,
+    BranchLogicSet
 } from './shared';
 import { Button } from '@/components/Button';
 import { Alert } from '@/components/Alert';
@@ -96,46 +96,7 @@ export const BranchingLogicEditor: React.FC<{
             handleUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
         };
 
-        const handleUpdateCondition = (
-            branchId: string,
-            conditionId: string,
-            field: keyof BranchingLogicCondition,
-            value: any
-        ) => {
-            const branch = branchingLogic.branches.find(b => b.id === branchId);
-            if (!branch) return;
-            const newConditions = branch.conditions.map(c =>
-                c.id === conditionId ? { ...c, [field]: value, isConfirmed: false } : c
-            );
-            handleUpdateBranch(branchId, { conditions: newConditions });
-        };
 
-        const handleAddCondition = (branchId: string) => {
-            const branch = branchingLogic.branches.find(b => b.id === branchId);
-            if (!branch) return;
-            const newCondition: BranchingLogicCondition = {
-                id: generateId('cond'),
-                questionId: '',
-                operator: '',
-                value: '',
-                isConfirmed: false
-            };
-            handleUpdateBranch(branchId, { conditions: [...branch.conditions, newCondition] });
-        };
-
-        const handleRemoveCondition = (branchId: string, conditionId: string) => {
-            const branch = branchingLogic.branches.find(b => b.id === branchId);
-            if (!branch || branch.conditions.length <= 1) return;
-            const newConditions = branch.conditions.filter(c => c.id !== conditionId);
-            handleUpdateBranch(branchId, { conditions: newConditions });
-        };
-
-        const handleConfirmBranch = (branchId: string) => {
-            const branch = branchingLogic.branches.find(b => b.id === branchId);
-            if (!branch) return;
-            const newConditions = branch.conditions.map(c => ({ ...c, isConfirmed: true }));
-            handleUpdateBranch(branchId, { conditions: newConditions, thenSkipToIsConfirmed: true });
-        };
 
         const handleAddBranch = () => {
             const newBranch: BranchingLogicBranch = {
@@ -192,85 +153,18 @@ export const BranchingLogicEditor: React.FC<{
 
                 <div className="space-y-4">
                     {branchingLogic.branches.map((branch) => (
-                        <div
+                        <BranchLogicSet
                             key={branch.id}
-                            id={branch.id}
-                            className="p-3 border border-outline-variant rounded-md bg-surface-container"
-                        >
-                            <div className="flex justify-between items-start mb-3">
-                                <div>
-                                    <span className="font-bold text-on-surface">IF</span>
-                                    <div className="pl-4">
-                                        {branch.conditions.length > 1 && (
-                                            <select
-                                                value={branch.operator}
-                                                onChange={e => handleUpdateBranch(
-                                                    branch.id,
-                                                    { operator: e.target.value as 'AND' | 'OR' }
-                                                )}
-                                                className="text-xs font-semibold p-1 rounded-md bg-transparent border border-input-border mb-2"
-                                            >
-                                                <option value="AND">All conditions are met (AND)</option>
-                                                <option value="OR">Any condition is met (OR)</option>
-                                            </select>
-                                        )}
-                                    </div>
-                                </div>
-                                <Button
-                                    variant="danger"
-                                    iconOnly
-                                    size="small"
-                                    onClick={() => handleRemoveBranch(branch.id)}
-                                >
-                                    <XIcon className="text-lg" />
-                                </Button>
-                            </div>
-
-                            <div className="space-y-2 mb-3">
-                                {branch.conditions.map((condition, index) => (
-                                    <LogicConditionRow
-                                        key={condition.id}
-                                        condition={condition}
-                                        onUpdateCondition={(field, value) =>
-                                            handleUpdateCondition(branch.id, condition.id, field, value)
-                                        }
-                                        onRemoveCondition={
-                                            branch.conditions.length > 1
-                                                ? () => handleRemoveCondition(branch.id, condition.id)
-                                                : undefined
-                                        }
-                                        onConfirm={() => handleConfirmBranch(branch.id)}
-                                        availableQuestions={previousQuestions}
-                                        isConfirmed={condition.isConfirmed || false}
-                                        issues={issues.filter(i => i.sourceId === condition.id)}
-                                        isFirstCondition={index === 0}
-                                        currentQuestion={question}
-                                        usedValues={new Set()}
-                                    />
-                                ))}
-                                <Button
-                                    variant="tertiary-primary"
-                                    size="small"
-                                    onClick={() => handleAddCondition(branch.id)}
-                                >
-                                    + Add condition
-                                </Button>
-                            </div>
-
-                            <DestinationRow
-                                label={<span className="font-bold text-on-surface">THEN SKIP TO</span>}
-                                value={branch.thenSkipTo}
-                                onChange={(value) => handleUpdateBranch(
-                                    branch.id,
-                                    { thenSkipTo: value, thenSkipToIsConfirmed: false }
-                                )}
-                                onConfirm={() => handleConfirmBranch(branch.id)}
-                                isConfirmed={branch.thenSkipToIsConfirmed}
-                                followingQuestions={followingQuestions}
-                                survey={survey}
-                                currentBlockId={currentBlockId}
-                            />
-                        </div>
+                            branch={branch}
+                            onUpdate={(updates) => handleUpdateBranch(branch.id, updates)}
+                            onRemove={() => handleRemoveBranch(branch.id)}
+                            availableQuestions={previousQuestions}
+                            followingQuestions={followingQuestions}
+                            survey={survey}
+                            currentBlockId={currentBlockId}
+                            issues={issues}
+                            currentQuestion={question}
+                        />
                     ))}
                 </div>
 

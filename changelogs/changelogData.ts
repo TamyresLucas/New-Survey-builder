@@ -45,7 +45,8 @@ export const changelogs: ChangelogEntry[] = [
             'Documented Alert component in documentation/components/Alert.md.',
             'Reduced Alert component gap to 8px (gap-2).',
             'Removed "Otherwise path disabled" message from Branching Logic Editor.',
-            'Hidden "Otherwise" section logic separator when logic is exhaustive.'
+            'Hidden "Otherwise" section logic separator when logic is exhaustive.',
+            'Refactored BranchingLogicEditor to use reusable BranchLogicSet component.'
         ],
         technicalChanges: [
             'Updated BuildPanel.tsx and SurveyStructureWidget.tsx logic for "Issues" label.',

@@ -12,6 +12,7 @@ import {
     DestinationRow
 } from './shared';
 import { Button } from '@/components/Button';
+import { Alert } from '@/components/Alert';
 
 
 export const BranchingLogicEditor: React.FC<{
@@ -307,12 +308,9 @@ export const BranchingLogicEditor: React.FC<{
                         />
                     )}
                     {isOtherwiseExhaustive && (
-                        <div className="mt-2 p-2 bg-primary-container/20 border border-primary-container/30 rounded-md text-xs text-on-primary-container flex items-start gap-2">
-                            <InfoIcon className="text-base flex-shrink-0 mt-0.5" />
-                            <span>
-                                The 'Otherwise' path is disabled because all choices are covered by a branch rule above.
-                            </span>
-                        </div>
+                        <Alert variant="info" className="mt-2">
+                            The 'Otherwise' path is disabled because all choices are covered by a branch rule above.
+                        </Alert>
                     )}
                 </div>
             </div>

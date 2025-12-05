@@ -44,7 +44,7 @@ export const Alert: React.FC<AlertProps> = ({ variant, children, className = '',
             ${borderClass}
             ${className}
         `}>
-            <config.Icon className={`w-[16px] h-[16px] flex-shrink-0 mt-0.5 ${config.iconColor}`} />
+            <config.Icon className={`w-[16px] h-[16px] text-[16px] leading-none flex-shrink-0 mt-0.5 ${config.iconColor}`} />
             <div className="flex-grow">
                 {children}
             </div>

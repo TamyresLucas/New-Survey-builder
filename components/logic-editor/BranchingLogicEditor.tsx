@@ -307,11 +307,7 @@ export const BranchingLogicEditor: React.FC<{
                             hideNextQuestion={isOtherwiseExhaustive}
                         />
                     )}
-                    {isOtherwiseExhaustive && (
-                        <Alert variant="info">
-                            The 'Otherwise' path is disabled because all choices are covered by a branch rule above.
-                        </Alert>
-                    )}
+
                 </div>
             </div>
         );

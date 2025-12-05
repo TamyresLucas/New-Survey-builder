@@ -43,7 +43,8 @@ export const changelogs: ChangelogEntry[] = [
             'Hidden "Otherwise Skip To" setting when logic is exhaustive.',
             'Created reusable Alert component (with icon aligned to first line, 16x16px, hug height) and applied it to "Otherwise" path disabled message.',
             'Documented Alert component in documentation/components/Alert.md.',
-            'Reduced Alert component gap to 8px (gap-2).'
+            'Reduced Alert component gap to 8px (gap-2).',
+            'Removed "Otherwise path disabled" message from Branching Logic Editor.'
         ],
         technicalChanges: [
             'Updated BuildPanel.tsx and SurveyStructureWidget.tsx logic for "Issues" label.',

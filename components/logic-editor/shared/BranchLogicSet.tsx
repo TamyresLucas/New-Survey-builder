@@ -158,7 +158,7 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
 
                 <div className="flex items-center gap-2">
                     <Button
-                        variant="tertiary"
+                        variant={isBranchConfirmed ? "danger" : "tertiary"}
                         size="small"
                         onClick={isBranchConfirmed ? onRemove : handleCancel}
                     >

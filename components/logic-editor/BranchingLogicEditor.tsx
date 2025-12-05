@@ -308,7 +308,7 @@ export const BranchingLogicEditor: React.FC<{
                         />
                     )}
                     {isOtherwiseExhaustive && (
-                        <Alert variant="info" className="mt-2">
+                        <Alert variant="info">
                             The 'Otherwise' path is disabled because all choices are covered by a branch rule above.
                         </Alert>
                     )}

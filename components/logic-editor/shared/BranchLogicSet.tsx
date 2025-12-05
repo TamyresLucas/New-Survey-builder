@@ -121,7 +121,7 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
             </div>
 
             <DestinationRow
-                label={<span className="font-bold text-on-surface">THEN SKIP TO</span>}
+                label={<span className="font-bold text-on-surface">Then skip to</span>}
                 value={branch.thenSkipTo}
                 onChange={(value) => onUpdate({ thenSkipTo: value, thenSkipToIsConfirmed: false })}
                 onConfirm={handleConfirm}

@@ -90,7 +90,7 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
             </div>
 
             <div className="space-y-2 mb-3">
-                {branch.conditions.map((condition, index) => (
+                {branch.conditions && branch.conditions.map((condition, index) => (
                     <LogicConditionRow
                         key={condition.id}
                         condition={condition}

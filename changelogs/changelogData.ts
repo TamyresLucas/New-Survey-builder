@@ -47,7 +47,8 @@ export const changelogs: ChangelogEntry[] = [
             'Removed "Otherwise path disabled" message from Branching Logic Editor.',
             'Hidden "Otherwise" section logic separator when logic is exhaustive.',
             'Refactored BranchingLogicEditor to use reusable BranchLogicSet component.',
-            'Updated "Then skip to" label casing in BranchLogicSet.'
+            'Updated "Then skip to" label casing in BranchLogicSet.',
+            'Added safety check for logic conditions in BranchLogicSet.'
         ],
         technicalChanges: [
             'Updated BuildPanel.tsx and SurveyStructureWidget.tsx logic for "Issues" label.',

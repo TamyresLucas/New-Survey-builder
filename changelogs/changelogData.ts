@@ -11,6 +11,28 @@ export interface ChangelogEntry {
 // NOTE: Always update 'time' to the current local time when adding an entry.
 export const changelogs: ChangelogEntry[] = [
     {
+        id: '2025-12-05-1',
+        version: 'v1.0.11',
+        date: '2025-12-05',
+        time: '5:58 PM',
+        request: 'Branch Logic Editor UI Refinements',
+        improvements: [
+            'Updated "Then skip to" label casing in BranchLogicSet.',
+            'Added safety check for logic conditions in BranchLogicSet.',
+            'Added inline add/remove buttons to BranchLogicSet condition rows.',
+            'Refined BranchLogicSet UI: replaced operator dropdown with toggle, moved delete action.',
+            'Updated BranchLogicSet footer: remove inline checkmarks, added global Apply/Cancel buttons.',
+            'Styled BranchLogicSet delete button as danger variant.',
+            'Removed global "Remove" button from BranchingLogicEditor header.',
+            'Updated "Add condition" button size to large in BranchLogicSet.',
+            'Updated Delete/Cancel and Apply button sizes to large in BranchLogicSet.'
+        ],
+        technicalChanges: [
+            'Updated BranchLogicSet.tsx: UI overhaul including button sizes, toggle operators, and footer layout.',
+            'Updated BranchingLogicEditor.tsx: Removed global remove button.'
+        ]
+    },
+    {
         id: '2025-12-04-1',
         version: 'v1.0.10',
         date: '2025-12-04',
@@ -47,15 +69,7 @@ export const changelogs: ChangelogEntry[] = [
             'Removed "Otherwise path disabled" message from Branching Logic Editor.',
             'Hidden "Otherwise" section logic separator when logic is exhaustive.',
             'Refactored BranchingLogicEditor to use reusable BranchLogicSet component.',
-            'Updated "Then skip to" label casing in BranchLogicSet.',
-            'Added safety check for logic conditions in BranchLogicSet.',
-            'Added inline add/remove buttons to BranchLogicSet condition rows.',
-            'Refined BranchLogicSet UI: replaced operator dropdown with toggle, moved delete action.',
-            'Updated BranchLogicSet footer: remove inline checkmarks, added global Apply/Cancel buttons.',
-            'Styled BranchLogicSet delete button as danger variant.',
-            'Removed global "Remove" button from BranchingLogicEditor header.',
-            'Updated "Add condition" button size to large in BranchLogicSet.',
-            'Updated Delete/Cancel and Apply button sizes to large in BranchLogicSet.'
+
         ],
         technicalChanges: [
             'Updated BuildPanel.tsx and SurveyStructureWidget.tsx logic for "Issues" label.',

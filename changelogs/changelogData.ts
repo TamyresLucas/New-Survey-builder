@@ -54,7 +54,8 @@ export const changelogs: ChangelogEntry[] = [
             'Updated BranchLogicSet footer: remove inline checkmarks, added global Apply/Cancel buttons.',
             'Styled BranchLogicSet delete button as danger variant.',
             'Removed global "Remove" button from BranchingLogicEditor header.',
-            'Updated "Add condition" button size to large in BranchLogicSet.'
+            'Updated "Add condition" button size to large in BranchLogicSet.',
+            'Updated Delete/Cancel and Apply button sizes to large in BranchLogicSet.'
         ],
         technicalChanges: [
             'Updated BuildPanel.tsx and SurveyStructureWidget.tsx logic for "Issues" label.',

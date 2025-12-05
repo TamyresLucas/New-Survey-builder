@@ -11,6 +11,7 @@ import {
     LogicConditionRow,
     DestinationRow
 } from './shared';
+import { Button } from '@/components/Button';
 
 
 export const BranchingLogicEditor: React.FC<{
@@ -80,9 +81,9 @@ export const BranchingLogicEditor: React.FC<{
                 <div className="py-6 first:pt-0">
                     <h3 className="text-sm font-medium text-on-surface mb-1">Branching Logic</h3>
                     <p className="text-xs text-on-surface-variant mb-3">Create complex paths through the survey based on multiple conditions.</p>
-                    <button onClick={handleAddBranchingLogic} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors">
-                        <PlusIcon className="text-base" /> Add branch
-                    </button>
+                    <Button variant="tertiary-primary" size="large" onClick={handleAddBranchingLogic}>
+                        <PlusIcon className="text-xl mr-2" /> Add branch
+                    </Button>
                 </div>
             );
         }
@@ -176,15 +177,16 @@ export const BranchingLogicEditor: React.FC<{
                             Create complex paths through the survey based on multiple conditions.
                         </p>
                     </div>
-                    <button
+                    <Button
+                        variant="danger"
+                        size="small"
                         onClick={() => handleUpdate({
                             branchingLogic: undefined,
                             draftBranchingLogic: undefined
                         })}
-                        className="text-sm font-semibold text-error hover:underline"
                     >
                         Remove
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="space-y-4">
@@ -213,12 +215,14 @@ export const BranchingLogicEditor: React.FC<{
                                         )}
                                     </div>
                                 </div>
-                                <button
+                                <Button
+                                    variant="danger"
+                                    iconOnly
+                                    size="small"
                                     onClick={() => handleRemoveBranch(branch.id)}
-                                    className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full"
                                 >
                                     <XIcon className="text-lg" />
-                                </button>
+                                </Button>
                             </div>
 
                             <div className="space-y-2 mb-3">
@@ -243,12 +247,13 @@ export const BranchingLogicEditor: React.FC<{
                                         usedValues={new Set()}
                                     />
                                 ))}
-                                <button
+                                <Button
+                                    variant="tertiary-primary"
+                                    size="small"
                                     onClick={() => handleAddCondition(branch.id)}
-                                    className="text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors"
                                 >
                                     + Add condition
-                                </button>
+                                </Button>
                             </div>
 
                             <DestinationRow
@@ -268,12 +273,13 @@ export const BranchingLogicEditor: React.FC<{
                     ))}
                 </div>
 
-                <button
+                <Button
+                    variant="tertiary-primary"
+                    size="large"
                     onClick={handleAddBranch}
-                    className="mt-4 flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors"
                 >
-                    <PlusIcon className="text-base" /> Add branch
-                </button>
+                    <PlusIcon className="text-xl mr-2" /> Add branch
+                </Button>
 
                 <div className="mt-4 pt-4 border-t border-outline-variant">
                     <DestinationRow

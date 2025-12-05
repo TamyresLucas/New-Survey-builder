@@ -169,10 +169,12 @@ export const LogicSet: React.FC<LogicSetProps> = ({
                 </div>
             )}
 
-            <div className={`p-3 border rounded-md relative transition-colors ${setIssues.length > 0 ? 'border-error bg-error-container/5' :
-                transparentBackground ? 'border-outline-variant bg-transparent' :
-                    logicSet.isConfirmed ? 'border-outline-variant bg-surface-container' : 'border-primary bg-surface-container-high shadow-sm'
-                }`}>
+            <div
+                style={transparentBackground ? { backgroundColor: 'transparent' } : undefined}
+                className={`p-3 border rounded-md relative transition-colors ${setIssues.length > 0 ? 'border-error bg-error-container/5' :
+                    transparentBackground ? 'border-outline-variant bg-transparent' :
+                        logicSet.isConfirmed ? 'border-outline-variant bg-surface-container' : 'border-primary bg-surface-container-high shadow-sm'
+                    }`}>
 
                 {setIssues.length > 0 && (
                     <div className="absolute -top-2 -right-2 text-error z-10 group/issues">

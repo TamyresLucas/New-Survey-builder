@@ -1,6 +1,6 @@
 import React, { memo, useMemo } from 'react';
 import type { Survey, PathAnalysisResult } from '../types';
-import { QuestionIcon, PageIcon, ClockSolidIcon, ChevronDownIcon, BlockIcon, WarningIcon, CheckCircleIcon } from './icons';
+import { QuestionIcon, AsteriskIcon, PageIcon, ClockSolidIcon, ChevronDownIcon, BlockIcon, WarningIcon, CheckCircleIcon } from './icons';
 import { QuestionType as QTEnum } from '../types';
 import { calculateQuestionPoints } from '../utils';
 import { DropdownField } from './DropdownField';
@@ -18,16 +18,20 @@ const DataCard: React.FC<DataCardProps> = ({ icon: Icon, label, value, state = '
     let labelClasses = "text-on-surface-variant";
     let valueClasses = "text-on-surface";
     let iconClasses = "text-on-surface";
+    let DisplayIcon = Icon;
 
     if (state === 'success') {
         containerClasses = "bg-success-container border-success";
         iconClasses = "text-on-success-container";
+        DisplayIcon = CheckCircleIcon;
     } else if (state === 'warning') {
         containerClasses = "bg-warning-container border-warning";
         iconClasses = "text-on-warning-container";
+        DisplayIcon = WarningIcon;
     } else if (state === 'error') {
         containerClasses = "bg-error-container border-error";
         iconClasses = "text-on-error-container";
+        DisplayIcon = WarningIcon;
     }
 
     return (
@@ -36,7 +40,7 @@ const DataCard: React.FC<DataCardProps> = ({ icon: Icon, label, value, state = '
                 {label}
             </p>
             <div className="flex flex-row items-center gap-2">
-                <Icon className={`text-base ${iconClasses}`} />
+                <DisplayIcon className={`text-base ${iconClasses}`} />
                 <span style={{ fontFamily: "'Outfit', sans-serif" }} className={`text-base font-medium leading-5 ${valueClasses}`}>
                     {value}
                 </span>
@@ -235,11 +239,11 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
                 <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
                         <DataCard icon={QuestionIcon} label="Total questions" value={totalQuestions} />
-                        <DataCard icon={QuestionIcon} label="Required questions" value={requiredQuestions} />
+                        <DataCard icon={AsteriskIcon} label="Required questions" value={requiredQuestions} />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                         <DataCard icon={BlockIcon} label="Blocks" value={survey.blocks.length} />
-                        <DataCard icon={issuesCount === 0 ? CheckCircleIcon : WarningIcon} label="Issues" value={issuesCount} state={issuesState} />
+                        <DataCard icon={WarningIcon} label={issuesCount === 0 ? "No issues" : "Issues"} value={issuesCount} state={issuesState} />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                         <DataCard icon={PageIcon} label="Pages" value={totalPages} />

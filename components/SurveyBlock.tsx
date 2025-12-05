@@ -6,6 +6,7 @@ import { BlockActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenu
 import { QuestionType as QTEnum } from '../types';
 import type { PageInfo } from './SurveyCanvas';
 import { SurveyFlowDisplay } from './LogicDisplays';
+import { EditableText } from './EditableText';
 
 const DropIndicator = () => (
   <div className="relative h-px w-full bg-primary my-2">
@@ -69,35 +70,14 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
   const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
 
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [titleValue, setTitleValue] = useState(block.title);
-  const titleInputRef = useRef<HTMLInputElement>(null);
+
 
   const [isAddQuestionMenuOpen, setIsAddQuestionMenuOpen] = useState(false);
   const addQuestionMenuRef = useRef<HTMLDivElement>(null);
 
   const isSelected = selectedBlock?.id === block.id;
 
-  const createPasteHandler = useCallback(<T extends HTMLInputElement | HTMLTextAreaElement>(
-    onChange: (newValue: string) => void
-  ) => (e: React.ClipboardEvent<T>) => {
-    e.preventDefault();
-    const text = e.clipboardData.getData('text/plain');
-    const target = e.currentTarget;
-    const start = target.selectionStart ?? 0;
-    const end = target.selectionEnd ?? 0;
 
-    const newValue = target.value.substring(0, start) + text + target.value.substring(end);
-    onChange(newValue);
-
-    const newCursorPos = start + text.length;
-    requestAnimationFrame(() => {
-      if (document.activeElement === target) {
-        target.selectionStart = newCursorPos;
-        target.selectionEnd = newCursorPos;
-      }
-    });
-  }, []);
 
   const selectableQuestions = useMemo(() =>
     block.questions.filter(q => q.type !== QTEnum.PageBreak),
@@ -190,38 +170,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (isEditingTitle && titleInputRef.current) {
-      titleInputRef.current.focus();
-      titleInputRef.current.select();
-    }
-  }, [isEditingTitle]);
 
-  const handleTitleClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    setTitleValue(block.title);
-    setIsEditingTitle(true);
-  }, [block.title]);
-
-  const saveTitle = useCallback(() => {
-    if (titleValue.trim() && titleValue.trim() !== block.title) {
-      onUpdateBlockTitle(block.id, titleValue.trim());
-    }
-    setIsEditingTitle(false);
-  }, [block.id, block.title, onUpdateBlockTitle, titleValue]);
-
-  const handleTitleBlur = useCallback(() => {
-    saveTitle();
-  }, [saveTitle]);
-
-  const handleTitleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      saveTitle();
-    } else if (e.key === 'Escape') {
-      setIsEditingTitle(false);
-      setTitleValue(block.title);
-    }
-  }, [saveTitle, block.title]);
 
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -313,41 +262,25 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
           <DragIndicatorIcon className="text-xl text-on-surface-variant mr-2 flex-shrink-0" />
           <div className="flex items-center cursor-pointer collapse-toggle-area w-full" onClick={(e) => { e.stopPropagation(); onToggleCollapse(); }}>
             <ChevronDownIcon className={`text-xl mr-2 text-on-surface transition-transform duration-200 flex-shrink-0 ${isCollapsed ? '-rotate-90' : ''}`} />
-            {isEditingTitle ? (
-              <input
-                ref={titleInputRef}
-                type="text"
-                value={titleValue}
-                onChange={(e) => setTitleValue(e.target.value)}
-                onBlur={handleTitleBlur}
-                onKeyDown={handleTitleKeyDown}
-                onClick={e => e.stopPropagation()}
-                onPaste={createPasteHandler(setTitleValue)}
-                className="font-semibold text-base text-on-surface bg-input-bg border-b border-outline-variant hover:border-input-border-hover focus:border-primary focus:outline-none w-full transition-colors"
+            <div className="truncate flex items-center w-full">
+              <span className="font-bold text-base text-on-surface mr-2">{block.bid}</span>
+              <EditableText
+                html={block.title}
+                onChange={(newTitle) => {
+                  if (newTitle.trim() && newTitle.trim() !== block.title) {
+                    onUpdateBlockTitle(block.id, newTitle.trim());
+                  }
+                }}
+                className="font-semibold text-base text-on-surface min-w-[50px]"
                 style={{ fontFamily: "'Open Sans', sans-serif" }}
               />
-            ) : (
-              <>
-                <div
-                  className="truncate flex items-center"
-                  onClick={handleTitleClick}
-                >
-                  <span className="font-bold text-base text-on-surface mr-2">{block.bid}</span>
-                  <span
-                    className="font-semibold text-base text-on-surface"
-                    style={{ fontFamily: "'Open Sans', sans-serif" }}
-                  >
-                    {block.title}
-                  </span>
-                  <span className="text-sm font-normal text-on-surface-variant ml-2">({questionCount} question{questionCount !== 1 ? 's' : ''})</span>
-                </div>
-                {block.autoAdvance && (
-                  <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-primary-container text-on-primary-container rounded-full flex-shrink-0">
-                    Autoadvance
-                  </span>
-                )}
-              </>
-            )}
+              <span className="text-sm font-normal text-on-surface-variant ml-2">({questionCount} question{questionCount !== 1 ? 's' : ''})</span>
+              {block.autoAdvance && (
+                <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-primary-container text-on-primary-container rounded-full flex-shrink-0">
+                  Autoadvance
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className="relative actions-menu-area flex-shrink-0" ref={actionsMenuRef}>

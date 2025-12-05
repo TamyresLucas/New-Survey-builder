@@ -35,7 +35,7 @@ export const QuestionSelectorDropdown: React.FC<QuestionSelectorDropdownProps> =
                 onChange={onSelect}
                 options={options}
                 disabled={disabled}
-                className="w-fit min-w-[200px]" // Hug content but with a sensible minimum
+                className="w-full"
             />
         </div>
     );

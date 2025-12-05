@@ -50,7 +50,7 @@ Used for less prominent actions, often in lists or toolbars.
 -   **Hover**: `hover:bg-surface-container-high` or `hover:underline` (for link-style buttons)
 
 ### Tertiary (Primary)
-Used for primary actions that need to be less visually heavy than a solid button but more prominent than a standard tertiary button (e.g., "Add Row").
+Used for primary actions that need to be less visually heavy than a solid button but more prominent than a standard tertiary button (e.g., "Add row").
 -   **Background**: Transparent
 -   **Text**: `text-primary`
 -   **Hover**: `hover:bg-primary` and `hover:text-on-primary`

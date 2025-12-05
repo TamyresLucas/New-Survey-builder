@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect, memo, useCallback } from 'react';
-import { SearchIcon, PanelLeftIcon, RadioIcon, WarningIcon, DragIndicatorIcon, ChevronDownIcon, DotsHorizontalIcon } from './icons';
+import { SearchIcon, PanelLeftIcon, RadioIcon, WarningIcon, DragIndicatorIcon, ChevronDownIcon, DotsHorizontalIcon, AsteriskIcon } from './icons';
 import type { Survey, Question, ToolboxItemData, QuestionType, Block, LogicIssue } from '../types';
 import { QuestionType as QTEnum } from '../types';
 import { BlockActionsMenu, QuestionActionsMenu } from './ActionMenus';
@@ -216,7 +216,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
       .filter(item => item.name !== 'Block' && item.name !== 'Page Break')
       .map(item => item.name)
     );
-    return ['All content', 'All question types', 'Issues', ...Array.from(types)];
+    return ['All content', 'All question types', 'Required questions', 'Issues', ...Array.from(types)];
   }, [toolboxItems]);
 
   const filteredSurveyBlocks = useMemo(() => {
@@ -228,6 +228,13 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
         .map(block => ({
           ...block,
           questions: block.questions.filter(q => issueQuestionIds.has(q.id)),
+        }))
+        .filter(block => block.questions.length > 0);
+    } else if (questionTypeFilter === 'Required questions') {
+      blocks = blocks
+        .map(block => ({
+          ...block,
+          questions: block.questions.filter(q => q.forceResponse),
         }))
         .filter(block => block.questions.length > 0);
     } else if (questionTypeFilter === 'All question types') {
@@ -467,13 +474,16 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             value={questionTypeFilter}
             onChange={setQuestionTypeFilter}
             options={questionTypeFilterOptions.map(option => {
-              const IconComponent = option === 'Issues' ? WarningIcon : questionTypeIconMap.get(option);
-              const isEnabled = option === 'All content' || option === 'All question types' || option === 'Issues' || enabledToolboxItems.has(option);
+              let IconComponent = questionTypeIconMap.get(option);
+              if (option === 'Issues') IconComponent = WarningIcon;
+              if (option === 'Required questions') IconComponent = AsteriskIcon;
+
+              const isEnabled = option === 'All content' || option === 'All question types' || option === 'Issues' || option === 'Required questions' || enabledToolboxItems.has(option);
               return {
                 value: option,
                 label: option,
                 icon: IconComponent,
-                iconColor: option === 'Issues' ? 'text-error' : 'text-primary',
+                iconColor: (option === 'Issues' || option === 'Required questions') ? 'text-error' : 'text-primary',
                 disabled: !isEnabled
               };
             })}

@@ -4,6 +4,7 @@ import { QuestionType } from '../../../types';
 import { CHOICE_BASED_QUESTION_TYPES, parseChoice, truncate } from '../../../utils';
 import { XIcon, ChevronDownIcon, CheckmarkIcon, InfoIcon, PlusIcon } from '../../icons';
 import { QuestionSelectorDropdown } from '../../QuestionSelectorDropdown';
+import { Button } from '../../Button';
 
 export const LogicConditionRow: React.FC<{
     condition: DisplayLogicCondition | BranchingLogicCondition;
@@ -141,7 +142,7 @@ export const LogicConditionRow: React.FC<{
         return (
             <div id={condition.id} className="flex items-center gap-2 p-2 rounded-md w-full">
                 {/* 1. Question */}
-                <div className={`relative group/tooltip ${questionWidth} flex-shrink-0`}>
+                <div className={`relative group/tooltip ${questionWidth}`}>
                     {isFirstCondition && currentQuestion ? (
                         <div
                             title={`${currentQuestion.qid}: ${currentQuestion.text}`}
@@ -172,7 +173,7 @@ export const LogicConditionRow: React.FC<{
                                     <select
                                         value={(condition as BranchingLogicCondition).value}
                                         onChange={(e) => onUpdateCondition('value', e.target.value)}
-                                        className={`w-full bg-transparent border rounded-md px-4 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                                        className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                                         aria-label="Condition row"
                                         disabled={valueIsDisabled}
                                     >
@@ -187,11 +188,11 @@ export const LogicConditionRow: React.FC<{
                             </div>
 
                             {/* 3. Operator (for ChoiceGrid) */}
-                            <div className={`relative group/tooltip ${operatorWidth} flex-shrink-0`}>
+                            <div className={`relative group/tooltip ${operatorWidth}`}>
                                 <select
                                     value={condition.operator}
                                     onChange={handleOperatorChange}
-                                    className={`w-full bg-transparent border rounded-md px-4 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`}
+                                    className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`}
                                     aria-label="Select interaction"
                                     disabled={!referencedQuestion}
                                 >
@@ -208,7 +209,7 @@ export const LogicConditionRow: React.FC<{
                                     <select
                                         value={(condition as BranchingLogicCondition).gridValue || ''}
                                         onChange={(e) => onUpdateCondition('gridValue', e.target.value)}
-                                        className={`w-full bg-transparent border rounded-md px-4 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                                        className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                                         aria-label="Condition scale point value"
                                         disabled={valueIsDisabled}
                                     >
@@ -228,7 +229,7 @@ export const LogicConditionRow: React.FC<{
                                         <select
                                             value={(condition as BranchingLogicCondition).value}
                                             onChange={(e) => onUpdateCondition('value', e.target.value)}
-                                            className={`w-full bg-transparent border rounded-md px-4 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                                            className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                                             aria-label="Condition value"
                                             disabled={valueIsDisabled}
                                         >
@@ -245,7 +246,7 @@ export const LogicConditionRow: React.FC<{
                                         value={(condition as BranchingLogicCondition).value}
                                         onChange={(e) => onUpdateCondition('value', e.target.value)}
                                         placeholder="select answer"
-                                        className={`w-full bg-transparent border rounded-md px-4 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                                        className={`w-full bg-transparent border rounded-md px-2 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                                         aria-label="Condition value"
                                         disabled={valueIsDisabled}
                                     />
@@ -254,11 +255,11 @@ export const LogicConditionRow: React.FC<{
                             </div>
 
                             {/* 3. Operator / Interaction */}
-                            <div className={`relative group/tooltip ${operatorWidth} flex-shrink-0`}>
+                            <div className={`relative group/tooltip ${operatorWidth}`}>
                                 <select
                                     value={condition.operator}
                                     onChange={handleOperatorChange}
-                                    className={`w-full bg-transparent border rounded-md px-4 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`}
+                                    className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`}
                                     aria-label="Select interaction"
                                     disabled={!referencedQuestion}
                                 >
@@ -271,21 +272,41 @@ export const LogicConditionRow: React.FC<{
                         </>
                     ))}
 
-                {onRemoveCondition && (
-                    <button onClick={onRemoveCondition} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-md transition-colors flex-shrink-0" aria-label="Remove condition">
-                        <XIcon className="text-lg" />
-                    </button>
-                )}
-                {onAddCondition && (
-                    <button onClick={onAddCondition} className="p-1.5 text-primary hover:text-on-primary hover:bg-primary rounded-md transition-colors flex-shrink-0" aria-label="Add condition below">
-                        <PlusIcon className="text-lg" />
-                    </button>
-                )}
-                {!isConfirmed && onConfirm && (
-                    <button onClick={onConfirm} className="p-1.5 bg-primary text-on-primary rounded-md hover:opacity-90 transition-colors flex-shrink-0" aria-label="Confirm condition">
-                        <CheckmarkIcon className="text-lg" />
-                    </button>
-                )}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                    {onRemoveCondition && (
+                        <Button
+                            variant="danger"
+                            size="large"
+                            iconOnly
+                            onClick={onRemoveCondition}
+                            aria-label="Remove condition"
+                        >
+                            <XIcon className="text-xl" />
+                        </Button>
+                    )}
+                    {onAddCondition && (
+                        <Button
+                            variant="tertiary-primary"
+                            size="large"
+                            iconOnly
+                            onClick={onAddCondition}
+                            aria-label="Add condition below"
+                        >
+                            <PlusIcon className="text-xl" />
+                        </Button>
+                    )}
+                    {!isConfirmed && onConfirm && (
+                        <Button
+                            variant="primary"
+                            size="large"
+                            iconOnly
+                            onClick={onConfirm}
+                            aria-label="Confirm condition"
+                        >
+                            <CheckmarkIcon className="text-xl" />
+                        </Button>
+                    )}
+                </div>
             </div >
         );
     };

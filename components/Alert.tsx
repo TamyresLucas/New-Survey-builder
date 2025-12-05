@@ -8,14 +8,6 @@ export interface AlertProps {
     sticky?: boolean;
 }
 
-/**
- * Alert component for displaying notifications with different severity levels.
- * 
- * @param variant - The severity level of the alert ('error', 'warning', 'success', 'info').
- * @param children - The content of the alert.
- * @param className - Additional CSS classes.
- * @param sticky - If true, applies styling suitable for sticky positioning (border-b only).
- */
 export const Alert: React.FC<AlertProps> = ({ variant, children, className = '', sticky = false }) => {
     const styles = {
         error: {
@@ -45,15 +37,15 @@ export const Alert: React.FC<AlertProps> = ({ variant, children, className = '',
 
     return (
         <div className={`
-            flex flex-row items-start px-4 py-2 gap-2
-            w-full box-border
+            flex flex-row items-center px-4 py-2 gap-4
+            w-full min-h-[40px] box-border
             text-sm text-on-surface
             ${config.container}
             ${borderClass}
             ${className}
         `}>
-            <config.Icon className={`w-[16px] h-[16px] text-[16px] leading-none flex-shrink-0 mt-0.5 ${config.iconColor}`} />
-            <div className="flex-grow">
+            <config.Icon className={`w-4 h-4 flex-shrink-0 ${config.iconColor}`} />
+            <div className="flex-grow flex items-center">
                 {children}
             </div>
         </div>

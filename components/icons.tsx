@@ -109,6 +109,7 @@ export const SmartphoneIcon: React.FC<IconProps> = ({ className, style }) => <Ma
 export const SignalIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="signal_cellular_alt" className={className} style={style} />;
 export const BatteryIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="battery_full" className={className} style={style} />;
 export const InfoIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="info" className={className} style={style} />;
+export const ErrorIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="error" className={className} style={style} />;
 
 
 // More new icons from spec

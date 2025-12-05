@@ -40,7 +40,8 @@ export const changelogs: ChangelogEntry[] = [
             'Added hover state to editable text fields for better interactivity.',
             'Fixed layout issues in Question Card.',
             'Refactored Advanced Tab components to use standardized UI components (Button, EditableText, DropdownField, TextField).',
-            'Hidden "Otherwise Skip To" setting when logic is exhaustive.'
+            'Hidden "Otherwise Skip To" setting when logic is exhaustive.',
+            'Created reusable Alert component and applied it to "Otherwise" path disabled message.'
         ],
         technicalChanges: [
             'Updated BuildPanel.tsx and SurveyStructureWidget.tsx logic for "Issues" label.',

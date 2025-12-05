@@ -39,8 +39,7 @@ export const changelogs: ChangelogEntry[] = [
             'Forced transparent background on Logic Set when requested, fixing background persistence issues.',
             'Added hover state to editable text fields for better interactivity.',
             'Fixed layout issues in Question Card.',
-            'Refactored Advanced Tab components to use standardized UI components (Button, EditableText, DropdownField, TextField).',
-            'Added toggle to enable/disable "Otherwise Skip To" path in Branching Logic.'
+            'Refactored Advanced Tab components to use standardized UI components (Button, EditableText, DropdownField, TextField).'
         ],
         technicalChanges: [
             'Updated BuildPanel.tsx and SurveyStructureWidget.tsx logic for "Issues" label.',

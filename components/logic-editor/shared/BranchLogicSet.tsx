@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import type { BranchingLogicBranch, BranchingLogicCondition, LogicIssue, Question, Survey } from '../../../types';
 import { Button } from '@/components/Button';
-import { XIcon } from '../../icons';
+import { XIcon, PlusIcon } from '../../icons';
 import { LogicConditionRow, DestinationRow } from './';
 import { generateId } from '../../../utils';
 
@@ -28,6 +28,23 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
     issues,
     currentQuestion
 }) => {
+    const originalBranchRef = useRef<BranchingLogicBranch | null>(null);
+
+    const isBranchConfirmed = branch.conditions.every(c => c.isConfirmed) && branch.thenSkipToIsConfirmed;
+
+    useEffect(() => {
+        if (isBranchConfirmed) {
+            originalBranchRef.current = JSON.parse(JSON.stringify(branch));
+        }
+    }, [isBranchConfirmed, branch]);
+
+    const handleCancel = () => {
+        if (originalBranchRef.current) {
+            onUpdate({ ...originalBranchRef.current });
+        } else {
+            onRemove();
+        }
+    };
 
     const handleUpdateCondition = (conditionId: string, field: keyof BranchingLogicCondition, value: any) => {
         const newConditions = branch.conditions.map(c =>
@@ -110,7 +127,6 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
                                 : undefined
                         }
                         onAddCondition={() => handleAddConditionAtIndex(index)}
-                        onConfirm={handleConfirm}
                         availableQuestions={availableQuestions}
                         isConfirmed={condition.isConfirmed || false}
                         issues={issues.filter(i => i.sourceId === condition.id)}
@@ -119,32 +135,45 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
                         usedValues={new Set()}
                     />
                 ))}
-                <Button
-                    variant="tertiary-primary"
-                    size="small"
-                    onClick={handleAddCondition}
-                >
-                    + Add condition
-                </Button>
             </div>
 
             <DestinationRow
                 label={<span className="font-bold text-on-surface">Then skip to</span>}
                 value={branch.thenSkipTo}
                 onChange={(value) => onUpdate({ thenSkipTo: value, thenSkipToIsConfirmed: false })}
-                onConfirm={handleConfirm}
                 isConfirmed={branch.thenSkipToIsConfirmed}
                 followingQuestions={followingQuestions}
                 survey={survey}
                 currentBlockId={currentBlockId}
             />
-            <div className="flex justify-end mt-2 pt-2 border-t border-outline-variant/30">
-                <button
-                    onClick={onRemove}
-                    className="text-xs text-error font-medium hover:underline flex items-center gap-1"
+
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-outline-variant/30">
+                <Button
+                    variant="tertiary-primary"
+                    size="small"
+                    onClick={handleAddCondition}
                 >
-                    Delete branch
-                </button>
+                    <PlusIcon className="text-xl mr-2" /> Add condition
+                </Button>
+
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="tertiary"
+                        size="small"
+                        onClick={isBranchConfirmed ? onRemove : handleCancel}
+                    >
+                        {isBranchConfirmed ? 'Delete' : 'Cancel'}
+                    </Button>
+                    {!isBranchConfirmed && (
+                        <Button
+                            variant="primary"
+                            size="small"
+                            onClick={handleConfirm}
+                        >
+                            Apply
+                        </Button>
+                    )}
+                </div>
             </div>
         </div>
     );

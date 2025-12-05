@@ -37,7 +37,7 @@ export const DestinationRow: React.FC<{
                 <select
                     value={value}
                     onChange={e => onChange(e.target.value)}
-                    className={`w-full bg-transparent border rounded-md px-4 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none ${invalid ? 'border-error' : 'border-input-border'}`}
+                    className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none ${invalid ? 'border-error' : 'border-input-border'}`}
                 >
                     <option value="">Select destination...</option>
                     <optgroup label="Default">

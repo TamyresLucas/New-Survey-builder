@@ -235,7 +235,7 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
                                             <select
                                                 value={item.targetChoiceId || ''}
                                                 onChange={e => handleUpdateItem(index, 'targetChoiceId', e.target.value)}
-                                                className="w-full bg-surface border border-outline rounded-md pl-2 pr-6 py-1.5 text-sm text-on-surface font-medium focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                                                className="w-full bg-surface border border-input-border rounded-md pl-2 pr-6 py-1.5 text-sm text-on-surface font-medium focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
                                                 aria-label="Target Choice"
                                             >
                                                 <option value="">Select choice...</option>

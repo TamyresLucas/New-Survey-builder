@@ -3,6 +3,8 @@ import type { Workflow, ActionLogic } from '../../types';
 import { generateId } from '../../utils';
 import { PlusIcon, XIcon } from '../icons';
 import { ActionEditor } from './shared';
+import { Button } from '@/components/Button';
+import { EditableText } from '@/components/EditableText';
 
 export const WorkflowSectionEditor: React.FC<{
     title: string;
@@ -65,13 +67,13 @@ export const WorkflowSectionEditor: React.FC<{
         <div className="py-6 first:pt-0">
             <h3 className="text-sm font-medium text-on-surface">{title}</h3>
             <p className="text-xs text-on-surface-variant mt-0.5 mb-3">{description}</p>
-            
+
             <div className="space-y-4">
                 {workflows.map(workflow => (
                     <div key={workflow.id} className="p-3 border border-outline-variant rounded-md">
                         <div className="flex items-center justify-between mb-2">
-                             <input type="text" value={workflow.name} onChange={e => handleUpdateWorkflow(workflow.id, { name: e.target.value })} className="font-semibold text-on-surface bg-transparent border-b border-transparent focus:border-primary focus:outline-none" />
-                            <button onClick={() => handleRemoveWorkflow(workflow.id)} className="p-1 text-on-surface-variant hover:text-error"><XIcon/></button>
+                            <EditableText html={workflow.name} onChange={val => handleUpdateWorkflow(workflow.id, { name: val })} className="font-semibold text-on-surface" />
+                            <Button variant="danger" iconOnly size="small" onClick={() => handleRemoveWorkflow(workflow.id)}><XIcon /></Button>
                         </div>
                         <div className="space-y-2">
                             {workflow.actions.map(action => (
@@ -85,18 +87,18 @@ export const WorkflowSectionEditor: React.FC<{
                                 />
                             ))}
                         </div>
-                         <button onClick={() => handleAddAction(workflow.id)} className="mt-3 flex items-center gap-1 text-sm font-button-text text-primary hover:underline">
-                            <PlusIcon className="text-base" />
+                        <Button variant="tertiary-primary" size="small" onClick={() => handleAddAction(workflow.id)} className="mt-3">
+                            <PlusIcon className="text-lg mr-1" />
                             Add action
-                        </button>
+                        </Button>
                     </div>
                 ))}
             </div>
 
-            <button onClick={handleAddWorkflow} className="mt-4 flex items-center gap-1 text-sm font-button-text text-primary hover:underline">
-                <PlusIcon className="text-base" />
+            <Button variant="tertiary-primary" size="large" onClick={handleAddWorkflow} className="mt-4">
+                <PlusIcon className="text-xl mr-2" />
                 Add workflow
-            </button>
+            </Button>
         </div>
     );
 });

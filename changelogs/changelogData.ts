@@ -35,8 +35,11 @@ export const changelogs: ChangelogEntry[] = [
             'Reduced side padding of input fields in Logic Condition Row to 8px.',
             'Updated Logic Set fields to fill available width, ensuring proper button alignment.',
             'Applied Logic Set alignment fixes to Choice Display Logic as well.',
+            'Restored white background (bg-surface) to Choice Display Logic target choice dropdown to match default state.',
+            'Forced transparent background on Logic Set when requested, fixing background persistence issues.',
             'Added hover state to editable text fields for better interactivity.',
-            'Fixed layout issues in Question Card.'
+            'Fixed layout issues in Question Card.',
+            'Refactored Advanced Tab components to use standardized UI components (Button, EditableText, DropdownField, TextField).'
         ],
         technicalChanges: [
             'Updated BuildPanel.tsx and SurveyStructureWidget.tsx logic for "Issues" label.',

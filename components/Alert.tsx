@@ -8,6 +8,14 @@ export interface AlertProps {
     sticky?: boolean;
 }
 
+/**
+ * Alert component for displaying notifications with different severity levels.
+ * 
+ * @param variant - The severity level of the alert ('error', 'warning', 'success', 'info').
+ * @param children - The content of the alert.
+ * @param className - Additional CSS classes.
+ * @param sticky - If true, applies styling suitable for sticky positioning (border-b only).
+ */
 export const Alert: React.FC<AlertProps> = ({ variant, children, className = '', sticky = false }) => {
     const styles = {
         error: {

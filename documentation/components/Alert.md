@@ -5,7 +5,7 @@ The `Alert` component is used to display important messages, warnings, errors, o
 ## Structure
 
 ```tsx
-<div className="flex flex-row items-start px-4 py-2 gap-2 w-full box-border text-sm text-on-surface ...">
+<div className="flex flex-row items-start px-4 py-2 gap-4 w-full box-border text-sm text-on-surface ...">
   <Icon />
   <div className="flex-grow">
     {children}
@@ -17,7 +17,7 @@ The `Alert` component is used to display important messages, warnings, errors, o
 
 - **Typography**: `text-sm` (14px), `font-open-sans` (inherited).
 - **Padding**: `px-4` (16px), `py-2` (8px).
-- **Gap**: `gap-2` (8px).
+- **Gap**: `gap-4` (16px).
 - **Border Radius**: `rounded-[2px]` (Exception: Sticky mode uses `border-b` only).
 - **Icon**: `w-[16px] h-[16px] text-[16px] leading-none mt-0.5` (aligned to first line of text).
 - **Height**: Hug contents (auto).

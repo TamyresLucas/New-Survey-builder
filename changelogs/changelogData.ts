@@ -41,7 +41,7 @@ export const changelogs: ChangelogEntry[] = [
             'Fixed layout issues in Question Card.',
             'Refactored Advanced Tab components to use standardized UI components (Button, EditableText, DropdownField, TextField).',
             'Hidden "Otherwise Skip To" setting when logic is exhaustive.',
-            'Created reusable Alert component (with icon aligned to first line) and applied it to "Otherwise" path disabled message.'
+            'Created reusable Alert component (with icon aligned to first line, 16x16px) and applied it to "Otherwise" path disabled message.'
         ],
         technicalChanges: [
             'Updated BuildPanel.tsx and SurveyStructureWidget.tsx logic for "Issues" label.',

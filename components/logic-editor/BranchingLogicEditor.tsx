@@ -139,16 +139,7 @@ export const BranchingLogicEditor: React.FC<{
                             Create complex paths through the survey based on multiple conditions.
                         </p>
                     </div>
-                    <Button
-                        variant="danger"
-                        size="small"
-                        onClick={() => handleUpdate({
-                            branchingLogic: undefined,
-                            draftBranchingLogic: undefined
-                        })}
-                    >
-                        Remove
-                    </Button>
+
                 </div>
 
                 <div className="space-y-4">

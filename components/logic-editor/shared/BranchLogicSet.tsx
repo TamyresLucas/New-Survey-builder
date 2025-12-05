@@ -76,30 +76,24 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
             id={branch.id}
             className="p-3 border border-outline-variant rounded-md bg-surface-container"
         >
-            <div className="flex justify-between items-start mb-3">
-                <div>
-                    <span className="font-bold text-on-surface">IF</span>
-                    <div className="pl-4">
-                        {branch.conditions.length > 1 && (
-                            <select
-                                value={branch.operator}
-                                onChange={e => onUpdate({ operator: e.target.value as 'AND' | 'OR' })}
-                                className="text-xs font-semibold p-1 rounded-md bg-transparent border border-input-border mb-2"
-                            >
-                                <option value="AND">All conditions are met (AND)</option>
-                                <option value="OR">Any condition is met (OR)</option>
-                            </select>
-                        )}
+            <div className="flex justify-between items-center mb-3">
+                <span className="font-bold text-on-surface">IF</span>
+                {branch.conditions.length > 1 && (
+                    <div className="flex gap-1">
+                        <button
+                            onClick={() => onUpdate({ operator: 'AND' })}
+                            className={`px-2 py-0.5 text-[10px] font-button-operator rounded-full transition-colors ${branch.operator === 'AND' ? 'bg-primary text-on-primary' : 'bg-surface border border-outline text-on-surface-variant'}`}
+                        >
+                            AND
+                        </button>
+                        <button
+                            onClick={() => onUpdate({ operator: 'OR' })}
+                            className={`px-2 py-0.5 text-[10px] font-button-operator rounded-full transition-colors ${branch.operator === 'OR' ? 'bg-primary text-on-primary' : 'bg-surface border border-outline text-on-surface-variant'}`}
+                        >
+                            OR
+                        </button>
                     </div>
-                </div>
-                <Button
-                    variant="danger"
-                    iconOnly
-                    size="small"
-                    onClick={onRemove}
-                >
-                    <XIcon className="text-lg" />
-                </Button>
+                )}
             </div>
 
             <div className="space-y-2 mb-3">
@@ -144,6 +138,14 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
                 survey={survey}
                 currentBlockId={currentBlockId}
             />
+            <div className="flex justify-end mt-2 pt-2 border-t border-outline-variant/30">
+                <button
+                    onClick={onRemove}
+                    className="text-xs text-error font-medium hover:underline flex items-center gap-1"
+                >
+                    Delete branch
+                </button>
+            </div>
         </div>
     );
 };

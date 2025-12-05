@@ -49,7 +49,8 @@ export const changelogs: ChangelogEntry[] = [
             'Refactored BranchingLogicEditor to use reusable BranchLogicSet component.',
             'Updated "Then skip to" label casing in BranchLogicSet.',
             'Added safety check for logic conditions in BranchLogicSet.',
-            'Added inline add/remove buttons to BranchLogicSet condition rows.'
+            'Added inline add/remove buttons to BranchLogicSet condition rows.',
+            'Refined BranchLogicSet UI: replaced operator dropdown with toggle, moved delete action.'
         ],
         technicalChanges: [
             'Updated BuildPanel.tsx and SurveyStructureWidget.tsx logic for "Issues" label.',

@@ -43,9 +43,9 @@ The component's flexibility comes from its props-driven rendering. An action is 
 | `onAddBlockAbove` | `() => void`        | Adds a new, empty block directly above the current one.                      |
 | `onAddBlockBelow` | `() => void`        | Adds a new, empty block directly below the current one.                      |
 | `onSelectAll`     | `() => void`        | Checks all questions within the block for bulk editing.                      |
-| `canSelectAll`    | `boolean`           | If `false`, the "Select All" option is disabled.                             |
+| `canSelectAll`    | `boolean`           | If `false`, the "Select all" option is disabled.                             |
 | `onUnselectAll`   | `() => void`        | Unchecks all questions within the block.                                     |
-| `canUnselectAll`  | `boolean`           | If `false`, the "Unselect All" option is disabled.                           |
+| `canUnselectAll`  | `boolean`           | If `false`, the "Unselect all" option is disabled.                           |
 | `onExpand`        | `() => void`        | Expands a collapsed block to show its questions.                             |
 | `canExpand`       | `boolean`           | If `false`, the "Expand block" option is disabled.                           |
 | `onCollapse`      | `() => void`        | Collapses an expanded block to hide its questions.                           |

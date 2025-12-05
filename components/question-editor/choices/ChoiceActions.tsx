@@ -13,7 +13,7 @@ const ChoiceActions: React.FC<ChoiceActionsProps> = ({ questionType, onAddChoice
     return (
         <div className="mt-3 flex items-center gap-4">
             <Button variant="tertiary-primary" size="large" onClick={onAddChoice}>
-                <PlusIcon className="text-xl mr-2" /> {questionType === 'Choice Grid' ? 'Add Row' : 'Add Choice'}
+                <PlusIcon className="text-xl mr-2" /> {questionType === 'Choice Grid' ? 'Add row' : 'Add choice'}
             </Button>
             <Button variant="tertiary-primary" size="large" onClick={onPaste}>
                 <ContentPasteIcon className="text-xl mr-2" /> Paste

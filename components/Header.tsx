@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { changelogs } from '../changelogs/changelogData';
 import { LinkIcon, BellIcon, QuestionIcon, GridIcon, CheckmarkIcon, SunIcon, MoonIcon, SparkleIcon, PublishIcon, HistoryIcon } from './icons';
 import { AppChangelogModal } from './AppChangelogModal';
+import { EditableText } from './EditableText';
 import { useTheme } from '../contexts/ThemeContext';
 import type { SurveyStatus } from '../types';
 
@@ -25,57 +26,7 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
 
   const currentVersion = changelogs[0]?.version || 'v1.0.0';
 
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [titleValue, setTitleValue] = useState(surveyName);
-  const titleInputRef = useRef<HTMLInputElement>(null);
 
-  const createPasteHandler = useCallback(<T extends HTMLInputElement | HTMLTextAreaElement>(
-    onChange: (newValue: string) => void
-  ) => (e: React.ClipboardEvent<T>) => {
-    e.preventDefault();
-    const text = e.clipboardData.getData('text/plain');
-    const target = e.currentTarget;
-    const start = target.selectionStart ?? 0;
-    const end = target.selectionEnd ?? 0;
-
-    const newValue = target.value.substring(0, start) + text + target.value.substring(end);
-    onChange(newValue);
-
-    const newCursorPos = start + text.length;
-    requestAnimationFrame(() => {
-      if (document.activeElement === target) {
-        target.selectionStart = newCursorPos;
-        target.selectionEnd = newCursorPos;
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    setTitleValue(surveyName);
-  }, [surveyName]);
-
-  useEffect(() => {
-    if (isEditingTitle && titleInputRef.current) {
-      titleInputRef.current.focus();
-      titleInputRef.current.select();
-    }
-  }, [isEditingTitle]);
-
-  const handleTitleSave = () => {
-    if (titleValue.trim() && titleValue.trim() !== surveyName) {
-      onUpdateSurveyName(titleValue.trim());
-    }
-    setIsEditingTitle(false);
-  };
-
-  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleTitleSave();
-    } else if (e.key === 'Escape') {
-      setTitleValue(surveyName);
-      setIsEditingTitle(false);
-    }
-  };
 
   useEffect(() => {
     if (!isCopied) return;
@@ -154,27 +105,16 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
         >
           VOXCO
         </span>
-        {isEditingTitle ? (
-          <input
-            ref={titleInputRef}
-            type="text"
-            value={titleValue}
-            onChange={(e) => setTitleValue(e.target.value)}
-            onBlur={handleTitleSave}
-            onKeyDown={handleTitleKeyDown}
-            onPaste={createPasteHandler(setTitleValue)}
-            className="text-base font-medium bg-surface-container-highest border-b border-primary focus:outline-none ml-4"
-            style={{ fontFamily: "'Outfit', sans-serif" }}
-          />
-        ) : (
-          <h1
-            onClick={() => setIsEditingTitle(true)}
-            className="text-base font-medium text-on-surface ml-4 cursor-pointer"
-            style={{ fontFamily: "'Outfit', sans-serif" }}
-          >
-            {surveyName}
-          </h1>
-        )}
+        <EditableText
+          html={surveyName}
+          onChange={(newName) => {
+            if (newName.trim() && newName.trim() !== surveyName) {
+              onUpdateSurveyName(newName.trim());
+            }
+          }}
+          className="text-base font-medium text-on-surface ml-4 min-w-[100px]"
+          style={{ fontFamily: "'Outfit', sans-serif" }}
+        />
         <div className="flex items-center text-sm text-on-surface-variant ml-4" style={{ fontFamily: "'Open Sans', sans-serif" }}>
           {renderStatusBadge()}
           {surveyStatus === 'active' && isDirty && (

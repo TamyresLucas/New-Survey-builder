@@ -362,9 +362,9 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
                                     availableQuestions={previousQuestions}
                                     onUpdate={(updates) => handleUpdateLogicSet(item.id, item.logicType, updates)}
                                     onRemove={() => handleRemoveItem(item.id, 'set', item.logicType)}
-                                    questionWidth="w-[28%]"
-                                    operatorWidth="w-[28%]"
-                                    valueWidth="w-[28%]"
+                                    questionWidth="flex-1 min-w-0"
+                                    operatorWidth="flex-1 min-w-0"
+                                    valueWidth="flex-1 min-w-0"
                                     actionValue={item.logicType === 'display' ? 'show' : 'hide'}
                                     onActionChange={(val) => handleTypeChange(item.id, item.itemType, item.logicType, val === 'show' ? 'display' : 'hide')}
                                     label={question.qid}

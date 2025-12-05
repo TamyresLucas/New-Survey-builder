@@ -60,9 +60,8 @@ const ScalePointItem: React.FC<ScalePointItemProps> = ({
                         placeholder="Enter column text"
                     />
                 </div>
-                <div className="w-10 h-10"></div>
-                <Button variant="danger" iconOnly onClick={() => onDelete(scalePoint.id)} aria-label="Delete column">
-                    <XIcon className="text-lg" />
+                <Button variant="danger" size="small" iconOnly onClick={() => onDelete(scalePoint.id)} aria-label="Delete column">
+                    <XIcon className="text-base" />
                 </Button>
             </div>
         </div>

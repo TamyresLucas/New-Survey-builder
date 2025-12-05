@@ -3,6 +3,7 @@ import type { LogicSet as ILogicSet, Question, DisplayLogicCondition, LogicIssue
 import { LogicConditionRow } from './LogicConditionRow';
 import { PlusIcon, XIcon, CheckmarkIcon, ChevronDownIcon, WarningIcon } from '../../icons';
 import { generateId } from '../../../utils';
+import { Button } from '../../Button';
 
 export interface LogicSetProps {
     logicSet: ILogicSet;
@@ -239,22 +240,26 @@ export const LogicSet: React.FC<LogicSetProps> = ({
                 </div>
 
                 <div className="mt-3 flex items-center justify-between">
-                    <button onClick={handleAddCondition} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors">
-                        <PlusIcon className="text-base" />
-                        Add condition
-                    </button>
+                    <Button variant="tertiary-primary" size="large" onClick={handleAddCondition}>
+                        <PlusIcon className="text-xl mr-2" /> Add condition
+                    </Button>
 
                     <div className="flex items-center gap-2">
-                        <button
+                        <Button
+                            variant="tertiary"
+                            size="large"
                             onClick={logicSet.isConfirmed ? onRemove : handleCancel}
-                            className="px-3 py-1.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container-highest rounded-md transition-colors"
                         >
                             {logicSet.isConfirmed ? 'Delete' : 'Cancel'}
-                        </button>
+                        </Button>
                         {!logicSet.isConfirmed && (
-                            <button onClick={handleConfirmSet} className="px-3 py-1.5 text-xs font-button-operator text-on-primary bg-primary rounded-md hover:opacity-90 transition-opacity">
+                            <Button
+                                variant="primary"
+                                size="large"
+                                onClick={handleConfirmSet}
+                            >
                                 Apply
-                            </button>
+                            </Button>
                         )}
                     </div>
                 </div>

@@ -7,15 +7,16 @@ type IconProps = {
 };
 
 // Base component for rendering a Google Material Symbol
-const MaterialSymbol: React.FC<IconProps & { icon: string; fill?: number }> = ({ icon, className, style, fill }) => {
-  const unfilledClass = fill === 0 ? 'unfilled' : '';
-  return <span className={`material-symbols-rounded ${unfilledClass} ${className}`} style={style}>{icon}</span>;
+const MaterialSymbol: React.FC<IconProps & { icon: string; fill?: number }> = ({ icon, className, style, fill = 0 }) => {
+  const fillStyle = { fontVariationSettings: `'FILL' ${fill}, 'wght' 400, 'GRAD' 0, 'opsz' 24`, ...style };
+  return <span className={`material-symbols-rounded ${className}`} style={fillStyle}>{icon}</span>;
 };
 
 export const GridIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="apps" className={className} style={style} />;
 export const LinkIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="link" className={className} style={style} />;
 export const BellIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="notifications" className={className} style={style} />;
 export const QuestionIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="help_outline" className={className} style={style} />;
+export const AsteriskIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="asterisk" className={className} style={style} />;
 export const ChevronDownIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="expand_more" className={className} style={style} />;
 export const EyeIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="visibility" className={className} style={style} />;
 export const ArrowSplitIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="alt_route" className={className} style={style} />;

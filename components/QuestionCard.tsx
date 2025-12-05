@@ -7,73 +7,17 @@ import {
     CheckboxOutlineIcon, XIcon, DragIndicatorIcon, PlusIcon,
     RadioButtonUncheckedIcon,
     WarningIcon,
-    VisibilityOffIcon
+    VisibilityOffIcon,
+    AsteriskIcon
 } from './icons';
 import { PageBreakActionsMenu, QuestionActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
 import { generateId, parseChoice } from '../utils';
 import { DisplayLogicDisplay, SkipLogicDisplay, BranchingLogicDisplay } from './LogicDisplays';
 import type { PageInfo } from './SurveyCanvas';
+import { EditableText } from './EditableText';
 
 // Helper for inline editing with contentEditable
-const EditableText: React.FC<{
-    html: string;
-    onChange: (html: string) => void;
-    onFocus: () => void;
-    className: string;
-}> = ({ html, onChange, onFocus, className }) => {
-    const elementRef = useRef<HTMLDivElement>(null);
-    const lastHtml = useRef(html);
 
-    useEffect(() => {
-        if (elementRef.current && html !== elementRef.current.innerHTML) {
-            elementRef.current.innerHTML = html;
-        }
-        lastHtml.current = html;
-    }, [html]);
-
-    const handleBlur = () => {
-        const currentHtml = elementRef.current?.innerHTML || '';
-        if (lastHtml.current !== currentHtml) {
-            onChange(currentHtml);
-        }
-    };
-
-    const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        const text = e.clipboardData.getData('text/plain');
-        const selection = window.getSelection();
-        if (!selection) return;
-
-        const range = selection.getRangeAt(0);
-        range.deleteContents();
-
-        const textNode = document.createTextNode(text);
-        range.insertNode(textNode);
-
-        // Move cursor to the end of the inserted text
-        range.setStartAfter(textNode);
-        range.collapse(true);
-        selection.removeAllRanges();
-        selection.addRange(range);
-    };
-
-    const stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
-
-    return (
-        <div
-            ref={elementRef}
-            className={`${className} focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 rounded-sm cursor-text`}
-            contentEditable
-            suppressContentEditableWarning
-            dangerouslySetInnerHTML={{ __html: html }}
-            onBlur={handleBlur}
-            onFocus={onFocus}
-            onClick={stopPropagation}
-            onMouseDown={stopPropagation} // Also stop mousedown to prevent App.tsx's deselect logic
-            onPaste={handlePaste}
-        />
-    );
-};
 
 
 const ChoiceDropIndicator = () => (
@@ -197,8 +141,8 @@ const QuestionCard: React.FC<{
 
         if (hasChoices && !question.choices) {
             updates.choices = [
-                { id: `${question.id}c1`, text: `${question.qid}_1 Yes` },
-                { id: `${question.id}c2`, text: `${question.qid}_2 No` },
+                { id: `${question.id} c1`, text: `${question.qid}_1 Yes` },
+                { id: `${question.id} c2`, text: `${question.qid}_2 No` },
             ];
         } else if (!hasChoices) {
             updates.choices = undefined;
@@ -260,7 +204,7 @@ const QuestionCard: React.FC<{
         const currentScalePoints = question.scalePoints || [];
         const newScalePoint: Choice = {
             id: generateId('s'),
-            text: `Column ${Number(currentScalePoints.length) + 1}`
+            text: `Column ${Number(currentScalePoints.length) + 1} `
         };
         onUpdateQuestion(question.id, { scalePoints: [...currentScalePoints, newScalePoint] });
     }, [question.id, question.scalePoints, onUpdateQuestion]);
@@ -484,7 +428,7 @@ const QuestionCard: React.FC<{
                     : question.isHidden
                         ? 'border-outline-variant bg-surface-container opacity-60'
                         : 'border-outline-variant hover:border-outline hover:shadow-md'
-                    } ${isDragging ? 'opacity-50' : ''} ${isAnyMenuOpen ? 'z-10' : ''}`}
+                    } ${isDragging ? 'opacity-50' : ''} ${isAnyMenuOpen ? 'z-10' : ''} ${hasDisplayLogic ? 'border-dashed' : ''}`}
             >
                 {/* Grid Cell 1: Checkbox */}
                 <input
@@ -531,20 +475,19 @@ const QuestionCard: React.FC<{
                                 {labelError && <div className="absolute top-full mt-1 text-xs text-error bg-error-container p-1 rounded shadow-lg z-10">{labelError}</div>}
                             </div>
                         ) : (
-                            <span className="font-bold text-on-surface mr-2">{question.qid}</span>
+                            <div className="flex items-center mr-2">
+                                <span className="font-bold text-on-surface">{question.qid}</span>
+                                {question.forceResponse && <AsteriskIcon className="text-sm text-error ml-0.5" />}
+                            </div>
                         )}
-                        {question.forceResponse && (
-                            <span className="px-2 py-0.5 text-xs font-medium bg-primary text-on-primary rounded-full">
-                                Required
-                            </span>
-                        )}
+
                         {willAutoadvance && (
                             <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-primary text-on-primary rounded-full">
                                 Autoadvance
                             </span>
                         )}
                         {question.isHidden && (
-                            <div className={`relative group/tooltip ${question.forceResponse || willAutoadvance ? 'ml-2' : ''}`}>
+                            <div className={`relative group / tooltip ${question.forceResponse || willAutoadvance ? 'ml-2' : ''} `}>
                                 <VisibilityOffIcon className="text-on-surface-variant text-lg" />
                                 <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max bg-surface-container-highest text-on-surface text-xs rounded-md p-2 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
                                     This question is hidden
@@ -638,20 +581,22 @@ const QuestionCard: React.FC<{
                                                         onFocus={() => onSelect(question)}
                                                         className="text-on-surface-variant"
                                                     />
-                                                    <button
+                                                    <Button
+                                                        variant="danger"
+                                                        size="small"
+                                                        iconOnly
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             const newScalePoints = question.scalePoints?.filter(p => p.id !== sp.id);
                                                             onUpdateQuestion(question.id, { scalePoints: newScalePoints });
                                                         }}
-                                                        className="absolute -top-1 -right-1 p-0.5 rounded bg-surface-container-highest text-on-surface-variant hover:bg-error-container hover:text-on-error-container opacity-0 group-hover/header:opacity-100"
+                                                        className="absolute -top-1 -right-1 opacity-0 group-hover/header:opacity-100"
                                                         aria-label="Remove column"
                                                     >
-                                                        <XIcon className="text-sm" />
-                                                    </button>
+                                                        <XIcon className="text-base" />
+                                                    </Button>
                                                 </th>
                                             ))}
-                                            <th className="w-12 p-2"></th>
                                         </tr>
                                     </thead>
                                     <tbody
@@ -664,7 +609,7 @@ const QuestionCard: React.FC<{
                                     >
                                         {(question.choices || []).map(choice => {
                                             const { variable, label } = parseChoice(choice.text);
-                                            const numColumns = (question.scalePoints?.length || 0) + 2;
+                                            const numColumns = (question.scalePoints?.length || 0) + 1;
                                             return (
                                                 <React.Fragment key={choice.id}>
                                                     {dropTargetChoiceId === choice.id && <TableDropIndicator colSpan={numColumns} />}
@@ -675,14 +620,14 @@ const QuestionCard: React.FC<{
                                                         onDragOver={(e) => handleChoiceDragOver(e, choice.id)}
                                                         onDragEnd={handleChoiceDragEnd}
                                                     >
-                                                        <td className="p-2 text-sm text-on-surface pr-4">
+                                                        <td className="p-2 text-sm text-on-surface pr-4 relative">
                                                             <div className="flex items-center gap-1">
                                                                 <DragIndicatorIcon className="text-xl text-on-surface-variant cursor-grab opacity-0 group-hover/choice:opacity-100 transition-opacity" />
                                                                 {variable && <span className="font-semibold text-on-surface">{variable}</span>}
                                                                 <EditableText
                                                                     html={label}
                                                                     onChange={(newLabel) => {
-                                                                        const newText = variable ? `${variable} ${newLabel}` : newLabel;
+                                                                        const newText = variable ? `${variable} ${newLabel} ` : newLabel;
                                                                         const newChoices = (question.choices || []).map(c =>
                                                                             c.id === choice.id ? { ...c, text: newText } : c
                                                                         );
@@ -691,6 +636,20 @@ const QuestionCard: React.FC<{
                                                                     onFocus={() => onSelect(question)}
                                                                     className="text-on-surface flex-grow"
                                                                 />
+                                                                <Button
+                                                                    variant="danger"
+                                                                    size="small"
+                                                                    iconOnly
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        const newChoices = question.choices?.filter(c => c.id !== choice.id);
+                                                                        onUpdateQuestion(question.id, { choices: newChoices });
+                                                                    }}
+                                                                    className="opacity-0 group-hover/choice:opacity-100"
+                                                                    aria-label="Remove row"
+                                                                >
+                                                                    <XIcon className="text-base" />
+                                                                </Button>
                                                             </div>
                                                         </td>
                                                         {(question.scalePoints || []).map(sp => (
@@ -698,24 +657,11 @@ const QuestionCard: React.FC<{
                                                                 <RadioButtonUncheckedIcon className="text-xl text-outline" />
                                                             </td>
                                                         ))}
-                                                        <td className="p-2 text-center">
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    const newChoices = question.choices?.filter(c => c.id !== choice.id);
-                                                                    onUpdateQuestion(question.id, { choices: newChoices });
-                                                                }}
-                                                                className="ml-auto w-6 h-6 flex items-center justify-center rounded-md text-error hover:bg-error-container opacity-0 group-hover/choice:opacity-100"
-                                                                aria-label="Remove row"
-                                                            >
-                                                                <XIcon className="text-base" />
-                                                            </button>
-                                                        </td>
                                                     </tr>
                                                 </React.Fragment>
                                             );
                                         })}
-                                        {dropTargetChoiceId === null && draggedChoiceId && <TableDropIndicator colSpan={(question.scalePoints?.length || 0) + 2} />}
+                                        {dropTargetChoiceId === null && draggedChoiceId && <TableDropIndicator colSpan={(question.scalePoints?.length || 0) + 1} />}
                                     </tbody>
                                 </table>
                             </div>
@@ -780,7 +726,7 @@ const QuestionCard: React.FC<{
                                                 <EditableText
                                                     html={label}
                                                     onChange={(newLabel) => {
-                                                        const newText = variable ? `${variable} ${newLabel}` : newLabel;
+                                                        const newText = variable ? `${variable} ${newLabel} ` : newLabel;
                                                         const newChoices = (question.choices || []).map(c =>
                                                             c.id === choice.id ? { ...c, text: newText } : c
                                                         );
@@ -807,15 +753,17 @@ const QuestionCard: React.FC<{
                                 );
                             })}
                             {dropTargetChoiceId === null && draggedChoiceId && <ChoiceDropIndicator />}
-                            <button
+                            <Button
+                                variant="tertiary-primary"
+                                size="large"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     onAddChoice(question.id);
                                 }}
-                                className="flex items-center text-sm text-primary font-semibold mt-2 transition-colors hover:bg-primary hover:text-on-primary rounded-md px-4 py-1.5"
+                                className="mt-2"
                             >
-                                <PlusIcon className="text-base mr-1" /> Add choice
-                            </button>
+                                <PlusIcon className="text-xl mr-2" /> Add choice
+                            </Button>
                         </div>
                     )}
 

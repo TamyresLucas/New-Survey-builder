@@ -275,7 +275,7 @@ export const SurveyFlowDisplay: React.FC<{ logic: SkipLogic; survey: Survey; onC
     return (
         <div
             onClick={handleClick}
-            className="p-3 border-2 border-dashed border-outline-variant rounded-md bg-surface-container-high cursor-pointer hover:border-primary"
+            className="p-3 border border-outline-variant rounded-md bg-surface-container-high cursor-pointer hover:border-primary"
         >
             <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">

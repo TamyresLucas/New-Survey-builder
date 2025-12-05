@@ -11,6 +11,44 @@ export interface ChangelogEntry {
 // NOTE: Always update 'time' to the current local time when adding an entry.
 export const changelogs: ChangelogEntry[] = [
     {
+        id: '2025-12-04-1',
+        version: 'v1.0.10',
+        date: '2025-12-04',
+        time: '2:45 PM',
+        request: 'UI Refinements & Click-to-Edit Inputs',
+        improvements: [
+            'Updated "Issues" label to display "No issues" when there are no logic issues (Survey Structure Widget only).',
+            'Enhanced Survey Structure Widget cards to automatically switch icons based on state (Success/Warning/Error).',
+            'Updated "Required questions" indicator to use an Asterisk icon (*) instead of a badge.',
+            'Implemented "Click-to-Edit" style for text fields in the Survey Canvas (Question text, Choice text, Survey Name, Block Name) with 1px bottom border.',
+            'Added "Required questions" filter to the Build Panel content dropdown (with danger color asterisk).',
+            'Updated component documentation to ensure all button labels use sentence case.',
+            'Fixed "Add choice" button styling and casing in Settings and Question Card.',
+            'Removed dashed border style from Survey Flow card in Survey Canvas.',
+            'Added dashed border style to Question Card when Display Logic is applied.',
+            'Standardized "+ Add condition", "Cancel/Delete", and "Apply" buttons in Logic Set to Large style.',
+            'Standardized "X" and "+" buttons in Logic Condition Row to Large style.',
+            'Standardized "X" and "+" buttons in Logic Condition Row to Large style.',
+            'Fixed overlapping fields in Logic Condition Row by allowing Question Selector to shrink properly.',
+            'Adjusted gap between inputs and action buttons in Logic Condition Row to 8px.',
+            'Fixed overflow issue in Logic Condition Row by allowing all input fields to shrink.',
+            'Reduced side padding of input fields in Logic Condition Row to 8px.',
+            'Updated Logic Set fields to fill available width, ensuring proper button alignment.',
+            'Applied Logic Set alignment fixes to Choice Display Logic as well.',
+            'Added hover state to editable text fields for better interactivity.',
+            'Fixed layout issues in Question Card.'
+        ],
+        technicalChanges: [
+            'Updated BuildPanel.tsx and SurveyStructureWidget.tsx logic for "Issues" label.',
+            'Refactored DataCard component to handle state-specific icons internally.',
+            'Created components/EditableText.tsx for reusable click-to-edit input behavior.',
+            'Updated QuestionCard.tsx to use EditableText and AsteriskIcon.',
+            'Updated Header.tsx to use EditableText for survey name editing.',
+            'Fixed broken Tailwind class names in QuestionCard.tsx.',
+            'Created documentation/components/DataCard.md.'
+        ]
+    },
+    {
         id: '2025-12-03-2',
         version: 'v1.0.9',
         date: '2025-12-03',

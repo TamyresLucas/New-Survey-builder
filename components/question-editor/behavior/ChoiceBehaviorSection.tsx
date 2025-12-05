@@ -225,9 +225,9 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
                                     availableQuestions={previousQuestions}
                                     onUpdate={(updates) => handleUpdateLogicSet(index, updates)}
                                     onRemove={() => handleRemoveItem(index)}
-                                    questionWidth="w-[23%]"
-                                    operatorWidth="w-[23%]"
-                                    valueWidth="w-[23%]"
+                                    questionWidth="flex-1 min-w-0"
+                                    operatorWidth="flex-1 min-w-0"
+                                    valueWidth="flex-1 min-w-0"
                                     actionValue={item.action}
                                     onActionChange={(val) => handleUpdateItem(index, 'action', val)}
                                     label={

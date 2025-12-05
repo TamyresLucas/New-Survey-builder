@@ -282,28 +282,30 @@ export const BranchingLogicEditor: React.FC<{
                 </Button>
 
                 <div className="mt-4 pt-4 border-t border-outline-variant">
-                    <DestinationRow
-                        label={<span className="font-bold text-on-surface-variant">OTHERWISE SKIP TO</span>}
-                        value={branchingLogic.otherwiseSkipTo}
-                        onChange={(value) => handleUpdate({
-                            branchingLogic: {
-                                ...branchingLogic,
-                                otherwiseSkipTo: value,
-                                otherwiseIsConfirmed: false
-                            }
-                        })}
-                        onConfirm={() => handleUpdate({
-                            branchingLogic: {
-                                ...branchingLogic,
-                                otherwiseIsConfirmed: true
-                            }
-                        })}
-                        isConfirmed={branchingLogic.otherwiseIsConfirmed}
-                        followingQuestions={followingQuestions}
-                        survey={survey}
-                        currentBlockId={currentBlockId}
-                        hideNextQuestion={isOtherwiseExhaustive}
-                    />
+                    {!isOtherwiseExhaustive && (
+                        <DestinationRow
+                            label={<span className="font-bold text-on-surface-variant">OTHERWISE SKIP TO</span>}
+                            value={branchingLogic.otherwiseSkipTo}
+                            onChange={(value) => handleUpdate({
+                                branchingLogic: {
+                                    ...branchingLogic,
+                                    otherwiseSkipTo: value,
+                                    otherwiseIsConfirmed: false
+                                }
+                            })}
+                            onConfirm={() => handleUpdate({
+                                branchingLogic: {
+                                    ...branchingLogic,
+                                    otherwiseIsConfirmed: true
+                                }
+                            })}
+                            isConfirmed={branchingLogic.otherwiseIsConfirmed}
+                            followingQuestions={followingQuestions}
+                            survey={survey}
+                            currentBlockId={currentBlockId}
+                            hideNextQuestion={isOtherwiseExhaustive}
+                        />
+                    )}
                     {isOtherwiseExhaustive && (
                         <div className="mt-2 p-2 bg-primary-container/20 border border-primary-container/30 rounded-md text-xs text-on-primary-container flex items-start gap-2">
                             <InfoIcon className="text-base flex-shrink-0 mt-0.5" />

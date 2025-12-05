@@ -39,7 +39,8 @@ export const changelogs: ChangelogEntry[] = [
             'Forced transparent background on Logic Set when requested, fixing background persistence issues.',
             'Added hover state to editable text fields for better interactivity.',
             'Fixed layout issues in Question Card.',
-            'Refactored Advanced Tab components to use standardized UI components (Button, EditableText, DropdownField, TextField).'
+            'Refactored Advanced Tab components to use standardized UI components (Button, EditableText, DropdownField, TextField).',
+            'Hidden "Otherwise Skip To" setting when logic is exhaustive.'
         ],
         technicalChanges: [
             'Updated BuildPanel.tsx and SurveyStructureWidget.tsx logic for "Issues" label.',

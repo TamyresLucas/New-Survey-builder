@@ -47,6 +47,19 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
         onUpdate({ conditions: [...branch.conditions, newCondition] });
     };
 
+    const handleAddConditionAtIndex = (index: number) => {
+        const newCondition: BranchingLogicCondition = {
+            id: generateId('cond'),
+            questionId: '',
+            operator: '',
+            value: '',
+            isConfirmed: false
+        };
+        const newConditions = [...branch.conditions];
+        newConditions.splice(index + 1, 0, newCondition);
+        onUpdate({ conditions: newConditions });
+    };
+
     const handleRemoveCondition = (conditionId: string) => {
         if (branch.conditions.length <= 1) return;
         const newConditions = branch.conditions.filter(c => c.id !== conditionId);
@@ -102,6 +115,7 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
                                 ? () => handleRemoveCondition(condition.id)
                                 : undefined
                         }
+                        onAddCondition={() => handleAddConditionAtIndex(index)}
                         onConfirm={handleConfirm}
                         availableQuestions={availableQuestions}
                         isConfirmed={condition.isConfirmed || false}

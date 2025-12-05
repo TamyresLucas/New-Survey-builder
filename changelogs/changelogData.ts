@@ -48,7 +48,9 @@ export const changelogs: ChangelogEntry[] = [
             'Updated QuestionCard.tsx to use EditableText and AsteriskIcon.',
             'Updated Header.tsx to use EditableText for survey name editing.',
             'Fixed broken Tailwind class names in QuestionCard.tsx.',
-            'Created documentation/components/DataCard.md.'
+            'Created documentation/components/DataCard.md.',
+            'Refactored BranchingLogicEditor, WorkflowEditor, ChoiceLayoutEditor, and TextEntryAdvancedSettings to use shared components.',
+            'Created reusable Toggle component and applied it to Advanced Tab settings.'
         ]
     },
     {

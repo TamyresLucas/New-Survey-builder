@@ -282,8 +282,8 @@ export const BranchingLogicEditor: React.FC<{
                     <PlusIcon className="text-xl mr-2" /> Add branch
                 </Button>
 
-                <div className="mt-4 pt-4 border-t border-outline-variant">
-                    {!isOtherwiseExhaustive && (
+                {!isOtherwiseExhaustive && (
+                    <div className="mt-4 pt-4 border-t border-outline-variant">
                         <DestinationRow
                             label={<span className="font-bold text-on-surface-variant">OTHERWISE SKIP TO</span>}
                             value={branchingLogic.otherwiseSkipTo}
@@ -306,9 +306,8 @@ export const BranchingLogicEditor: React.FC<{
                             currentBlockId={currentBlockId}
                             hideNextQuestion={isOtherwiseExhaustive}
                         />
-                    )}
-
-                </div>
+                    </div>
+                )}
             </div>
         );
     };

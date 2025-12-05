@@ -2,6 +2,7 @@ import React from 'react';
 import type { Question } from '../../../types';
 import { ChevronDownIcon } from '../../icons';
 import { DropdownField } from '../../DropdownField';
+import { Toggle } from '../../Toggle';
 
 const TextEntryAdvancedSettings: React.FC<{ question: Question, onUpdate: (updates: Partial<Question>) => void }> = ({ question, onUpdate }) => {
     const textEntrySettings = question.textEntrySettings || {};
@@ -23,16 +24,11 @@ const TextEntryAdvancedSettings: React.FC<{ question: Question, onUpdate: (updat
                         <label htmlFor="show-char-counter" className="text-sm font-medium text-on-surface block">Show Character Counter</label>
                         <p className="text-xs text-on-surface-variant mt-0.5">Display character count below text box</p>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                            type="checkbox"
-                            id="show-char-counter"
-                            checked={advanced.showCharCounter || false}
-                            onChange={(e) => handleUpdateAdvanced({ showCharCounter: e.target.checked })}
-                            className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                    </label>
+                    <Toggle
+                        id="show-char-counter"
+                        checked={advanced.showCharCounter || false}
+                        onChange={(checked) => handleUpdateAdvanced({ showCharCounter: checked })}
+                    />
                 </div>
                 {advanced.showCharCounter && (
                     <div className="ml-4 mb-4 p-3 bg-surface-container-high rounded-md">
@@ -54,16 +50,11 @@ const TextEntryAdvancedSettings: React.FC<{ question: Question, onUpdate: (updat
                             <label htmlFor="auto-resize" className="text-sm font-medium text-on-surface block">Auto-resize Text Box</label>
                             <p className="text-xs text-on-surface-variant mt-0.5">Expand text box as respondent types</p>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                id="auto-resize"
-                                checked={advanced.autoResize || false}
-                                onChange={(e) => handleUpdateAdvanced({ autoResize: e.target.checked })}
-                                className="sr-only peer"
-                            />
-                            <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                        </label>
+                        <Toggle
+                            id="auto-resize"
+                            checked={advanced.autoResize || false}
+                            onChange={(checked) => handleUpdateAdvanced({ autoResize: checked })}
+                        />
                     </div>
                 )}
                 <div className="mb-4">

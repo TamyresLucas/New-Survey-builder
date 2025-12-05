@@ -150,7 +150,7 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-outline-variant/30">
                 <Button
                     variant="tertiary-primary"
-                    size="small"
+                    size="large"
                     onClick={handleAddCondition}
                 >
                     <PlusIcon className="text-xl mr-2" /> Add condition

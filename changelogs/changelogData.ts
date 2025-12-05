@@ -48,7 +48,8 @@ export const changelogs: ChangelogEntry[] = [
             'Hidden "Otherwise" section logic separator when logic is exhaustive.',
             'Refactored BranchingLogicEditor to use reusable BranchLogicSet component.',
             'Updated "Then skip to" label casing in BranchLogicSet.',
-            'Added safety check for logic conditions in BranchLogicSet.'
+            'Added safety check for logic conditions in BranchLogicSet.',
+            'Added inline add/remove buttons to BranchLogicSet condition rows.'
         ],
         technicalChanges: [
             'Updated BuildPanel.tsx and SurveyStructureWidget.tsx logic for "Issues" label.',

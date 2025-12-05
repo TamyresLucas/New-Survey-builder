@@ -9,3 +9,4 @@ export * from './LogicConditionRow';
 export * from './AdvancedLogicEditor';
 export * from './QuestionGroupEditor';
 export * from './LogicSet';
+export * from './BranchLogicSet';

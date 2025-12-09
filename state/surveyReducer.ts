@@ -37,6 +37,7 @@ export enum SurveyActionType {
     REPLACE_SURVEY = 'REPLACE_SURVEY',
     SET_GLOBAL_AUTOADVANCE = 'SET_GLOBAL_AUTOADVANCE',
     CLEAR_LOGIC_VALIDATION_MESSAGE = 'CLEAR_LOGIC_VALIDATION_MESSAGE',
+    ADD_BLOCK_FROM_AI = 'ADD_BLOCK_FROM_AI',
 }
 
 export interface Action {
@@ -478,33 +479,33 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                 }
                 delete finalUpdates.branchingLogic;
             }
-            if ('beforeWorkflows' in finalUpdates) {
-                if (finalUpdates.beforeWorkflows === undefined) {
-                    delete questionInState.beforeWorkflows;
-                    delete questionInState.draftBeforeWorkflows;
+            if ('beforeAdvancedLogics' in finalUpdates) {
+                if (finalUpdates.beforeAdvancedLogics === undefined) {
+                    delete questionInState.beforeAdvancedLogics;
+                    delete questionInState.draftBeforeAdvancedLogics;
                 } else {
-                    questionInState.draftBeforeWorkflows = finalUpdates.beforeWorkflows;
-                    const allConfirmed = questionInState.draftBeforeWorkflows.every((w: any) => w.actions.every((a: any) => a.isConfirmed));
+                    questionInState.draftBeforeAdvancedLogics = finalUpdates.beforeAdvancedLogics;
+                    const allConfirmed = questionInState.draftBeforeAdvancedLogics.every((w: any) => w.actions.every((a: any) => a.isConfirmed));
                     if (allConfirmed) {
-                        questionInState.beforeWorkflows = questionInState.draftBeforeWorkflows;
-                        delete questionInState.draftBeforeWorkflows;
+                        questionInState.beforeAdvancedLogics = questionInState.draftBeforeAdvancedLogics;
+                        delete questionInState.draftBeforeAdvancedLogics;
                     }
                 }
-                delete finalUpdates.beforeWorkflows;
+                delete finalUpdates.beforeAdvancedLogics;
             }
-            if ('afterWorkflows' in finalUpdates) {
-                if (finalUpdates.afterWorkflows === undefined) {
-                    delete questionInState.afterWorkflows;
-                    delete questionInState.draftAfterWorkflows;
+            if ('afterAdvancedLogics' in finalUpdates) {
+                if (finalUpdates.afterAdvancedLogics === undefined) {
+                    delete questionInState.afterAdvancedLogics;
+                    delete questionInState.draftAfterAdvancedLogics;
                 } else {
-                    questionInState.draftAfterWorkflows = finalUpdates.afterWorkflows;
-                    const allConfirmed = questionInState.draftAfterWorkflows.every((w: any) => w.actions.every((a: any) => a.isConfirmed));
+                    questionInState.draftAfterAdvancedLogics = finalUpdates.afterAdvancedLogics;
+                    const allConfirmed = questionInState.draftAfterAdvancedLogics.every((w: any) => w.actions.every((a: any) => a.isConfirmed));
                     if (allConfirmed) {
-                        questionInState.afterWorkflows = questionInState.draftAfterWorkflows;
-                        delete questionInState.draftAfterWorkflows;
+                        questionInState.afterAdvancedLogics = questionInState.draftAfterAdvancedLogics;
+                        delete questionInState.draftAfterAdvancedLogics;
                     }
                 }
-                delete finalUpdates.afterWorkflows;
+                delete finalUpdates.afterAdvancedLogics;
             }
 
 
@@ -621,6 +622,28 @@ export function surveyReducer(state: Survey, action: Action): Survey {
                     newState.blocks.push(lastBlock);
                 }
                 lastBlock.questions.push(newQuestion);
+            }
+
+            return applyPagingAndRenumber(newState);
+        }
+
+        case SurveyActionType.ADD_BLOCK_FROM_AI: {
+            const { title, insertAfterBid } = action.payload;
+            const newBlock: Block = {
+                id: generateId('block'),
+                title: title || 'New Block',
+                questions: []
+            };
+
+            if (insertAfterBid) {
+                const targetIndex = newState.blocks.findIndex((b: Block) => b.bid === insertAfterBid);
+                if (targetIndex !== -1) {
+                    newState.blocks.splice(targetIndex + 1, 0, newBlock);
+                } else {
+                    newState.blocks.push(newBlock);
+                }
+            } else {
+                newState.blocks.push(newBlock);
             }
 
             return applyPagingAndRenumber(newState);
@@ -1205,8 +1228,8 @@ export function surveyReducer(state: Survey, action: Action): Survey {
             delete questionToClean.draftHideLogic;
             delete questionToClean.draftSkipLogic;
             delete questionToClean.draftBranchingLogic;
-            delete questionToClean.draftBeforeWorkflows;
-            delete questionToClean.draftAfterWorkflows;
+            delete questionToClean.draftBeforeAdvancedLogics;
+            delete questionToClean.draftAfterAdvancedLogics;
 
             return newState;
         }

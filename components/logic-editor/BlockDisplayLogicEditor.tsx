@@ -3,7 +3,7 @@ import type { Block, Survey, DisplayLogicCondition, DisplayLogic } from '../../t
 import { QuestionType } from '../../types';
 import { PlusIcon } from '../icons';
 import { generateId } from '../../utils';
-import { AdvancedLogicEditor, CopyAndPasteButton, LogicConditionRow } from './shared';
+import { LogicExpressionEditor, CopyAndPasteButton, LogicConditionRow } from './shared';
 
 interface BlockDisplayLogicEditorProps {
     block: Block;
@@ -152,7 +152,7 @@ export const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = (
                 <h3 className="text-sm font-medium text-on-surface mb-1">Display Logic</h3>
                 <p className="text-xs text-on-surface-variant mb-3">Control when this block is shown to respondents.</p>
                 {isPasting ? (
-                    <AdvancedLogicEditor
+                    <LogicExpressionEditor
                         onSave={handlePasteLogic}
                         onCancel={() => setIsPasting(false)}
                         placeholder={"Q1 equals Yes\nQ2 not_equals 5"}

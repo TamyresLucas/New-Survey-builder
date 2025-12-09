@@ -4,7 +4,7 @@ import { QuestionType } from '../../types';
 
 import { CollapsibleSection } from '../logic-editor/shared';
 import { BranchingLogicEditor } from '../logic-editor/BranchingLogicEditor';
-import { WorkflowSectionEditor } from '../logic-editor/WorkflowEditor';
+import { AdvancedLogicSectionEditor } from '../logic-editor/AdvancedLogicSectionEditor';
 import { ChoiceLayoutEditor, TextEntryAdvancedSettings } from './advanced';
 import { PreviewQuestion } from '../PreviewQuestion';
 
@@ -51,26 +51,26 @@ export const AdvancedTab: React.FC<AdvancedTabProps> = ({
                 </div>
             </CollapsibleSection>
 
-            <CollapsibleSection title="Workflows" defaultExpanded={true}>
+            <CollapsibleSection title="Advanced Logic" defaultExpanded={true}>
                 <div className="-mt-2 mb-4">
                     <p className="text-xs text-on-surface-variant">Automate tasks, and integrate with other services.</p>
                 </div>
                 <div className="divide-y divide-outline-variant">
-                    <WorkflowSectionEditor
+                    <AdvancedLogicSectionEditor
                         title="Before Showing This Question"
                         description="Set rules or actions triggered before the question is displayed."
                         questionQid={question.qid}
-                        workflows={question.draftBeforeWorkflows ?? question.beforeWorkflows ?? []}
-                        onUpdateWorkflows={(newWorkflows) => onUpdate({ beforeWorkflows: newWorkflows })}
-                        onAddWorkflow={onAddLogic}
+                        advancedLogics={question.draftBeforeAdvancedLogics ?? question.beforeAdvancedLogics ?? []}
+                        onUpdateAdvancedLogics={(newLogics) => onUpdate({ beforeAdvancedLogics: newLogics })}
+                        onAddAdvancedLogic={onAddLogic}
                     />
-                    <WorkflowSectionEditor
+                    <AdvancedLogicSectionEditor
                         title="After Answering This Question"
                         description="Set rules or actions triggered after the question is answered."
                         questionQid={question.qid}
-                        workflows={question.draftAfterWorkflows ?? question.afterWorkflows ?? []}
-                        onUpdateWorkflows={(newWorkflows) => onUpdate({ afterWorkflows: newWorkflows })}
-                        onAddWorkflow={onAddLogic}
+                        advancedLogics={question.draftAfterAdvancedLogics ?? question.afterAdvancedLogics ?? []}
+                        onUpdateAdvancedLogics={(newLogics) => onUpdate({ afterAdvancedLogics: newLogics })}
+                        onAddAdvancedLogic={onAddLogic}
                     />
                 </div>
             </CollapsibleSection>

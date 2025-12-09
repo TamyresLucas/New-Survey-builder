@@ -26,7 +26,7 @@ const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurve
   }, []);
 
   return (
-    <nav className="relative flex items-center h-[47px] bg-surface-container border-b border-outline-variant px-4 shrink-0 z-30">
+    <nav className="relative flex items-center h-[47px] bg-surface-container border-b border-[color:var(--border-bd-def)] px-4 shrink-0 z-30">
       <div className="flex-1"></div> {/* Left spacer */}
 
       {/* Centered Navigation */}

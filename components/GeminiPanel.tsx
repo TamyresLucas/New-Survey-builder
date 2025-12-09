@@ -10,6 +10,8 @@ interface GeminiPanelProps {
     onUpdateQuestion: (args: any) => void;
     onRepositionQuestion: (args: { qid: string, after_qid?: string, before_qid?: string }) => void;
     onDeleteQuestion: (qid: string) => void;
+    onAddBlock: (title: string, insertAfterBid?: string) => void;
+    onUpdateBlock: (args: any) => void;
     helpTopic: string | null;
     selectedQuestion: Question | null;
     survey: Survey;
@@ -22,6 +24,8 @@ const GeminiPanel: React.FC<GeminiPanelProps> = ({
     onUpdateQuestion,
     onRepositionQuestion,
     onDeleteQuestion,
+    onAddBlock,
+    onUpdateBlock,
     helpTopic,
     selectedQuestion,
     survey,
@@ -40,7 +44,9 @@ const GeminiPanel: React.FC<GeminiPanelProps> = ({
         onUpdateQuestion,
         onRepositionQuestion,
         onAddQuestion,
-        onDeleteQuestion
+        onDeleteQuestion,
+        onAddBlock,
+        onUpdateBlock
     });
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -49,9 +55,6 @@ const GeminiPanel: React.FC<GeminiPanelProps> = ({
     useEffect(() => {
         if (helpTopic) {
             fetchHelpTopic(helpTopic);
-        } else {
-            // Reset messages if opening without a specific topic (optional, depending on desired behavior)
-            // setMessages(initialMessages); 
         }
     }, [helpTopic, fetchHelpTopic]);
 
@@ -77,19 +80,6 @@ const GeminiPanel: React.FC<GeminiPanelProps> = ({
             onSend();
         }
     };
-
-    // Intercept function calls that need to be executed by the parent
-    // Note: The hook handles logic/reposition updates internally via the passed callbacks.
-    // But for 'add_question' and 'delete_question', we need to ensure they are called.
-    // The current hook implementation returns "OK" to the model but doesn't execute 'add_question' or 'delete_question'.
-    // We need to patch the hook or handle it here. 
-    // Ideally, the hook should accept all callbacks.
-    // Let's assume for this step that we will update the hook to handle these, OR we can add a useEffect here to monitor messages?
-    // No, the cleanest way is to pass these callbacks to the hook.
-    // I will update the hook in the next step to accept onAddQuestion and onDeleteQuestion if I missed them.
-    // Checking the previous hook code... I only passed onUpdateQuestion and onRepositionQuestion.
-    // I need to update the hook to accept onAddQuestion and onDeleteQuestion.
-    // For now, I will write this component assuming the hook *will* handle them, and then I will quickly patch the hook.
 
     return (
         <div className="flex flex-col h-full bg-surface">

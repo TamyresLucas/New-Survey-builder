@@ -476,6 +476,8 @@ const App: React.FC = () => {
                                 onUpdateQuestion={actions.handleUpdateQuestionFromAI}
                                 onRepositionQuestion={actions.handleRepositionQuestion}
                                 onDeleteQuestion={actions.handleDeleteQuestionFromAI}
+                                onAddBlock={actions.handleAddBlockFromAI}
+                                onUpdateBlock={actions.handleUpdateBlockFromAI}
                                 helpTopic={geminiHelpTopic}
                                 selectedQuestion={selectedQuestion}
                                 logicIssues={logicIssues}

@@ -124,8 +124,8 @@ const PreviewContent: React.FC<PreviewContentProps> = ({
   questionIdToBlockMap,
 }) => {
   const shouldShowBackButton = currentPage > 0 && !questions.some(q => {
-      const parentBlock = questionIdToBlockMap.get(q.id);
-      return q.hideBackButton || parentBlock?.hideBackButton;
+    const parentBlock = questionIdToBlockMap.get(q.id);
+    return q.hideBackButton || parentBlock?.hideBackButton;
   });
 
   return (
@@ -197,153 +197,153 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
     let currentPage: Question[] = [];
 
     for (const block of survey.blocks) {
-        // Treat start of a new block as an implicit page break if the current page isn't empty.
-        if (currentPage.length > 0) {
+      // Treat start of a new block as an implicit page break if the current page isn't empty.
+      if (currentPage.length > 0) {
+        finalPages.push(currentPage);
+        currentPage = [];
+      }
+
+      for (const question of block.questions) {
+        // Only consider questions that should be visible based on display logic
+        const isVisible = evaluateDisplayLogic(question, answers, survey, questionMapByQid);
+        if (!isVisible) continue;
+
+        if (question.type === QuestionType.PageBreak) {
+          // If there's content on the current page, finalize it before the break.
+          if (currentPage.length > 0) {
             finalPages.push(currentPage);
-            currentPage = [];
+          }
+          // Start a new page after the break.
+          currentPage = [];
+        } else {
+          currentPage.push(question);
         }
-
-        for (const question of block.questions) {
-            // Only consider questions that should be visible based on display logic
-            const isVisible = evaluateDisplayLogic(question, answers, survey, questionMapByQid);
-            if (!isVisible) continue;
-
-            if (question.type === QuestionType.PageBreak) {
-                // If there's content on the current page, finalize it before the break.
-                if (currentPage.length > 0) {
-                    finalPages.push(currentPage);
-                }
-                // Start a new page after the break.
-                currentPage = [];
-            } else {
-                currentPage.push(question);
-            }
-        }
+      }
     }
 
     // Add the last page if it has any questions
     if (currentPage.length > 0) {
-        finalPages.push(currentPage);
+      finalPages.push(currentPage);
     }
-    
+
     // If after all logic, there are no pages, return a single empty page to avoid crashes.
     return finalPages.length > 0 ? finalPages : [[]];
   }, [survey, answers, questionMapByQid]);
-  
+
   const nextStepInfo = useMemo(() => {
     const questionsOnPage = pages[currentPage];
     if (!questionsOnPage) {
-        return { action: 'next' as const, pageIndex: currentPage + 1 };
+      return { action: 'next' as const, pageIndex: currentPage + 1 };
     }
 
     let destination: string | null = null;
 
     // Iterate through questions on the current page in reverse order to find the last applicable logic
     for (let i = questionsOnPage.length - 1; i >= 0; i--) {
-        const question = questionsOnPage[i];
-        const answer = answers.get(question.id);
+      const question = questionsOnPage[i];
+      const answer = answers.get(question.id);
 
-        // An answer must exist for some logic to be triggered
-        if (answer === undefined) {
-            continue;
-        }
+      // An answer must exist for some logic to be triggered
+      if (answer === undefined) {
+        continue;
+      }
 
-        // 1. Check for Branching Logic first
-        const branchingLogic = question.branchingLogic;
-        if (branchingLogic && branchingLogic.branches) {
-            let branchMatched = false;
-            for (const branch of branchingLogic.branches) {
-                if (!branch.thenSkipToIsConfirmed) continue;
+      // 1. Check for Branching Logic first
+      const branchingLogic = question.branchingLogic;
+      if (branchingLogic && branchingLogic.branches) {
+        let branchMatched = false;
+        for (const branch of branchingLogic.branches) {
+          if (!branch.thenSkipToIsConfirmed) continue;
 
-                const confirmedConditions = branch.conditions.filter(c => c.isConfirmed);
-                if (confirmedConditions.length === 0) continue;
+          const confirmedConditions = branch.conditions.filter(c => c.isConfirmed);
+          if (confirmedConditions.length === 0) continue;
 
-                const conditionResults = confirmedConditions.map(cond => 
-                    evaluateCondition(cond, answers, survey, questionMapByQid)
-                );
-                
-                const branchResult = branch.operator === 'AND'
-                    ? conditionResults.every(res => res)
-                    : conditionResults.some(res => res);
+          const conditionResults = confirmedConditions.map(cond =>
+            evaluateCondition(cond, answers, survey, questionMapByQid)
+          );
 
-                if (branchResult) {
-                    destination = branch.thenSkipTo;
-                    branchMatched = true;
-                    break;
-                }
-            }
+          const branchResult = branch.operator === 'AND'
+            ? conditionResults.every(res => res)
+            : conditionResults.some(res => res);
 
-            if (branchMatched) {
-                break; 
-            }
-
-            if (branchingLogic.otherwiseIsConfirmed) {
-                destination = branchingLogic.otherwiseSkipTo;
-                break;
-            }
-        }
-        
-        if (destination !== null) {
+          if (branchResult) {
+            destination = branch.thenSkipTo;
+            branchMatched = true;
             break;
+          }
         }
 
-        // 2. Fallback to Skip Logic
-        const skipLogic = question.skipLogic;
-        if (skipLogic) {
-            if (skipLogic.type === 'simple' && skipLogic.isConfirmed) {
-                destination = skipLogic.skipTo;
-            } else if (skipLogic.type === 'per_choice' && (typeof answer === 'string' || answer instanceof Set)) {
-                const answerSet = typeof answer === 'string' ? new Set([answer]) : answer;
-                for (const ans of Array.from(answerSet).reverse()) { 
-                    const rule = skipLogic.rules.find(r => r.choiceId === ans && r.isConfirmed);
-                    if (rule?.skipTo) {
-                        destination = rule.skipTo;
-                        break;
-                    }
-                }
+        if (branchMatched) {
+          break;
+        }
+
+        if (branchingLogic.otherwiseIsConfirmed) {
+          destination = branchingLogic.otherwiseSkipTo;
+          break;
+        }
+      }
+
+      if (destination !== null) {
+        break;
+      }
+
+      // 2. Fallback to Skip Logic
+      const skipLogic = question.skipLogic;
+      if (skipLogic) {
+        if (skipLogic.type === 'simple' && skipLogic.isConfirmed) {
+          destination = skipLogic.skipTo;
+        } else if (skipLogic.type === 'per_choice' && (typeof answer === 'string' || answer instanceof Set)) {
+          const answerSet = typeof answer === 'string' ? new Set([answer]) : answer;
+          for (const ans of Array.from(answerSet).reverse()) {
+            const rule = skipLogic.rules.find(r => r.choiceId === ans && r.isConfirmed);
+            if (rule?.skipTo) {
+              destination = rule.skipTo;
+              break;
             }
+          }
         }
-        
-        if (destination !== null) {
-            break;
-        }
+      }
+
+      if (destination !== null) {
+        break;
+      }
     }
 
     // 3. If no question logic, check block-level logic
     if (destination === null) {
-        const lastQuestionOnPage = questionsOnPage[questionsOnPage.length - 1];
-        if (lastQuestionOnPage) {
-            const blockOfLastQuestion = survey.blocks.find(b => b.questions.some(q => q.id === lastQuestionOnPage.id));
-            const interactiveQuestionsInBlock = blockOfLastQuestion?.questions.filter(q => q.type !== QuestionType.PageBreak && q.type !== QuestionType.Description);
-            const lastInteractiveInBlock = interactiveQuestionsInBlock?.[interactiveQuestionsInBlock.length - 1];
+      const lastQuestionOnPage = questionsOnPage[questionsOnPage.length - 1];
+      if (lastQuestionOnPage) {
+        const blockOfLastQuestion = survey.blocks.find(b => b.questions.some(q => q.id === lastQuestionOnPage.id));
+        const interactiveQuestionsInBlock = blockOfLastQuestion?.questions.filter(q => q.type !== QuestionType.PageBreak && q.type !== QuestionType.Description);
+        const lastInteractiveInBlock = interactiveQuestionsInBlock?.[interactiveQuestionsInBlock.length - 1];
 
-            if (blockOfLastQuestion && lastInteractiveInBlock?.id === lastQuestionOnPage.id && blockOfLastQuestion.continueTo && blockOfLastQuestion.continueTo !== 'next') {
-                destination = blockOfLastQuestion.continueTo;
-            }
+        if (blockOfLastQuestion && lastInteractiveInBlock?.id === lastQuestionOnPage.id && blockOfLastQuestion.continueTo && blockOfLastQuestion.continueTo !== 'next') {
+          destination = blockOfLastQuestion.continueTo;
         }
+      }
     }
 
     if (destination === 'end') {
-        return { action: 'submit' as const };
+      return { action: 'submit' as const };
     }
 
     if (destination && destination !== 'next') {
-        let targetId = destination;
-        if (destination.startsWith('block:')) {
-            const blockId = destination.substring(6);
-            const targetBlock = survey.blocks.find(b => b.id === blockId);
-            const firstQuestionInBlock = targetBlock?.questions.find(q => q.type !== QuestionType.PageBreak);
-            targetId = firstQuestionInBlock?.id || '';
-        }
+      let targetId = destination;
+      if (destination.startsWith('block:')) {
+        const blockId = destination.substring(6);
+        const targetBlock = survey.blocks.find(b => b.id === blockId);
+        const firstQuestionInBlock = targetBlock?.questions.find(q => q.type !== QuestionType.PageBreak);
+        targetId = firstQuestionInBlock?.id || '';
+      }
 
-        const pageIndex = pages.findIndex(p => p.some(q => q.id === targetId));
-        if (pageIndex > -1) {
-            return { action: 'next' as const, pageIndex };
-        }
+      const pageIndex = pages.findIndex(p => p.some(q => q.id === targetId));
+      if (pageIndex > -1) {
+        return { action: 'next' as const, pageIndex };
+      }
     }
 
     if (currentPage >= pages.length - 1) {
-        return { action: 'submit' as const };
+      return { action: 'submit' as const };
     }
 
     return { action: 'next' as const, pageIndex: currentPage + 1 };
@@ -364,20 +364,20 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
 
     const sourceEl = scrollingPane === 'desktop' ? desktopPaneRef.current : mobilePaneRef.current;
     const targetEl = scrollingPane === 'desktop' ? mobilePaneRef.current : desktopPaneRef.current;
-    
+
     if (!sourceEl || !targetEl) return;
 
     const sourceScrollable = sourceEl.scrollHeight - sourceEl.clientHeight;
     if (sourceScrollable <= 0) return;
 
     const scrollPercentage = sourceEl.scrollTop / sourceScrollable;
-    
+
     const targetScrollable = targetEl.scrollHeight - targetEl.clientHeight;
 
     if (targetScrollable > 0) {
-        scrollLockRef.current = true;
-        targetEl.scrollTop = scrollPercentage * targetScrollable;
-        setTimeout(() => { scrollLockRef.current = false; }, 50); 
+      scrollLockRef.current = true;
+      targetEl.scrollTop = scrollPercentage * targetScrollable;
+      setTimeout(() => { scrollLockRef.current = false; }, 50);
     }
   };
 
@@ -431,12 +431,12 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
       setCurrentPage(lastPage);
     }
   };
-  
+
   const handleAnswerChange = useCallback((questionId: string, answer: any) => {
     lastAnsweredQIdRef.current = questionId;
     setAnswers(prev => new Map(prev).set(questionId, answer));
   }, []);
-  
+
   // Autoadvance logic
   useEffect(() => {
     const lastAnsweredQId = lastAnsweredQIdRef.current;
@@ -444,21 +444,21 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
 
     const question = currentQuestions.find(q => q.id === lastAnsweredQId);
     if (!question) return;
-    
+
     const parentBlock = questionIdToBlockMap.get(question.id);
 
     const isAutoadvanceable = (question.autoAdvance === true) || (question.autoAdvance === undefined && parentBlock?.autoAdvance === true) || (question.autoAdvance === undefined && parentBlock?.autoAdvance === undefined && survey.globalAutoAdvance === true);
 
     if (isAutoadvanceable && [QuestionType.Radio, QuestionType.ChoiceGrid].includes(question.type)) {
-        // Delay slightly to allow the UI to update and for the user to see their selection
-        const timer = setTimeout(() => {
-            handleNext();
-        }, 300);
-        return () => clearTimeout(timer);
+      // Delay slightly to allow the UI to update and for the user to see their selection
+      const timer = setTimeout(() => {
+        handleNext();
+      }, 300);
+      return () => clearTimeout(timer);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers, currentQuestions]);
-  
+
   // FIX: Added return statement to the component to render the JSX.
   return (
     <div
@@ -467,17 +467,17 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
       <div
         className="bg-surface w-full h-full flex flex-col"
       >
-        <header className="p-4 border-b border-outline-variant flex items-center justify-between flex-shrink-0">
+        <header className="p-4 border-b border-outline-variant flex items-center justify-between flex-shrink-0 bg-surface-container">
           <h2 className="text-lg font-bold text-on-surface">Preview Survey</h2>
           <button onClick={onClose} className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high">
             <XIcon className="text-xl" />
           </button>
         </header>
 
-        <main className="flex-1 overflow-hidden grid grid-cols-2 gap-4">
+        <main className="flex-1 overflow-hidden grid grid-cols-2">
           {/* Desktop Preview */}
           <div className="flex flex-col">
-            <div ref={desktopPaneRef} onScroll={() => syncScroll('desktop')} className="flex-1 overflow-y-auto p-8">
+            <div ref={desktopPaneRef} onScroll={() => syncScroll('desktop')} className="flex-1 overflow-y-auto p-8 bg-surface-container">
               <PreviewContent
                 device="desktop"
                 survey={survey}
@@ -502,7 +502,7 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
                 <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[124px] rounded-l-lg"></div>
                 <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[178px] rounded-l-lg"></div>
                 <div className="h-[64px] w-[3px] bg-gray-800 absolute -right-[17px] top-[142px] rounded-r-lg"></div>
-                <div className="rounded-[2rem] overflow-hidden w-full h-full bg-surface">
+                <div className="rounded-[2rem] overflow-hidden w-full h-full bg-surface-container">
                   <div className="px-4 py-2 flex justify-between items-center text-xs text-on-surface-variant font-sans font-bold">
                     <span>12:29</span>
                     <div className="flex items-center gap-1">

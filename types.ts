@@ -180,7 +180,7 @@ export interface ActionLogic {
   };
 }
 
-export interface Workflow {
+export interface AdvancedLogic {
   id: string;
   wid: string;
   name: string;
@@ -257,8 +257,8 @@ export interface Question {
   answerBehavior?: AnswerBehavior;
   choiceEliminationLogic?: ChoiceEliminationLogic;
   branchingLogic?: BranchingLogic;
-  beforeWorkflows?: Workflow[];
-  afterWorkflows?: Workflow[];
+  beforeAdvancedLogics?: AdvancedLogic[];
+  afterAdvancedLogics?: AdvancedLogic[];
   choiceDisplayLogic?: ChoiceDisplayLogic;
 
   // --- NEW DRAFT LOGIC PROPERTIES ---
@@ -266,8 +266,8 @@ export interface Question {
   draftHideLogic?: DisplayLogic;
   draftSkipLogic?: SkipLogic;
   draftBranchingLogic?: BranchingLogic;
-  draftBeforeWorkflows?: Workflow[];
-  draftAfterWorkflows?: Workflow[];
+  draftBeforeAdvancedLogics?: AdvancedLogic[];
+  draftAfterAdvancedLogics?: AdvancedLogic[];
   draftChoiceDisplayLogic?: ChoiceDisplayLogic;
 
   // --- NEW FEATURE ---

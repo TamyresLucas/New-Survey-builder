@@ -52,7 +52,7 @@ export const RandomizeChoicesEditor: React.FC<{
               id="randomization-method"
               value={answerBehavior.randomizationMethod || 'permutation'}
               onChange={handleMethodChange}
-              className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md p-2 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
             >
               <option value="permutation">Permutation</option>
               <option value="random_reverse">Random Reverse</option>

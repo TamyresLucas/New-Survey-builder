@@ -11,7 +11,7 @@ interface LeftSidebarProps {
 
 const LeftSidebar: React.FC<LeftSidebarProps> = memo(({ activeTab, onTabSelect }) => {
   return (
-    <nav className="flex-shrink-0 w-16 bg-surface-container border-r border-outline-variant flex flex-col gap-[10px]">
+    <nav className="flex-shrink-0 w-16 bg-surface-container border-r border-[color:var(--border-bd-def)] flex flex-col gap-[10px]">
       {mainNavItems.map((item) => (
         <button
           key={item.id}

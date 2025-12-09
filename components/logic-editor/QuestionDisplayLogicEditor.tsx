@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { Question, DisplayLogic, DisplayLogicCondition, LogicIssue } from '../../types';
 import { generateId } from '../../utils';
 import { PlusIcon } from '../icons';
-import { AdvancedLogicEditor, CopyAndPasteButton, LogicConditionRow } from './shared';
+import { LogicExpressionEditor, CopyAndPasteButton, LogicConditionRow } from './shared';
 
 interface ConditionalLogicEditorProps {
     logicType: 'display' | 'hide';
@@ -155,7 +155,7 @@ export const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
                 <h3 className="text-sm font-medium text-on-surface mb-1">{title}</h3>
                 <p className="text-xs text-on-surface-variant mb-3">{description}.</p>
                 {isPasting ? (
-                    <AdvancedLogicEditor
+                    <LogicExpressionEditor
                         onSave={handlePasteLogic}
                         onCancel={() => setIsPasting(false)}
                         placeholder={"Q1 equals Yes\nQ2 not_equals 5"}

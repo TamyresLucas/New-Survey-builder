@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import type { Question, Survey, Block, DisplayLogicCondition, DisplayLogic, LogicSet as ILogicSet, LogicIssue } from '../../../types';
 import { ArrowRightAltIcon, PlusIcon, ChevronDownIcon, GridIcon, EditIcon } from '../../icons';
-import { QuestionGroupEditor, CopyAndPasteButton, CollapsibleSection, LogicSet, DisplayLogicSet, AdvancedLogicEditor, LogicConditionRow } from '../../logic-editor/shared';
+import { QuestionGroupEditor, CopyAndPasteButton, CollapsibleSection, LogicSet, DisplayLogicSet, LogicExpressionEditor, LogicConditionRow } from '../../logic-editor/shared';
 import { generateId, parseDisplayLogicString, parseVoxcoLogic } from '../../../utils';
 import { Button } from '../../Button';
 
@@ -328,7 +328,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
 
                 {isPasting && (
                     <div className="mb-4">
-                        <AdvancedLogicEditor
+                        <LogicExpressionEditor
                             onSave={handlePasteLogic}
                             onCancel={() => setIsPasting(false)}
                             placeholder={"Q1 equals Yes\nHIDE IF Q2 equals No"}

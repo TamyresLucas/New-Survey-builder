@@ -31,9 +31,9 @@ Several key design patterns have been established to ensure a consistent and int
 -   **Smart Filtering**: Dropdown options for logic conditions are dynamically filtered based on the current context. For example, "Display Logic" only shows preceding questions, while "Branching Logic" and "Skip Logic" only show following questions for destinations.
 -   **Progressive Disclosure**: Advanced or secondary options (like "Copy and paste" logic) are hidden from the initial view and are only revealed after the primary action has been taken, reducing initial cognitive load.
 -   **Context-Aware Inputs**: UI controls adapt based on user selections. For instance, a free-text value field transforms into a dropdown of pre-filled choices when the user selects a multiple-choice question in a logic condition.
--   **Draft & Confirm Workflow**: Changes to complex logic are not applied to the survey immediately. They are stored in a temporary "draft" state. The original, confirmed logic remains active on the canvas until the user explicitly confirms the new changes, preventing errors from incomplete or accidental edits.
+-   **Draft & Confirm Process**: Changes to complex logic are not applied to the survey immediately. They are stored in a temporary "draft" state. The original, confirmed logic remains active on the canvas until the user explicitly confirms the new changes, preventing errors from incomplete or accidental edits.
 -   **Consistent Actions**: UI controls for similar actions are standardized. For example, adding a new logic condition is always labeled "+ Add condition" and is placed consistently in the UI.
--   **Logical Grouping**: Related features are grouped. All advanced survey features, including complex branching and workflows, are consolidated under a single "Branching Logic" section within the "Branching Logic" tab, creating a predictable location for power-user functionality.
+-   **Logical Grouping**: Related features are grouped. All advanced survey features, including complex branching and advanced logic, are consolidated under a single "Branching Logic" section within the "Branching Logic" tab, creating a predictable location for power-user functionality.
 
 ## Component Library Overview
 

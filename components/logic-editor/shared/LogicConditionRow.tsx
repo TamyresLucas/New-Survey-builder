@@ -140,7 +140,7 @@ export const LogicConditionRow: React.FC<{
         };
 
         return (
-            <div id={condition.id} className="flex items-center gap-2 p-2 rounded-md w-full">
+            <div id={condition.id} className="flex items-center gap-2 p-2 rounded-md w-full flex-wrap">
                 {/* 1. Question */}
                 <div className={`relative group/tooltip ${questionWidth}`}>
                     {isFirstCondition && currentQuestion ? (
@@ -173,7 +173,7 @@ export const LogicConditionRow: React.FC<{
                                     <select
                                         value={(condition as BranchingLogicCondition).value}
                                         onChange={(e) => onUpdateCondition('value', e.target.value)}
-                                        className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                                        className={`w-full bg-[var(--input-bg)] border rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                                         aria-label="Condition row"
                                         disabled={valueIsDisabled}
                                     >
@@ -192,7 +192,7 @@ export const LogicConditionRow: React.FC<{
                                 <select
                                     value={condition.operator}
                                     onChange={handleOperatorChange}
-                                    className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`}
+                                    className={`w-full bg-[var(--input-bg)] border rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`}
                                     aria-label="Select interaction"
                                     disabled={!referencedQuestion}
                                 >
@@ -209,7 +209,7 @@ export const LogicConditionRow: React.FC<{
                                     <select
                                         value={(condition as BranchingLogicCondition).gridValue || ''}
                                         onChange={(e) => onUpdateCondition('gridValue', e.target.value)}
-                                        className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                                        className={`w-full bg-[var(--input-bg)] border rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                                         aria-label="Condition scale point value"
                                         disabled={valueIsDisabled}
                                     >
@@ -229,7 +229,7 @@ export const LogicConditionRow: React.FC<{
                                         <select
                                             value={(condition as BranchingLogicCondition).value}
                                             onChange={(e) => onUpdateCondition('value', e.target.value)}
-                                            className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                                            className={`w-full bg-[var(--input-bg)] border rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                                             aria-label="Condition value"
                                             disabled={valueIsDisabled}
                                         >
@@ -246,7 +246,7 @@ export const LogicConditionRow: React.FC<{
                                         value={(condition as BranchingLogicCondition).value}
                                         onChange={(e) => onUpdateCondition('value', e.target.value)}
                                         placeholder="select answer"
-                                        className={`w-full bg-transparent border rounded-md px-2 py-1.5 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
+                                        className={`w-full bg-[var(--input-bg)] border rounded-md px-2 py-1.5 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                                         aria-label="Condition value"
                                         disabled={valueIsDisabled}
                                     />
@@ -259,7 +259,7 @@ export const LogicConditionRow: React.FC<{
                                 <select
                                     value={condition.operator}
                                     onChange={handleOperatorChange}
-                                    className={`w-full bg-transparent border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`}
+                                    className={`w-full bg-[var(--input-bg)] border rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`}
                                     aria-label="Select interaction"
                                     disabled={!referencedQuestion}
                                 >

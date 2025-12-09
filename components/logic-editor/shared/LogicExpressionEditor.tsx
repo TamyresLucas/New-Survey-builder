@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { InfoIcon, SparkleIcon, WarningIcon } from '../../icons';
 
-interface AdvancedLogicEditorProps {
+interface LogicExpressionEditorProps {
   onSave: (text: string) => { success: boolean; error?: string };
   onCancel: () => void;
   placeholder: string;
@@ -12,7 +12,7 @@ interface AdvancedLogicEditorProps {
   transparentBackground?: boolean;
 }
 
-export const AdvancedLogicEditor: React.FC<AdvancedLogicEditorProps> = ({
+export const LogicExpressionEditor: React.FC<LogicExpressionEditorProps> = ({
   onSave,
   onCancel,
   placeholder,

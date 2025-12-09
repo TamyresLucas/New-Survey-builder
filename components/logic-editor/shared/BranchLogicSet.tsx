@@ -133,6 +133,10 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
                         isFirstCondition={index === 0}
                         currentQuestion={currentQuestion}
                         usedValues={new Set()}
+                        // Responsive Widths
+                        questionWidth="flex-[1.5] min-w-[120px]"
+                        valueWidth="flex-[1] min-w-[100px]"
+                        operatorWidth="flex-[1] min-w-[100px]"
                     />
                 ))}
             </div>

@@ -318,11 +318,11 @@ const QuestionCard: React.FC<{
 
         const content = (
             <div className="flex items-center gap-4 text-on-surface-variant w-full">
-                <div className="flex-grow h-px bg-outline-variant"></div>
+                <div className="flex-grow h-px bg-outline"></div>
 
-                <div className="flex-shrink-0 flex items-stretch border border-outline-variant rounded-full overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 ring-offset-surface-container transition-shadow hover:border-outline-hover">
+                <div className="flex-shrink-0 flex items-stretch border border-outline rounded-full overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 ring-offset-surface-container transition-shadow hover:border-outline-hover">
                     <span
-                        className="bg-surface-container-high px-3 py-1.5 text-sm font-bold text-on-surface border-r border-outline-variant"
+                        className="bg-surface-container-high px-3 py-1.5 text-sm font-bold text-on-surface border-r border-outline"
                         style={{ fontFamily: "'Open Sans', sans-serif" }}
                     >
                         P{pageInfo.pageNumber}
@@ -350,7 +350,7 @@ const QuestionCard: React.FC<{
                     )}
                 </div>
 
-                <div className="flex-grow h-px bg-outline-variant"></div>
+                <div className="flex-grow h-px bg-outline"></div>
             </div>
         );
 
@@ -426,8 +426,8 @@ const QuestionCard: React.FC<{
                 className={`p-4 rounded-lg border transition-all cursor-grab group grid grid-cols-[auto_1fr] items-start gap-x-3 relative ${isSelected
                     ? (hasLogicIssues ? 'border-error shadow-md' : 'border-primary shadow-md')
                     : question.isHidden
-                        ? 'border-outline-variant bg-surface-container opacity-60'
-                        : 'border-outline-variant hover:border-outline hover:shadow-md'
+                        ? 'border-outline bg-surface-container opacity-60'
+                        : 'border-outline hover:border-outline hover:shadow-md'
                     } ${isDragging ? 'opacity-50' : ''} ${isAnyMenuOpen ? 'z-10' : ''} ${hasDisplayLogic ? 'border-dashed' : ''}`}
             >
                 {/* Grid Cell 1: Checkbox */}
@@ -571,7 +571,7 @@ const QuestionCard: React.FC<{
                             <div className="overflow-x-auto">
                                 <table className="w-full border-collapse">
                                     <thead>
-                                        <tr className="border-b border-outline-variant">
+                                        <tr className="border-b border-outline">
                                             <th className="py-2 pr-2 text-left"></th>
                                             {(question.scalePoints || []).map(sp => (
                                                 <th key={sp.id} className="py-2 px-3 text-center text-xs font-normal text-on-surface-variant align-bottom group/header relative">
@@ -614,7 +614,7 @@ const QuestionCard: React.FC<{
                                                 <React.Fragment key={choice.id}>
                                                     {dropTargetChoiceId === choice.id && <TableDropIndicator colSpan={numColumns} />}
                                                     <tr
-                                                        className={`border-b border-outline-variant last:border-b-0 group/choice transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
+                                                        className={`border-b border-outline last:border-b-0 group/choice transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
                                                         draggable
                                                         onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
                                                         onDragOver={(e) => handleChoiceDragOver(e, choice.id)}

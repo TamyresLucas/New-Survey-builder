@@ -156,7 +156,7 @@ export const LogicSet: React.FC<LogicSetProps> = ({
                             <select
                                 value={actionValue === 'show' ? 'Show' : 'Hide'}
                                 onChange={e => onActionChange(e.target.value === 'Show' ? 'show' : 'hide')}
-                                className="w-full bg-transparent border border-input-border rounded-md pl-2 pr-6 py-1.5 text-sm text-on-surface font-medium focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md pl-2 pr-6 py-1.5 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
                                 aria-label="Logic Action"
                             >
                                 <option value="Show">Show</option>

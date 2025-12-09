@@ -163,6 +163,7 @@ export const BranchingLogicEditor: React.FC<{
                     variant="tertiary-primary"
                     size="large"
                     onClick={handleAddBranch}
+                    className="mt-4"
                 >
                     <PlusIcon className="text-xl mr-2" /> Add branch
                 </Button>

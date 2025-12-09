@@ -5,7 +5,7 @@ import { RandomizeChoicesEditor } from '../../logic-editor/RandomizationEditor';
 import { ChoiceEliminationEditor } from '../../logic-editor/ChoiceEliminationEditor';
 import { ChoiceDisplayLogicEditor } from '../../logic-editor/ChoiceDisplayLogicEditor';
 import { PlusIcon, ChevronDownIcon, GridIcon, EditIcon } from '../../icons';
-import { CopyAndPasteButton, LogicSet, AdvancedLogicEditor, DisplayLogicSet } from '../../logic-editor/shared';
+import { CopyAndPasteButton, LogicSet, LogicExpressionEditor, DisplayLogicSet } from '../../logic-editor/shared';
 import { Button } from '../../Button';
 
 interface ChoiceBehaviorSectionProps {
@@ -205,7 +205,7 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
 
                 {isPasting && (
                     <div className="mb-4">
-                        <AdvancedLogicEditor
+                        <LogicExpressionEditor
                             onSave={handlePasteLogic}
                             onCancel={() => setIsPasting(false)}
                             placeholder={'SHOW "Choice 1" IF Q1 equals Yes\nHIDE "Choice 2" IF Q2 equals No'}

@@ -155,7 +155,7 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
                                 <span className="font-bold text-primary">IF</span>
                                 <div className="pl-4">
                                     {branch.conditions.length > 1 && (
-                                        <select value={branch.operator} onChange={e => handleUpdateBranch(branch.id, { operator: e.target.value as 'AND' | 'OR' })} className="text-xs font-semibold p-1 rounded-md bg-transparent border border-input-border mb-2">
+                                        <select value={branch.operator} onChange={e => handleUpdateBranch(branch.id, { operator: e.target.value as 'AND' | 'OR' })} className="text-xs font-semibold p-1 rounded-md bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--input-field-input-txt)] font-normal mb-2">
                                             <option value="AND">All conditions are met (AND)</option>
                                             <option value="OR">Any condition is met (OR)</option>
                                         </select>

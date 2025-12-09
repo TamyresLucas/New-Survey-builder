@@ -11,6 +11,45 @@ export interface ChangelogEntry {
 // NOTE: Always update 'time' to the current local time when adding an entry.
 export const changelogs: ChangelogEntry[] = [
     {
+        id: '2025-12-09-1',
+        version: 'v1.0.13',
+        date: '2025-12-09',
+        time: '5:00 PM',
+        request: 'Visual Refresh & Standardization',
+        improvements: [
+            'Updated General Border Color: Changed the global border token to #E0E4FF (periwinkle tint) in light mode.',
+            'Structural UI Updates: Applied the new border color to the Header, SubHeader, Left Sidebar, Build Panel, Right Sidebar, Question Cards, and Block Editor.',
+            'Input Field Standardization: Standardized all text inputs, text areas, and dropdowns to use consistent colors and font weight.',
+            'Button Styling: Updated the "Secondary" button variant and the "Copy Link" button in the header to explicitly use the new border color token.',
+            'Logic Editor UX: Updated skip logic creation to default to an empty choice selection, requiring explicit user input.'
+        ],
+        technicalChanges: [
+            'Updated index.html: Modified --border-bd-def CSS variable.',
+            'Updated Header.tsx, SubHeader.tsx, LeftSidebar.tsx, RightSidebar.tsx, BuildPanel.tsx, BlockEditor.tsx, QuestionCard.tsx: Updated border classes to use new token.',
+            'Updated Button.tsx: Fixed secondary button variant border color.',
+            'Updated SkipLogicEditor.tsx: Changed default state for new logic rules.',
+            'Updated TextField.tsx, TextArea.tsx, DropdownField.tsx: Standardized input styles.'
+        ]
+    },
+    {
+        id: '2025-12-08-1',
+        version: 'v1.0.12',
+        date: '2025-12-08',
+        time: '2:24 PM',
+        request: 'Logic Editor Refinements & Documentation',
+        improvements: [
+            'Updated Preview Survey UI to match design: removed borders/backgrounds from questions and utilized surface colors.',
+            'Restricted Skip Logic selection to only allow questions within the same block.',
+            'Updated Skip Logic supporting text for clarity.',
+            'Documented the BranchLogicSet component (referred to as Skip Logic Set).'
+        ],
+        technicalChanges: [
+            'Modified components/SurveyPreview.tsx and PreviewQuestion.tsx for UI updates.',
+            'Modified components/logic-editor/SkipLogicEditor.tsx to filter available questions.',
+            'Created documentation/components/BranchLogicSet.md.'
+        ]
+    },
+    {
         id: '2025-12-05-1',
         version: 'v1.0.11',
         date: '2025-12-05',
@@ -25,11 +64,15 @@ export const changelogs: ChangelogEntry[] = [
             'Styled BranchLogicSet delete button as danger variant.',
             'Removed global "Remove" button from BranchingLogicEditor header.',
             'Updated "Add condition" button size to large in BranchLogicSet.',
-            'Updated Delete/Cancel and Apply button sizes to large in BranchLogicSet.'
+            'Updated Delete/Cancel and Apply button sizes to large in BranchLogicSet.',
+            'Relabeled "Workflows" as "Advanced Logic" across the application.'
         ],
         technicalChanges: [
             'Updated BranchLogicSet.tsx: UI overhaul including button sizes, toggle operators, and footer layout.',
-            'Updated BranchingLogicEditor.tsx: Removed global remove button.'
+            'Updated BranchingLogicEditor.tsx: Removed global remove button.',
+            'Renamed Workflow interface to AdvancedLogic and updated related properties.',
+            'Renamed WorkflowSectionEditor to AdvancedLogicSectionEditor.',
+            'Renamed shared/AdvancedLogicEditor to Shared/LogicExpressionEditor to avoid conflict.'
         ]
     },
     {

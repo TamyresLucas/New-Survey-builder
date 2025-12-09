@@ -49,7 +49,7 @@ const PasteInlineForm: React.FC<{
     };
 
     return (
-        <div className={`p-3 bg-surface-container-high rounded-md border ${error ? 'border-error' : 'border-outline-variant'}`}>
+        <div className={`p-3 bg-surface-container-high rounded-md border ${error ? 'border-error' : 'border-outline'}`}>
             <div className="text-xs text-on-surface-variant mb-2 flex items-center gap-1 flex-wrap">
                 <InfoIcon className="text-sm flex-shrink-0" />
                 <span>{disclosureText}</span>
@@ -620,7 +620,7 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
             </div>
             <div className="space-y-4">
                 {branchingLogic.branches.map((branch) => (
-                    <div key={branch.id} className="p-3 border border-outline-variant rounded-md bg-surface-container">
+                    <div key={branch.id} className="p-3 border border-outline rounded-md bg-surface-container">
                         <div className="flex justify-between items-start mb-3">
                             <div>
                                 <span className="font-bold text-primary">IF</span>
@@ -651,7 +651,7 @@ const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, surv
                             <button onClick={() => handleAddCondition(branch.id)} className="text-sm font-button-text text-primary hover:underline ml-1">+ Add condition</button>
                         </div>
 
-                        <div className="flex items-center gap-2 pl-4 border-l-2 border-outline-variant ml-2">
+                        <div className="flex items-center gap-2 pl-4 border-l-2 border-outline ml-2">
                             <span className="text-xs font-bold text-on-surface-variant">THEN SKIP TO</span>
                             <DestinationRow
                                 label=""
@@ -692,7 +692,7 @@ export default function BlockEditor({ block, survey, onClose, onUpdateBlock, isE
     }, [focusTarget, block.id, onFocusHandled]);
 
     return (
-        <div className={`bg-surface border-b border-outline-variant transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+        <div className={`bg-surface border-b border-outline transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
             <div className="p-4 space-y-6">
                 <div>
                     <label className="block text-xs font-medium text-on-surface-variant mb-1">Block Title</label>
@@ -705,7 +705,7 @@ export default function BlockEditor({ block, survey, onClose, onUpdateBlock, isE
                 </div>
 
                 <div>
-                    <div className="flex border-b border-outline-variant mb-4">
+                    <div className="flex border-b border-outline mb-4">
                         <button
                             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'Display' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-primary'}`}
                             onClick={() => setActiveTab('Display')}

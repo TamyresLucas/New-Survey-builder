@@ -49,8 +49,8 @@ export const RightSidebar: React.FC<{
     }, [question.type]);
 
     return (
-        <aside className="w-full h-full bg-surface-container border-l border-outline-variant flex flex-col">
-            <header className="p-4 border-b border-outline-variant flex items-center justify-between flex-shrink-0">
+        <aside className="w-full h-full bg-surface-container border-l border-outline flex flex-col">
+            <header className="p-4 border-b border-outline flex items-center justify-between flex-shrink-0">
                 <h2 className="text-lg font-medium text-on-surface" style={{ fontFamily: "'Outfit', sans-serif" }}>
                     Edit {question.qid}
                 </h2>
@@ -64,7 +64,7 @@ export const RightSidebar: React.FC<{
                 </div>
             </header>
 
-            <div className="border-b border-outline-variant px-4">
+            <div className="border-b border-outline px-4">
                 <nav className="-mb-px flex space-x-4">
                     {tabs.map(tab => (
                         <button

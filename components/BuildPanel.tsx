@@ -429,8 +429,8 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   };
 
   return (
-    <div className="w-80 bg-surface-container border-r border-outline-variant flex flex-col flex-shrink-0">
-      <div className="p-4 border-b border-outline-variant">
+    <div className="w-80 bg-surface-container border-r border-outline flex flex-col flex-shrink-0">
+      <div className="p-4 border-b border-outline">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium text-on-surface" style={{ fontFamily: "'Outfit', sans-serif" }}>Build</h2>
           <Button variant="tertiary" iconOnly onClick={onClose} aria-label="Collapse build panel">
@@ -438,7 +438,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
           </Button>
         </div>
       </div>
-      <div className="px-4 border-b border-outline-variant">
+      <div className="px-4 border-b border-outline">
         <nav className="-mb-px flex space-x-6">
           {['Toolbox', 'Content', 'Library'].map(tab => (
             <button
@@ -455,7 +455,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
           ))}
         </nav>
       </div>
-      <div className="p-4 border-b border-outline-variant">
+      <div className="p-4 border-b border-outline">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
             <SearchIcon className="text-xl text-on-surface-variant" />
@@ -508,7 +508,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                     draggable={isEnabled && !isTextSearching}
                     onDragStart={isEnabled && !isTextSearching ? (e) => handleToolboxDragStart(e, index, item) : undefined}
                     onDragEnd={isEnabled && !isTextSearching ? handleToolboxDragEnd : undefined}
-                    className={`flex items-center px-4 py-3 border-b border-outline-variant transition-all ${isEnabled ? 'hover:bg-surface-container-high cursor-grab' : 'cursor-not-allowed'
+                    className={`flex items-center px-4 py-3 border-b border-outline transition-all ${isEnabled ? 'hover:bg-surface-container-high cursor-grab' : 'cursor-not-allowed'
                       } ${draggedToolboxIndex === index ? 'opacity-30' : ''}`}
                   >
                     <div className="flex items-center">
@@ -562,7 +562,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                       onDragStart={!isSearching ? (e) => handleBlockDragStart(e, block.id) : undefined}
                       onDragEnd={!isSearching ? handleBlockDragEnd : undefined}
                       onClick={() => onSelectBlock(block)}
-                      className={`px-4 h-[40px] cursor-pointer border-b border-t border-outline-variant flex items-center justify-between ${isSelected ? 'bg-primary text-on-primary' : 'bg-surface-container hover:bg-surface-container-high hover:border-outline-hover'}`}
+                      className={`px-4 h-[40px] cursor-pointer border-b border-t border-outline flex items-center justify-between ${isSelected ? 'bg-primary text-on-primary' : 'bg-surface-container hover:bg-surface-container-high hover:border-outline-hover'}`}
                     >
                       <div className="flex items-center cursor-grab flex-grow truncate">
                         <DragIndicatorIcon className={`text-base mr-2 flex-shrink-0 ${isSelected ? 'text-on-primary' : 'text-on-surface-variant'}`} />

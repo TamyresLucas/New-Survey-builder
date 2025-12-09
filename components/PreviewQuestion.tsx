@@ -109,8 +109,8 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
               key={choice.id}
               onClick={() => isRadio ? handleRadioChange(choice.id) : handleCheckboxChange(choice.id)}
               className={`flex items-center gap-3 p-3 rounded-md cursor-pointer border transition-colors ${isSelected
-                  ? 'bg-primary-container border-primary shadow-sm'
-                  : 'hover:bg-surface-container-high border-outline-variant'
+                ? 'bg-primary-container border-primary shadow-sm'
+                : 'hover:bg-surface-container-high border-outline-variant'
                 }`}
             >
               {isRadio ? (
@@ -273,7 +273,7 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
   };
 
   return (
-    <div className="py-8 border-b border-outline-variant last:border-b-0">
+    <div className="mb-4 last:mb-0">
       {renderQuestionText()}
       {renderContent()}
       {isInvalid && (

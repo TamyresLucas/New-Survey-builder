@@ -40,7 +40,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
     // Variant styles
     const variantStyles = {
         primary: "bg-primary text-on-primary hover:opacity-90",
-        secondary: "bg-transparent border border-outline text-on-surface hover:bg-surface-container-high",
+        secondary: "bg-transparent border border-[color:var(--border-bd-def)] text-on-surface hover:bg-surface-container-high",
         tertiary: "bg-transparent text-on-surface hover:bg-surface-container-high",
         'tertiary-primary': "bg-transparent text-primary hover:bg-primary hover:text-on-primary",
         danger: "bg-transparent text-error hover:bg-error-container",

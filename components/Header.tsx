@@ -94,7 +94,7 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
   };
 
   return (
-    <header className="flex items-center justify-between bg-surface-container border-b border-outline-variant px-5 py-2.5 flex-shrink-0 relative z-50">
+    <header className="flex items-center justify-between bg-surface-container border-b border-[color:var(--border-bd-def)] px-5 py-2.5 flex-shrink-0 relative z-50">
       <div className="flex items-center">
         <button className="text-on-surface hover:opacity-80 transition-opacity mr-4" aria-label="Workspaces">
           <GridIcon className="text-2xl" />
@@ -150,7 +150,7 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
             onClick={handleCopyClick}
             className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors ${isCopied
               ? 'bg-success text-on-success'
-              : 'border border-outline text-on-surface hover:bg-surface-container-high'
+              : 'border border-[color:var(--border-bd-def)] text-on-surface hover:bg-surface-container-high'
               }`}
             aria-label={isCopied ? "Link copied" : "Copy link"}
           >

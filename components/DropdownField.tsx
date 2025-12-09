@@ -52,7 +52,7 @@ export const DropdownField: React.FC<DropdownFieldProps> = ({
                 disabled={disabled}
                 className={`w-full h-[32px] flex items-center justify-between border rounded-md px-2 text-sm text-left transition-colors ${disabled
                     ? 'bg-surface-container-high border-input-border text-on-surface-variant/70 cursor-not-allowed'
-                    : 'bg-transparent border-input-border text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-2 focus:outline-primary'
+                    : 'bg-[var(--input-bg)] border-[var(--input-border)] text-[var(--input-field-input-txt)] font-normal hover:border-input-border-hover focus:outline-2 focus:outline-offset-2 focus:outline-primary'
                     }`}
             >
                 <div className="flex items-center truncate">

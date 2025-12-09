@@ -65,7 +65,7 @@ export const ChoiceEliminationEditor: React.FC<{
             id="carry-forward-source"
             value={choiceEliminationLogic.sourceQuestionId}
             onChange={handleSourceChange}
-            className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md p-2 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
           >
             <option value="">Select a source question...</option>
             {compatibleSourceQuestions.map(q => (

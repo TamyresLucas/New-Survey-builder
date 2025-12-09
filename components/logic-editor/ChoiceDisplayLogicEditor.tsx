@@ -150,7 +150,7 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
                                     <select
                                         value={condition.targetChoiceId}
                                         onChange={e => handleUpdateCondition(index, 'targetChoiceId', e.target.value)}
-                                        className="w-full bg-transparent border border-input-border rounded-md px-2 py-1.5 pr-8 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
+                                        className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
                                         aria-label={`Target choice for ${type} logic`}
                                     >
                                         <option value="">Select choice to {type}...</option>

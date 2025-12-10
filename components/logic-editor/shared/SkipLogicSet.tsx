@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { DestinationRow } from './DestinationRow';
 import { Button } from '../../Button';
-import { WarningIcon, ChevronDownIcon } from '../../icons';
+import { WarningIcon, ChevronDownIcon, PlusIcon } from '../../icons';
 import { LogicIssue, Survey, Block, Question } from '../../../types';
 import { truncate } from '../../../utils';
 
@@ -18,6 +18,7 @@ interface SkipLogicSetProps {
     survey?: Survey;
     currentBlockId?: string | null;
     transparentBackground?: boolean;
+    onAddCondition?: () => void;
 }
 
 export const SkipLogicSet: React.FC<SkipLogicSetProps & { children?: React.ReactNode }> = ({
@@ -33,6 +34,7 @@ export const SkipLogicSet: React.FC<SkipLogicSetProps & { children?: React.React
     survey,
     currentBlockId,
     transparentBackground = false,
+    onAddCondition,
     children
 }) => {
     const originalValueRef = useRef<string | null>(null);
@@ -52,10 +54,7 @@ export const SkipLogicSet: React.FC<SkipLogicSetProps & { children?: React.React
         }
     };
 
-    const otherBlocks = React.useMemo(() => {
-        if (!survey || !currentBlockId) return followingBlocks;
-        return survey.blocks.filter(b => b.id !== currentBlockId);
-    }, [survey, currentBlockId, followingBlocks]);
+
 
 
     const setIssues = issues; // In simple skip logic, issues usually relate directly to the one rule
@@ -83,8 +82,8 @@ export const SkipLogicSet: React.FC<SkipLogicSetProps & { children?: React.React
                 )}
 
                 <div className="flex items-center gap-2 mb-3">
-                    <span className="text-sm font-bold text-on-surface whitespace-nowrap">Skip to</span>
-                    <div className="relative flex-1">
+                    <span className="text-sm font-medium text-on-surface whitespace-nowrap">Skip to</span>
+                    <div className="relative flex-1 max-w-[170px]">
                         <select
                             value={value}
                             onChange={e => onChange(e.target.value)}
@@ -92,13 +91,6 @@ export const SkipLogicSet: React.FC<SkipLogicSetProps & { children?: React.React
                         >
                             <option value="">Select destination...</option>
                             <option value="end">End of Survey</option>
-                            {otherBlocks.length > 0 && (
-                                <optgroup label="Blocks">
-                                    {otherBlocks.map(block => (
-                                        <option key={block.id} value={`block:${block.id}`}>{block.bid}: {truncate(block.title, 50)}</option>
-                                    ))}
-                                </optgroup>
-                            )}
                             {followingQuestions.length > 0 && (
                                 <optgroup label="Questions">
                                     {followingQuestions.map(q => <option key={q.id} value={q.id}>{q.qid}: {truncate(q.text, 50)}</option>)}
@@ -107,30 +99,41 @@ export const SkipLogicSet: React.FC<SkipLogicSetProps & { children?: React.React
                         </select>
                         <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-lg" />
                     </div>
-                    <span className="text-sm font-bold text-primary">IF</span>
+                    <span className="text-sm font-medium text-on-surface">if</span>
                 </div>
 
                 <div className="space-y-2">
                     {children || label} {/* Support both for compatibility, though children is preferred for the new layout */}
                 </div>
 
-                <div className="mt-3 flex items-center justify-end gap-2">
+                <div className="mt-3 flex items-center justify-between gap-2">
                     <Button
-                        variant="tertiary"
+                        variant="tertiary-primary"
                         size="large"
-                        onClick={isConfirmed ? onRemove : handleCancel}
+                        onClick={onAddCondition}
+                        disabled={!onAddCondition}
                     >
-                        {isConfirmed ? 'Delete' : 'Cancel'}
+                        <PlusIcon className="text-lg mr-1" /> Add condition
                     </Button>
-                    {!isConfirmed && (
+
+                    <div className="flex items-center gap-2">
                         <Button
-                            variant="primary"
+                            variant="tertiary"
                             size="large"
-                            onClick={onConfirm}
+                            onClick={isConfirmed ? onRemove : handleCancel}
                         >
-                            Apply
+                            {isConfirmed ? 'Delete' : 'Cancel'}
                         </Button>
-                    )}
+                        {!isConfirmed && (
+                            <Button
+                                variant="primary"
+                                size="large"
+                                onClick={onConfirm}
+                            >
+                                Apply
+                            </Button>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

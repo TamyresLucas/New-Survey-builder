@@ -79,7 +79,7 @@ export const SkipLogicEditor: React.FC<{
             return (
                 <div>
                     <h3 className="text-sm font-medium text-on-surface mb-1">Skip Logic</h3>
-                    <p className="text-xs text-on-surface-variant mb-3">Send respondents to a question within the same block.</p>
+                    <p className="text-xs text-on-surface-variant mb-3">Skip respondents to questions within the same block based on their answers.</p>
                     <div className="flex items-center gap-4">
                         <Button variant="tertiary-primary" size="large" onClick={handleEnable}>
                             <PlusIcon className="text-xl mr-2" /> Add logic set
@@ -94,7 +94,7 @@ export const SkipLogicEditor: React.FC<{
             return (
                 <div>
                     <h3 className="text-sm font-medium text-on-surface mb-1">Skip Logic</h3>
-                    <p className="text-xs text-on-surface-variant mb-3">Send respondents to a question within the same block.</p>
+                    <p className="text-xs text-on-surface-variant mb-3">Skip respondents to questions within the same block based on their answers.</p>
                     <SkipLogicSet
                         label="If answered, skip to"
                         value={skipLogic.skipTo}
@@ -106,6 +106,7 @@ export const SkipLogicEditor: React.FC<{
                         followingQuestions={validFollowingQuestions}
                         survey={survey}
                         currentBlockId={currentBlockId}
+                        onAddCondition={() => { }} // Placeholder for now
                     />
                 </div>
             );
@@ -177,7 +178,7 @@ export const SkipLogicEditor: React.FC<{
         return (
             <div>
                 <h3 className="text-sm font-medium text-on-surface mb-1">Skip Logic</h3>
-                <p className="text-xs text-on-surface-variant mb-3">Send respondents to a question within the same block.</p>
+                <p className="text-xs text-on-surface-variant mb-3">Skip respondents to questions within the same block based on their answers.</p>
                 <div className="space-y-4 mb-4">
                     {(skipLogic.rules || []).map(rule => {
                         const choice = question.choices?.find(c => c.id === rule.choiceId);
@@ -218,6 +219,7 @@ export const SkipLogicEditor: React.FC<{
                                     followingQuestions={validFollowingQuestions}
                                     survey={survey}
                                     currentBlockId={currentBlockId}
+                                    onAddCondition={() => { }} // Placeholder for now
                                 >
                                     {ChoiceSelector}
                                 </SkipLogicSet>
@@ -226,9 +228,9 @@ export const SkipLogicEditor: React.FC<{
                     })}
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="mt-4 flex items-center justify-start">
                     <Button variant="tertiary-primary" size="large" onClick={handleAddLogicSet}>
-                        <PlusIcon className="text-xl mr-2" /> Add logic set
+                        <PlusIcon className="text-lg mr-1" /> Add logic set
                     </Button>
                 </div>
             </div>

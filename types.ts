@@ -390,7 +390,7 @@ export interface BaseNode {
  */
 export interface StartNode extends BaseNode {
   type: 'start';
-  data: { label: string };
+  data: { label: string; highlightSourceHandles?: boolean; highlightInputHandle?: boolean; };
 }
 
 /**
@@ -398,7 +398,7 @@ export interface StartNode extends BaseNode {
  */
 export interface EndNode extends BaseNode {
   type: 'end';
-  data: { label: string };
+  data: { label: string; highlightSourceHandles?: boolean; highlightInputHandle?: boolean; };
 }
 
 /**
@@ -406,7 +406,7 @@ export interface EndNode extends BaseNode {
  */
 export interface TextEntryNode extends BaseNode {
   type: 'text_entry';
-  data: { variableName: string; question: string; validationType?: string };
+  data: { variableName: string; question: string; validationType?: string; highlightSourceHandles?: boolean; highlightInputHandle?: boolean; };
 }
 
 /**
@@ -414,7 +414,7 @@ export interface TextEntryNode extends BaseNode {
  */
 export interface DescriptionNode extends BaseNode {
   type: 'description_node';
-  data: { question: string; };
+  data: { question: string; highlightSourceHandles?: boolean; highlightInputHandle?: boolean; };
 }
 
 /**
@@ -422,7 +422,7 @@ export interface DescriptionNode extends BaseNode {
  */
 export interface MultipleChoiceNode extends BaseNode {
   type: 'multiple_choice';
-  data: { variableName: string; question: string; subtype: 'radio' | 'checkbox'; options: Option[] };
+  data: { variableName: string; question: string; subtype: 'radio' | 'checkbox'; options: Option[]; highlightSourceHandles?: boolean; highlightInputHandle?: boolean; };
 }
 
 /**
@@ -446,6 +446,8 @@ export interface Edge {
   markerEnd?: any;
   selected?: boolean;
   className?: string;
+  type?: string;
+  pathOptions?: any;
 }
 
 export interface PathAnalysisResult {

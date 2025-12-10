@@ -81,7 +81,7 @@ export const BranchingLogicEditor: React.FC<{
             return (
                 <div className="py-6 first:pt-0">
                     <h3 className="text-sm font-medium text-on-surface mb-1">Branching Logic</h3>
-                    <p className="text-xs text-on-surface-variant mb-3">Create complex paths through the survey based on multiple conditions.</p>
+                    <p className="text-xs text-on-surface-variant mb-3">Redirect respondents to different blocks, sections, or survey paths within this survey based on their answers.</p>
                     <Button variant="tertiary-primary" size="large" onClick={handleAddBranchingLogic}>
                         <PlusIcon className="text-xl mr-2" /> Add branch
                     </Button>
@@ -91,7 +91,7 @@ export const BranchingLogicEditor: React.FC<{
 
         const handleUpdateBranch = (branchId: string, updates: Partial<BranchingLogicBranch>) => {
             const newBranches = branchingLogic.branches.map(b =>
-                b.id === branchId ? { ...b, ...updates, thenSkipToIsConfirmed: false } : b
+                b.id === branchId ? { ...b, ...updates } : b
             );
             handleUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
         };
@@ -133,13 +133,11 @@ export const BranchingLogicEditor: React.FC<{
 
         return (
             <div>
-                <div className="flex items-center justify-between gap-2 mb-4">
-                    <div>
-                        <p className="text-xs text-on-surface-variant">
-                            Create complex paths through the survey based on multiple conditions.
-                        </p>
-                    </div>
-
+                <div className="mb-4">
+                    <h3 className="text-sm font-medium text-on-surface mb-1">Branching Logic</h3>
+                    <p className="text-xs text-on-surface-variant">
+                        Redirect respondents to different blocks, sections, or survey paths within this survey based on their answers.
+                    </p>
                 </div>
 
                 <div className="space-y-4">

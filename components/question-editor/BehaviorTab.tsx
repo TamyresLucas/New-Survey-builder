@@ -8,6 +8,7 @@ import {
     SkipLogicSection,
     QuestionBehaviorSection
 } from './behavior';
+import { BranchingLogicEditor } from '../logic-editor/BranchingLogicEditor';
 
 interface BehaviorTabProps {
     question: Question;
@@ -57,8 +58,23 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({
                             focusedLogicSource={focusedLogicSource}
                         />
                     </div>
+                    <div className="py-6">
+                        <BranchingLogicEditor
+                            question={question}
+                            survey={survey}
+                            previousQuestions={previousQuestions}
+                            followingQuestions={followingQuestions}
+                            issues={issues.filter(i => i.type === 'branching')}
+                            onUpdate={onUpdate}
+                            onAddLogic={onAddLogic}
+                            onRequestGeminiHelp={onRequestGeminiHelp}
+                            focusedLogicSource={focusedLogicSource}
+                        />
+                    </div>
                 </div>
             </CollapsibleSection>
+
+
 
             <CollapsibleSection title="Question" defaultExpanded={true}>
                 <div className="py-6 first:pt-0">

@@ -4,6 +4,7 @@ import { LinkIcon, BellIcon, QuestionIcon, GridIcon, CheckmarkIcon, SunIcon, Moo
 import { AppChangelogModal } from './AppChangelogModal';
 import { EditableText } from './EditableText';
 import { useTheme } from '../contexts/ThemeContext';
+import { DropdownList, DropdownItem, DropdownDivider } from './DropdownList';
 import type { SurveyStatus } from '../types';
 
 interface HeaderProps {
@@ -150,7 +151,7 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
             onClick={handleCopyClick}
             className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors ${isCopied
               ? 'bg-success text-on-success'
-              : 'border border-[color:var(--border-bd-def)] text-on-surface hover:bg-surface-container-high'
+              : 'border border-[color:var(--button-btn-bd-def)] text-on-surface hover:bg-surface-container-high'
               }`}
             aria-label={isCopied ? "Link copied" : "Copy link"}
           >
@@ -183,45 +184,45 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
             </div>
           </button>
           {isUserMenuOpen && (
-            <div className="absolute right-0 mt-2 w-64 bg-surface-container rounded-md shadow-lg ring-1 ring-black/5 dark:ring-outline-variant z-30">
-              <div className="py-1">
-                <div className="px-4 py-2 border-b border-outline-variant">
-                  <p className="text-sm text-on-surface-variant" id="user-menu-email-label">Signed in as</p>
-                  <p className="text-sm font-medium text-on-surface truncate" aria-labelledby="user-menu-email-label">tamyres.lucas@voxco.com</p>
-                  <p className="text-xs text-on-surface-variant mt-1">Version: {currentVersion}</p>
-                </div>
-                <div className="p-2">
-                  <div className="flex justify-between items-center px-2 py-1">
-                    <span className="text-sm font-medium text-on-surface">Theme</span>
-                    <div className="flex items-center rounded-full bg-surface-container-high p-1">
-                      <button onClick={() => setTheme('light')} className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${theme === 'light' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'}`} aria-label="Switch to light mode">
-                        <SunIcon className="text-base" />
-                      </button>
-                      <button onClick={() => setTheme('dark')} className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${theme === 'dark' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'}`} aria-label="Switch to dark mode">
-                        <MoonIcon className="text-base" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="mt-2 pt-2 border-t border-outline-variant">
-                    <button
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                        setIsChangelogOpen(true);
-                      }}
-                      className="w-full text-left px-2 py-1.5 text-sm text-on-surface hover:bg-surface-container-high rounded-md flex items-center gap-2 transition-colors"
-                    >
-                      <HistoryIcon className="text-base text-on-surface-variant" />
-                      See app changelog
+            <DropdownList className="absolute right-0 mt-2 w-64 ring-1 ring-black/5 dark:ring-outline-variant">
+              <div className="px-4 py-2">
+                <p className="text-sm text-on-surface-variant" id="user-menu-email-label">Signed in as</p>
+                <p className="text-sm font-medium text-on-surface truncate" aria-labelledby="user-menu-email-label">tamyres.lucas@voxco.com</p>
+                <p className="text-xs text-on-surface-variant mt-1">Version: {currentVersion}</p>
+              </div>
+              <DropdownDivider />
+              <div className="p-2">
+                <div className="flex justify-between items-center px-2 py-1">
+                  <span className="text-sm font-medium text-on-surface">Theme</span>
+                  <div className="flex items-center rounded-full bg-surface-container-high p-1">
+                    <button onClick={() => setTheme('light')} className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${theme === 'light' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'}`} aria-label="Switch to light mode">
+                      <SunIcon className="text-base" />
+                    </button>
+                    <button onClick={() => setTheme('dark')} className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${theme === 'dark' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'}`} aria-label="Switch to dark mode">
+                      <MoonIcon className="text-base" />
                     </button>
                   </div>
                 </div>
+                <DropdownDivider className="mt-2 pt-2" />
+                <div className="mt-1">
+                  <DropdownItem
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
+                      setIsChangelogOpen(true);
+                    }}
+                    icon={HistoryIcon}
+                    className="rounded-md"
+                  >
+                    See app changelog
+                  </DropdownItem>
+                </div>
               </div>
-            </div>
+            </DropdownList>
           )}
         </div>
       </div>
       {isChangelogOpen && <AppChangelogModal onClose={() => setIsChangelogOpen(false)} />}
-    </header>
+    </header >
   );
 });
 

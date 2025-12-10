@@ -795,7 +795,7 @@ const QuestionCard: React.FC<{
                             logic={question.branchingLogic}
                             survey={survey}
                             question={question}
-                            onClick={(id) => onSelect(question, { tab: 'Advanced', focusOn: id || 'branching' })}
+                            onClick={(id) => onSelect(question, { tab: 'Behavior', focusOn: id || 'branching' })}
                             issues={logicIssues.filter(i => i.type === 'branching')}
                             isFocused={focusedLogicSource === 'branching'}
                             focusedId={focusedLogicSource}

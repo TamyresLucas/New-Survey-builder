@@ -3,7 +3,6 @@ import type { Question, Survey, LogicIssue } from '../../types';
 import { QuestionType } from '../../types';
 
 import { CollapsibleSection } from '../logic-editor/shared';
-import { BranchingLogicEditor } from '../logic-editor/BranchingLogicEditor';
 import { AdvancedLogicSectionEditor } from '../logic-editor/AdvancedLogicSectionEditor';
 import { ChoiceLayoutEditor, TextEntryAdvancedSettings } from './advanced';
 import { PreviewQuestion } from '../PreviewQuestion';
@@ -35,22 +34,6 @@ export const AdvancedTab: React.FC<AdvancedTabProps> = ({
 
     return (
         <div className="p-6 space-y-8">
-            <CollapsibleSection title="Branching Logic" defaultExpanded={true}>
-                <div className="py-6 first:pt-0">
-                    <BranchingLogicEditor
-                        question={question}
-                        survey={survey}
-                        previousQuestions={previousQuestions}
-                        followingQuestions={followingQuestions}
-                        issues={issues.filter(i => i.type === 'branching')}
-                        onUpdate={onUpdate}
-                        onAddLogic={onAddLogic}
-                        onRequestGeminiHelp={onRequestGeminiHelp}
-                        focusedLogicSource={focusedLogicSource}
-                    />
-                </div>
-            </CollapsibleSection>
-
             <CollapsibleSection title="Advanced Logic" defaultExpanded={true}>
                 <div className="-mt-2 mb-4">
                     <p className="text-xs text-on-surface-variant">Automate tasks, and integrate with other services.</p>

@@ -148,7 +148,7 @@ export const LogicConditionRow: React.FC<{
                             title={`${currentQuestion.qid}: ${currentQuestion.text}`}
                             className="w-full bg-surface-container-high border border-input-border rounded-md px-4 py-1.5 text-sm text-on-surface-variant flex items-center gap-2 cursor-not-allowed"
                         >
-                            <span className="font-semibold">{currentQuestion.qid}:</span>
+                            <span className="font-medium">{currentQuestion.qid}:</span>
                             <span className="truncate">{truncate(currentQuestion.text, 50)}</span>
                         </div>
                     ) : (

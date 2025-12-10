@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import { Button } from './Button';
 import { XIcon, SparkleIcon, SendIcon } from './icons';
 import type { Survey, LogicIssue, Question } from '../types';
 import { useGeminiChat } from '../hooks/useGeminiChat';
@@ -84,13 +85,18 @@ const GeminiPanel: React.FC<GeminiPanelProps> = ({
     return (
         <div className="flex flex-col h-full bg-surface">
             <div className="flex items-center justify-between p-4 border-b border-outline-variant bg-surface-container">
-                <div className="flex items-center gap-2 text-primary">
-                    <SparkleIcon className="w-5 h-5" />
-                    <h2 className="font-semibold text-lg">AI Assistant</h2>
+                <div className="flex items-center gap-2 text-on-surface">
+                    <SparkleIcon className="w-5 h-5 text-primary" />
+                    <h2 className="text-lg font-medium" style={{ fontFamily: "'Outfit', sans-serif" }}>AI Assistant</h2>
                 </div>
-                <button onClick={onClose} className="p-1 hover:bg-surface-container-high rounded-md text-on-surface-variant">
-                    <XIcon className="w-5 h-5" />
-                </button>
+                <Button
+                    variant="tertiary"
+                    iconOnly
+                    onClick={onClose}
+                    className="text-on-surface-variant"
+                >
+                    <XIcon className="text-xl" />
+                </Button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-surface-container/50">
@@ -101,8 +107,9 @@ const GeminiPanel: React.FC<GeminiPanelProps> = ({
                     max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed shadow-sm
                     ${msg.role === 'user'
                                     ? 'bg-primary text-on-primary rounded-br-none'
-                                    : 'bg-surface-container-high border border-outline-variant text-on-surface rounded-bl-none'
+                                    : 'bg-surface border border-outline-variant text-on-surface rounded-bl-none'
                                 }
+                                style={msg.role === 'model' ? { backgroundColor: 'var(--background--surface-bg)' } : undefined}
                 `}
                         >
                             {msg.role === 'model' ? (
@@ -117,7 +124,10 @@ const GeminiPanel: React.FC<GeminiPanelProps> = ({
                 ))}
                 {isLoading && (
                     <div className="flex justify-start">
-                        <div className="bg-surface-container-high border border-outline-variant p-3 rounded-2xl rounded-bl-none shadow-sm flex items-center gap-2">
+                        <div
+                            className="bg-surface border border-outline-variant p-3 rounded-2xl rounded-bl-none shadow-sm flex items-center gap-2"
+                            style={{ backgroundColor: 'var(--background--surface-bg)' }}
+                        >
                             <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                             <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                             <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />

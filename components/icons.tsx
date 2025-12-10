@@ -124,3 +124,5 @@ export const PublishIcon: React.FC<IconProps> = ({ className, style }) => <Mater
 export const HistoryIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="history" className={className} style={style} />;
 export const CalendarIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="calendar_today" className={className} style={style} />;
 export const EditIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="edit" className={className} style={style} />;
+export const DownloadIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="download" className={className} style={style} />;
+export const FileExportIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="file_export" className={className} style={style} />;

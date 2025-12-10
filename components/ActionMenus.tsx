@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { Question, QuestionType, ToolboxItemData, Survey } from '../types';
-import { ChevronRightIcon } from './icons';
+import { ChevronRightIcon, DownloadIcon } from './icons';
 import { DropdownList, DropdownItem, DropdownDivider } from './DropdownList';
 
 export const QuestionTypeSelectionMenuContent: React.FC<{

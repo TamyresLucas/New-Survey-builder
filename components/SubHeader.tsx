@@ -1,14 +1,16 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
-import { DotsHorizontalIcon, EyeIcon } from './icons';
+import { DotsHorizontalIcon, EyeIcon, FileExportIcon } from './icons';
+import { DropdownList, DropdownItem, DropdownDivider } from './DropdownList';
 
 interface SubHeaderProps {
   onTogglePreview: () => void;
   onCopySurvey: () => void;
   onExportCsv: () => void;
+  onExport: () => void;
   onImportSurvey: () => void;
 }
 
-const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurvey, onExportCsv, onImportSurvey }) => {
+const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurvey, onExportCsv, onExport, onImportSurvey }) => {
   const navItems = ['Design', 'Test', 'Distribute', 'Results', 'Analyze'];
   const activeItem = 'Design';
 
@@ -68,34 +70,25 @@ const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurve
             <DotsHorizontalIcon className="text-xl" />
           </button>
           {isActionsOpen && (
-            <div className="absolute top-full right-0 mt-2 w-56 bg-surface-container border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-              <ul className="py-1">
-                <li>
-                  <button
-                    onClick={() => { onImportSurvey(); setIsActionsOpen(false); }}
-                    className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high"
-                  >
-                    Import survey
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => { onExportCsv(); setIsActionsOpen(false); }}
-                    className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high"
-                  >
-                    Export survey as CSV
-                  </button>
-                </li>
-                <div className="border-t border-dotted border-outline-variant mx-2 my-1" />
-                <li>
-                  <button
-                    onClick={() => { onCopySurvey(); setIsActionsOpen(false); }}
-                    className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high"
-                  >
-                    Copy survey
-                  </button>
-                </li>
-              </ul>
+            <div className="absolute top-full right-0 mt-2 z-20">
+              <DropdownList className="w-56">
+                <DropdownItem onClick={() => { onImportSurvey(); setIsActionsOpen(false); }}>
+                  Import survey
+                </DropdownItem>
+                <DropdownItem onClick={() => { onExportCsv(); setIsActionsOpen(false); }}>
+                  Export survey as CSV
+                </DropdownItem>
+                <DropdownItem
+                  onClick={() => { onExport(); setIsActionsOpen(false); }}
+                  icon={FileExportIcon}
+                >
+                  Export
+                </DropdownItem>
+                <DropdownDivider />
+                <DropdownItem onClick={() => { onCopySurvey(); setIsActionsOpen(false); }}>
+                  Copy survey
+                </DropdownItem>
+              </DropdownList>
             </div>
           )}
         </div>

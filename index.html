@@ -293,6 +293,9 @@
       --text-highlight-highlight-selection: var(--foundation-primary-gradients-primary-40);
       --foundation-primary-gradients-primary-80: #7b8bff;
 
+      /* Specific Token for Diagram Edges */
+      --diagram-edge-def: var(--foundation-off-black);
+
       /* Button font weights */
       --button-text-weight: 600;
       --button-primary-weight: 600;
@@ -520,6 +523,7 @@
       --text-highlight-highlight-tool: var(--foundation-periwinkle);
       --text-highlight-highlight-selection: var(--foundation-primary-gradients-primary-40);
       --foundation-primary-gradients-primary-80: #4858cc;
+      --diagram-edge-def: var(--input-field-input-bd-def);
     }
   </style>
   <style>
@@ -542,7 +546,7 @@
 
     /* Custom React Flow Styles */
     .react-flow__edge-path {
-      stroke: var(--border-bd-def);
+      stroke: var(--diagram-edge-def);
       stroke-width: 2px;
     }
 
@@ -563,19 +567,19 @@
     }
 
     .react-flow__edge.structural .react-flow__edge-path {
-      stroke: var(--text-txt-sec);
+      stroke: var(--diagram-edge-def);
     }
 
     .dark .react-flow__edge.structural .react-flow__edge-path {
-      stroke: var(--border-bd-dis);
+      stroke: var(--diagram-edge-def);
     }
 
     .react-flow__edge.structural .react-flow__marker-end path {
-      fill: var(--text-txt-sec);
+      fill: var(--diagram-edge-def);
     }
 
     .dark .react-flow__edge.structural .react-flow__marker-end path {
-      fill: var(--border-bd-dis);
+      fill: var(--diagram-edge-def);
     }
 
     .react-flow__edge-text {
@@ -592,7 +596,7 @@
     }
 
     .react-flow__marker-end path {
-      fill: var(--border-bd-def);
+      fill: var(--diagram-edge-def);
     }
 
     .react-flow__edge.selected .react-flow__marker-end path {
@@ -604,7 +608,7 @@
     }
 
     .dark .react-flow__edge-path {
-      stroke: var(--border-bd-def);
+      stroke: var(--diagram-edge-def);
     }
 
     .dark .react-flow__edge-text {
@@ -614,7 +618,7 @@
     }
 
     .dark .react-flow__marker-end path {
-      fill: var(--border-bd-def);
+      fill: var(--diagram-edge-def);
     }
 
     /* React Flow Controls Dark Mode Overrides */

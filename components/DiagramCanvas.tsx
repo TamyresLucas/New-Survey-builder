@@ -1,19 +1,19 @@
 import React, { useState, useCallback, useMemo, useRef, memo, useEffect } from 'react';
 import {
-  ReactFlow,
-  ReactFlowProvider,
-  useNodesState,
-  useEdgesState,
-  useReactFlow,
-  Controls,
-  Background,
-  BackgroundVariant,
-  Connection,
-  NodeTypes,
-  MarkerType,
-  OnNodesChange,
-  OnEdgesChange,
-  Edge,
+    ReactFlow,
+    ReactFlowProvider,
+    useNodesState,
+    useEdgesState,
+    useReactFlow,
+    Controls,
+    Background,
+    BackgroundVariant,
+    Connection,
+    NodeTypes,
+    MarkerType,
+    OnNodesChange,
+    OnEdgesChange,
+    Edge,
 } from '@xyflow/react';
 
 import type { Survey, Question, SkipLogicRule, SkipLogic, EndNode, TextEntryNode, DescriptionNode, MultipleChoiceNode, StartNode } from '../types';
@@ -30,11 +30,11 @@ import EndNodeComponent from './diagram/nodes/EndNodeComponent';
 import DiagramToolbar from './diagram/DiagramToolbar';
 
 const nodeTypes: NodeTypes = {
-  start: StartNodeComponent,
-  multiple_choice: MultipleChoiceNodeComponent,
-  text_entry: TextEntryNodeComponent,
-  description_node: DescriptionNodeComponent,
-  end: EndNodeComponent,
+    start: StartNodeComponent,
+    multiple_choice: MultipleChoiceNodeComponent,
+    text_entry: TextEntryNodeComponent,
+    description_node: DescriptionNodeComponent,
+    end: EndNodeComponent,
 };
 
 const NODE_WIDTH = 320;
@@ -43,18 +43,18 @@ const VERTICAL_GAP = 80;
 
 
 interface DiagramCanvasProps {
-  survey: Survey;
-  selectedQuestion: Question | null;
-  onSelectQuestion: (question: Question | null, options?: { tab?: string; focusOn?: string }) => void;
-  onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
-  activeMainTab: string;
+    survey: Survey;
+    selectedQuestion: Question | null;
+    onSelectQuestion: (question: Question | null, options?: { tab?: string; focusOn?: string }) => void;
+    onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
+    activeMainTab: string;
 }
 
 const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab }) => {
     const { layoutNodes, layoutEdges } = useMemo(() => {
         const allQuestions = survey.blocks.flatMap(b => b.questions);
         const questionMap: Map<string, Question> = new Map(allQuestions.map(q => [q.id, q]));
-        
+
         const questionIdToBlockIdMap = new Map<string, string>();
         survey.blocks.forEach(b => {
             b.questions.forEach(q => {
@@ -66,7 +66,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         if (allQuestions.length === 0) {
             return { layoutNodes: [], layoutEdges: [] };
         }
-        
+
         const findNextQuestion = (startIndex: number, allQs: Question[]): Question | undefined => {
             for (let i = startIndex + 1; i < allQs.length; i++) {
                 if (allQs[i].type !== QuestionType.PageBreak) {
@@ -75,7 +75,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             }
             return undefined;
         };
-        
+
         const resolveDestination = (dest: string, currentIndex: number): string | undefined => {
             if (dest === 'end') return 'end-node';
             const nextQ = findNextQuestion(currentIndex, allQuestions);
@@ -89,7 +89,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             if (qById) return qById.id;
             return undefined;
         };
-        
+
         // --- Graph Representation for Layout Algorithm ---
         const adj: Record<string, string[]> = {};
         const revAdj: Record<string, string[]> = {};
@@ -161,7 +161,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 const blockOfQuestion = survey.blocks.find(b => b.questions.some(bq => bq.id === q.id));
                 const interactiveQuestionsInBlock = blockOfQuestion?.questions.filter(iq => iq.type !== QuestionType.PageBreak && iq.type !== QuestionType.Description);
                 const lastInteractiveInBlock = interactiveQuestionsInBlock?.[interactiveQuestionsInBlock.length - 1];
-                
+
                 if (blockOfQuestion && lastInteractiveInBlock?.id === q.id && blockOfQuestion.continueTo && blockOfQuestion.continueTo !== 'next') {
                     const targetId = resolveDestination(blockOfQuestion.continueTo, index);
                     if (targetId) {
@@ -174,8 +174,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             }
 
             if (targets.size === 0) {
-                 const targetId = resolveDestination('next', index);
-                 if (targetId) targets.set(targetId, 'fallthrough');
+                const targetId = resolveDestination('next', index);
+                if (targetId) targets.set(targetId, 'fallthrough');
             }
 
             targets.forEach((type, targetId) => {
@@ -199,7 +199,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 }
             });
         });
-        
+
         // --- Longest Path Algorithm (for column placement) ---
         const longestPath = new Map<string, number>();
         const inDegree: Record<string, number> = {};
@@ -207,19 +207,19 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             longestPath.set(q.id, 0);
             inDegree[q.id] = revAdj[q.id]?.length || 0;
         });
-        
+
         const queue: string[] = allQuestions.filter(q => (inDegree[q.id] || 0) === 0).map(q => q.id);
-        
-        while(queue.length > 0) {
+
+        while (queue.length > 0) {
             const u = queue.shift()!;
-            for(const v of (adj[u] || [])) {
+            for (const v of (adj[u] || [])) {
                 if (!longestPath.has(v)) continue;
                 const newPathLength = (longestPath.get(u) || 0) + 1;
                 if (newPathLength > (longestPath.get(v) || 0)) {
                     longestPath.set(v, newPathLength);
                 }
                 inDegree[v]--;
-                if(inDegree[v] === 0) {
+                if (inDegree[v] === 0) {
                     queue.push(v);
                 }
             }
@@ -232,10 +232,10 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         branchQueue.forEach(qId => branchRoot.set(qId, qId));
 
         let head = 0;
-        while(head < branchQueue.length) {
+        while (head < branchQueue.length) {
             const u = branchQueue[head++];
-            
-            const children = (adj[u] || []).sort((a,b) => {
+
+            const children = (adj[u] || []).sort((a, b) => {
                 const orderA = allQuestionsOrder.get(a) ?? 0;
                 const orderB = allQuestionsOrder.get(b) ?? 0;
                 return orderA > orderB ? 1 : (orderA < orderB ? -1 : 0);
@@ -254,7 +254,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 }
             });
         }
-        
+
         // --- Column Grouping & Vertical Placement ---
         const columns: string[][] = [];
         longestPath.forEach((col, qId) => {
@@ -281,25 +281,25 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             const sortedColumn = column.sort((a, b) => {
                 const rootA = branchRoot.get(a);
                 const rootB = branchRoot.get(b);
-                
+
                 const rootOrderA = rootA ? allQuestionsOrder.get(rootA) ?? Infinity : Infinity;
                 const rootOrderB = rootB ? allQuestionsOrder.get(rootB) ?? Infinity : Infinity;
-                
+
                 if (rootOrderA !== rootOrderB) {
                     return rootOrderA > rootOrderB ? 1 : -1;
                 }
-        
+
                 const pathA = longestPath.get(a) ?? 0;
                 const pathB = longestPath.get(b) ?? 0;
                 if (pathA !== pathB) {
                     return pathA > pathB ? 1 : -1;
                 }
-        
+
                 const orderA = allQuestionsOrder.get(a) ?? 0;
                 const orderB = allQuestionsOrder.get(b) ?? 0;
                 return orderA > orderB ? 1 : (orderA < orderB ? -1 : 0);
             });
-            
+
             let totalHeight = sortedColumn.reduce((sum, qId) => sum + (nodeHeights.get(qId) || 0), 0) + Math.max(0, sortedColumn.length - 1) * VERTICAL_GAP;
             let currentY = -totalHeight / 2;
 
@@ -313,14 +313,43 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         // --- Create Nodes and Edges for React Flow ---
         const flowNodes: DiagramNode[] = [];
         const flowEdges: DiagramEdge[] = [];
-        
+
+        // START NODE
+        const startNodeHeight = 60;
+        const initialY = allQuestions.length > 0
+            ? (nodePositions.get(allQuestions[0].id) || { y: 0 }).y
+            : 0;
+
+        const startNode: StartNode = {
+            id: 'start-node',
+            type: 'start',
+            position: { x: -300, y: initialY }, // Position Start Node to the left of the graph
+            data: { label: 'Start of Survey' },
+            width: 180,
+            height: startNodeHeight,
+        };
+        flowNodes.push(startNode);
+
+        // EDGE FROM START TO FIRST QUESTION
+        if (allQuestions.length > 0) {
+            flowEdges.push({
+                id: `e-start-${allQuestions[0].id}`,
+                source: 'start-node',
+                sourceHandle: 'output',
+                target: allQuestions[0].id,
+                targetHandle: 'input',
+                type: 'default',
+                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+            });
+        }
+
         allQuestions.forEach((q) => {
             if (q.type === QuestionType.PageBreak) return;
 
             const position = nodePositions.get(q.id) || { x: (longestPath.get(q.id) || 0) * X_SPACING, y: 0 };
-            
+
             if (q.type === QuestionType.Description) {
-                 flowNodes.push({
+                flowNodes.push({
                     id: q.id, type: 'description_node', position,
                     data: {
                         question: q.text
@@ -348,10 +377,10 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 });
             }
         });
-        
+
         allQuestions.forEach((q, index) => {
             if (q.type === QuestionType.PageBreak) return;
-        
+
             if (q.type === QuestionType.Description) {
                 const targetId = resolveDestination('next', index);
                 if (targetId && (questionMap.has(targetId) || targetId === 'end-node')) {
@@ -363,21 +392,21 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                         targetHandle: 'input',
                         label: q.qid,
                         className: 'structural',
-                        markerEnd: { type: MarkerType.ArrowClosed },
+                        markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--input-field-input-bd-def)' }
                     });
                 }
                 return;
             }
-        
+
             const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
             const skipLogic: SkipLogic | undefined = q.draftSkipLogic ?? q.skipLogic;
             let logicHandled = false;
             const hasChoices = q.choices && q.choices.length > 0;
-        
+
             if (branchingLogic) {
                 logicHandled = true;
                 const hasConfirmedBranches = branchingLogic.branches.some(b => b.thenSkipToIsConfirmed);
-        
+
                 // 1. Create edges for explicit 'IF' branches
                 branchingLogic.branches.forEach(branch => {
                     if (!branch.thenSkipToIsConfirmed) return;
@@ -391,13 +420,14 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                                     id: `e-${branch.id}-${targetId}`,
                                     source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
                                     label: branch.pathName || parseChoice(choice.text).variable,
-                                    markerEnd: { type: MarkerType.ArrowClosed }
+                                    markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                                    type: 'default'
                                 });
                             }
                         }
                     }
                 });
-        
+
                 // 2. Create a single edge for the 'otherwise' case
                 const isExhaustive = isBranchingLogicExhaustive(q);
                 if (branchingLogic.otherwiseIsConfirmed && branchingLogic.otherwiseSkipTo && !isExhaustive) {
@@ -405,12 +435,13 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     const targetId = resolveDestination(branchingLogic.otherwiseSkipTo, index);
                     if (targetId) {
                         if (hasChoices && isStructural) {
-                             q.choices!.forEach(choice => {
+                            q.choices!.forEach(choice => {
                                 flowEdges.push({
                                     id: `e-${q.id}-${choice.id}-otherwise-${targetId}`,
                                     source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
                                     label: parseChoice(choice.text).variable,
-                                    markerEnd: { type: MarkerType.ArrowClosed }
+                                    markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                                    type: 'default'
                                 });
                             });
                         } else {
@@ -419,7 +450,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                                 source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
                                 label: isStructural ? q.qid : (branchingLogic.otherwisePathName || 'Otherwise'),
                                 className: isStructural ? 'structural' : undefined,
-                                markerEnd: { type: MarkerType.ArrowClosed }
+                                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                                type: 'default'
                             });
                         }
                     }
@@ -435,7 +467,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                                     id: `e-${q.id}-${choice.id}-simple-skip-${targetId}`,
                                     source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
                                     label: parseChoice(choice.text).variable,
-                                    markerEnd: { type: MarkerType.ArrowClosed }
+                                    markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                                    type: 'default'
                                 });
                             });
                         } else {
@@ -443,7 +476,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                                 id: `e-${q.id}-skip-${targetId}`,
                                 source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
                                 label: q.qid,
-                                markerEnd: { type: MarkerType.ArrowClosed }
+                                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                                type: 'default'
                             });
                         }
                     }
@@ -453,7 +487,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                         const isConfirmedRule = rule && rule.isConfirmed;
                         const dest = isConfirmedRule ? rule.skipTo : 'next';
                         const targetId = resolveDestination(dest, index);
-            
+
                         if (targetId) {
                             flowEdges.push({
                                 id: `e-${q.id}-${choice.id}-${isConfirmedRule ? 'skip' : 'fallthrough'}-${targetId}`,
@@ -462,13 +496,14 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                                 target: targetId,
                                 targetHandle: 'input',
                                 label: isConfirmedRule ? parseChoice(choice.text).variable : '',
-                                markerEnd: { type: MarkerType.ArrowClosed }
+                                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                                type: 'default'
                             });
                         }
                     });
                 }
             }
-        
+
             // 3. Handle fallthrough (no explicit logic at all)
             if (!logicHandled) {
                 const targetId = resolveDestination('next', index);
@@ -482,7 +517,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                                 target: targetId,
                                 targetHandle: 'input',
                                 label: parseChoice(choice.text).variable,
-                                markerEnd: { type: MarkerType.ArrowClosed }
+                                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                                type: 'default'
                             });
                         });
                     } else {
@@ -494,7 +530,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                             targetHandle: 'input',
                             label: q.qid,
                             className: 'structural',
-                            markerEnd: { type: MarkerType.ArrowClosed }
+                            markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                            type: 'default',
                         });
                     }
                 }
@@ -525,16 +562,39 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         const allQuestions = survey.blocks.flatMap(b => b.questions);
         return new Map(allQuestions.map((q, i) => [q.id, i]));
     }, [survey]);
-    
+
     useEffect(() => {
         const selectedId = selectedQuestion?.id;
-        
-        setNodes(layoutNodes.map(n => ({ ...n, selected: n.id === selectedId })));
-        setEdges(layoutEdges.map(e => ({ ...e, selected: e.source === selectedId })));
-        
+
+        setNodes(layoutNodes.map(n => {
+            const isSelected = n.id === selectedId;
+            const hasSourceConnection = layoutEdges.some(e => e.target === n.id && e.source === selectedId);
+            return {
+                ...n,
+                selected: isSelected,
+                data: {
+                    ...n.data,
+                    highlightSourceHandles: isSelected,
+                    highlightInputHandle: hasSourceConnection
+                }
+            };
+        }));
+
+        setEdges(layoutEdges.map(e => {
+            const isSelected = e.source === selectedId;
+            return {
+                ...e,
+                selected: isSelected,
+                markerEnd: {
+                    type: MarkerType.ArrowClosed,
+                    color: isSelected ? 'var(--semantic-pri)' : 'var(--diagram-edge-def)'
+                }
+            };
+        }));
+
         const justSwitchedToFlow = prevActiveTabRef.current !== 'Flow' && activeMainTab === 'Flow';
         const justDeselectedQuestion = !!prevSelectedQuestionRef.current && !selectedQuestion;
-        
+
         if (selectedId) {
             const outgoingEdges = layoutEdges.filter(e => e.source === selectedId);
             const targetNodeIds = outgoingEdges.map(e => e.target);
@@ -549,7 +609,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             reactFlowInstance.fitView({ duration: 600, padding: 0.1 });
         }
     }, [layoutNodes, layoutEdges, selectedQuestion, activeMainTab, reactFlowInstance, setNodes, setEdges]);
-    
+
     useEffect(() => {
         prevActiveTabRef.current = activeMainTab;
         prevSelectedQuestionRef.current = selectedQuestion;
@@ -563,7 +623,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         if (connection.target === 'end-node') {
             return true;
         }
-        
+
         if (connection.source === connection.target) {
             return false;
         }
@@ -574,7 +634,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         if (sourceIndex === undefined || targetIndex === undefined) {
             return false;
         }
-        
+
         return targetIndex > sourceIndex;
     }, [questionIndexMap]);
 
@@ -583,15 +643,15 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             if (!connection.source || !connection.target) {
                 return;
             }
-    
+
             const sourceQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === connection.source);
             if (!sourceQuestion) return;
-            
+
             const existingLogic = sourceQuestion.draftSkipLogic ?? sourceQuestion.skipLogic;
             let newLogic: Question['skipLogic'];
-            
+
             const target = connection.target === 'end-node' ? 'end' : connection.target;
-    
+
             if (sourceQuestion.type === QuestionType.Radio || sourceQuestion.type === QuestionType.Checkbox) {
                 let newRules: SkipLogicRule[];
                 if (existingLogic?.type === 'per_choice') {
@@ -619,7 +679,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             } else if (sourceQuestion.type === QuestionType.TextEntry) {
                 newLogic = { type: 'simple', skipTo: target, isConfirmed: false };
             }
-    
+
             if (newLogic) {
                 onUpdateQuestion(sourceQuestion.id, { skipLogic: newLogic });
                 onSelectQuestion(sourceQuestion, { tab: 'Behavior', focusOn: connection.sourceHandle || undefined });
@@ -644,7 +704,17 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         event.stopPropagation();
         const sourceQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === edge.source);
         if (sourceQuestion) {
-            onSelectQuestion(sourceQuestion, { tab: 'Behavior', focusOn: edge.sourceHandle || undefined });
+            let focusTarget = edge.sourceHandle || undefined;
+
+            const branches = sourceQuestion.draftBranchingLogic?.branches || sourceQuestion.branchingLogic?.branches;
+            if (branches) {
+                const matchedBranch = branches.find(b => edge.id.includes(b.id));
+                if (matchedBranch) {
+                    focusTarget = matchedBranch.id;
+                }
+            }
+
+            onSelectQuestion(sourceQuestion, { tab: 'Behavior', focusOn: focusTarget });
         }
     }, [survey, onSelectQuestion]);
 
@@ -653,14 +723,14 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             if (!newConnection.source || !newConnection.target) {
                 return;
             }
-            
+
             const sourceQuestion = survey.blocks.flatMap(b => b.questions).find(q => q.id === newConnection.source);
             if (!sourceQuestion) return;
-    
+
             const existingLogic = sourceQuestion.draftSkipLogic ?? sourceQuestion.skipLogic;
             let newLogic: Question['skipLogic'];
             const target = newConnection.target === 'end-node' ? 'end' : newConnection.target;
-    
+
             if (sourceQuestion.type === QuestionType.Radio || sourceQuestion.type === QuestionType.Checkbox) {
                 let newRules: SkipLogicRule[];
                 if (existingLogic?.type === 'per_choice') {
@@ -688,7 +758,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             } else {
                 newLogic = { type: 'simple', skipTo: target, isConfirmed: false };
             }
-    
+
             if (newLogic) {
                 onUpdateQuestion(sourceQuestion.id, { skipLogic: newLogic });
                 onSelectQuestion(sourceQuestion, { tab: 'Behavior', focusOn: newConnection.sourceHandle || undefined });
@@ -734,10 +804,10 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
 const DiagramCanvas: React.FC<DiagramCanvasProps> = memo(({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab }) => {
     return (
         <ReactFlowProvider>
-            <DiagramCanvasContent 
-                survey={survey} 
-                selectedQuestion={selectedQuestion} 
-                onSelectQuestion={onSelectQuestion} 
+            <DiagramCanvasContent
+                survey={survey}
+                selectedQuestion={selectedQuestion}
+                onSelectQuestion={onSelectQuestion}
                 onUpdateQuestion={onUpdateQuestion}
                 activeMainTab={activeMainTab}
             />

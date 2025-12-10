@@ -21,7 +21,6 @@ export interface DropdownItemProps extends React.ButtonHTMLAttributes<HTMLButton
     icon?: React.ComponentType<{ className?: string }>;
     variant?: 'default' | 'danger';
     active?: boolean;
-    iconClassName?: string;
 }
 
 export const DropdownItem: React.FC<DropdownItemProps> = ({
@@ -32,12 +31,11 @@ export const DropdownItem: React.FC<DropdownItemProps> = ({
     className = '',
     variant = 'default',
     active = false,
-    iconClassName = '',
     ...props
 }) => {
     const baseClasses = "w-full text-left px-4 py-2 text-sm flex items-center transition-colors truncate";
 
-    let stateClasses = "text-on-surface hover:bg-surface-container-lowest";
+    let stateClasses = "text-on-surface hover:bg-surface-container-high";
     if (variant === 'danger') {
         stateClasses = "text-error hover:bg-error-container/10";
     }
@@ -50,11 +48,9 @@ export const DropdownItem: React.FC<DropdownItemProps> = ({
         stateClasses += " bg-surface-container-high";
     }
 
-    const defaultIconColor = disabled
+    const iconColor = disabled
         ? 'text-on-surface-variant'
         : variant === 'danger' ? 'text-error' : 'text-primary';
-
-    const finalIconClass = iconClassName || defaultIconColor;
 
     return (
         <button
@@ -66,7 +62,7 @@ export const DropdownItem: React.FC<DropdownItemProps> = ({
             className={`${baseClasses} ${stateClasses} ${className}`}
             {...props}
         >
-            {Icon && <Icon className={`text-base mr-3 flex-shrink-0 ${finalIconClass}`} />}
+            {Icon && <Icon className={`text-base mr-3 flex-shrink-0 ${iconColor}`} />}
             <span className="truncate w-full">{children}</span>
         </button>
     );

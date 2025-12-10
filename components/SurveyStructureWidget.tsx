@@ -14,7 +14,7 @@ interface DataCardProps {
 }
 
 const DataCard: React.FC<DataCardProps> = ({ icon: Icon, label, value, state = 'default' }) => {
-    let containerClasses = "bg-surface-container border-outline-variant";
+    let containerClasses = "bg-surface-container border-outline";
     let labelClasses = "text-on-surface-variant";
     let valueClasses = "text-on-surface";
     let iconClasses = "text-on-surface";
@@ -189,7 +189,7 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
     }
 
     return (
-        <aside className="w-full bg-surface-container border border-outline-variant rounded-lg flex-shrink-0 flex flex-col p-4 h-fit">
+        <aside className="w-full bg-surface-container border border-outline rounded-lg flex-shrink-0 flex flex-col p-4 h-fit">
             <div className="flex flex-col gap-4">
                 <div className="flex flex-row items-center">
                     <h2 style={{ fontFamily: "'Outfit', sans-serif" }} className="flex-grow text-lg font-medium text-on-surface">
@@ -252,7 +252,7 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
                 </div>
             </div>
 
-            <div className="flex justify-between items-center mt-2 border-t border-outline-variant pt-2">
+            <div className="flex justify-between items-center mt-2 border-t border-outline pt-2">
                 <Button variant="tertiary" onClick={onBackToTop} style={{ fontFamily: "'Open Sans', sans-serif" }}>Back To Top</Button>
                 <Button variant="tertiary" onClick={onToggleCollapseAll} style={{ fontFamily: "'Open Sans', sans-serif" }}>
                     {allBlocksCollapsed ? 'Expand All' : 'Collapse All'}

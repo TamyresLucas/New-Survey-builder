@@ -195,23 +195,25 @@ export const LogicSet: React.FC<LogicSetProps> = ({
                             <div className="flex-grow">{headerContent}</div>
                         ) : (
                             <>
-                                <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Logic Set</span>
+                                <span className="text-xs font-medium text-on-surface-variant uppercase tracking-wider">Logic Set</span>
                                 {!hasMultipleConditions && !showRowIfLabel && (
-                                    <span className="text-sm font-bold text-primary flex-shrink-0 ml-2">IF</span>
+                                    <span className="text-sm font-medium text-on-surface flex-shrink-0 ml-2">if</span>
                                 )}
                             </>
                         )}
 
-                        {hasMultipleConditions && (
-                            <div className="flex items-center gap-2 ml-auto">
-                                <div className="flex gap-1">
-                                    <button onClick={() => handleSetOperator('AND')} className={`px-2 py-0.5 text-[10px] font-button-operator rounded-full transition-colors ${logicSet.operator === 'AND' ? 'bg-primary text-on-primary' : 'bg-surface border border-outline text-on-surface-variant'}`}>AND</button>
-                                    <button onClick={() => handleSetOperator('OR')} className={`px-2 py-0.5 text-[10px] font-button-operator rounded-full transition-colors ${logicSet.operator === 'OR' ? 'bg-primary text-on-primary' : 'bg-surface border border-outline text-on-surface-variant'}`}>OR</button>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
+
+                {hasMultipleConditions && (
+                    <div className="flex items-center gap-2 mb-3 px-2">
+                        <div className="flex gap-1">
+                            <button onClick={() => handleSetOperator('AND')} className={`px-2 py-0.5 text-[10px] font-button-operator rounded-full transition-colors ${logicSet.operator === 'AND' ? 'bg-primary text-on-primary' : 'bg-surface border border-outline text-on-surface-variant'}`}>AND</button>
+                            <button onClick={() => handleSetOperator('OR')} className={`px-2 py-0.5 text-[10px] font-button-operator rounded-full transition-colors ${logicSet.operator === 'OR' ? 'bg-primary text-on-primary' : 'bg-surface border border-outline text-on-surface-variant'}`}>OR</button>
+                        </div>
+                    </div>
+                )}
+
 
                 <div className="space-y-2">
                     {logicSet.conditions.map((condition, index) => (
@@ -220,7 +222,7 @@ export const LogicSet: React.FC<LogicSetProps> = ({
                                 <span className="text-xs font-medium text-on-surface-variant w-4 text-center">{index + 1}.</span>
                             )}
                             {showRowIfLabel && (
-                                <span className="text-sm font-bold text-primary flex-shrink-0 w-6 text-center">IF</span>
+                                <span className="text-sm font-medium text-on-surface flex-shrink-0 w-6 text-center">if</span>
                             )}
                             <div className="flex-grow w-full min-w-0">
                                 <LogicConditionRow
@@ -266,6 +268,6 @@ export const LogicSet: React.FC<LogicSetProps> = ({
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };

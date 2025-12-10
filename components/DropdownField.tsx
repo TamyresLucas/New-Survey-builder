@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDownIcon } from './icons';
+import { DropdownList, DropdownItem } from './DropdownList';
 
 export interface DropdownOption {
     value: string;
@@ -66,27 +67,19 @@ export const DropdownField: React.FC<DropdownFieldProps> = ({
                 <ChevronDownIcon className="text-base text-on-surface-variant flex-shrink-0" />
             </button>
             {isOpen && (
-                <ul className="absolute top-full left-0 right-0 mt-1 w-full max-h-60 overflow-y-auto bg-surface-container border border-outline-variant rounded-md shadow-lg z-20 py-1">
+                <DropdownList className="absolute top-full left-0 right-0 mt-1 w-full max-h-60 overflow-y-auto">
                     {options.map((option) => (
-                        <li key={option.value}>
-                            <button
-                                onClick={() => handleSelect(option)}
-                                disabled={option.disabled}
-                                className={`w-full text-left px-2 py-2 text-sm flex items-center ${option.disabled
-                                    ? 'text-on-surface-disabled cursor-not-allowed'
-                                    : 'text-on-surface hover:bg-surface-container-high'
-                                    }`}
-                            >
-                                {option.icon && (
-                                    <div className="w-[19px] h-[19px] flex-shrink-0 flex items-center justify-center mr-2">
-                                        <option.icon className={`text-base ${option.disabled ? 'text-on-surface-disabled' : (option.iconColor || 'text-primary')}`} />
-                                    </div>
-                                )}
-                                <span className="truncate leading-[19px]">{option.label}</span>
-                            </button>
-                        </li>
+                        <DropdownItem
+                            key={option.value}
+                            onClick={() => handleSelect(option)}
+                            disabled={option.disabled}
+                            icon={option.icon}
+                            className={`px-2 py-2 leading-[19px] ${option.disabled ? '' : 'hover:bg-surface-container-high'}`}
+                        >
+                            <span className="truncate leading-[19px]">{option.label}</span>
+                        </DropdownItem>
                     ))}
-                </ul>
+                </DropdownList>
             )}
         </div>
     );

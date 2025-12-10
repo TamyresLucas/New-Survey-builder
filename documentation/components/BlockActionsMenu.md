@@ -5,7 +5,7 @@
 
 ## Purpose
 
-The `BlockActionsMenu` is a unified, context-aware dropdown component that provides users with a consistent set of actions for a survey block. It is designed to be highly reusable and adaptable, showing only the actions that are relevant to the context in which it's used.
+The `BlockActionsMenu` is a unified, context-aware dropdown component thatThe Block Actions Menu provides a set of operations for a specific survey block. It utilizes the [Dropdown List](./DropdownList.md) component for its visual structure. It is designed to be highly reusable and adaptable, showing only the actions that are relevant to the context in which it's used.
 
 ## Usage
 

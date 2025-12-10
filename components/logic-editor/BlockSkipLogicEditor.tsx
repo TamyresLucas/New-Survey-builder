@@ -3,7 +3,7 @@ import type { Block, Survey, BranchingLogic, BranchingLogicBranch, BranchingLogi
 import { QuestionType } from '../../types';
 import { PlusIcon, XIcon } from '../icons';
 import { generateId } from '../../utils';
-import { LogicConditionRow, DestinationRow } from './shared';
+import { LogicConditionRow, DestinationRow, BranchLogicSet } from './shared';
 
 interface BlockSkipLogicEditorProps {
     block: Block;
@@ -149,50 +149,26 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
             </div>
             <div className="space-y-4">
                 {branchingLogic.branches.map((branch) => (
-                    <div key={branch.id} className="p-3 border border-outline-variant rounded-md bg-surface-container">
-                        <div className="flex justify-between items-start mb-3">
-                            <div>
-                                <span className="font-bold text-primary">IF</span>
-                                <div className="pl-4">
-                                    {branch.conditions.length > 1 && (
-                                        <select value={branch.operator} onChange={e => handleUpdateBranch(branch.id, { operator: e.target.value as 'AND' | 'OR' })} className="text-xs font-semibold p-1 rounded-md bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--input-field-input-txt)] font-normal mb-2">
-                                            <option value="AND">All conditions are met (AND)</option>
-                                            <option value="OR">Any condition is met (OR)</option>
-                                        </select>
-                                    )}
-                                </div>
-                            </div>
-                            <button onClick={() => handleRemoveBranch(branch.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full"><XIcon className="text-lg" /></button>
-                        </div>
-                        <div className="space-y-2 mb-3">
-                            {branch.conditions.map((condition, index) => (
-                                <LogicConditionRow
-                                    key={condition.id}
-                                    condition={condition}
-                                    onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
-                                    onRemoveCondition={branch.conditions.length > 1 ? () => handleRemoveCondition(branch.id, condition.id) : undefined}
-                                    onConfirm={() => handleConfirmBranch(branch.id)}
-                                    availableQuestions={questionsForConditions}
-                                    isConfirmed={condition.isConfirmed === true}
-                                    invalidFields={validationErrors.get(condition.id)}
-                                />
-                            ))}
-                            <button onClick={() => handleAddCondition(branch.id)} className="text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors">+ Add condition</button>
-                        </div>
-                        <DestinationRow
-                            label={<span className="font-bold text-primary">THEN SKIP TO</span>}
-                            value={branch.thenSkipTo}
-                            onChange={(value) => handleUpdateBranch(branch.id, { thenSkipTo: value, thenSkipToIsConfirmed: false })}
-                            onConfirm={() => handleConfirmBranch(branch.id)}
-                            isConfirmed={branch.thenSkipToIsConfirmed}
-                            invalid={validationErrors.has(branch.id)}
-                            followingBlocks={followingBlocks}
-                            followingQuestions={followingQuestions}
-                        />
-                    </div>
+                    <BranchLogicSet
+                        key={branch.id}
+                        branch={branch}
+                        onUpdate={(updates) => handleUpdateBranch(branch.id, updates)}
+                        onRemove={() => handleRemoveBranch(branch.id)}
+                        availableQuestions={questionsForConditions}
+                        followingQuestions={followingQuestions}
+                        survey={survey}
+                        currentBlockId={block.id}
+                        issues={Array.from(validationErrors.entries()).flatMap(([id, errors]) =>
+                            Array.from(errors).map(field => ({
+                                sourceId: id,
+                                message: `Missing required field: ${field}`
+                            } as any)) // Mocking LogicIssue type slightly if needed, or better, adapt validationErrors to LogicIssue
+                        )}
+                    // currentQuestion is undefined for block logic
+                    />
                 ))}
             </div>
-            <button onClick={handleAddBranch} className="mt-4 flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors"><PlusIcon className="text-base" /> Add branch</button>
+            <button onClick={handleAddBranch} className="mt-4 flex items-center gap-1 text-sm font-semibold text-primary hover:bg-primary hover:text-on-primary rounded h-[32px] px-2 py-1.5 transition-colors"><PlusIcon className="text-lg" /> Add branch</button>
         </div>
     );
 };

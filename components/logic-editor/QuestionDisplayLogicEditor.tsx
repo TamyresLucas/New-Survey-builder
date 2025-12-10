@@ -166,8 +166,8 @@ export const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
                     />
                 ) : (
                     <div className="flex items-center gap-4">
-                        <button onClick={handleAddLogic} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors">
-                            <PlusIcon className="text-base" />
+                        <button onClick={handleAddLogic} className="flex items-center gap-1 text-sm font-semibold text-primary hover:bg-primary hover:text-on-primary rounded h-[32px] px-2 py-1.5 transition-colors">
+                            <PlusIcon className="text-lg" />
                             Add condition
                         </button>
                         <CopyAndPasteButton onClick={() => setIsPasting(true)} label="Write expression" />
@@ -201,8 +201,8 @@ export const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
                         </div>
                     )}
                 </div>
-                <button onClick={handleAddLogic} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors">
-                    <PlusIcon className="text-base" />
+                <button onClick={handleAddLogic} className="flex items-center gap-1 text-sm font-semibold text-primary hover:bg-primary hover:text-on-primary rounded h-[32px] px-2 py-1.5 transition-colors">
+                    <PlusIcon className="text-lg" />
                     Add condition
                 </button>
             </div>

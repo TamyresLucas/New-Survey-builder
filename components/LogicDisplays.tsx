@@ -239,7 +239,7 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
                                 <React.Fragment key={c.id}>
                                     {index > 0 && <span className="font-semibold text-primary"> {branch.operator} </span>}
                                     <span
-                                        onClick={(e) => { e.stopPropagation(); onClick(c.id); }}
+                                        onClick={(e) => { e.stopPropagation(); onClick(branch.id); }}
                                         className="font-semibold hover:text-primary hover:underline cursor-pointer"
                                     >
                                         {formatCondition(c, survey)}

@@ -161,8 +161,8 @@ export const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = (
                     />
                 ) : (
                     <div className="flex items-center gap-4">
-                        <button onClick={handleAddDisplayLogic} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors">
-                            <PlusIcon className="text-base" />
+                        <button onClick={handleAddDisplayLogic} className="flex items-center gap-1 text-sm font-semibold text-primary hover:bg-primary hover:text-on-primary rounded h-[32px] px-2 py-1.5 transition-colors">
+                            <PlusIcon className="text-lg" />
                             Add Display Logic
                         </button>
                         <CopyAndPasteButton onClick={() => setIsPasting(true)} />
@@ -197,8 +197,8 @@ export const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = (
                         </div>
                     )}
                 </div>
-                <button onClick={handleAddDisplayLogic} className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5 transition-colors">
-                    <PlusIcon className="text-base" />
+                <button onClick={handleAddDisplayLogic} className="flex items-center gap-1 text-sm font-semibold text-primary hover:bg-primary hover:text-on-primary rounded h-[32px] px-2 py-1.5 transition-colors">
+                    <PlusIcon className="text-lg" />
                     Add condition
                 </button>
             </div>

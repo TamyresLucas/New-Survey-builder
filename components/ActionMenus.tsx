@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import type { Question, QuestionType, ToolboxItemData, Survey } from '../types';
 import { ChevronRightIcon } from './icons';
+import { DropdownList, DropdownItem, DropdownDivider } from './DropdownList';
 
 export const QuestionTypeSelectionMenuContent: React.FC<{
   onSelect: (type: QuestionType) => void;
@@ -18,27 +19,23 @@ export const QuestionTypeSelectionMenuContent: React.FC<{
     }));
 
   return (
-    <ul className="w-full max-h-80 overflow-y-auto bg-surface-container border border-outline-variant rounded-md shadow-lg z-20 py-1" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+    <DropdownList className="w-full max-h-80 overflow-y-auto">
       {questionTypeOptions.map(({ type, label, icon: Icon, isEnabled }) => (
-        <li key={type}>
-          <button
-            onClick={(e) => {
-              if (!isEnabled) return;
+        <DropdownItem
+          key={type}
+          onClick={(e) => {
+            if (isEnabled) {
               e.stopPropagation();
               onSelect(type);
-            }}
-            disabled={!isEnabled}
-            className={`w-full text-left px-4 py-2 text-sm flex items-center ${isEnabled
-                ? 'text-on-surface hover:bg-surface-container-high'
-                : 'text-on-surface-variant opacity-70 cursor-not-allowed'
-              }`}
-          >
-            <Icon className={`text-base mr-3 flex-shrink-0 ${isEnabled ? 'text-primary' : 'text-on-surface-variant'}`} />
-            <span className="truncate">{label}</span>
-          </button>
-        </li>
+            }
+          }}
+          disabled={!isEnabled}
+          icon={Icon}
+        >
+          {label}
+        </DropdownItem>
       ))}
-    </ul>
+    </DropdownList>
   );
 };
 
@@ -68,59 +65,51 @@ interface BlockActionsMenuProps {
 
 export const BlockActionsMenu: React.FC<BlockActionsMenuProps> = ({ onEdit, onMoveUp, canMoveUp = true, onMoveDown, canMoveDown = true, onDuplicate, onAddSimpleQuestion, onAddFromLibrary, onAddBlockAbove, onAddBlockBelow, onSelectAll, canSelectAll = true, onUnselectAll, canUnselectAll = true, onExpand, canExpand = true, onCollapse, canCollapse = true, onDelete }) => {
   return (
-    <div className="absolute top-full right-0 mt-2 w-48 bg-surface-container border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+    <DropdownList className="absolute top-full right-0 mt-2 w-48">
       {onEdit && (
         <>
-          <div className="py-1">
-            <button onClick={onEdit} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Edit block</button>
-          </div>
-          <div className="border-t border-dotted border-outline-variant mx-2" />
+          <DropdownItem onClick={onEdit}>Edit block</DropdownItem>
+          <DropdownDivider />
         </>
       )}
       {(onMoveUp || onMoveDown) && (
         <>
-          <div className="py-1">
-            {onMoveUp && <button onClick={onMoveUp} disabled={!canMoveUp} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high disabled:opacity-50 disabled:cursor-not-allowed">Move up</button>}
-            {onMoveDown && <button onClick={onMoveDown} disabled={!canMoveDown} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high disabled:opacity-50 disabled:cursor-not-allowed">Move down</button>}
-          </div>
-          <div className="border-t border-dotted border-outline-variant mx-2" />
+          {onMoveUp && <DropdownItem onClick={onMoveUp} disabled={!canMoveUp}>Move up</DropdownItem>}
+          {onMoveDown && <DropdownItem onClick={onMoveDown} disabled={!canMoveDown}>Move down</DropdownItem>}
+          <DropdownDivider />
         </>
       )}
       {onDuplicate && (
         <>
-          <div className="py-1">
-            <button onClick={onDuplicate} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Duplicate</button>
-          </div>
-          <div className="border-t border-dotted border-outline-variant mx-2" />
+          <DropdownItem onClick={onDuplicate}>Duplicate</DropdownItem>
+          <DropdownDivider />
         </>
       )}
-      <div className="py-1">
-        {onAddSimpleQuestion && (
-          <button onClick={onAddSimpleQuestion} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add new question</button>
-        )}
-        {onAddFromLibrary && <button onClick={onAddFromLibrary} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add from library</button>}
-        {onAddBlockAbove && <button onClick={onAddBlockAbove} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add block above</button>}
-        {onAddBlockBelow && <button onClick={onAddBlockBelow} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add block below</button>}
-      </div>
-      {(canSelectAll || canUnselectAll) && <div className="border-t border-dotted border-outline-variant mx-2" />}
-      <div className="py-1">
-        {canSelectAll && onSelectAll && <button onClick={onSelectAll} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Select All</button>}
-        {canUnselectAll && onUnselectAll && <button onClick={onUnselectAll} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Unselect All</button>}
-      </div>
-      {(canExpand || canCollapse) && <div className="border-t border-dotted border-outline-variant mx-2" />}
-      <div className="py-1">
-        {canExpand && onExpand && <button onClick={onExpand} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Expand block</button>}
-        {canCollapse && onCollapse && <button onClick={onCollapse} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Collapse block</button>}
-      </div>
+
+      {onAddSimpleQuestion && (
+        <DropdownItem onClick={onAddSimpleQuestion}>Add new question</DropdownItem>
+      )}
+      {onAddFromLibrary && <DropdownItem onClick={onAddFromLibrary}>Add from library</DropdownItem>}
+      {onAddBlockAbove && <DropdownItem onClick={onAddBlockAbove}>Add block above</DropdownItem>}
+      {onAddBlockBelow && <DropdownItem onClick={onAddBlockBelow}>Add block below</DropdownItem>}
+
+      {(canSelectAll || canUnselectAll) && <DropdownDivider />}
+
+      {canSelectAll && onSelectAll && <DropdownItem onClick={onSelectAll}>Select All</DropdownItem>}
+      {canUnselectAll && onUnselectAll && <DropdownItem onClick={onUnselectAll}>Unselect All</DropdownItem>}
+
+      {(canExpand || canCollapse) && <DropdownDivider />}
+
+      {canExpand && onExpand && <DropdownItem onClick={onExpand}>Expand block</DropdownItem>}
+      {canCollapse && onCollapse && <DropdownItem onClick={onCollapse}>Collapse block</DropdownItem>}
+
       {onDelete && (
         <>
-          <div className="border-t border-dotted border-outline-variant mx-2" />
-          <div className="py-1">
-            <button onClick={onDelete} className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container">Delete</button>
-          </div>
+          <DropdownDivider />
+          <DropdownItem onClick={onDelete} variant="danger">Delete</DropdownItem>
         </>
       )}
-    </div>
+    </DropdownList>
   );
 };
 
@@ -140,57 +129,45 @@ interface QuestionActionsMenuProps {
 
 export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ question, onDuplicate, onDelete, onAddPageBreak, onMoveToNewBlock, onReplaceFromLibrary, onPreview, onActivate, onDeactivate }) => {
   return (
-    <div className="absolute top-full right-0 mt-2 w-56 bg-surface-container border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-      <ul className="py-1">
-        {onMoveToNewBlock && (
-          <li>
-            <button
-              onClick={(e) => { e.stopPropagation(); onMoveToNewBlock(); }}
-              className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high"
-            >
-              Move to new block
-            </button>
-          </li>
-        )}
-        {onDuplicate && <li><button onClick={(e) => { e.stopPropagation(); onDuplicate(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Duplicate</button></li>}
-        {onReplaceFromLibrary && <li><button onClick={(e) => { e.stopPropagation(); onReplaceFromLibrary(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Replace from library</button></li>}
-        <li><button onClick={(e) => { e.stopPropagation(); alert('Not implemented'); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add to library</button></li>
-        {onAddPageBreak && <li><button onClick={(e) => { e.stopPropagation(); onAddPageBreak(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Add page break</button></li>}
-      </ul>
+    <DropdownList className="absolute top-full right-0 mt-2 w-56">
+      {onMoveToNewBlock && (
+        <DropdownItem onClick={(e) => { e.stopPropagation(); onMoveToNewBlock(); }}>
+          Move to new block
+        </DropdownItem>
+      )}
+      {onDuplicate && <DropdownItem onClick={(e) => { e.stopPropagation(); onDuplicate(); }}>Duplicate</DropdownItem>}
+      {onReplaceFromLibrary && <DropdownItem onClick={(e) => { e.stopPropagation(); onReplaceFromLibrary(); }}>Replace from library</DropdownItem>}
+      <DropdownItem onClick={(e) => { e.stopPropagation(); alert('Not implemented'); }}>Add to library</DropdownItem>
+      {onAddPageBreak && <DropdownItem onClick={(e) => { e.stopPropagation(); onAddPageBreak(); }}>Add page break</DropdownItem>}
+
       {onPreview && (
         <>
-          <div className="border-t border-dotted border-outline-variant mx-2" />
-          <ul className="py-1">
-            <li><button onClick={(e) => { e.stopPropagation(); onPreview(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Preview</button></li>
-          </ul>
+          <DropdownDivider />
+          <DropdownItem onClick={(e) => { e.stopPropagation(); onPreview(); }}>Preview</DropdownItem>
         </>
       )}
       {(onActivate || onDeactivate) && (
         <>
-          <div className="border-t border-dotted border-outline-variant mx-2" />
-          <ul className="py-1">
-            {question.isHidden ? (
-              onActivate && <li><button onClick={(e) => { e.stopPropagation(); onActivate(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Activate</button></li>
-            ) : (
-              onDeactivate && <li><button onClick={(e) => { e.stopPropagation(); onDeactivate(); }} className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high">Deactivate</button></li>
-            )}
-          </ul>
+          <DropdownDivider />
+          {question.isHidden ? (
+            onActivate && <DropdownItem onClick={(e) => { e.stopPropagation(); onActivate(); }}>Activate</DropdownItem>
+          ) : (
+            onDeactivate && <DropdownItem onClick={(e) => { e.stopPropagation(); onDeactivate(); }}>Deactivate</DropdownItem>
+          )}
         </>
       )}
       {onDelete && (
         <>
-          <div className="border-t border-dotted border-outline-variant mx-2" />
-          <div className="py-1">
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container"
-            >
-              Delete
-            </button>
-          </div>
+          <DropdownDivider />
+          <DropdownItem
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            variant="danger"
+          >
+            Delete
+          </DropdownItem>
         </>
       )}
-    </div>
+    </DropdownList>
   );
 };
 
@@ -202,32 +179,23 @@ interface PageBreakActionsMenuProps {
 
 export const PageBreakActionsMenu: React.FC<PageBreakActionsMenuProps> = ({ onMoveToNewBlock, onDelete }) => {
   return (
-    <div className="absolute top-full right-0 mt-2 w-56 bg-surface-container border border-outline-variant rounded-md shadow-lg z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-      <ul className="py-1">
-        {onMoveToNewBlock && (
-          <li>
-            <button
-              onClick={(e) => { e.stopPropagation(); onMoveToNewBlock(); }}
-              className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high"
-            >
-              Move to new block
-            </button>
-          </li>
-        )}
-      </ul>
+    <DropdownList className="absolute top-full right-0 mt-2 w-56">
+      {onMoveToNewBlock && (
+        <DropdownItem onClick={(e) => { e.stopPropagation(); onMoveToNewBlock(); }}>
+          Move to new block
+        </DropdownItem>
+      )}
       {onDelete && (
         <>
-          <div className="border-t border-dotted border-outline-variant mx-2" />
-          <div className="py-1">
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container"
-            >
-              Delete
-            </button>
-          </div>
+          <DropdownDivider />
+          <DropdownItem
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            variant="danger"
+          >
+            Delete
+          </DropdownItem>
         </>
       )}
-    </div>
+    </DropdownList>
   );
 };

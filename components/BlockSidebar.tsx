@@ -275,39 +275,37 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
       <CollapsibleSection title="Navigation" defaultExpanded={true}>
         <div className="space-y-6">
           <div>
-            <label htmlFor="continue-to" className={`block text-sm font-medium mb-1 ${isDefaultPathDisabled ? 'text-on-surface-variant/70' : 'text-on-surface-variant'}`}>
-              Continue to
-            </label>
-            <div className="relative">
-              <select
-                id="continue-to"
-                ref={continueToRef}
-                value={block.continueTo || 'next'}
-                onChange={e => onUpdateBlock(block.id, { continueTo: e.target.value })}
-                className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed disabled:text-on-surface-variant/70 transition-colors"
-                disabled={isDefaultPathDisabled}
-              >
-                <option value="next">Default (next block)</option>
-                <option value="end">End of Survey</option>
-                {compatibleBlocks.length > 0 && (
-                  <optgroup label="Blocks in this path">
-                    {compatibleBlocks.map(b => (
-                      <option key={b.id} value={`block:${b.id}`}>
-                        {b.bid}: {truncate(b.title, 50)}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
-              <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-lg" />
-            </div>
-            <p className="text-xs text-on-surface-variant mt-1">Define the block's default exit path.</p>
-            {isDefaultPathDisabled && (
-              <div className="mt-2 flex items-center gap-4 p-2 bg-outline-variant border border-primary rounded-sm">
-                <InfoIcon className="text-base text-primary flex-shrink-0" />
-                <span className="text-sm text-on-surface" style={{ fontFamily: "'Open Sans', sans-serif" }}>This is disabled because the last question in the block has exhaustive branching logic that defines all possible exits.</span>
-              </div>
+            {!isDefaultPathDisabled && (
+              <>
+                <label htmlFor="continue-to" className="block text-sm font-medium text-on-surface-variant mb-1">
+                  Continue to
+                </label>
+                <div className="relative">
+                  <select
+                    id="continue-to"
+                    ref={continueToRef}
+                    value={block.continueTo || 'next'}
+                    onChange={e => onUpdateBlock(block.id, { continueTo: e.target.value })}
+                    className="w-full bg-transparent border border-input-border rounded-md p-2 pr-8 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none transition-colors"
+                  >
+                    <option value="next">Default (next block)</option>
+                    <option value="end">End of Survey</option>
+                    {compatibleBlocks.length > 0 && (
+                      <optgroup label="Blocks in this path">
+                        {compatibleBlocks.map(b => (
+                          <option key={b.id} value={`block:${b.id}`}>
+                            {b.bid}: {truncate(b.title, 50)}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                  <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-lg" />
+                </div>
+                <p className="text-xs text-on-surface-variant mt-1">Define the block's default exit path.</p>
+              </>
             )}
+
           </div>
           <div>
             <div className="flex items-center justify-between">

@@ -10,6 +10,7 @@ import { BlockSidebar } from './components/BlockSidebar';
 import { BulkEditPanel } from './components/BulkEditPanel';
 import GeminiPanel from './components/GeminiPanel';
 import { SurveyPreview } from './components/SurveyPreview';
+import { SurveyExport } from './components/SurveyExport';
 import PathAnalysisPanel from './components/diagram/PathAnalysisPanel';
 import { ImportSurveyModal } from './components/ImportSurveyModal';
 import SurveyStructureWidget from './components/SurveyStructureWidget';
@@ -94,6 +95,7 @@ const App: React.FC = () => {
     const [isGeminiPanelOpen, setIsGeminiPanelOpen] = useState(false);
     const [geminiHelpTopic, setGeminiHelpTopic] = useState<string | null>(null);
     const [isPreviewMode, setIsPreviewMode] = useState(false);
+    const [isExportMode, setIsExportMode] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [toasts, setToasts] = useState<{ id: string; message: string; type: ToastType; onUndo?: () => void }[]>([]);
     const [selectedPathId, setSelectedPathId] = useState('all-paths');
@@ -293,6 +295,15 @@ const App: React.FC = () => {
         );
     }
 
+    if (isExportMode) {
+        return (
+            <SurveyExport
+                survey={survey}
+                onClose={() => setIsExportMode(false)}
+            />
+        );
+    }
+
     return (
         <div className="flex flex-col h-screen bg-surface text-on-surface overflow-hidden font-sans">
             <Header
@@ -330,6 +341,7 @@ const App: React.FC = () => {
                         showToast("Survey exported to CSV successfully!", 'success');
                     }
                 }}
+                onExport={() => setIsExportMode(true)}
                 onImportSurvey={() => setIsImportModalOpen(true)}
             />
 

@@ -63,7 +63,7 @@ export const PasteChoicesModal: React.FC<PasteChoicesModalProps> = ({ isOpen, on
       >
         <div className="p-4 border-b border-outline-variant flex items-center justify-between">
           <h2 className="text-lg font-bold text-on-surface">Copy and Paste Choices</h2>
-          <button onClick={onClose} className="p-1 rounded-full text-on-surface-variant hover:bg-surface-container-high">
+          <button onClick={onClose} className="p-1 rounded-full text-on-surface-variant hover:bg-surface-container-lowest">
             <XIcon className="text-xl" />
           </button>
         </div>

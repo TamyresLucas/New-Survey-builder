@@ -1,5 +1,5 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
-import { DotsHorizontalIcon, EyeIcon, FileExportIcon } from './icons';
+import { DotsHorizontalIcon, EyeIcon, PrintIcon } from './icons';
 import { DropdownList, DropdownItem, DropdownDivider } from './DropdownList';
 
 interface SubHeaderProps {
@@ -61,8 +61,8 @@ const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurve
 
         <div className="relative" ref={actionsMenuRef}>
           <button
-            onClick={() => setIsActionsOpen(prev => !prev)}
-            className="w-8 h-8 flex items-center justify-center text-on-surface bg-transparent rounded-md hover:bg-surface-container-high transition-colors"
+            onClick={(e) => { e.stopPropagation(); setIsActionsOpen(prev => !prev); }}
+            className={`w-8 h-8 flex items-center justify-center text-on-surface bg-transparent rounded-md hover:bg-surface-container-lowest transition-colors ${isActionsOpen ? '!bg-surface-container-high' : ''}`}
             aria-haspopup="true"
             aria-expanded={isActionsOpen}
             aria-label="Actions"
@@ -80,9 +80,9 @@ const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurve
                 </DropdownItem>
                 <DropdownItem
                   onClick={() => { onExport(); setIsActionsOpen(false); }}
-                  icon={FileExportIcon}
+                  icon={PrintIcon}
                 >
-                  Export
+                  Print Survey
                 </DropdownItem>
                 <DropdownDivider />
                 <DropdownItem onClick={() => { onCopySurvey(); setIsActionsOpen(false); }}>

@@ -469,7 +469,7 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
       >
         <header className="p-4 border-b border-outline-variant flex items-center justify-between flex-shrink-0 bg-surface-container">
           <h2 className="text-lg font-bold text-on-surface">Preview Survey</h2>
-          <button onClick={onClose} className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high">
+          <button onClick={onClose} className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-lowest">
             <XIcon className="text-xl" />
           </button>
         </header>

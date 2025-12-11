@@ -68,7 +68,7 @@ export const AppChangelogModal: React.FC<AppChangelogModalProps> = ({ onClose })
                         <h2 className="text-xl font-bold text-on-surface font-outfit">App Changelog</h2>
                         <span className="text-sm text-on-surface-variant font-mono">({currentVersion})</span>
                     </div>
-                    <button onClick={onClose} className="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors">
+                    <button onClick={onClose} className="p-2 text-on-surface-variant hover:bg-surface-container-lowest rounded-full transition-colors">
                         <XIcon className="text-xl" />
                     </button>
                 </div>

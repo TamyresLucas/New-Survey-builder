@@ -248,9 +248,9 @@ export const useGeminiChat = ({
 
             setMessages(prev => [...prev, { role: 'model', text: modelResponseText }]);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error sending message:', error);
-            setMessages(prev => [...prev, { role: 'model', text: "Sorry, I encountered an error processing your request." }]);
+            setMessages(prev => [...prev, { role: 'model', text: `Sorry, I encountered an error processing your request. Details: ${error.message || String(error)}` }]);
         } finally {
             setIsLoading(false);
         }

@@ -19,10 +19,14 @@
             'primary-container': 'var(--notification-info-bg)',
             'on-primary-container': 'var(--notification-info-txt)',
 
-            surface: 'var(--background--surface-bg)',
-            'surface-container': 'var(--background--surface-bg-def)',
-            'surface-container-high': 'var(--background--surface-bg-hov)',
-            'surface-container-highest': 'var(--background--surface-bg-sel)',
+            surface: 'var(--md-sys-color-surface)',
+            'surface-dim': 'var(--md-sys-color-surface-dim)',
+            'surface-bright': 'var(--md-sys-color-surface-bright)',
+            'surface-container-lowest': 'var(--md-sys-color-surface-container-lowest)',
+            'surface-container-low': 'var(--md-sys-color-surface-container-low)',
+            'surface-container': 'var(--md-sys-color-surface-container)',
+            'surface-container-high': 'var(--md-sys-color-surface-container-high)',
+            'surface-container-highest': 'var(--md-sys-color-surface-container-highest)',
 
             'on-surface': 'var(--text-txt-pri)',
             'on-surface-variant': 'var(--text-txt-sec)',
@@ -82,11 +86,22 @@
       --semantic-warn: var(--foundation-tangerine);
       --semantic-info: var(--foundation-periwinkle-dark);
       --semantic-shd: #232323;
-      --background--surface-bg: var(--foundation-neutral-scale-primary-10);
-      --background--surface-bg-def: var(--foundation-white);
-      --background--surface-bg-sel: #dbdef9;
-      --background--surface-bg-hov: var(--foundation-primary-gradients-primary-10);
-      --background--surface-bg-dis: var(--foundation-primary-gradients-primary-10);
+      /* Material Design 3 Surface System */
+      --md-sys-color-surface: var(--foundation-neutral-scale-primary-10);
+      --md-sys-color-surface-dim: var(--foundation-neutral-scale-primary-20);
+      --md-sys-color-surface-bright: var(--foundation-white);
+      --md-sys-color-surface-container-lowest: var(--foundation-primary-gradients-primary-5);
+      --md-sys-color-surface-container-low: var(--foundation-white);
+      --md-sys-color-surface-container: var(--foundation-white);
+      --md-sys-color-surface-container-high: var(--foundation-white);
+      --md-sys-color-surface-container-highest: var(--foundation-white);
+
+      /* Legacy tokens for backward compatibility - will be removed after component updates */
+      --background--surface-bg: var(--md-sys-color-surface);
+      --background--surface-bg-def: var(--md-sys-color-surface-container);
+      --background--surface-bg-sel: var(--md-sys-color-surface-container-highest);
+      --background--surface-bg-hov: var(--md-sys-color-surface-container-high);
+      --background--surface-bg-dis: var(--md-sys-color-surface-container);
       --notification-err-bg: var(--foundation-coral-light);
       --notification-warn-bg: var(--foundation-tangerine-light);
       --notification-suc-bg: var(--foundation-green-light);
@@ -313,16 +328,27 @@
       --semantic-warn: var(--foundation-tangerine);
       --semantic-info: #6366f1;
       --semantic-shd: #000000;
-      --background--surface-bg: hsl(240 6% 10%);
-      --background--surface-bg-def: hsl(230 5% 13%);
-      --background--surface-bg-sel: hsl(225 5% 23%);
-      --background--surface-bg-hov: hsl(228 5% 18%);
+      /* Material Design 3 Surface System */
+      --md-sys-color-surface: hsl(240 6% 10%);
+      --md-sys-color-surface-dim: hsl(240 6% 6%);
+      --md-sys-color-surface-bright: hsl(230 5% 20%);
+      --md-sys-color-surface-container-lowest: hsl(230 5% 11%);
+      --md-sys-color-surface-container-low: hsla(228, 18%, 14%, 0.97);
+      --md-sys-color-surface-container: hsla(228, 18%, 14%, 0.97);
+      --md-sys-color-surface-container-high: hsla(228, 18%, 14%, 0.97);
+      --md-sys-color-surface-container-highest: hsla(228, 18%, 14%, 0.97);
+
+      /* Legacy tokens for backward compatibility - will be removed after component updates */
+      --background--surface-bg: var(--md-sys-color-surface);
+      --background--surface-bg-def: var(--md-sys-color-surface-container-low);
+      --background--surface-bg-sel: var(--md-sys-color-surface-container-highest);
+      --background--surface-bg-hov: var(--md-sys-color-surface-container-high);
       --background--surface-bg-dis: var(--foundation-primary-gradients-primary-100);
       --notification-err-bg: var(--foundation-coral-light);
       --notification-warn-bg: var(--foundation-tangerine-light);
       --notification-suc-bg: var(--foundation-green-light);
       --notification-info-bg: var(--foundation-primary-gradients-primary-20);
-      --border-bd-def: #374151;
+      --border-bd-def: #363D65;
       --border-bd-hov: #6B7280;
       --border-bd-sel: var(--foundation-periwinkle-dark);
       --border-bd-dis: #1F2937;

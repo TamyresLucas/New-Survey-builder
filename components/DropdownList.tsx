@@ -35,7 +35,7 @@ export const DropdownItem: React.FC<DropdownItemProps> = ({
 }) => {
     const baseClasses = "w-full text-left px-4 py-2 text-sm flex items-center transition-colors truncate";
 
-    let stateClasses = "text-on-surface hover:bg-surface-container-high";
+    let stateClasses = "text-on-surface hover:bg-surface-container-lowest";
     if (variant === 'danger') {
         stateClasses = "text-error hover:bg-error-container/10";
     }

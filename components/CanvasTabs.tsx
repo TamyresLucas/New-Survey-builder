@@ -39,7 +39,7 @@ const CanvasTabs: React.FC<CanvasTabsProps> = ({ activeTab, onTabChange, variant
           onClick={() => onTabChange(tab)}
           className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === tab
             ? 'bg-primary text-on-primary'
-            : 'text-on-surface-variant hover:bg-surface-container-high'
+            : 'text-on-surface-variant hover:bg-surface-container-lowest'
             }`}
         >
           {tab}

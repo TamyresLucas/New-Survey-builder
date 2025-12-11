@@ -1,9 +1,11 @@
 import React, { useRef, useEffect } from 'react';
 import { Button } from './Button';
-import { XIcon, SparkleIcon, SendIcon } from './icons';
+import { TextField } from './TextField';
+import { XIcon, SparkleIcon } from './icons';
 import type { Survey, LogicIssue, Question } from '../types';
 import { useGeminiChat } from '../hooks/useGeminiChat';
 import ReactMarkdown from 'react-markdown';
+import { GeminiMessage } from './GeminiMessage';
 
 interface GeminiPanelProps {
     onClose: () => void;
@@ -101,31 +103,12 @@ const GeminiPanel: React.FC<GeminiPanelProps> = ({
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-surface-container/50">
                 {messages.map((msg, idx) => (
-                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div
-                            className={`
-                    max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed shadow-sm
-                    ${msg.role === 'user'
-                                    ? 'bg-primary text-on-primary rounded-br-none'
-                                    : 'bg-surface border border-outline-variant text-on-surface rounded-bl-none'
-                                }
-                                style={msg.role === 'model' ? { backgroundColor: 'var(--background--surface-bg)' } : undefined}
-                `}
-                        >
-                            {msg.role === 'model' ? (
-                                <div className="markdown-content">
-                                    <ReactMarkdown>{msg.text}</ReactMarkdown>
-                                </div>
-                            ) : (
-                                msg.text
-                            )}
-                        </div>
-                    </div>
+                    <GeminiMessage key={idx} message={msg} />
                 ))}
                 {isLoading && (
                     <div className="flex justify-start">
                         <div
-                            className="bg-surface border border-outline-variant p-3 rounded-2xl rounded-bl-none shadow-sm flex items-center gap-2"
+                            className="bg-surface border border-outline p-3 rounded-2xl rounded-bl-none shadow-sm flex items-center gap-2"
                             style={{ backgroundColor: 'var(--background--surface-bg)' }}
                         >
                             <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -138,26 +121,28 @@ const GeminiPanel: React.FC<GeminiPanelProps> = ({
             </div>
 
             <div className="p-4 border-t border-outline-variant bg-surface-container">
-                <div className="relative flex items-center">
-                    <input
+                <div className="relative">
+                    <TextField
                         ref={inputRef}
-                        type="text"
                         placeholder="Ask AI to add questions or change logic..."
-                        className="w-full pl-4 pr-12 py-3 bg-surface border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm text-on-surface placeholder-on-surface-variant"
                         onKeyDown={handleKeyDown}
                         disabled={isLoading}
+                        className="pr-12 !h-12 !rounded-full pl-5"
                     />
-                    <button
-                        onClick={onSend}
-                        disabled={isLoading}
-                        className="absolute right-2 p-2 bg-primary text-on-primary rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                        <SendIcon className="w-4 h-4" />
-                    </button>
+                    <div className="absolute right-2 top-0 bottom-0 flex items-center">
+                        <Button
+                            onClick={onSend}
+                            disabled={isLoading}
+                            variant="primary"
+                            size="large"
+                            iconOnly
+                            className="rounded-full"
+                        >
+                            <span className="material-symbols-rounded text-[20px]">send</span>
+                        </Button>
+                    </div>
                 </div>
-                <div className="mt-2 text-xs text-center text-on-surface-variant">
-                    AI can make mistakes. Please review generated surveys.
-                </div>
+
             </div>
         </div>
     );

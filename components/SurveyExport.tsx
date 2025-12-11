@@ -17,7 +17,7 @@ export const SurveyExport: React.FC<SurveyExportProps> = ({ survey, onClose }) =
             <div className="bg-surface w-full h-full flex flex-col">
                 <header className="p-4 border-b border-outline-variant flex items-center justify-between flex-shrink-0 bg-surface-container">
                     <h2 className="text-lg font-bold text-on-surface">Export Survey</h2>
-                    <button onClick={onClose} className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high">
+                    <button onClick={onClose} className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-lowest">
                         <XIcon className="text-xl" />
                     </button>
                 </header>

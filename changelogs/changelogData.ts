@@ -11,6 +11,24 @@ export interface ChangelogEntry {
 // NOTE: Always update 'time' to the current local time when adding an entry.
 export const changelogs: ChangelogEntry[] = [
     {
+        id: '2025-12-10-1',
+        version: 'v1.0.14',
+        date: '2025-12-10',
+        time: '12:43 PM',
+        request: 'Document AI Assistant Message Component',
+        improvements: [
+            'Created and documented `GeminiMessage` component for the AI Assistant.',
+            'Refactored `GeminiPanel` to use the new reusable `GeminiMessage` component.',
+            'Standardized AI message styling to use `bg-surface` and `border-outline` tokens.',
+            'Ensured the AI Assistant loading indicator matches the new message styling with `border-outline`.'
+        ],
+        technicalChanges: [
+            'Created components/GeminiMessage.tsx.',
+            'Updated components/GeminiPanel.tsx to implement GeminiMessage.',
+            'Created documentation/components/GeminiMessage.md.'
+        ]
+    },
+    {
         id: '2025-12-09-1',
         version: 'v1.0.13',
         date: '2025-12-09',

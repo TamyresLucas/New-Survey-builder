@@ -79,7 +79,10 @@ export const PrintSidebar: React.FC<PrintSidebarProps> = ({
     let globalPageCount = 0;
 
     return (
-        <div className="flex flex-col h-full bg-surface-container">
+        <div className="w-80 bg-surface-container border-r border-outline flex flex-col flex-shrink-0 h-full">
+            <div className="p-4 border-b border-outline">
+                <h2 className="text-lg font-medium text-on-surface" style={{ fontFamily: "'Outfit', sans-serif" }}>Survey Outline</h2>
+            </div>
             <div className="flex-1 overflow-y-auto py-2">
                 {survey.blocks.map(block => {
                     const pages = getPagesForBlock(block);

@@ -110,7 +110,7 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
               onClick={() => isRadio ? handleRadioChange(choice.id) : handleCheckboxChange(choice.id)}
               className={`flex items-center gap-3 p-3 rounded-md cursor-pointer border transition-colors ${isSelected
                 ? 'bg-primary-container border-primary shadow-sm'
-                : 'hover:bg-surface-container-high border-outline-variant'
+                : 'hover:bg-surface-container-lowest border-outline-variant'
                 }`}
             >
               {isRadio ? (
@@ -204,7 +204,7 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
           </thead>
           <tbody>
             {question.choices.map((choice) => (
-              <tr key={choice.id} className="border-b border-outline-variant last:border-b-0 hover:bg-surface-container-high">
+              <tr key={choice.id} className="border-b border-outline-variant last:border-b-0 hover:bg-surface-container-lowest">
                 <td className="p-3 text-base text-on-surface pr-4 align-middle">
                   {parseChoice(choice.text).label}
                 </td>

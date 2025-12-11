@@ -57,13 +57,15 @@ interface SurveyBlockProps {
   onAddFromLibrary: () => void;
   pageInfoMap: Map<string, PageInfo>;
   focusedLogicSource: string | null;
+  printMode?: boolean;
 }
 
 const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
   block, survey, selectedQuestion, selectedBlock, checkedQuestions, logicIssues, hasBranchingLogicInSurvey, branchedToBlockIds, onSelectQuestion, onSelectBlock, onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
   isBlockDragging, onBlockDragStart, onBlockDragEnd, isCollapsed, onToggleCollapse,
   onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onAddFromLibrary,
-  pageInfoMap, focusedLogicSource
+  pageInfoMap, focusedLogicSource,
+  printMode = false
 }) => {
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [isToolboxDragOver, setIsToolboxDragOver] = useState(false);
@@ -234,7 +236,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
 
   return (
     <div
-      className={`bg-surface-container border rounded-lg mb-8 transition-all ${isBlockDragging ? 'opacity-50' : ''
+      className={`${printMode ? 'bg-surface' : 'bg-surface-container'} border rounded-lg mb-8 transition-all ${isBlockDragging ? 'opacity-50' : ''
         } ${isSelected ? 'border-2 border-primary shadow-md' : 'border-outline-variant'}`}
       data-block-id={block.id}
     >
@@ -258,10 +260,10 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
           onSelectBlock(block);
         }}
       >
-        <div className="flex items-center cursor-grab flex-grow min-w-0 mr-2">
-          <DragIndicatorIcon className="text-xl text-on-surface-variant mr-2 flex-shrink-0" />
-          <div className="flex items-center cursor-pointer collapse-toggle-area w-full" onClick={(e) => { e.stopPropagation(); onToggleCollapse(); }}>
-            <ChevronDownIcon className={`text-xl mr-2 text-on-surface transition-transform duration-200 flex-shrink-0 ${isCollapsed ? '-rotate-90' : ''}`} />
+        <div className={`flex items-center ${!printMode ? 'cursor-grab' : ''} flex-grow min-w-0 mr-2`}>
+          {!printMode && <DragIndicatorIcon className="text-xl text-on-surface-variant mr-2 flex-shrink-0" />}
+          <div className="flex items-center cursor-pointer collapse-toggle-area w-full" onClick={(e) => { e.stopPropagation(); if (!printMode) onToggleCollapse(); }}>
+            {!printMode && <ChevronDownIcon className={`text-xl mr-2 text-on-surface transition-transform duration-200 flex-shrink-0 ${isCollapsed ? '-rotate-90' : ''}`} />}
             <div className="truncate flex items-center w-full">
               <span className="font-bold text-base text-on-surface mr-2">{block.bid}</span>
               <EditableText
@@ -283,36 +285,38 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
             </div>
           </div>
         </div>
-        <div className="relative actions-menu-area flex-shrink-0" ref={actionsMenuRef}>
-          <button
-            onClick={(e) => { e.stopPropagation(); setIsActionsMenuOpen(prev => !prev); }}
-            className="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-md transition-colors"
-            aria-haspopup="true"
-            aria-expanded={isActionsMenuOpen}
-            aria-label="Block actions"
-          >
-            <DotsHorizontalIcon className="text-xl" />
-          </button>
-          {isActionsMenuOpen && (
-            <BlockActionsMenu
-              onEdit={() => { onSelectBlock(block); setIsActionsMenuOpen(false); }}
-              onDuplicate={() => { onCopyBlock(block.id); setIsActionsMenuOpen(false); }}
-              onAddSimpleQuestion={() => { onAddQuestionToBlock(block.id, QTEnum.Checkbox); setIsActionsMenuOpen(false); }}
-              onAddFromLibrary={() => { onAddFromLibrary(); setIsActionsMenuOpen(false); }}
-              onAddBlockAbove={() => { onAddBlock(block.id, 'above'); setIsActionsMenuOpen(false); }}
-              onAddBlockBelow={() => { onAddBlock(block.id, 'below'); setIsActionsMenuOpen(false); }}
-              onSelectAll={() => { onSelectAllInBlock(block.id); setIsActionsMenuOpen(false); }}
-              canSelectAll={canSelectAll}
-              onUnselectAll={() => { onUnselectAllInBlock(block.id); setIsActionsMenuOpen(false); }}
-              canUnselectAll={canUnselectAll}
-              onExpand={() => { onExpandBlock(block.id); setIsActionsMenuOpen(false); }}
-              canExpand={canExpand}
-              onCollapse={() => { onCollapseBlock(block.id); setIsActionsMenuOpen(false); }}
-              canCollapse={canCollapse}
-              onDelete={() => { onDeleteBlock(block.id); setIsActionsMenuOpen(false); }}
-            />
-          )}
-        </div>
+        {!printMode && (
+          <div className="relative actions-menu-area flex-shrink-0" ref={actionsMenuRef}>
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsActionsMenuOpen(prev => !prev); }}
+              className={`w-8 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-lowest rounded-md transition-colors ${isActionsMenuOpen ? '!bg-surface-container-lowest' : ''}`}
+              aria-haspopup="true"
+              aria-expanded={isActionsMenuOpen}
+              aria-label="Block actions"
+            >
+              <DotsHorizontalIcon className="text-xl" />
+            </button>
+            {isActionsMenuOpen && (
+              <BlockActionsMenu
+                onEdit={() => { onSelectBlock(block); setIsActionsMenuOpen(false); }}
+                onDuplicate={() => { onCopyBlock(block.id); setIsActionsMenuOpen(false); }}
+                onAddSimpleQuestion={() => { onAddQuestionToBlock(block.id, QTEnum.Checkbox); setIsActionsMenuOpen(false); }}
+                onAddFromLibrary={() => { onAddFromLibrary(); setIsActionsMenuOpen(false); }}
+                onAddBlockAbove={() => { onAddBlock(block.id, 'above'); setIsActionsMenuOpen(false); }}
+                onAddBlockBelow={() => { onAddBlock(block.id, 'below'); setIsActionsMenuOpen(false); }}
+                onSelectAll={() => { onSelectAllInBlock(block.id); setIsActionsMenuOpen(false); }}
+                canSelectAll={canSelectAll}
+                onUnselectAll={() => { onUnselectAllInBlock(block.id); setIsActionsMenuOpen(false); }}
+                canUnselectAll={canUnselectAll}
+                onExpand={() => { onExpandBlock(block.id); setIsActionsMenuOpen(false); }}
+                canExpand={canExpand}
+                onCollapse={() => { onCollapseBlock(block.id); setIsActionsMenuOpen(false); }}
+                canCollapse={canCollapse}
+                onDelete={() => { onDeleteBlock(block.id); setIsActionsMenuOpen(false); }}
+              />
+            )}
+          </div>
+        )}
       </div>
       {!isCollapsed && (
         <div
@@ -363,6 +367,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                       onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
                       pageInfo={pageInfoMap.get(question.id)}
                       focusedLogicSource={focusedLogicSource}
+                      printMode={printMode}
                     />
                   </div>
                 </React.Fragment>
@@ -380,36 +385,38 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
             </>
           ) : (
             <div className="text-center py-8">
-              <div className="flex justify-center space-x-4">
-                <div className="relative" ref={addQuestionMenuRef}>
+              {!printMode && (
+                <div className="flex justify-center space-x-4">
+                  <div className="relative" ref={addQuestionMenuRef}>
+                    <button
+                      onClick={() => setIsAddQuestionMenuOpen(prev => !prev)}
+                      className={`flex items-center gap-2 px-4 py-1.5 text-sm font-button-primary text-on-primary bg-primary rounded-md hover:opacity-90 transition-opacity ${isAddQuestionMenuOpen ? '!opacity-90' : ''}`}
+                      aria-haspopup="true"
+                      aria-expanded={isAddQuestionMenuOpen}
+                    >
+                      <span>Add new question</span>
+                      <ChevronDownIcon className="text-base" />
+                    </button>
+                    {isAddQuestionMenuOpen && (
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 z-10">
+                        <QuestionTypeSelectionMenuContent
+                          toolboxItems={toolboxItems}
+                          onSelect={(questionType) => {
+                            onAddQuestionToBlock(block.id, questionType);
+                            setIsAddQuestionMenuOpen(false);
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                   <button
-                    onClick={() => setIsAddQuestionMenuOpen(prev => !prev)}
-                    className="flex items-center gap-2 px-4 py-1.5 text-sm font-button-primary text-on-primary bg-primary rounded-md hover:opacity-90 transition-opacity"
-                    aria-haspopup="true"
-                    aria-expanded={isAddQuestionMenuOpen}
+                    onClick={() => alert('Add from library functionality not implemented.')}
+                    className="px-4 py-1.5 text-sm font-semibold text-on-surface bg-surface-container-high border border-outline rounded-md hover:bg-surface-container-lowestest transition-colors"
                   >
-                    <span>Add new question</span>
-                    <ChevronDownIcon className="text-base" />
+                    Add from library
                   </button>
-                  {isAddQuestionMenuOpen && (
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 z-10">
-                      <QuestionTypeSelectionMenuContent
-                        toolboxItems={toolboxItems}
-                        onSelect={(questionType) => {
-                          onAddQuestionToBlock(block.id, questionType);
-                          setIsAddQuestionMenuOpen(false);
-                        }}
-                      />
-                    </div>
-                  )}
                 </div>
-                <button
-                  onClick={() => alert('Add from library functionality not implemented.')}
-                  className="px-4 py-1.5 text-sm font-semibold text-on-surface bg-surface-container-high border border-outline rounded-md hover:bg-surface-container-highest transition-colors"
-                >
-                  Add from library
-                </button>
-              </div>
+              )}
             </div>
           )}
         </div>

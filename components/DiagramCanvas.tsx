@@ -575,10 +575,11 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 data: {
                     ...n.data,
                     highlightSourceHandles: isSelected,
-                    highlightInputHandle: hasSourceConnection
+                    highlightInputHandle: hasSourceConnection,
+                    label: (n.data as any).label || ''
                 }
             };
-        }));
+        }) as any);
 
         setEdges(layoutEdges.map(e => {
             const isSelected = e.source === selectedId;

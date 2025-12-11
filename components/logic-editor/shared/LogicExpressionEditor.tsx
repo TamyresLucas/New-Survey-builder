@@ -193,7 +193,7 @@ export const LogicExpressionEditor: React.FC<LogicExpressionEditorProps> = ({
         {helpTopic && onRequestGeminiHelp && (
           <button
             onClick={() => onRequestGeminiHelp(helpTopic)}
-            className="flex items-center gap-1 text-primary hover:bg-surface-container-high px-2 py-1 rounded-full transition-colors text-xs font-semibold"
+            className="flex items-center gap-1 text-primary hover:bg-surface-container-lowest px-2 py-1 rounded-full transition-colors text-xs font-semibold"
             title="Ask Gemini for help"
           >
             <SparkleIcon className="text-lg" />
@@ -250,7 +250,7 @@ export const LogicExpressionEditor: React.FC<LogicExpressionEditorProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={onCancel}
-            className="px-3 py-1.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container-highest rounded-md transition-colors"
+            className="px-3 py-1.5 text-xs font-semibold text-on-surface-variant hover:bg-surface-container-lowestest rounded-md transition-colors"
           >
             Cancel
           </button>

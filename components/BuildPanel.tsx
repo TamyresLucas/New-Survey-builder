@@ -38,6 +38,7 @@ interface BuildPanelProps {
   onSelectAllInBlock: (blockId: string) => void;
   onUnselectAllInBlock: (blockId: string) => void;
   onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
+  printMode?: boolean;
 }
 
 const enabledToolboxItems = new Set(['Block', 'Page Break', 'Description', 'Checkbox', 'Radio Button', 'Text Entry', 'Choice Grid']);
@@ -95,7 +96,7 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
       containerClasses += ' bg-primary border-primary text-on-primary';
     }
   } else {
-    containerClasses += ' bg-surface-container border-outline-variant hover:bg-surface-container-high hover:border-outline-hover';
+    containerClasses += ' bg-surface-container border-outline-variant hover:bg-surface-container-lowest hover:border-outline-hover';
   }
 
   if (isQuestionDragged) {
@@ -106,7 +107,7 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
   const textClasses = `font-semibold text-sm ${isSelected ? (hasIssues ? 'text-on-error' : 'text-on-primary') : 'text-on-surface'}`;
   const labelClasses = `font-normal text-sm ${isSelected ? (hasIssues ? 'text-on-error' : 'text-on-primary') : 'text-on-surface-variant'}`;
   const bodyTextClasses = `font-normal truncate flex-grow ${isSelected ? (hasIssues ? 'text-on-error' : 'text-on-primary') : 'text-on-surface'}`;
-  const menuButtonClasses = `w-6 h-6 flex items-center justify-center rounded-md transition-opacity ${isSelected ? (hasIssues ? 'text-on-error hover:bg-white/20' : 'text-on-primary hover:bg-white/20') : 'text-on-surface-variant hover:bg-surface-container-highest'} ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`;
+  const menuButtonClasses = `w-6 h-6 flex items-center justify-center rounded-md transition-opacity ${isSelected ? (hasIssues ? 'text-on-error hover:bg-white/20' : 'text-on-primary hover:bg-white/20') : 'text-on-surface-variant hover:bg-surface-container-lowestest'} ${isSelected || isMenuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${isMenuOpen ? (isSelected ? '!bg-white/20' : '!bg-surface-container-highest') : ''}`;
 
   return (
     <>
@@ -161,7 +162,8 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
 const BuildPanel: React.FC<BuildPanelProps> = memo(({
   onClose, survey, onSelectQuestion, selectedQuestion, selectedBlock, onSelectBlock, checkedQuestions, collapsedBlocks, toolboxItems, logicIssues, onReorderToolbox, onReorderQuestion, onReorderBlock,
   onMoveBlockUp, onMoveBlockDown, onAddBlock, onCopyBlock, onAddQuestionToBlock, onExpandAllBlocks, onCollapseAllBlocks, onDeleteBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock,
-  onMoveQuestionToExistingBlock, onAddPageBreakAfterQuestion, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock, onUpdateQuestion
+  onMoveQuestionToExistingBlock, onAddPageBreakAfterQuestion, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock, onUpdateQuestion,
+  printMode = false
 }) => {
   const [activeTab, setActiveTab] = useState('Content');
   const [searchTerm, setSearchTerm] = useState('');
@@ -433,28 +435,34 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
       <div className="p-4 border-b border-outline">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium text-on-surface" style={{ fontFamily: "'Outfit', sans-serif" }}>Build</h2>
-          <Button variant="tertiary" iconOnly onClick={onClose} aria-label="Collapse build panel">
-            <PanelLeftIcon className="text-xl" />
-          </Button>
+          {!printMode && (
+            <Button variant="tertiary" iconOnly onClick={onClose} aria-label="Collapse build panel">
+              <PanelLeftIcon className="text-xl" />
+            </Button>
+          )}
         </div>
       </div>
-      <div className="px-4 border-b border-outline">
-        <nav className="-mb-px flex space-x-6">
-          {['Toolbox', 'Content', 'Library'].map(tab => (
-            <button
-              key={tab}
-              onClick={() => handleTabClick(tab)}
-              className={`h-[40px] flex items-center px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab
-                ? 'border-primary text-primary'
-                : 'border-transparent text-on-surface-variant hover:text-primary'
-                }`}
-              style={{ fontFamily: "'Open Sans', sans-serif" }}
-            >
-              {tab}
-            </button>
-          ))}
-        </nav>
-      </div>
+      {
+        !printMode && (
+          <div className="px-4 border-b border-outline">
+            <nav className="-mb-px flex space-x-6">
+              {['Toolbox', 'Content', 'Library'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => handleTabClick(tab)}
+                  className={`h-[40px] flex items-center px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-on-surface-variant hover:text-primary'
+                    }`}
+                  style={{ fontFamily: "'Open Sans', sans-serif" }}
+                >
+                  {tab}
+                </button>
+              ))}
+            </nav>
+          </div>
+        )
+      }
       <div className="p-4 border-b border-outline">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
@@ -492,7 +500,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
         )}
       </div>
       <div className="flex-1 overflow-y-auto overflow-x-visible">
-        {activeTab === 'Toolbox' && (
+        {activeTab === 'Toolbox' && !printMode && (
           <ul
             ref={toolboxListRef}
             onDragOver={!isTextSearching ? handleToolboxDragOver : undefined}
@@ -508,7 +516,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                     draggable={isEnabled && !isTextSearching}
                     onDragStart={isEnabled && !isTextSearching ? (e) => handleToolboxDragStart(e, index, item) : undefined}
                     onDragEnd={isEnabled && !isTextSearching ? handleToolboxDragEnd : undefined}
-                    className={`flex items-center px-4 py-3 border-b border-outline transition-all ${isEnabled ? 'hover:bg-surface-container-high cursor-grab' : 'cursor-not-allowed'
+                    className={`flex items-center px-4 py-3 border-b border-outline transition-all ${isEnabled ? 'hover:bg-surface-container-lowest cursor-grab' : 'cursor-not-allowed'
                       } ${draggedToolboxIndex === index ? 'opacity-30' : ''}`}
                   >
                     <div className="flex items-center">
@@ -522,7 +530,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             {!isTextSearching && dropToolboxTargetIndex === filteredToolboxItems.length && <DropIndicator />}
           </ul>
         )}
-        {activeTab === 'Content' && (
+        {(activeTab === 'Content' || printMode) && (
           <div
             ref={contentListRef}
             className="bg-surface min-h-full"
@@ -562,7 +570,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                       onDragStart={!isSearching ? (e) => handleBlockDragStart(e, block.id) : undefined}
                       onDragEnd={!isSearching ? handleBlockDragEnd : undefined}
                       onClick={() => onSelectBlock(block)}
-                      className={`px-4 h-[40px] cursor-pointer border-b border-t border-outline flex items-center justify-between ${isSelected ? 'bg-primary text-on-primary' : 'bg-surface-container hover:bg-surface-container-high hover:border-outline-hover'}`}
+                      className={`px-4 h-[40px] cursor-pointer border-b border-t border-outline flex items-center justify-between ${isSelected ? 'bg-primary text-on-primary' : 'bg-surface-container hover:bg-surface-container-lowest hover:border-outline-hover'}`}
                     >
                       <div className="flex items-center cursor-grab flex-grow truncate">
                         <DragIndicatorIcon className={`text-base mr-2 flex-shrink-0 ${isSelected ? 'text-on-primary' : 'text-on-surface-variant'}`} />
@@ -575,7 +583,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                       <div className="relative flex-shrink-0" ref={openMenuBlockId === block.id ? actionsMenuRef : null}>
                         <button
                           onClick={(e) => { e.stopPropagation(); setOpenMenuBlockId(openMenuBlockId === block.id ? null : block.id); }}
-                          className={`w-6 h-6 flex items-center justify-center rounded-md ${isSelected ? 'text-on-primary hover:bg-white/20' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}
+                          className={`w-6 h-6 flex items-center justify-center rounded-md ${isSelected ? 'text-on-primary hover:bg-white/20' : 'text-on-surface-variant hover:bg-surface-container-lowestest'} ${openMenuBlockId === block.id ? (isSelected ? '!bg-white/20' : '!bg-surface-container-highest') : ''}`}
                         >
                           <DotsHorizontalIcon className="text-base" />
                         </button>
@@ -649,7 +657,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 });
 

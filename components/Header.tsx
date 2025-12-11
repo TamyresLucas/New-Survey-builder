@@ -5,6 +5,7 @@ import { AppChangelogModal } from './AppChangelogModal';
 import { EditableText } from './EditableText';
 import { useTheme } from '../contexts/ThemeContext';
 import { DropdownList, DropdownItem, DropdownDivider } from './DropdownList';
+import { Toggle } from './Toggle';
 import type { SurveyStatus } from '../types';
 
 interface HeaderProps {
@@ -130,19 +131,14 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
         </div>
       </div>
       <div className="flex items-center space-x-5">
-        <label htmlFor="activate-survey-toggle" className="flex items-center cursor-pointer">
-          <span className="text-sm font-medium text-on-surface mr-3" style={{ fontFamily: "'Open Sans', sans-serif" }}>Activate</span>
-          <div className="relative">
-            <input
-              type="checkbox"
-              id="activate-survey-toggle"
-              className="sr-only peer"
-              checked={surveyStatus === 'active'}
-              onChange={onToggleActivateSurvey}
-            />
-            <div className="w-10 h-6 bg-outline rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-          </div>
-        </label>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-on-surface" style={{ fontFamily: "'Open Sans', sans-serif" }}>Activate</span>
+          <Toggle
+            id="activate-survey-toggle"
+            checked={surveyStatus === 'active'}
+            onChange={onToggleActivateSurvey}
+          />
+        </div>
 
 
 
@@ -151,7 +147,7 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
             onClick={handleCopyClick}
             className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors ${isCopied
               ? 'bg-success text-on-success'
-              : 'border border-[color:var(--button-btn-bd-def)] text-on-surface hover:bg-surface-container-high'
+              : 'border border-[color:var(--button-btn-bd-def)] text-on-surface hover:bg-surface-container-lowest'
               }`}
             aria-label={isCopied ? "Link copied" : "Copy link"}
           >
@@ -162,17 +158,17 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
             onClick={onToggleGeminiPanel}
             className={`w-8 h-8 flex items-center justify-center text-on-surface rounded-md transition-colors ${isGeminiPanelOpen
               ? 'bg-primary-container'
-              : 'hover:bg-surface-container-high'
+              : 'hover:bg-surface-container-lowest'
               }`}
             aria-label="AI Features"
             aria-pressed={isGeminiPanelOpen}
           >
             <SparkleIcon className="text-2xl" />
           </button>
-          <button className="w-8 h-8 flex items-center justify-center text-on-surface hover:bg-surface-container-high rounded-md transition-colors" aria-label="Notifications">
+          <button className="w-8 h-8 flex items-center justify-center text-on-surface hover:bg-surface-container-lowest rounded-md transition-colors" aria-label="Notifications">
             <BellIcon className="text-2xl" />
           </button>
-          <button className="w-8 h-8 flex items-center justify-center text-on-surface hover:bg-surface-container-high rounded-md transition-colors" aria-label="Help">
+          <button className="w-8 h-8 flex items-center justify-center text-on-surface hover:bg-surface-container-lowest rounded-md transition-colors" aria-label="Help">
             <QuestionIcon className="text-2xl" />
           </button>
         </div>
@@ -194,7 +190,7 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
               <div className="p-2">
                 <div className="flex justify-between items-center px-2 py-1">
                   <span className="text-sm font-medium text-on-surface">Theme</span>
-                  <div className="flex items-center rounded-full bg-surface-container-high p-1">
+                  <div className="flex items-center rounded-full bg-surface-container-lowest p-1">
                     <button onClick={() => setTheme('light')} className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${theme === 'light' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'}`} aria-label="Switch to light mode">
                       <SunIcon className="text-base" />
                     </button>

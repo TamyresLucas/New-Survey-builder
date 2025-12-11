@@ -6,9 +6,10 @@ interface EditableTextProps {
     onFocus?: () => void;
     className?: string;
     style?: React.CSSProperties;
+    readOnly?: boolean;
 }
 
-export const EditableText: React.FC<EditableTextProps> = ({ html, onChange, onFocus, className, style }) => {
+export const EditableText: React.FC<EditableTextProps> = ({ html, onChange, onFocus, className, style, readOnly }) => {
     const elementRef = useRef<HTMLDivElement>(null);
     const lastHtml = useRef(html);
 
@@ -20,6 +21,7 @@ export const EditableText: React.FC<EditableTextProps> = ({ html, onChange, onFo
     }, [html]);
 
     const handleBlur = () => {
+        if (readOnly) return;
         const currentHtml = elementRef.current?.innerHTML || '';
         if (lastHtml.current !== currentHtml) {
             onChange(currentHtml);
@@ -27,6 +29,10 @@ export const EditableText: React.FC<EditableTextProps> = ({ html, onChange, onFo
     };
 
     const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+        if (readOnly) {
+            e.preventDefault();
+            return;
+        }
         e.preventDefault();
         const text = e.clipboardData.getData('text/plain');
         const selection = window.getSelection();
@@ -50,13 +56,13 @@ export const EditableText: React.FC<EditableTextProps> = ({ html, onChange, onFo
     return (
         <div
             ref={elementRef}
-            className={`${className || ''} outline-none border-b border-transparent focus:border-primary cursor-text transition-colors hover:bg-surface-container-high`}
+            className={`${className || ''} outline-none border-b border-transparent focus:border-primary transition-colors ${readOnly ? 'cursor-default' : 'cursor-text hover:bg-surface-container-lowest'}`}
             style={style}
-            contentEditable
+            contentEditable={!readOnly}
             suppressContentEditableWarning
             dangerouslySetInnerHTML={{ __html: html }}
             onBlur={handleBlur}
-            onFocus={onFocus}
+            onFocus={readOnly ? undefined : onFocus}
             onClick={stopPropagation}
             onMouseDown={stopPropagation} // Also stop mousedown to prevent deselect logic
             onPaste={handlePaste}

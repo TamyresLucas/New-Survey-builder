@@ -130,7 +130,7 @@ export const QuestionGroupEditor: React.FC<QuestionGroupEditorProps> = ({ questi
                 <button
                     type="button"
                     onClick={handleIconClick}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-on-surface-variant hover:bg-surface-container-high"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-on-surface-variant hover:bg-surface-container-lowest"
                     aria-label={isCreatingNew ? "Confirm new group" : "Toggle dropdown"}
                 >
                     {isCreatingNew ? <CheckmarkIcon className="text-xl text-primary" /> : <ChevronDownIcon className="text-lg" />}
@@ -147,7 +147,7 @@ export const QuestionGroupEditor: React.FC<QuestionGroupEditorProps> = ({ questi
                                                 e.preventDefault();
                                                 handleOptionClick(group);
                                             }}
-                                            className="w-full text-left px-4 py-2 text-sm flex items-center justify-between text-on-surface hover:bg-surface-container-high"
+                                            className="w-full text-left px-4 py-2 text-sm flex items-center justify-between text-on-surface hover:bg-surface-container-lowest"
                                         >
                                             <span>{group}</span>
                                             {question.groupName === group && <CheckmarkIcon className="text-base text-primary" />}

@@ -15,6 +15,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     size?: ButtonSize;
     iconOnly?: boolean;
     isLoading?: boolean;
+    active?: boolean;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
@@ -24,12 +25,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
     size = 'large',
     iconOnly = false,
     isLoading = false,
+    active = false,
     disabled,
     ...props
 }, ref) => {
 
     // Base styles (Shape, Typography, Focus)
-    const baseStyles = "inline-flex items-center justify-center rounded font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed";
+    const baseStyles = "inline-flex items-center justify-center rounded font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed";
 
     // Size styles
     const sizeStyles = {
@@ -39,12 +41,22 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
 
     // Variant styles
     const variantStyles = {
-        primary: "bg-primary text-on-primary hover:opacity-90",
-        secondary: "bg-transparent border border-[color:var(--button-btn-bd-def)] text-on-surface hover:bg-surface-container-high",
-        tertiary: "bg-transparent text-on-surface hover:bg-surface-container-high",
-        'tertiary-primary': "bg-transparent text-primary hover:bg-primary hover:text-on-primary",
-        danger: "bg-transparent text-error hover:bg-error-container",
-        'danger-solid': "bg-error text-on-error hover:opacity-90",
+        primary: "bg-primary text-on-primary hover:opacity-90 active:opacity-90",
+        secondary: "border border-[color:var(--button-btn-bd-def)] text-on-surface hover:bg-surface-container-lowest active:bg-surface-container-lowest",
+        tertiary: "text-on-surface hover:bg-surface-container-lowest active:bg-surface-container-lowest",
+        'tertiary-primary': "bg-transparent text-primary hover:bg-primary hover:text-on-primary active:bg-primary active:text-on-primary",
+        danger: "bg-transparent text-error hover:bg-error-container active:bg-error-container",
+        'danger-solid': "bg-error text-on-error hover:opacity-90 active:opacity-90",
+    };
+
+    // Forced active styles (matches hover state)
+    const activeVariantStyles = {
+        primary: "!opacity-90",
+        secondary: "!bg-surface-container-lowest",
+        tertiary: "!bg-surface-container-lowest",
+        'tertiary-primary': "!bg-primary !text-on-primary",
+        danger: "!bg-error-container",
+        'danger-solid': "!opacity-90",
     };
 
     // Combine classes
@@ -52,6 +64,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
     ${baseStyles}
     ${sizeStyles[size]}
     ${variantStyles[variant]}
+    ${active ? activeVariantStyles[variant] : ''}
     ${className}
   `.trim().replace(/\s+/g, ' ');
 

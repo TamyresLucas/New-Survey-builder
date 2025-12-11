@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       host: '0.0.0.0',
-      allowedHosts: ['strengthen-gear-valuation-capital.trycloudflare.com'],
+      allowedHosts: ['pharmacy-offerings-suggesting-rounds.trycloudflare.com'],
     },
     plugins: [react()],
     define: {

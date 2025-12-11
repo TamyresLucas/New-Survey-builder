@@ -33,7 +33,7 @@ const ActionButton: React.FC<{ icon: React.FC<{ className?: string }>, label: st
     onClick={onClick}
     className={`w-full flex items-center px-4 py-3 text-sm font-medium transition-colors ${isDestructive
         ? 'text-error hover:bg-error-container'
-        : 'text-on-surface hover:bg-surface-container-high'
+        : 'text-on-surface hover:bg-surface-container-lowest'
       }`}
   >
     <Icon className="text-xl mr-3" />

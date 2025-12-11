@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Survey, Block, Question, QuestionType, ToolboxItemData, LogicIssue, SurveyStatus } from './types';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
 import LeftSidebar from './components/LeftSidebar';
 import BuildPanel from './components/BuildPanel';
+import { PrintSidebar } from './components/PrintSidebar';
+import { PrintCanvas } from './components/PrintCanvas';
 import SurveyCanvas from './components/SurveyCanvas';
 import DiagramCanvas from './components/DiagramCanvas';
 import { RightSidebar } from './components/RightSidebar';
@@ -12,20 +15,20 @@ import GeminiPanel from './components/GeminiPanel';
 import { SurveyPreview } from './components/SurveyPreview';
 import { SurveyExport } from './components/SurveyExport';
 import PathAnalysisPanel from './components/diagram/PathAnalysisPanel';
-import { ImportSurveyModal } from './components/ImportSurveyModal';
-import SurveyStructureWidget from './components/SurveyStructureWidget';
 
-// Hooks
+import { ImportSurveyModal } from './components/ImportSurveyModal';
 import { useSurveyState } from './hooks/useSurveyState';
 import { useSelection } from './hooks/useSelection';
 import { useSurveyActions } from './hooks/useSurveyActions';
-
-// Types
-import { ToolboxItemData, LogicIssue, SurveyStatus, Question, Block } from './types';
+import { analyzeSurveyPaths, generateSurveyCsv } from './utils';
+import { PrintDisplayOptions } from './components/PrintDisplayOptions';
+import SurveyStructureWidget from './components/SurveyStructureWidget';
 import { SurveyActionType } from './state/surveyReducer';
 import { toolboxItems as initialToolboxItems } from './constants';
 import { validateSurveyLogic } from './logicValidator';
-import { analyzeSurveyPaths, generateSurveyCsv } from './utils';
+
+
+
 
 // Icons
 import { WarningIcon, CheckmarkIcon, XIcon, PanelRightIcon, CheckCircleIcon, PanelLeftIcon } from './components/icons';
@@ -96,6 +99,35 @@ const App: React.FC = () => {
     const [geminiHelpTopic, setGeminiHelpTopic] = useState<string | null>(null);
     const [isPreviewMode, setIsPreviewMode] = useState(false);
     const [isExportMode, setIsExportMode] = useState(false);
+
+    // Print View Options State
+    const [printDisplayOptions, setPrintDisplayOptions] = useState<Set<string>>(new Set([
+        'Questionnaire Settings',
+        'Block Settings',
+        'Question Text',
+        'Choices',
+        'Columns and Rows',
+        'Skip Logic',
+        'Advanced Logic',
+        'Variables',
+        'References',
+        'Options',
+        'Advanced Settings',
+        'Page Breaks'
+    ]));
+
+    const togglePrintOption = useCallback((option: string) => {
+        setPrintDisplayOptions(prev => {
+            const next = new Set(prev);
+            if (next.has(option)) {
+                next.delete(option);
+            } else {
+                next.add(option);
+            }
+            return next;
+        });
+    }, []);
+    const [isPrintMode, setIsPrintMode] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [toasts, setToasts] = useState<{ id: string; message: string; type: ToastType; onUndo?: () => void }[]>([]);
     const [selectedPathId, setSelectedPathId] = useState('all-paths');
@@ -286,6 +318,67 @@ const App: React.FC = () => {
     const handleExpandAllBlocks = useCallback(() => setCollapsedBlocks(new Set()), []);
     const handleCollapseAllBlocks = useCallback(() => setCollapsedBlocks(new Set(survey.blocks.map(b => b.id))), [survey.blocks]);
 
+    // --- Print Selection State ---
+    const [printSelectedQuestions, setPrintSelectedQuestions] = useState<Set<string>>(new Set());
+    const [printSelectedBlocks, setPrintSelectedBlocks] = useState<Set<string>>(new Set());
+
+    // Initialize all questions and blocks as selected by default for print when survey loads
+    useEffect(() => {
+        const allQIds = new Set<string>();
+        const allBIds = new Set<string>();
+        survey.blocks.forEach(b => {
+            allBIds.add(b.id);
+            b.questions.forEach(q => allQIds.add(q.id));
+        });
+        setPrintSelectedQuestions(allQIds);
+        setPrintSelectedBlocks(allBIds);
+    }, [survey]);
+
+    // Hover state for synchronized hover between print canvas and survey outline
+    const [hoveredQuestionId, setHoveredQuestionId] = useState<string | null>(null);
+
+    const handleTogglePrintCheck = useCallback((id: string) => {
+        setPrintSelectedQuestions(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(id)) {
+                newSet.delete(id);
+            } else {
+                newSet.add(id);
+            }
+            return newSet;
+        });
+    }, []);
+
+    const handleTogglePrintBlockCheck = useCallback((id: string) => {
+        const block = survey.blocks.find(b => b.id === id);
+        if (!block) return;
+
+        setPrintSelectedBlocks(prev => {
+            const newSet = new Set(prev);
+            const isCurrentlySelected = newSet.has(id);
+
+            // Update questions based on block toggle
+            setPrintSelectedQuestions(prevQ => {
+                const newQSet = new Set(prevQ);
+                if (isCurrentlySelected) {
+                    // Deselecting block -> deselected all questions
+                    block.questions.forEach(q => newQSet.delete(q.id));
+                } else {
+                    // Selecting block -> select all questions
+                    block.questions.forEach(q => newQSet.add(q.id));
+                }
+                return newQSet;
+            });
+
+            if (isCurrentlySelected) {
+                newSet.delete(id);
+            } else {
+                newSet.add(id);
+            }
+            return newSet;
+        });
+    }, [survey]);
+
     if (isPreviewMode) {
         return (
             <SurveyPreview
@@ -305,53 +398,73 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col h-screen bg-surface text-on-surface overflow-hidden font-sans">
-            <Header
-                surveyName={survey.title}
-                isGeminiPanelOpen={isGeminiPanelOpen}
-                onToggleGeminiPanel={handleToggleGeminiPanel}
-                onUpdateSurveyName={actions.handleUpdateSurveyTitle}
-                surveyStatus={surveyStatus}
-                isDirty={isDirty}
-                onToggleActivateSurvey={() => setSurveyStatus(prev => prev === 'active' ? 'stopped' : 'active')}
-                onUpdateLiveSurvey={() => {
-                    setPublishedSurvey(JSON.parse(JSON.stringify(survey)));
-                    showToast("Survey updated successfully!", 'success');
-                }}
-            />
-            <SubHeader
-                onTogglePreview={() => setIsPreviewMode(true)}
-                onCopySurvey={() => {
-                    const json = JSON.stringify(survey, null, 2);
-                    navigator.clipboard.writeText(json);
-                    showToast("Survey JSON copied to clipboard", 'success');
-                }}
-                onExportCsv={() => {
-                    const csvContent = generateSurveyCsv(survey);
-                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                    const link = document.createElement('a');
-                    if (link.download !== undefined) {
-                        const url = URL.createObjectURL(blob);
-                        link.setAttribute('href', url);
-                        link.setAttribute('download', `${survey.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_export.csv`);
-                        link.style.visibility = 'hidden';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        showToast("Survey exported to CSV successfully!", 'success');
-                    }
-                }}
-                onExport={() => setIsExportMode(true)}
-                onImportSurvey={() => setIsImportModalOpen(true)}
-            />
-
-            <div className="flex flex-1 overflow-hidden relative">
-                <LeftSidebar
-                    activeTab={activeMainTab}
-                    onTabSelect={handleTabSelect}
+        <div className="flex flex-col h-screen bg-surface text-on-surface overflow-hidden font-sans print:h-auto print:overflow-visible">
+            {!isPrintMode && (
+                <Header
+                    surveyName={survey.title}
+                    isGeminiPanelOpen={isGeminiPanelOpen}
+                    onToggleGeminiPanel={handleToggleGeminiPanel}
+                    onUpdateSurveyName={actions.handleUpdateSurveyTitle}
+                    surveyStatus={surveyStatus}
+                    isDirty={isDirty}
+                    onToggleActivateSurvey={() => setSurveyStatus(prev => prev === 'active' ? 'stopped' : 'active')}
+                    onUpdateLiveSurvey={() => {
+                        setPublishedSurvey(JSON.parse(JSON.stringify(survey)));
+                        showToast("Survey updated successfully!", 'success');
+                    }}
                 />
+            )}
+            {isPrintMode ? (
+                <div className="flex items-center justify-between px-6 py-4 bg-surface-container border-b border-outline shadow-sm z-50 print:hidden">
+                    <h2 className="text-lg font-bold text-on-surface">Print {survey.title}</h2>
+                    <Button
+                        variant="tertiary"
+                        iconOnly
+                        onClick={() => setIsPrintMode(false)}
+                        aria-label="Close Print View"
+                    >
+                        <XIcon className="text-2xl" />
+                    </Button>
+                </div>
+            ) : (
+                <SubHeader
+                    onTogglePreview={() => setIsPreviewMode(true)}
+                    onCopySurvey={() => {
+                        const json = JSON.stringify(survey, null, 2);
+                        navigator.clipboard.writeText(json);
+                        showToast("Survey JSON copied to clipboard", 'success');
+                    }}
+                    onExportCsv={() => {
+                        const csvContent = generateSurveyCsv(survey);
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const link = document.createElement('a');
+                        if (link.download !== undefined) {
+                            const url = URL.createObjectURL(blob);
+                            link.setAttribute('href', url);
+                            link.setAttribute('download', `${survey.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_export.csv`);
+                            link.style.visibility = 'hidden';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            showToast("Survey exported to CSV successfully!", 'success');
+                        }
+                    }}
+                    onExport={() => {
+                        setIsPrintMode(prev => !prev);
+                    }}
+                    onImportSurvey={() => setIsImportModalOpen(true)}
+                />
+            )}
 
-                {activeMainTab === 'Build' && isBuildPanelOpen && (
+            <div className="flex flex-1 overflow-hidden relative print:overflow-visible">
+                {!isPrintMode && (
+                    <LeftSidebar
+                        activeTab={activeMainTab}
+                        onTabSelect={handleTabSelect}
+                    />
+                )}
+
+                {!isPrintMode && activeMainTab === 'Build' && isBuildPanelOpen && (
                     <BuildPanel
                         onClose={() => setIsBuildPanelOpen(false)}
                         survey={survey}
@@ -373,21 +486,35 @@ const App: React.FC = () => {
                         onAddQuestionToBlock={actions.handleAddQuestionToBlock}
                         onExpandAllBlocks={handleExpandAllBlocks}
                         onCollapseAllBlocks={handleCollapseAllBlocks}
-                        onExpandBlock={handleExpandBlock}
-                        onCollapseBlock={handleCollapseBlock}
                         onDeleteBlock={actions.handleDeleteBlock}
                         onDeleteQuestion={actions.handleDeleteQuestion}
                         onCopyQuestion={actions.handleCopyQuestion}
                         onMoveQuestionToNewBlock={actions.handleMoveQuestionToNewBlock}
                         onMoveQuestionToExistingBlock={actions.handleMoveQuestionToExistingBlock}
                         onAddPageBreakAfterQuestion={actions.handleAddPageBreakAfterQuestion}
+                        onExpandBlock={handleExpandBlock}
+                        onCollapseBlock={handleCollapseBlock}
                         onSelectAllInBlock={actions.handleSelectAllInBlock}
                         onUnselectAllInBlock={actions.handleUnselectAllInBlock}
                         onUpdateQuestion={actions.handleUpdateQuestion}
                     />
                 )}
 
-                <main className="flex-1 flex flex-col relative overflow-hidden transition-all duration-300">
+                {isPrintMode && (
+                    <div className="print:hidden">
+                        <PrintSidebar
+                            survey={survey}
+                            onSelectBlock={handleSelectBlock}
+                            onSelectQuestion={handleSelectQuestion}
+                            selectedBlock={selectedBlock}
+                            selectedQuestion={selectedQuestion}
+                            hoveredQuestionId={hoveredQuestionId}
+                            onQuestionHover={setHoveredQuestionId}
+                        />
+                    </div>
+                )}
+
+                <main className="flex-1 flex flex-col relative overflow-hidden transition-all duration-300 min-w-0 print:overflow-visible">
                     {activeMainTab === 'Build' && !isBuildPanelOpen && (
                         <div className="absolute top-4 left-4 z-10">
                             <Button
@@ -400,68 +527,85 @@ const App: React.FC = () => {
                             </Button>
                         </div>
                     )}
-
-                    <div
-                        ref={canvasContainerRef}
-                        className="flex-1 overflow-y-auto overflow-x-hidden bg-surface relative scroll-smooth"
-                    >
-                        {isDiagramView ? (
-                            <div className="h-full w-full">
-                                <DiagramCanvas
-                                    survey={survey}
-                                    selectedQuestion={selectedQuestion}
-                                    onSelectQuestion={handleSelectQuestion}
-                                    onUpdateQuestion={actions.handleUpdateQuestion}
-                                    activeMainTab={activeMainTab}
-                                />
-                                <PathAnalysisPanel
-                                    survey={survey}
-                                />
-                            </div>
-                        ) : (
-                            <div className="p-8 pb-32 min-h-full">
-                                <SurveyCanvas
-                                    survey={displaySurvey}
-                                    selectedQuestion={selectedQuestion}
-                                    selectedBlock={selectedBlock}
-                                    checkedQuestions={checkedQuestions}
-                                    logicIssues={logicIssues}
-                                    onSelectQuestion={handleSelectQuestion}
-                                    onSelectBlock={handleSelectBlock}
-                                    onUpdateQuestion={actions.handleUpdateQuestion}
-                                    onUpdateBlock={actions.handleUpdateBlock}
-                                    onDeleteQuestion={actions.handleDeleteQuestion}
-                                    onCopyQuestion={actions.handleCopyQuestion}
-                                    onMoveQuestionToNewBlock={actions.handleMoveQuestionToNewBlock}
-                                    onMoveQuestionToExistingBlock={actions.handleMoveQuestionToExistingBlock}
-                                    onDeleteBlock={actions.handleDeleteBlock}
-                                    onReorderQuestion={actions.handleReorderQuestion}
-                                    onReorderBlock={actions.handleReorderBlock}
-                                    onAddBlockFromToolbox={actions.handleAddBlockFromToolbox}
-                                    onAddQuestion={actions.handleAddQuestion}
-                                    onAddBlock={actions.handleAddBlock}
-                                    onAddQuestionToBlock={actions.handleAddQuestionToBlock}
-                                    onToggleQuestionCheck={actions.handleToggleQuestionCheck}
-                                    onSelectAllInBlock={actions.handleSelectAllInBlock}
-                                    onUnselectAllInBlock={actions.handleUnselectAllInBlock}
-                                    toolboxItems={toolboxItems}
-                                    collapsedBlocks={collapsedBlocks}
-                                    onToggleBlockCollapse={handleToggleBlockCollapse}
-                                    onCopyBlock={actions.handleCopyBlock}
-                                    onExpandAllBlocks={handleExpandAllBlocks}
-                                    onCollapseAllBlocks={handleCollapseAllBlocks}
-                                    onExpandBlock={handleExpandBlock}
-                                    onCollapseBlock={handleCollapseBlock}
-                                    onAddChoice={actions.handleAddChoice}
-                                    onAddPageBreakAfterQuestion={actions.handleAddPageBreakAfterQuestion}
-                                    onUpdateBlockTitle={actions.handleUpdateBlockTitle}
-                                    onUpdateSurveyTitle={actions.handleUpdateSurveyTitle}
-                                    onAddFromLibrary={() => { }}
-                                    focusedLogicSource={focusedLogicSource}
-                                />
-                            </div>
-                        )}
-                    </div>
+                    {isPrintMode ? (
+                        <PrintCanvas
+                            survey={survey}
+                            selectedBlock={selectedBlock}
+                            selectedQuestion={selectedQuestion}
+                            onSelectBlock={() => { }}
+                            onSelectQuestion={() => { }}
+                            printSelectedQuestions={printSelectedQuestions}
+                            printSelectedBlocks={printSelectedBlocks}
+                            onToggleCheck={handleTogglePrintCheck}
+                            onToggleBlockCheck={handleTogglePrintBlockCheck}
+                            printDisplayOptions={printDisplayOptions}
+                            hoveredQuestionId={hoveredQuestionId}
+                            onQuestionHover={setHoveredQuestionId}
+                        />
+                    ) : (
+                        <div
+                            ref={canvasContainerRef}
+                            className="flex-1 overflow-y-auto overflow-x-hidden bg-surface relative scroll-smooth"
+                        >
+                            {isDiagramView ? (
+                                <div className="h-full w-full">
+                                    <DiagramCanvas
+                                        survey={survey}
+                                        selectedQuestion={selectedQuestion}
+                                        onSelectQuestion={handleSelectQuestion}
+                                        onUpdateQuestion={actions.handleUpdateQuestion}
+                                        activeMainTab={activeMainTab}
+                                    />
+                                    <PathAnalysisPanel
+                                        survey={survey}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="p-8 pb-32 min-h-full">
+                                    <SurveyCanvas
+                                        survey={displaySurvey}
+                                        selectedQuestion={selectedQuestion}
+                                        selectedBlock={selectedBlock}
+                                        checkedQuestions={checkedQuestions}
+                                        logicIssues={logicIssues}
+                                        onSelectQuestion={handleSelectQuestion}
+                                        onSelectBlock={handleSelectBlock}
+                                        onUpdateQuestion={actions.handleUpdateQuestion}
+                                        onUpdateBlock={actions.handleUpdateBlock}
+                                        onDeleteQuestion={actions.handleDeleteQuestion}
+                                        onCopyQuestion={actions.handleCopyQuestion}
+                                        onMoveQuestionToNewBlock={actions.handleMoveQuestionToNewBlock}
+                                        onMoveQuestionToExistingBlock={actions.handleMoveQuestionToExistingBlock}
+                                        onDeleteBlock={actions.handleDeleteBlock}
+                                        onReorderQuestion={actions.handleReorderQuestion}
+                                        onReorderBlock={actions.handleReorderBlock}
+                                        onAddBlockFromToolbox={actions.handleAddBlockFromToolbox}
+                                        onAddQuestion={actions.handleAddQuestion}
+                                        onAddBlock={actions.handleAddBlock}
+                                        onAddQuestionToBlock={actions.handleAddQuestionToBlock}
+                                        onToggleQuestionCheck={actions.handleToggleQuestionCheck}
+                                        onSelectAllInBlock={actions.handleSelectAllInBlock}
+                                        onUnselectAllInBlock={actions.handleUnselectAllInBlock}
+                                        toolboxItems={toolboxItems}
+                                        collapsedBlocks={collapsedBlocks}
+                                        onToggleBlockCollapse={handleToggleBlockCollapse}
+                                        onCopyBlock={actions.handleCopyBlock}
+                                        onExpandAllBlocks={handleExpandAllBlocks}
+                                        onCollapseAllBlocks={handleCollapseAllBlocks}
+                                        onExpandBlock={handleExpandBlock}
+                                        onCollapseBlock={handleCollapseBlock}
+                                        onAddChoice={actions.handleAddChoice}
+                                        onAddPageBreakAfterQuestion={actions.handleAddPageBreakAfterQuestion}
+                                        onUpdateBlockTitle={actions.handleUpdateBlockTitle}
+                                        onUpdateSurveyTitle={actions.handleUpdateSurveyTitle}
+                                        onAddFromLibrary={() => { }}
+                                        focusedLogicSource={focusedLogicSource}
+                                        printMode={isPrintMode}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Floating Action Buttons */}
                     <div className="absolute bottom-6 right-6 flex flex-col gap-3">
@@ -469,8 +613,17 @@ const App: React.FC = () => {
                     </div>
                 </main>
 
-                {/* Right Sidebar */}
-                {(isAnyRightPanelOpen || activeMainTab === 'Build') && (
+
+
+                {/* Print View Right Sidebar */}
+                {isPrintMode && (
+                    <div className="w-80 bg-surface border-l border-outline flex flex-col flex-shrink-0 h-full overflow-y-auto z-20 p-4 print:hidden">
+                        <PrintDisplayOptions options={printDisplayOptions} onToggle={togglePrintOption} />
+                    </div>
+                )}
+
+                {/* Build/Standard Right Sidebar */}
+                {!isPrintMode && (isAnyRightPanelOpen || activeMainTab === 'Build') && (
                     <div
                         ref={rightPanelRef}
                         className={`bg-surface border-l border-outline-variant shadow-xl transition-all duration-300 flex flex-col z-20`}

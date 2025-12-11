@@ -1,4 +1,5 @@
 import React, { memo, useMemo } from 'react';
+import { Toggle } from './Toggle';
 import type { Survey, PathAnalysisResult } from '../types';
 import { QuestionIcon, AsteriskIcon, PageIcon, ClockSolidIcon, ChevronDownIcon, BlockIcon, WarningIcon, CheckCircleIcon } from './icons';
 import { QuestionType as QTEnum } from '../types';
@@ -215,16 +216,11 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
                         </label>
                         <p className="text-xs text-on-surface-variant mt-0.5">Globally enable autoadvance for all compatible items.</p>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                            type="checkbox"
-                            id="global-autoadvance"
-                            checked={survey.globalAutoAdvance || false}
-                            onChange={(e) => onGlobalAutoAdvanceChange(e.target.checked)}
-                            className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                    </label>
+                    <Toggle
+                        id="global-autoadvance"
+                        checked={survey.globalAutoAdvance || false}
+                        onChange={(checked) => onGlobalAutoAdvanceChange(checked)}
+                    />
                 </div>
 
                 <div className="relative">

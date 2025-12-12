@@ -4,8 +4,8 @@ import QuestionCard from './QuestionCard';
 import { ChevronDownIcon, DotsHorizontalIcon, DragIndicatorIcon } from './icons';
 import { BlockActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
 import { QuestionType as QTEnum } from '../types';
-import type { PageInfo } from './SurveyCanvas';
-import { SurveyFlowDisplay } from './LogicDisplays';
+import type { PageInfo } from '../types';
+import { SurveyFlowDisplay, IncomingLogicDisplay } from './LogicDisplays';
 import { EditableText } from './EditableText';
 
 const DropIndicator = () => (
@@ -110,7 +110,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
     [block.questions]
   );
 
-  const { surveyFlowLogic, logicSource } = useMemo(() => {
+  const { surveyFlowLogic, logicSource, allBranchingLogics } = useMemo(() => {
     let surveyFlowDestination: string | null = null;
     let source: 'branching' | 'skip' | 'block' | 'fallthrough' = 'fallthrough';
 
@@ -153,10 +153,57 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
       isConfirmed: true,
     } : null;
 
-    return { surveyFlowLogic: logic, logicSource: source };
-  }, [block.id, block.continueTo, lastContentQuestion, survey.blocks]);
+    const allBranchingLogics = block.questions
+      .map(q => ({
+        question: q,
+        logic: q.draftBranchingLogic ?? q.branchingLogic
+      }))
+      .filter(item => item.logic && item.logic.branches && item.logic.branches.some(b => b.thenSkipToIsConfirmed));
+
+    return { surveyFlowLogic: logic, logicSource: source, allBranchingLogics };
+  }, [block.id, block.questions, block.continueTo, lastContentQuestion, survey.blocks]);
 
   const showSurveyFlow = hasBranchingLogicInSurvey && isPathTargetBlock && surveyFlowLogic;
+
+  const incomingBranches = useMemo(() => {
+    const branches: { sourceQ: Question; branchName: string; branchId: string }[] = [];
+    const targetId = `block:${block.id}`;
+
+    survey.blocks.forEach(b => {
+      // Don't check the current block (loops not typically shown as "incoming" in this context, or maybe they are? Let's exclude for now to avoid clutter if re-entrant)
+      if (b.id === block.id) return;
+
+      b.questions.forEach(q => {
+        const logic = q.draftBranchingLogic ?? q.branchingLogic;
+        if (!logic) return;
+
+        // Check named branches
+        if (logic.branches) {
+          logic.branches.forEach(branch => {
+            if (branch.thenSkipToIsConfirmed && branch.thenSkipTo === targetId) {
+              branches.push({
+                sourceQ: q,
+                branchName: branch.pathName || 'Unnamed Branch',
+                branchId: branch.id
+              });
+            }
+          });
+        }
+
+        // Check otherwise path
+        if (logic.otherwiseIsConfirmed && logic.otherwiseSkipTo === targetId) {
+          // Only include otherwise if it's NOT just the default flow falling through?
+          // Actually, if they explicitly set "Otherwise skip to THIS block", it's an incoming branch.
+          branches.push({
+            sourceQ: q,
+            branchName: logic.otherwisePathName || 'Default path',
+            branchId: 'otherwise'
+          });
+        }
+      });
+    });
+    return branches;
+  }, [survey.blocks, block.id]);
 
 
   useEffect(() => {
@@ -326,6 +373,20 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
           className="p-4 cursor-pointer"
           onClick={() => onSelectBlock(block)}
         >
+          {incomingBranches.length > 0 && (
+            <div className="mb-6 space-y-2">
+              {incomingBranches.map((inc, idx) => (
+                <IncomingLogicDisplay
+                  key={`${inc.sourceQ.id}-${inc.branchId}-${idx}`}
+                  branchName={inc.branchName}
+                  sourceQuestionId={inc.sourceQ.qid}
+                  targetBlockId={block.id}
+                  survey={survey}
+                />
+              ))}
+            </div>
+          )}
+
           {block.isSurveySection && (
             <div className="pb-4 mb-4 border-b-2 border-primary">
               <h3 className="text-xl font-bold text-on-surface">
@@ -377,8 +438,10 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                 <div className="mt-4">
                   <SurveyFlowDisplay
                     logic={surveyFlowLogic as SkipLogic}
+                    allBranchingLogics={allBranchingLogics}
                     survey={survey}
                     onClick={() => onSelectBlock(block, { tab: 'Behavior', focusOn: 'continueTo' })}
+                    sourceQuestion={lastContentQuestion}
                   />
                 </div>
               )}

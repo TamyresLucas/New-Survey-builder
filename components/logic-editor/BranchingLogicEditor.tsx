@@ -77,7 +77,7 @@ export const BranchingLogicEditor: React.FC<{
             onAddLogic();
         };
 
-        if (!branchingLogic) {
+        if (!branchingLogic || branchingLogic.branches.length === 0) {
             return (
                 <div className="py-6 first:pt-0">
                     <h3 className="text-sm font-medium text-on-surface mb-1">Branching Logic</h3>
@@ -122,7 +122,7 @@ export const BranchingLogicEditor: React.FC<{
 
         const handleRemoveBranch = (branchId: string) => {
             const newBranches = branchingLogic.branches.filter(b => b.id !== branchId);
-            if (newBranches.length === 0 && !branchingLogic.otherwiseSkipTo) {
+            if (newBranches.length === 0) {
                 handleUpdate({ branchingLogic: undefined });
             } else {
                 handleUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
@@ -169,13 +169,13 @@ export const BranchingLogicEditor: React.FC<{
                 {!isOtherwiseExhaustive && (
                     <div className="mt-4 pt-4 border-t border-outline-variant">
                         <DestinationRow
-                            label={<span className="font-bold text-on-surface-variant">OTHERWISE SKIP TO</span>}
+                            label={<span className="text-sm font-medium text-on-surface">Otherwise skip to</span>}
                             value={branchingLogic.otherwiseSkipTo}
                             onChange={(value) => handleUpdate({
                                 branchingLogic: {
                                     ...branchingLogic,
                                     otherwiseSkipTo: value,
-                                    otherwiseIsConfirmed: false
+                                    otherwiseIsConfirmed: true
                                 }
                             })}
                             onConfirm={() => handleUpdate({

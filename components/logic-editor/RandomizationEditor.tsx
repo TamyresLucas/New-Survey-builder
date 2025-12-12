@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Question, RandomizationMethod } from '../../types';
 import { ChevronDownIcon } from '../icons';
+import { Toggle } from '../Toggle';
 
 export const RandomizeChoicesEditor: React.FC<{
   question: Question;
@@ -9,12 +10,12 @@ export const RandomizeChoicesEditor: React.FC<{
   const answerBehavior = question.answerBehavior || {};
   const isRandomized = answerBehavior.randomizeChoices || false;
 
-  const handleToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleToggle = (checked: boolean) => {
     onUpdate({
       answerBehavior: {
         ...answerBehavior,
-        randomizeChoices: e.target.checked,
-        randomizationMethod: e.target.checked ? answerBehavior.randomizationMethod || 'permutation' : undefined
+        randomizeChoices: checked,
+        randomizationMethod: checked ? answerBehavior.randomizationMethod || 'permutation' : undefined
       }
     });
   };
@@ -37,10 +38,11 @@ export const RandomizeChoicesEditor: React.FC<{
           </label>
           <p className="text-xs text-on-surface-variant mt-0.5">Display choices in a random order.</p>
         </div>
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input type="checkbox" id="randomize-choices" checked={isRandomized} onChange={handleToggle} className="sr-only peer" />
-          <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-        </label>
+        <Toggle
+          id="randomize-choices"
+          checked={isRandomized}
+          onChange={handleToggle}
+        />
       </div>
       {isRandomized && (
         <div className="mt-4 pl-4 border-l-2 border-outline-variant">

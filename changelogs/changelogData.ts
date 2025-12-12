@@ -11,6 +11,27 @@ export interface ChangelogEntry {
 // NOTE: Always update 'time' to the current local time when adding an entry.
 export const changelogs: ChangelogEntry[] = [
     {
+        id: '2025-12-12-1',
+        version: 'v1.0.15',
+        date: '2025-12-12',
+        time: '5:01 PM',
+        request: 'Survey Flow Card Refinement & Reducer Refactoring',
+        improvements: [
+            'Enhanced "Survey Flow" card (formerly "Default Path") to display aggregated branching logic from all questions in the block.',
+            'Refined Survey Flow visualization: supports displaying multiple branches with conditions and destinations inline.',
+            'Updated Survey Flow icons: replaced generic arrow with "arrow_split" for branches and standard arrow for default path, removed "THEN skip to" text for a cleaner look.',
+            'Codebase Architecture: Split the monolithic `surveyReducer.ts` into modular reducers (`questionReducer`, `blockReducer`, `choiceReducer`, `metaReducer`, `bulkReducer`) for better maintainability.',
+            'Added `idProvider.ts` to centralize ID generation.'
+        ],
+        technicalChanges: [
+            'Modified `components/LogicDisplays.tsx`: Updated `SurveyFlowDisplay` to accept and render `allBranchingLogics`. Relocated icons inline.',
+            'Modified `components/SurveyBlock.tsx`: Updated logic aggregation to collect branches from all questions.',
+            'Modified `components/icons.tsx`: Updated `CallSplitIcon` to use `arrow_split` symbol.',
+            'Refactored State Management: Created `state/reducers/` directory and moved logic from `surveyReducer.ts`.',
+            'Created `state/idProvider.ts`.'
+        ]
+    },
+    {
         id: '2025-12-10-1',
         version: 'v1.0.14',
         date: '2025-12-10',

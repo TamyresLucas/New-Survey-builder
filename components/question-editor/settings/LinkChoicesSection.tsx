@@ -3,6 +3,7 @@ import type { Question } from '../../../types';
 import { CHOICE_BASED_QUESTION_TYPES, truncate } from '../../../utils';
 import { ChevronDownIcon } from '../../icons';
 import { QuestionSelectorDropdown } from '../../QuestionSelectorDropdown';
+import { Toggle } from '../../Toggle';
 
 interface LinkChoicesSectionProps {
     question: Question;
@@ -20,19 +21,13 @@ const LinkChoicesSection: React.FC<LinkChoicesSectionProps> = ({ question, onUpd
                     </label>
                     <p className="text-xs text-on-surface-variant mt-0.5">Use the same choices as another question.</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                        type="checkbox"
-                        id="link-choices"
-                        checked={question.linkedChoicesSource !== undefined}
-                        onChange={(e) => {
-                            const isEnabling = e.target.checked;
-                            onUpdate({ linkedChoicesSource: isEnabling ? '' : undefined });
-                        }}
-                        className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                </label>
+                <Toggle
+                    id="link-choices"
+                    checked={question.linkedChoicesSource !== undefined}
+                    onChange={(checked) => {
+                        onUpdate({ linkedChoicesSource: checked ? '' : undefined });
+                    }}
+                />
             </div>
 
             {question.linkedChoicesSource !== undefined && (

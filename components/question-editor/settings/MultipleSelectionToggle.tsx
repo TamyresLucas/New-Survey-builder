@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Question } from '../../../types';
 import { QuestionType } from '../../../types';
+import { Toggle } from '../../Toggle';
 
 interface MultipleSelectionToggleProps {
     question: Question;
@@ -21,16 +22,11 @@ const MultipleSelectionToggle: React.FC<MultipleSelectionToggleProps> = ({ quest
                     </label>
                     <p className="text-xs text-on-surface-variant mt-0.5">Allow respondent to select more than one answer.</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                        type="checkbox"
-                        id="multiple-selection"
-                        checked={question.type === QuestionType.Checkbox}
-                        onChange={(e) => onUpdate({ type: e.target.checked ? QuestionType.Checkbox : QuestionType.Radio })}
-                        className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                </label>
+                <Toggle
+                    id="multiple-selection"
+                    checked={question.type === QuestionType.Checkbox}
+                    onChange={(checked) => onUpdate({ type: checked ? QuestionType.Checkbox : QuestionType.Radio })}
+                />
             </div>
         </div>
     );

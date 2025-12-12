@@ -60,6 +60,13 @@ export interface DisplayLogicCondition {
   isConfirmed?: boolean;
 }
 
+export interface PageInfo {
+  pageNumber: number;
+  pageName: string;
+  source: 'block' | 'page_break';
+  sourceId: string;
+}
+
 export interface LogicSet {
   id: string;
   operator: 'AND' | 'OR';

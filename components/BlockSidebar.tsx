@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import type { Block, Survey, Question, QuestionRandomizationRule, RandomizationPattern, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, DisplayLogic, DisplayLogicCondition } from '../types';
 import { QuestionType } from '../types';
 import { XIcon, ChevronDownIcon, PlusIcon, InfoIcon, ExpandIcon, CollapseIcon } from './icons';
+import { Toggle } from './Toggle';
 import { generateId, truncate, parseChoice, isBranchingLogicExhaustive } from '../utils';
 import { CollapsibleSection } from './logic-editor/shared';
 import { BlockDisplayLogicEditor } from './logic-editor/BlockDisplayLogicEditor';
@@ -168,12 +169,11 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
     }
   };
 
-  const handleIsSectionToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const isChecked = e.target.checked;
+  const handleIsSectionToggle = (checked: boolean) => {
     onUpdateBlock(block.id, {
-      isSurveySection: isChecked,
+      isSurveySection: checked,
       // If turning on and no custom name exists, default it to block title
-      sectionName: isChecked && !block.sectionName ? block.title : block.sectionName
+      sectionName: checked && !block.sectionName ? block.title : block.sectionName
     });
   };
 
@@ -227,10 +227,11 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
             </label>
             <p className="text-xs text-on-surface-variant mt-0.5">Display a section header for this block.</p>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="set-as-section" checked={block.isSurveySection || false} onChange={handleIsSectionToggle} className="sr-only peer" />
-            <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-          </label>
+          <Toggle
+            id="set-as-section"
+            checked={block.isSurveySection || false}
+            onChange={handleIsSectionToggle}
+          />
         </div>
         {block.isSurveySection && (
           <div className="mt-4 pl-4 border-l-2 border-outline-variant">
@@ -252,13 +253,14 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
       </div>
       {survey.pagingMode === 'multi-per-page' && (
         <div className="flex items-start gap-3 pt-6 border-t border-outline-variant">
-          <input
-            type="checkbox"
-            id="block-auto-page-breaks"
-            className="w-4 h-4 rounded border-outline text-primary focus:ring-primary accent-primary mt-0.5"
-            checked={!!block.automaticPageBreaks}
-            onChange={(e) => onUpdateBlock(block.id, { automaticPageBreaks: e.target.checked })}
-          />
+          <div className='flex items-center'>
+            <Toggle
+              id="block-auto-page-breaks"
+              checked={!!block.automaticPageBreaks}
+              onChange={(checked) => onUpdateBlock(block.id, { automaticPageBreaks: checked })}
+              size="small"
+            />
+          </div>
           <div>
             <label htmlFor="block-auto-page-breaks" className="text-sm font-medium text-on-surface block">
               Automatic page break between questions
@@ -315,16 +317,11 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
                 </label>
                 <p className="text-xs text-on-surface-variant mt-0.5">Repeat the questions in this block.</p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  id="enable-looping"
-                  checked={block.loopingEnabled || false}
-                  onChange={e => onUpdateBlock(block.id, { loopingEnabled: e.target.checked })}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-              </label>
+              <Toggle
+                id="enable-looping"
+                checked={block.loopingEnabled || false}
+                onChange={(checked) => onUpdateBlock(block.id, { loopingEnabled: checked })}
+              />
             </div>
             {block.loopingEnabled && (
               <div className="mt-4 pl-4 border-l-2 border-outline-variant">
@@ -355,16 +352,11 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
                 </label>
                 <p className="text-xs text-on-surface-variant mt-0.5">Automatically moves to the next page when a question in this block is answered.</p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  id="block-auto-advance"
-                  checked={!!block.autoAdvance}
-                  onChange={(e) => onUpdateBlock(block.id, { autoAdvance: e.target.checked })}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-              </label>
+              <Toggle
+                id="block-auto-advance"
+                checked={!!block.autoAdvance}
+                onChange={(checked) => onUpdateBlock(block.id, { autoAdvance: checked })}
+              />
             </div>
           </div>
 
@@ -376,16 +368,11 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
                 </label>
                 <p className="text-xs text-on-surface-variant mt-0.5">Prevent respondent from going back from any question in this block.</p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  id="block-hide-back-button"
-                  checked={!!block.hideBackButton}
-                  onChange={(e) => onUpdateBlock(block.id, { hideBackButton: e.target.checked })}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-              </label>
+              <Toggle
+                id="block-hide-back-button"
+                checked={!!block.hideBackButton}
+                onChange={(checked) => onUpdateBlock(block.id, { hideBackButton: checked })}
+              />
             </div>
           </div>
         </div>
@@ -505,16 +492,11 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
               </label>
               <p className="text-xs text-on-surface-variant mt-0.5">Randomize the order of questions in this block.</p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                id="enable-randomization"
-                checked={!!block.questionRandomization}
-                onChange={e => handleToggleRandomization(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-outline peer-focus:outline-2 peer-focus:outline-primary peer-focus:outline-offset-1 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-            </label>
+            <Toggle
+              id="enable-randomization"
+              checked={!!block.questionRandomization}
+              onChange={handleToggleRandomization}
+            />
           </div>
           {block.questionRandomization && (
             <div className="mt-4 space-y-4">

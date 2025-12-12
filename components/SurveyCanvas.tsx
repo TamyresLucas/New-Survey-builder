@@ -1,5 +1,5 @@
 import React, { useEffect, useState, memo, useRef, useMemo } from 'react';
-import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssue, Block } from '../types';
+import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssue, Block, PageInfo } from '../types';
 import SurveyBlock from './SurveyBlock';
 import { QuestionType as QTEnum } from '../types';
 
@@ -50,13 +50,6 @@ const DropIndicator = () => (
     <div className="absolute right-0 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
   </div>
 );
-
-export type PageInfo = {
-  pageNumber: number;
-  pageName: string;
-  source: 'block' | 'page_break';
-  sourceId: string;
-};
 
 const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuestion, selectedBlock, checkedQuestions, logicIssues, onSelectQuestion, onSelectBlock, onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onReorderBlock, onAddBlockFromToolbox, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, collapsedBlocks, onToggleBlockCollapse, onCopyBlock, onExpandAllBlocks, onCollapseAllBlocks, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onUpdateSurveyTitle, onAddFromLibrary, focusedLogicSource,
   printMode = false

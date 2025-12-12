@@ -48,7 +48,7 @@ const formatCondition = (condition: DisplayLogicCondition | BranchingLogicCondit
 const formatLogicSet = (set: LogicSet, survey: Survey): string => {
     const conditions = set.conditions.map(c => formatCondition(c, survey));
     if (conditions.length === 0) return '';
-    const joined = conditions.join(` <span class="font-bold text-primary">${set.operator}</span> `);
+    const joined = conditions.join(` <span class="font-bold text-on-surface">${set.operator}</span> `);
     return `(${joined})`;
 };
 
@@ -102,7 +102,7 @@ export const DisplayLogicDisplay: React.FC<{ logic: DisplayLogic; survey: Survey
                 <div className="flex flex-wrap gap-2 items-center">
                     {confirmedConditions.map((c, index) => (
                         <React.Fragment key={c.id}>
-                            {index > 0 && <span className="font-semibold text-primary">{logic.operator}</span>}
+                            {index > 0 && <span className="font-semibold text-on-surface">{logic.operator}</span>}
                             <span
                                 onClick={(e) => { e.stopPropagation(); onClick(c.id); }}
                                 className={`font-semibold text-on-surface cursor-pointer hover:text-primary hover:underline bg-surface px-1.5 py-0.5 rounded border transition-colors ${focusedId === c.id ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-outline'}`}
@@ -113,7 +113,7 @@ export const DisplayLogicDisplay: React.FC<{ logic: DisplayLogic; survey: Survey
                     ))}
                     {confirmedSets.map((s, index) => (
                         <React.Fragment key={s.id}>
-                            {(confirmedConditions.length > 0 || index > 0) && <span className="font-semibold text-primary">{logic.operator}</span>}
+                            {(confirmedConditions.length > 0 || index > 0) && <span className="font-semibold text-on-surface">{logic.operator}</span>}
                             <span
                                 onClick={(e) => { e.stopPropagation(); onClick(s.id); }}
                                 className={`font-semibold text-on-surface cursor-pointer hover:text-primary hover:underline bg-surface px-1.5 py-0.5 rounded border transition-colors ${focusedId === s.id ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-outline'}`}
@@ -185,6 +185,71 @@ export const SkipLogicDisplay: React.FC<{ logic: SkipLogic; currentQuestion: Que
 };
 
 
+const DefaultFlowDisplay: React.FC<{
+    label: string | React.ReactNode;
+    destination: string;
+    survey: Survey;
+    onClick?: () => void;
+    className?: string;
+    sourceLabel?: string;
+    icon?: React.ElementType;
+}> = ({ label, destination, survey, onClick, className = '', sourceLabel, icon: Icon = ArrowRightAltIcon }) => {
+    return (
+        <div
+            onClick={(e) => {
+                if (onClick) {
+                    e.stopPropagation();
+                    onClick();
+                }
+            }}
+            className={`p-3 border border-outline-variant rounded-md bg-surface-container-high cursor-pointer hover:border-primary ${className}`}
+        >
+            <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                    <Icon className="text-lg text-primary" />
+                    <h4 className="text-sm font-medium text-on-surface">{label}</h4>
+                </div>
+            </div>
+            <div className="pl-2 text-sm text-on-surface-variant flex items-center gap-1">
+                {sourceLabel ? (
+                    <>
+                        <span className="text-on-surface">{sourceLabel}</span>
+                        <ArrowRightAltIcon className="text-base text-on-surface-variant rotate-0" />
+                        <span className="text-on-surface">{formatDestination(destination, survey)}</span>.
+                    </>
+                ) : (
+                    <p>Default path → <span className="text-on-surface">{formatDestination(destination, survey)}</span>.</p>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export const IncomingLogicDisplay: React.FC<{
+    branchName: string;
+    sourceQuestionId: string;
+    targetBlockId: string;
+    survey: Survey;
+    onClick?: () => void;
+}> = ({ branchName, sourceQuestionId, targetBlockId, survey, onClick }) => {
+    // Format the destination as "Current Block" for clarity in the card body
+    // The "formatDestination" utility usually looks up the ID.
+    // We want to verify if passing the raw ID works well with formatDestination, or if we need to mock it.
+    // formatDestination handles "block:ID".
+
+    return (
+        <DefaultFlowDisplay
+            label={branchName} // "Positive Feedback Branch"
+            destination={`block:${targetBlockId}`} // Will render as "Block X: Title"
+            survey={survey}
+            sourceLabel={sourceQuestionId} // "Q1"
+            icon={CallSplitIcon}
+            onClick={onClick}
+            className="mb-4" // Standard styling inherited from DefaultFlowDisplay (bg-surface-container-high)
+        />
+    );
+};
+
 export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Survey; onClick: (id?: string) => void; onRemove: () => void; question: Question; issues?: LogicIssue[]; isFocused?: boolean; focusedId?: string | null; readOnly?: boolean }> = ({ logic, survey, onClick, onRemove, question, issues = [], isFocused = false, focusedId, readOnly = false }) => {
     const showOtherwise = useMemo(() => {
         if (!question.choices || question.choices.length === 0) return true;
@@ -205,7 +270,7 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
 
     const hasAnyConfirmedLogic = logic.branches.some(branch =>
         (branch.thenSkipToIsConfirmed && branch.conditions.some(c => c.isConfirmed === true))
-    ) || (showOtherwise && logic.otherwiseIsConfirmed);
+    );
 
     if (!hasAnyConfirmedLogic) return null;
 
@@ -217,17 +282,8 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                     <CallSplitIcon className="text-lg text-primary" />
-                    <h4 className="text-sm font-semibold text-on-surface transition-colors">Branching Logic</h4>
+                    <h4 className="text-sm font-medium text-on-surface transition-colors">Branching Logic</h4>
                 </div>
-                {!readOnly && (
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onRemove(); }}
-                        className="w-6 h-6 flex items-center justify-center rounded-md text-error hover:bg-error-container opacity-0 group-hover/branching:opacity-100 transition-opacity"
-                        title="Remove Branching Logic"
-                    >
-                        <XIcon className="text-base" />
-                    </button>
-                )}
             </div>
             <div className="space-y-2 text-sm">
                 {logic.branches.map((branch) => {
@@ -239,30 +295,47 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
                             onClick={(e) => { e.stopPropagation(); onClick(branch.id); }}
                             className={`p-2 bg-surface rounded-md cursor-pointer border transition-colors ${focusedId === branch.id ? 'border-primary ring-1 ring-primary' : 'border-transparent hover:border-outline'}`}
                         >
-                            {branch.pathName && <span className="font-semibold text-on-surface">{branch.pathName}: </span>}
-                            <span className="font-semibold text-primary">IF </span>
-                            <span>{confirmedConditions.map((c, index) => (
-                                <React.Fragment key={c.id}>
-                                    {index > 0 && <span className="font-semibold text-primary"> {branch.operator} </span>}
-                                    <span
-                                        onClick={(e) => { e.stopPropagation(); onClick(branch.id); }}
-                                        className="font-semibold hover:text-primary hover:underline cursor-pointer"
-                                    >
-                                        {formatCondition(c, survey)}
+                            {branch.pathName && <div className="font-medium text-on-surface mb-1">{branch.pathName}</div>}
+                            <div className="text-on-surface">
+                                <span className="text-on-surface">IF </span>
+                                {confirmedConditions.length > 1 ? (
+                                    <div className="ml-4 flex flex-col gap-1 my-1">
+                                        {confirmedConditions.map((c, index) => (
+                                            <div key={c.id}>
+                                                {index > 0 && <span className="text-on-surface font-semibold">{branch.operator} </span>}
+                                                <span
+                                                    onClick={(e) => { e.stopPropagation(); onClick(branch.id); }}
+                                                    className="hover:text-primary hover:underline cursor-pointer"
+                                                >
+                                                    {formatCondition(c, survey)}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <span>
+                                        {confirmedConditions.map((c, index) => (
+                                            <React.Fragment key={c.id}>
+                                                {index > 0 && <span className="text-on-surface"> {branch.operator} </span>}
+                                                <span
+                                                    onClick={(e) => { e.stopPropagation(); onClick(branch.id); }}
+                                                    className="hover:text-primary hover:underline cursor-pointer"
+                                                >
+                                                    {formatCondition(c, survey)}
+                                                </span>
+                                            </React.Fragment>
+                                        ))}
                                     </span>
-                                </React.Fragment>
-                            ))}</span>
-                            <span className="font-semibold text-primary"> THEN </span>
-                            <span>skip to <span className="font-semibold">{formatDestination(branch.thenSkipTo, survey)}</span>.</span>
+                                )}
+                                <span className={`text-on-surface ${confirmedConditions.length > 1 ? 'mt-1 block' : ''}`}> THEN </span>
+                                <span>skip to <span>{formatDestination(branch.thenSkipTo, survey)}</span>.</span>
+                            </div>
                         </div>
                     );
                 })}
                 {showOtherwise && logic.otherwiseIsConfirmed && (
-                    <div className="p-2 bg-surface rounded-md">
-                        {logic.otherwisePathName && <span className="font-semibold text-on-surface">{logic.otherwisePathName}: </span>}
-                        <span className="font-semibold text-on-surface-variant">OTHERWISE </span>
-                        <span>skip to <span className="font-semibold">{formatDestination(logic.otherwiseSkipTo, survey)}</span>.</span>
-                    </div>
+                    // User requested to hide the "Otherwise" card for now
+                    null
                 )}
             </div>
             <IssueCard issues={issues} />
@@ -270,27 +343,60 @@ export const BranchingLogicDisplay: React.FC<{ logic: BranchingLogic; survey: Su
     );
 };
 
-export const SurveyFlowDisplay: React.FC<{ logic: SkipLogic; survey: Survey; onClick: () => void; }> = ({ logic, survey, onClick }) => {
-    if (logic.type !== 'simple' || logic.isConfirmed !== true) return null;
+export const SurveyFlowDisplay: React.FC<{ logic: SkipLogic; survey: Survey; onClick: () => void; sourceQuestion?: Question; allBranchingLogics?: { question: Question, logic: BranchingLogic }[] }> = ({ logic, survey, onClick, sourceQuestion, allBranchingLogics = [] }) => {
 
-    const handleClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onClick();
-    };
+    const hasBranching = allBranchingLogics.length > 0;
 
     return (
         <div
-            onClick={handleClick}
+            onClick={onClick}
             className="p-3 border border-outline-variant rounded-md bg-surface-container-high cursor-pointer hover:border-primary"
         >
-            <div className="flex items-center justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2">
-                    <ArrowRightAltIcon className="text-lg text-primary" />
-                    <h4 className="text-sm font-bold text-on-surface">Survey Flow</h4>
-                </div>
+            <div className="mb-2">
+                <h4 className="text-sm font-medium text-on-surface">Survey flow</h4>
             </div>
-            <div className="pl-2 space-y-1 text-sm text-on-surface-variant">
-                <p>Default path → <span className="font-semibold text-on-surface">{formatDestination(logic.skipTo, survey)}</span>.</p>
+
+            <div className="space-y-2 text-sm">
+                {hasBranching && allBranchingLogics.map(({ question, logic }) => (
+                    <React.Fragment key={question.id}>
+                        {logic.branches.map((branch) => {
+                            const confirmedConditions = branch.conditions.filter(c => c.isConfirmed === true);
+                            if (confirmedConditions.length === 0 || !branch.thenSkipToIsConfirmed) return null;
+                            return (
+                                <div key={branch.id} className="text-on-surface">
+                                    <span className="text-on-surface">IF </span>
+                                    {confirmedConditions.map((c, index) => (
+                                        <React.Fragment key={c.id}>
+                                            {index > 0 && <span className="text-on-surface"> {branch.operator} </span>}
+                                            <span className="font-semibold text-on-surface">
+                                                {formatCondition(c, survey)}
+                                            </span>
+                                        </React.Fragment>
+                                    ))}
+                                    <CallSplitIcon className="text-lg text-primary inline-block align-bottom mx-1.5" />
+                                    <span>{formatDestination(branch.thenSkipTo, survey)}</span>.
+                                </div>
+                            );
+                        })}
+                    </React.Fragment>
+                ))}
+
+                {/* Default Path Arrow */}
+                <div className="text-on-surface">
+                    {hasBranching ? (
+                        <>
+                            <span className="text-on-surface">Otherwise </span>
+                            <ArrowRightAltIcon className="text-lg text-primary inline-block align-bottom mx-1.5" />
+                            <span>{formatDestination((logic.type === 'simple' ? logic.skipTo : ''), survey)}</span>.
+                        </>
+                    ) : (
+                        <>
+                            <span className="text-on-surface">Default path </span>
+                            <ArrowRightAltIcon className="text-lg text-primary inline-block align-bottom mx-1.5" />
+                            <span>{formatDestination((logic.type === 'simple' ? logic.skipTo : ''), survey)}</span>.
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );

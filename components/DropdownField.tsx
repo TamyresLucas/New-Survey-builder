@@ -74,6 +74,7 @@ export const DropdownField: React.FC<DropdownFieldProps> = ({
                             onClick={() => handleSelect(option)}
                             disabled={option.disabled}
                             icon={option.icon}
+                            iconClassName={option.iconColor}
                             className={`px-2 py-2 leading-[19px] ${option.disabled ? '' : 'hover:bg-surface-container-lowest'}`}
                         >
                             <span className="truncate leading-[19px]">{option.label}</span>

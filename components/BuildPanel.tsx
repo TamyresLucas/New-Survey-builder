@@ -168,6 +168,8 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   const [activeTab, setActiveTab] = useState('Content');
   const [searchTerm, setSearchTerm] = useState('');
   const [questionTypeFilter, setQuestionTypeFilter] = useState('All content');
+  const [toolboxFilter, setToolboxFilter] = useState('All');
+  const [libraryFilter, setLibraryFilter] = useState('Question bank');
   const contentListRef = useRef<HTMLDivElement>(null);
 
   const [draggedToolboxIndex, setDraggedToolboxIndex] = useState<number | null>(null);
@@ -202,16 +204,28 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
         onSelectQuestion(null);
       }
       setQuestionTypeFilter('All content');
+      setToolboxFilter('All');
+      setLibraryFilter('Question bank');
     }
     setActiveTab(tabName);
   }, [activeTab, onSelectQuestion, selectedQuestion]);
 
   const filteredToolboxItems = useMemo(() => {
-    if (!searchTerm) return toolboxItems;
-    return toolboxItems.filter(item =>
+    let items = toolboxItems;
+
+    if (toolboxFilter === 'Multiple Choice') {
+      const allowedNames = new Set(['Radio Button', 'Checkbox', 'Choice Grid']);
+      items = items.filter(item => allowedNames.has(item.name));
+    } else if (toolboxFilter === 'Text') {
+      const allowedNames = new Set(['Text Entry']);
+      items = items.filter(item => allowedNames.has(item.name));
+    }
+
+    if (!searchTerm) return items;
+    return items.filter(item =>
       item.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [toolboxItems, searchTerm]);
+  }, [toolboxItems, searchTerm, toolboxFilter]);
 
   const questionTypeFilterOptions = useMemo(() => {
     const types = new Set(toolboxItems
@@ -495,6 +509,30 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                 disabled: !isEnabled
               };
             })}
+            className="mt-3"
+          />
+        )}
+        {activeTab === 'Toolbox' && (
+          <DropdownField
+            value={toolboxFilter}
+            onChange={setToolboxFilter}
+            options={[
+              { value: 'All', label: 'All question types' },
+              { value: 'Multiple Choice', label: 'Multiple Choice' },
+              { value: 'Text', label: 'Text' }
+            ]}
+            className="mt-3"
+          />
+        )}
+        {activeTab === 'Library' && (
+          <DropdownField
+            value={libraryFilter}
+            onChange={setLibraryFilter}
+            options={[
+              { value: 'Question bank', label: 'Question bank' },
+              { value: 'Templates', label: 'Templates' },
+              { value: 'My questionnaires', label: 'My questionnaires' }
+            ]}
             className="mt-3"
           />
         )}

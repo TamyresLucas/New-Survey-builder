@@ -56,7 +56,7 @@ interface SurveyStructureWidgetProps {
     paths: PathAnalysisResult[];
     selectedPathId: string;
     onPathChange: (pathId: string) => void;
-    onBackToTop: () => void;
+
     onToggleCollapseAll: () => void;
     allBlocksCollapsed: boolean;
     onPagingModeChange: (mode: Survey['pagingMode']) => void;
@@ -64,7 +64,7 @@ interface SurveyStructureWidgetProps {
     logicIssues: any[];
 }
 
-const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ survey, paths, selectedPathId, onPathChange, onBackToTop, onToggleCollapseAll, allBlocksCollapsed, onPagingModeChange, onGlobalAutoAdvanceChange, logicIssues }) => {
+const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ survey, paths, selectedPathId, onPathChange, onToggleCollapseAll, allBlocksCollapsed, onPagingModeChange, onGlobalAutoAdvanceChange, logicIssues }) => {
 
     const pathOptions = useMemo(() => [
         { id: 'all-paths', name: 'All Paths' },
@@ -249,7 +249,7 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
             </div>
 
             <div className="flex justify-between items-center mt-2 border-t border-outline pt-2">
-                <Button variant="tertiary" onClick={onBackToTop} style={{ fontFamily: "'Open Sans', sans-serif" }}>Back To Top</Button>
+
                 <Button variant="tertiary" onClick={onToggleCollapseAll} style={{ fontFamily: "'Open Sans', sans-serif" }}>
                     {allBlocksCollapsed ? 'Expand All' : 'Collapse All'}
                 </Button>

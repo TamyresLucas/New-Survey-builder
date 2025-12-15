@@ -1,12 +1,13 @@
 import React from 'react';
-import { Survey } from '../types';
+import { Survey, Block, Question } from '../types';
 import { getPagesForBlock } from '../utils/pagination';
-import QuestionCard from './QuestionCard';
-import { CheckboxFilledIcon, CheckboxOutlineIcon, ChevronDownIcon, ChevronUpIcon } from './icons';
+import { CheckboxFilledIcon, CheckboxOutlineIcon, ChevronDownIcon, ChevronUpIcon, PageBreakIcon, PrintIcon } from './icons';
 import { PrintQuestionCard } from './PrintQuestionCard';
-import { Block, Question } from '../types'; // Added for Block and Question types
+import { Toggle } from './Toggle';
+import { Button } from './Button';
+import { DropdownList, DropdownItem } from './DropdownList';
 
-interface PrintCanvasProps {
+interface BlueprintCanvasProps {
     survey: Survey;
     selectedBlock: Block | null;
     selectedQuestion: Question | null;
@@ -19,9 +20,11 @@ interface PrintCanvasProps {
     printDisplayOptions: Set<string>;
     hoveredQuestionId?: string | null;
     onQuestionHover?: (id: string | null) => void;
+    onSelectAll?: (checked: boolean) => void;
+    allSelected?: boolean;
 }
 
-export const PrintCanvas: React.FC<PrintCanvasProps> = ({
+export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
     survey,
     selectedBlock,
     selectedQuestion,
@@ -33,10 +36,24 @@ export const PrintCanvas: React.FC<PrintCanvasProps> = ({
     onToggleBlockCheck,
     printDisplayOptions,
     hoveredQuestionId,
-    onQuestionHover
+    onQuestionHover,
+    onSelectAll,
+    allSelected = false
 }) => {
     let globalPageCount = 0;
     const [collapsedBlocks, setCollapsedBlocks] = React.useState<Set<string>>(new Set());
+    const [isExportMenuOpen, setIsExportMenuOpen] = React.useState(false);
+    const exportMenuRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+                setIsExportMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const toggleBlock = (blockId: string) => {
         const next = new Set(collapsedBlocks);
@@ -50,6 +67,45 @@ export const PrintCanvas: React.FC<PrintCanvasProps> = ({
 
     return (
         <div className="flex-1 overflow-y-auto bg-surface-container-lowest p-8 relative h-[calc(100vh-64px)] scroll-smooth print:h-auto print:overflow-visible print:p-0 print:bg-white" id="print-canvas-scroll-container">
+
+            {/* Header: Select All and Print */}
+            <div className="flex justify-between items-center mb-6 px-1 print:hidden">
+                <div className="flex items-center gap-3">
+                    <Toggle
+                        checked={allSelected}
+                        onChange={(checked) => onSelectAll && onSelectAll(checked)}
+                        id="select-all-toggle"
+                    />
+                    <label htmlFor="select-all-toggle" className="text-sm font-medium text-on-surface cursor-pointer select-none">
+                        Export all
+                    </label>
+                </div>
+                <div className="relative" ref={exportMenuRef}>
+                    <Button variant="primary" onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}>
+                        Export blueprint
+                        <ChevronDownIcon className="ml-1 text-lg" />
+                    </Button>
+                    {isExportMenuOpen && (
+                        <div className="absolute right-0 mt-2 z-20">
+                            <DropdownList className="w-48">
+                                <DropdownItem onClick={() => { window.print(); setIsExportMenuOpen(false); }} icon={PrintIcon}>
+                                    Print blueprint
+                                </DropdownItem>
+                                <DropdownItem onClick={() => { console.log('Export as Word'); setIsExportMenuOpen(false); }}>
+                                    Export as Word
+                                </DropdownItem>
+                                <DropdownItem onClick={() => { console.log('Export as Excel'); setIsExportMenuOpen(false); }}>
+                                    Export as Excel
+                                </DropdownItem>
+                                <DropdownItem onClick={() => { console.log('Export as HTML'); setIsExportMenuOpen(false); }}>
+                                    Export as HTML
+                                </DropdownItem>
+                            </DropdownList>
+                        </div>
+                    )}
+                </div>
+            </div>
+
             {survey.blocks.map((block, index) => {
                 const pages = getPagesForBlock(block);
                 const isBlockSelected = printSelectedBlocks.has(block.id);
@@ -170,25 +226,45 @@ export const PrintCanvas: React.FC<PrintCanvasProps> = ({
                                         );
                                     })
                                 ) : (
-                                    // Continuous layout - render all questions without page wrappers
+                                    // Continuous layout - render all questions with page break indicators
                                     <div className="space-y-8 mb-8">
-                                        {pages.flat().map(question => {
-                                            const isChecked = printSelectedQuestions.has(question.id);
+                                        {pages.map((pageQuestions, pageIndex) => {
+                                            globalPageCount++;
                                             return (
-                                                <div
-                                                    key={question.id}
-                                                    id={`print-question-${question.id}`}
-                                                    className={`transition-opacity duration-200 ${!isChecked ? 'opacity-50 grayscale print:hidden' : ''}`}
-                                                >
-                                                    <PrintQuestionCard
-                                                        question={question}
-                                                        isChecked={isChecked}
-                                                        onToggleCheck={() => onToggleCheck && onToggleCheck(question.id)}
-                                                        printDisplayOptions={printDisplayOptions}
-                                                        hoveredQuestionId={hoveredQuestionId}
-                                                        onQuestionHover={onQuestionHover}
-                                                    />
-                                                </div>
+                                                <React.Fragment key={`${block.id}-page-segment-${pageIndex}`}>
+                                                    {/* Page Break Indicator (except for first page) */}
+                                                    {pageIndex > 0 && (
+                                                        <div className="relative flex items-center justify-center py-4 print:hidden group">
+                                                            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                                                <div className="w-full border-t border-dashed border-outline-variant"></div>
+                                                            </div>
+                                                            <div className="relative bg-surface-container-lowest px-4 text-xs font-semibold text-on-surface-variant uppercase tracking-wider flex items-center gap-2">
+                                                                Page Break
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Questions for this page segment */}
+                                                    {pageQuestions.map(question => {
+                                                        const isChecked = printSelectedQuestions.has(question.id);
+                                                        return (
+                                                            <div
+                                                                key={question.id}
+                                                                id={`print-question-${question.id}`}
+                                                                className={`transition-opacity duration-200 ${!isChecked ? 'opacity-50 grayscale print:hidden' : ''}`}
+                                                            >
+                                                                <PrintQuestionCard
+                                                                    question={question}
+                                                                    isChecked={isChecked}
+                                                                    onToggleCheck={() => onToggleCheck && onToggleCheck(question.id)}
+                                                                    printDisplayOptions={printDisplayOptions}
+                                                                    hoveredQuestionId={hoveredQuestionId}
+                                                                    onQuestionHover={onQuestionHover}
+                                                                />
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </React.Fragment>
                                             );
                                         })}
                                     </div>

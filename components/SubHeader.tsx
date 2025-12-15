@@ -6,21 +6,24 @@ interface SubHeaderProps {
   onTogglePreview: () => void;
   onCopySurvey: () => void;
   onExportCsv: () => void;
-  onExport: () => void;
+  onPrintBlueprint: () => void;
+  onPrintSurvey: () => void;
   onImportSurvey: () => void;
 }
 
-const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurvey, onExportCsv, onExport, onImportSurvey }) => {
+const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurvey, onExportCsv, onPrintBlueprint, onPrintSurvey, onImportSurvey }) => {
   const navItems = ['Design', 'Test', 'Distribute', 'Results', 'Analyze'];
   const activeItem = 'Design';
 
   const [isActionsOpen, setIsActionsOpen] = useState(false);
+
   const actionsMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
         setIsActionsOpen(false);
+
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -78,12 +81,15 @@ const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurve
                 <DropdownItem onClick={() => { onExportCsv(); setIsActionsOpen(false); }}>
                   Export survey as CSV
                 </DropdownItem>
+
+                {/* Print Action */}
                 <DropdownItem
-                  onClick={() => { onExport(); setIsActionsOpen(false); }}
+                  onClick={() => { onPrintSurvey(); setIsActionsOpen(false); }}
                   icon={PrintIcon}
                 >
-                  Print Survey
+                  Print survey
                 </DropdownItem>
+
                 <DropdownDivider />
                 <DropdownItem onClick={() => { onCopySurvey(); setIsActionsOpen(false); }}>
                   Copy survey

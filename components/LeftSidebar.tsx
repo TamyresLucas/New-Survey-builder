@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import type { NavItem } from '../types';
 import { mainNavItems } from '../constants';
 
-import { PanelLeftIcon } from './icons';
+import { PanelLeftIcon, ArrowUpIcon } from './icons';
 
 interface LeftSidebarProps {
   activeTab: string;
@@ -26,6 +26,17 @@ const LeftSidebar: React.FC<LeftSidebarProps> = memo(({ activeTab, onTabSelect }
           <span className={`text-[11px] leading-[15px] ${activeTab === item.id ? 'font-medium' : 'font-light'}`} style={{ fontFamily: "'Outfit', sans-serif" }}>{item.label}</span>
         </button>
       ))}
+      <div className="flex-1" />
+      <button
+        onClick={() => {
+          const el = document.getElementById('print-canvas-scroll-container') || document.getElementById('main-canvas-scroll-container');
+          if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        className="flex flex-col items-center justify-center w-full h-16 transition-colors gap-1 text-on-surface-variant hover:text-primary mb-2"
+        aria-label="Back to top"
+      >
+        <ArrowUpIcon className="text-xl" />
+      </button>
     </nav>
   );
 });

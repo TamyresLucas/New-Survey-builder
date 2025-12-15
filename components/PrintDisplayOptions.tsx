@@ -28,9 +28,8 @@ export const PrintDisplayOptions: React.FC<PrintDisplayOptionsProps> = memo(({ o
     };
 
     return (
-        <aside className="w-full h-fit bg-surface-container border border-outline rounded-lg flex-shrink-0 flex flex-col p-4 mb-4">
-            <h2 className="text-lg font-medium text-on-surface mb-3" style={{ fontFamily: "'Outfit', sans-serif" }}>Display options</h2>
-            <div className="flex flex-col gap-2 mb-4">
+        <aside className="w-full h-fit flex-shrink-0 flex flex-col">
+            <div className="flex flex-col gap-2">
                 {AVAILABLE_OPTIONS.map((option) => (
                     <div
                         key={option}
@@ -48,14 +47,8 @@ export const PrintDisplayOptions: React.FC<PrintDisplayOptionsProps> = memo(({ o
                     </div>
                 ))}
             </div>
-            <Button
-                variant="primary"
-                size="large"
-                onClick={handlePrint}
-                className="w-full"
-            >
-                Print
-            </Button>
         </aside>
     );
 });
+
+

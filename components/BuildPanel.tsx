@@ -166,6 +166,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   printMode = false
 }) => {
   const [activeTab, setActiveTab] = useState('Content');
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [questionTypeFilter, setQuestionTypeFilter] = useState('All content');
   const [toolboxFilter, setToolboxFilter] = useState('All');
@@ -473,24 +474,41 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                   {tab}
                 </button>
               ))}
+              <button
+                key="Search"
+                onClick={() => {
+                  setIsSearchVisible(!isSearchVisible);
+                  if (isSearchVisible) setSearchTerm('');
+                }}
+                className={`h-[40px] flex items-center px-1 border-b-2 font-medium text-sm transition-colors ${isSearchVisible
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-on-surface-variant hover:text-primary'
+                  }`}
+                aria-label="Toggle Search"
+                aria-pressed={isSearchVisible}
+              >
+                <SearchIcon className="text-xl" />
+              </button>
             </nav>
           </div>
         )
       }
       <div className="p-4 border-b border-outline">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-            <SearchIcon className="text-xl text-on-surface-variant" />
+        {isSearchVisible && (
+          <div className="relative mb-3">
+            <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+              <SearchIcon className="text-xl text-on-surface-variant" />
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search..."
+              className="w-full h-[32px] bg-transparent border border-input-border rounded-md pl-8 pr-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-2 focus:outline-primary transition-colors"
+              style={{ fontFamily: "'Open Sans', sans-serif" }}
+            />
           </div>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search..."
-            className="w-full h-[32px] bg-transparent border border-input-border rounded-md pl-8 pr-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-2 focus:outline-primary transition-colors"
-            style={{ fontFamily: "'Open Sans', sans-serif" }}
-          />
-        </div>
+        )}
         {activeTab === 'Content' && (
           <DropdownField
             value={questionTypeFilter}
@@ -509,7 +527,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                 disabled: !isEnabled
               };
             })}
-            className="mt-3"
+            className={isSearchVisible ? "mt-3" : ""}
           />
         )}
         {activeTab === 'Toolbox' && (
@@ -521,7 +539,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
               { value: 'Multiple Choice', label: 'Multiple Choice' },
               { value: 'Text', label: 'Text' }
             ]}
-            className="mt-3"
+            className={isSearchVisible ? "mt-3" : ""}
           />
         )}
         {activeTab === 'Library' && (
@@ -533,7 +551,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
               { value: 'Templates', label: 'Templates' },
               { value: 'My questionnaires', label: 'My questionnaires' }
             ]}
-            className="mt-3"
+            className={isSearchVisible ? "mt-3" : ""}
           />
         )}
       </div>
@@ -554,7 +572,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                     draggable={isEnabled && !isTextSearching}
                     onDragStart={isEnabled && !isTextSearching ? (e) => handleToolboxDragStart(e, index, item) : undefined}
                     onDragEnd={isEnabled && !isTextSearching ? handleToolboxDragEnd : undefined}
-                    className={`flex items-center px-4 py-3 border-b border-outline transition-all ${isEnabled ? 'hover:bg-surface-container-lowest cursor-grab' : 'cursor-not-allowed'
+                    className={`flex items-center px-4 py-1 border-b border-outline transition-all ${isEnabled ? 'hover:bg-surface-container-lowest cursor-grab' : 'cursor-not-allowed'
                       } ${draggedToolboxIndex === index ? 'opacity-30' : ''}`}
                   >
                     <div className="flex items-center">

@@ -4,8 +4,9 @@ import Header from './components/Header';
 import SubHeader from './components/SubHeader';
 import LeftSidebar from './components/LeftSidebar';
 import BuildPanel from './components/BuildPanel';
+import BlueprintSidebar from './components/BlueprintSidebar';
 import { PrintSidebar } from './components/PrintSidebar';
-import { PrintCanvas } from './components/PrintCanvas';
+import { BlueprintCanvas } from './components/BlueprintCanvas';
 import SurveyCanvas from './components/SurveyCanvas';
 import DiagramCanvas from './components/DiagramCanvas';
 import { RightSidebar } from './components/RightSidebar';
@@ -93,6 +94,7 @@ const App: React.FC = () => {
 
     const [activeMainTab, setActiveMainTab] = useState('Build');
     const [isBuildPanelOpen, setIsBuildPanelOpen] = useState(true);
+    const [isBlueprintPanelOpen, setIsBlueprintPanelOpen] = useState(true);
     const [isRightSidebarExpanded, setIsRightSidebarExpanded] = useState(false);
     const [activeRightSidebarTab, setActiveRightSidebarTab] = useState('Settings');
     const [isGeminiPanelOpen, setIsGeminiPanelOpen] = useState(false);
@@ -127,7 +129,8 @@ const App: React.FC = () => {
             return next;
         });
     }, []);
-    const [isPrintMode, setIsPrintMode] = useState(false);
+    const [isPrintMode, setIsPrintMode] = useState(false); // Kept for logic compatibility but effectively unused or aliased
+
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [toasts, setToasts] = useState<{ id: string; message: string; type: ToastType; onUndo?: () => void }[]>([]);
     const [selectedPathId, setSelectedPathId] = useState('all-paths');
@@ -281,11 +284,7 @@ const App: React.FC = () => {
         });
     }, []);
 
-    const handleBackToTop = useCallback(() => {
-        if (canvasContainerRef.current) {
-            canvasContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-    }, []);
+
 
     // --- Side Effects ---
 
@@ -293,8 +292,13 @@ const App: React.FC = () => {
     useEffect(() => {
         if (activeMainTab === 'Flow') {
             setIsBuildPanelOpen(false);
+            setIsBlueprintPanelOpen(false);
         } else if (activeMainTab === 'Build') {
             setIsBuildPanelOpen(true);
+            setIsBlueprintPanelOpen(false);
+        } else if (activeMainTab === 'Blueprint') {
+            setIsBuildPanelOpen(false);
+            setIsBlueprintPanelOpen(true);
         }
     }, [activeMainTab]);
 
@@ -310,6 +314,10 @@ const App: React.FC = () => {
             setIsBuildPanelOpen(prev => !prev);
         } else if (tabId === 'Build') {
             setIsBuildPanelOpen(true);
+        } else if (tabId === 'Blueprint' && activeMainTab === 'Blueprint') {
+            setIsBlueprintPanelOpen(prev => !prev);
+        } else if (tabId === 'Blueprint') {
+            setIsBlueprintPanelOpen(true);
         }
         setActiveMainTab(tabId);
     }, [activeMainTab]);
@@ -322,7 +330,10 @@ const App: React.FC = () => {
     const [printSelectedQuestions, setPrintSelectedQuestions] = useState<Set<string>>(new Set());
     const [printSelectedBlocks, setPrintSelectedBlocks] = useState<Set<string>>(new Set());
 
-    // Initialize all questions and blocks as selected by default for print when survey loads
+    // Initialize all questions and blocks as selected by default for print when survey structure changes
+    // We use a string fingerprint of IDs to avoid resetting on every survey object reference change
+    const structureFingerprint = survey.blocks.map(b => `${b.id}:${b.questions.map(q => q.id).join(',')}`).join('|');
+
     useEffect(() => {
         const allQIds = new Set<string>();
         const allBIds = new Set<string>();
@@ -332,7 +343,7 @@ const App: React.FC = () => {
         });
         setPrintSelectedQuestions(allQIds);
         setPrintSelectedBlocks(allBIds);
-    }, [survey]);
+    }, [structureFingerprint]);
 
     // Hover state for synchronized hover between print canvas and survey outline
     const [hoveredQuestionId, setHoveredQuestionId] = useState<string | null>(null);
@@ -379,6 +390,42 @@ const App: React.FC = () => {
         });
     }, [survey]);
 
+    // Derived state for Select All toggle
+    const totalQuestions = useMemo(() => {
+        const uniqueIds = new Set<string>();
+        survey.blocks.forEach(block => {
+            block.questions.forEach(q => uniqueIds.add(q.id));
+        });
+        return uniqueIds.size;
+    }, [survey]);
+
+    // Check if all *questions* are selected
+    // Robust check: Ensure every currently existing question ID is in the selected set.
+    // Simply comparing sizes can fail if the selected set contains stale IDs (from deleted questions) that weren't cleaned up.
+    const areAllPrintSelected = useMemo(() => {
+        if (totalQuestions === 0) return false;
+        // Verify every current question is selected
+        return survey.blocks.every(b => b.questions.every(q => printSelectedQuestions.has(q.id)));
+    }, [survey, printSelectedQuestions, totalQuestions]);
+
+    const handleToggleSelectAllPrint = useCallback((isChecked: boolean) => {
+        if (isChecked) {
+            // Select All
+            const allQIds = new Set<string>();
+            const allBIds = new Set<string>();
+            survey.blocks.forEach(b => {
+                allBIds.add(b.id);
+                b.questions.forEach(q => allQIds.add(q.id));
+            });
+            setPrintSelectedQuestions(allQIds);
+            setPrintSelectedBlocks(allBIds);
+        } else {
+            // Deselect All
+            setPrintSelectedQuestions(new Set());
+            setPrintSelectedBlocks(new Set());
+        }
+    }, [survey]);
+
     if (isPreviewMode) {
         return (
             <SurveyPreview
@@ -399,72 +446,75 @@ const App: React.FC = () => {
 
     return (
         <div className="flex flex-col h-screen bg-surface text-on-surface overflow-hidden font-sans print:h-auto print:overflow-visible">
-            {!isPrintMode && (
-                <Header
-                    surveyName={survey.title}
-                    isGeminiPanelOpen={isGeminiPanelOpen}
-                    onToggleGeminiPanel={handleToggleGeminiPanel}
-                    onUpdateSurveyName={actions.handleUpdateSurveyTitle}
-                    surveyStatus={surveyStatus}
-                    isDirty={isDirty}
-                    onToggleActivateSurvey={() => setSurveyStatus(prev => prev === 'active' ? 'stopped' : 'active')}
-                    onUpdateLiveSurvey={() => {
-                        setPublishedSurvey(JSON.parse(JSON.stringify(survey)));
-                        showToast("Survey updated successfully!", 'success');
-                    }}
-                />
-            )}
-            {isPrintMode ? (
-                <div className="flex items-center justify-between px-6 py-4 bg-surface-container border-b border-outline shadow-sm z-50 print:hidden">
-                    <h2 className="text-lg font-bold text-on-surface">Print {survey.title}</h2>
-                    <Button
-                        variant="tertiary"
-                        iconOnly
-                        onClick={() => setIsPrintMode(false)}
-                        aria-label="Close Print View"
-                    >
-                        <XIcon className="text-2xl" />
-                    </Button>
-                </div>
-            ) : (
-                <SubHeader
-                    onTogglePreview={() => setIsPreviewMode(true)}
-                    onCopySurvey={() => {
-                        const json = JSON.stringify(survey, null, 2);
-                        navigator.clipboard.writeText(json);
-                        showToast("Survey JSON copied to clipboard", 'success');
-                    }}
-                    onExportCsv={() => {
-                        const csvContent = generateSurveyCsv(survey);
-                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                        const link = document.createElement('a');
-                        if (link.download !== undefined) {
-                            const url = URL.createObjectURL(blob);
-                            link.setAttribute('href', url);
-                            link.setAttribute('download', `${survey.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_export.csv`);
-                            link.style.visibility = 'hidden';
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                            showToast("Survey exported to CSV successfully!", 'success');
-                        }
-                    }}
-                    onExport={() => {
-                        setIsPrintMode(prev => !prev);
-                    }}
-                    onImportSurvey={() => setIsImportModalOpen(true)}
-                />
-            )}
+
+            <Header
+                surveyName={survey.title}
+                isGeminiPanelOpen={isGeminiPanelOpen}
+                onToggleGeminiPanel={handleToggleGeminiPanel}
+                onUpdateSurveyName={actions.handleUpdateSurveyTitle}
+                surveyStatus={surveyStatus}
+                isDirty={isDirty}
+                onToggleActivateSurvey={() => setSurveyStatus(prev => prev === 'active' ? 'stopped' : 'active')}
+                onUpdateLiveSurvey={() => {
+                    setPublishedSurvey(JSON.parse(JSON.stringify(survey)));
+                    showToast("Survey updated successfully!", 'success');
+                }}
+            />
+
+            <SubHeader
+                onTogglePreview={() => setIsPreviewMode(true)}
+                onCopySurvey={() => {
+                    const json = JSON.stringify(survey, null, 2);
+                    navigator.clipboard.writeText(json);
+                    showToast("Survey JSON copied to clipboard", 'success');
+                }}
+                onExportCsv={() => {
+                    const csvContent = generateSurveyCsv(survey);
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    if (link.download !== undefined) {
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute('href', url);
+                        link.setAttribute('download', `${survey.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_export.csv`);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        showToast("Survey exported to CSV successfully!", 'success');
+                    }
+                }}
+                onPrintBlueprint={() => {
+                    setActiveMainTab('Blueprint');
+                }}
+                onPrintSurvey={() => {
+                    window.print();
+                }}
+                onImportSurvey={() => setIsImportModalOpen(true)}
+            />
+
 
             <div className="flex flex-1 overflow-hidden relative print:overflow-visible">
-                {!isPrintMode && (
-                    <LeftSidebar
-                        activeTab={activeMainTab}
-                        onTabSelect={handleTabSelect}
+                <LeftSidebar
+                    activeTab={activeMainTab}
+                    onTabSelect={handleTabSelect}
+                />
+
+                {activeMainTab === 'Blueprint' && isBlueprintPanelOpen && (
+                    <BlueprintSidebar
+                        onClose={() => setIsBlueprintPanelOpen(false)}
+                        survey={survey}
+                        selectedBlock={selectedBlock}
+                        selectedQuestion={selectedQuestion}
+                        onSelectBlock={handleSelectBlock}
+                        onSelectQuestion={handleSelectQuestion}
+                        hoveredQuestionId={hoveredQuestionId}
+                        onQuestionHover={setHoveredQuestionId}
+                        printDisplayOptions={printDisplayOptions}
+                        onTogglePrintOption={togglePrintOption}
                     />
                 )}
 
-                {!isPrintMode && activeMainTab === 'Build' && isBuildPanelOpen && (
+                {activeMainTab === 'Build' && isBuildPanelOpen && (
                     <BuildPanel
                         onClose={() => setIsBuildPanelOpen(false)}
                         survey={survey}
@@ -500,20 +550,6 @@ const App: React.FC = () => {
                     />
                 )}
 
-                {isPrintMode && (
-                    <div className="print:hidden">
-                        <PrintSidebar
-                            survey={survey}
-                            onSelectBlock={handleSelectBlock}
-                            onSelectQuestion={handleSelectQuestion}
-                            selectedBlock={selectedBlock}
-                            selectedQuestion={selectedQuestion}
-                            hoveredQuestionId={hoveredQuestionId}
-                            onQuestionHover={setHoveredQuestionId}
-                        />
-                    </div>
-                )}
-
                 <main className="flex-1 flex flex-col relative overflow-hidden transition-all duration-300 min-w-0 print:overflow-visible">
                     {activeMainTab === 'Build' && !isBuildPanelOpen && (
                         <div className="absolute top-4 left-4 z-10">
@@ -527,8 +563,20 @@ const App: React.FC = () => {
                             </Button>
                         </div>
                     )}
-                    {isPrintMode ? (
-                        <PrintCanvas
+                    {activeMainTab === 'Blueprint' && !isBlueprintPanelOpen && (
+                        <div className="absolute top-4 left-4 z-10">
+                            <Button
+                                variant="tertiary"
+                                iconOnly
+                                onClick={() => setIsBlueprintPanelOpen(true)}
+                                aria-label="Expand sidebar"
+                            >
+                                <PanelRightIcon className="text-xl" />
+                            </Button>
+                        </div>
+                    )}
+                    {activeMainTab === 'Blueprint' ? (
+                        <BlueprintCanvas
                             survey={survey}
                             selectedBlock={selectedBlock}
                             selectedQuestion={selectedQuestion}
@@ -541,13 +589,18 @@ const App: React.FC = () => {
                             printDisplayOptions={printDisplayOptions}
                             hoveredQuestionId={hoveredQuestionId}
                             onQuestionHover={setHoveredQuestionId}
+                            onSelectAll={handleToggleSelectAllPrint}
+                            allSelected={areAllPrintSelected}
                         />
                     ) : (
                         <div
+                            id="main-canvas-scroll-container"
                             ref={canvasContainerRef}
                             className="flex-1 overflow-y-auto overflow-x-hidden bg-surface relative scroll-smooth"
                         >
-                            {isDiagramView ? (
+                            {activeMainTab === 'Blueprint' ? (
+                                <div className="h-full w-full bg-surface"></div>
+                            ) : isDiagramView ? (
                                 <div className="h-full w-full">
                                     <DiagramCanvas
                                         survey={survey}
@@ -613,17 +666,8 @@ const App: React.FC = () => {
                     </div>
                 </main>
 
-
-
-                {/* Print View Right Sidebar */}
-                {isPrintMode && (
-                    <div className="w-80 bg-surface border-l border-outline flex flex-col flex-shrink-0 h-full overflow-y-auto z-20 p-4 print:hidden">
-                        <PrintDisplayOptions options={printDisplayOptions} onToggle={togglePrintOption} />
-                    </div>
-                )}
-
-                {/* Build/Standard Right Sidebar */}
-                {!isPrintMode && (isAnyRightPanelOpen || activeMainTab === 'Build') && (
+                {/* Build/Standard Right Sidebar - Only show in Build/Flow/Design modes, NOT Blueprint */}
+                {(isAnyRightPanelOpen || activeMainTab === 'Build') && activeMainTab !== 'Blueprint' && (
                     <div
                         ref={rightPanelRef}
                         className={`bg-surface border-l border-outline-variant shadow-xl transition-all duration-300 flex flex-col z-20`}
@@ -701,7 +745,7 @@ const App: React.FC = () => {
                                     paths={paths}
                                     selectedPathId={selectedPathId}
                                     onPathChange={setSelectedPathId}
-                                    onBackToTop={handleBackToTop}
+
                                     onToggleCollapseAll={() => {
                                         if (allBlocksCollapsed) {
                                             handleExpandAllBlocks();

@@ -11,6 +11,26 @@ export interface ChangelogEntry {
 // NOTE: Always update 'time' to the current local time when adding an entry.
 export const changelogs: ChangelogEntry[] = [
     {
+        id: '2025-12-15-1',
+        version: 'v1.0.16',
+        date: '2025-12-15',
+        time: '2:10 PM',
+        request: 'Blueprint UI Refinements & Build Panel Search',
+        improvements: [
+            'Blueprint Actions: Simplified the survey actions dropdown to show "Print survey" directly. Replaced "Print Blueprint" with an "Export blueprint" dropdown (Word, Excel, HTML, Print).',
+            'Back to Top: Moved the "Back to top" button to the main left navigation rail as an icon-only button. It now works globally across Blueprint and Design views.',
+            'Build Panel Search: Introduced a dedicated "Search" toggle button (magnifying glass) in the Build Panel. Toggling it shows/hides the search bar, which persists across tabs.',
+            'Layout Polish: Adjusted dropdown fields in the Build Panel to "hug" the container top when the search bar is hidden.'
+        ],
+        technicalChanges: [
+            'Modified components/SubHeader.tsx: Flattened print options.',
+            'Modified components/BlueprintCanvas.tsx: Implemented Export dropdown and updated "Select all" to "Export all".',
+            'Modified components/LeftSidebar.tsx: Added global Back to Top button capability.',
+            'Modified components/BuildPanel.tsx: Implemented search toggle state and conditional styling for dropdown margins.',
+            'Modified App.tsx: Added global scroll container ID.'
+        ]
+    },
+    {
         id: '2025-12-12-1',
         version: 'v1.0.15',
         date: '2025-12-12',

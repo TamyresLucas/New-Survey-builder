@@ -1,81 +1,19 @@
-# Survey Builder CI/CD Pipeline
-# Builds and deploys the React/TypeScript survey builder application
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
 
 trigger:
-- master
-
-pr:
-- master
+- main
 
 pool:
-  vmImage: 'windows-latest'  # Use Windows for IIS deployment compatibility
+  vmImage: ubuntu-latest
 
-variables:
-  nodeVersion: '18.x'
-  npm_config_cache: $(Pipeline.Workspace)/.npm
+steps:
+- script: echo Hello, world!
+  displayName: 'Run a one-line script'
 
-stages:
-- stage: Build
-  displayName: 'Build Application'
-  jobs:
-  - job: Build
-    displayName: 'Build Survey Builder'
-    steps:
-
-    # Install Node.js
-    - task: NodeTool@0
-      inputs:
-        versionSpec: '$(nodeVersion)'
-      displayName: 'Install Node.js $(nodeVersion)'
-
-    # Cache npm dependencies
-    - task: Cache@2
-      inputs:
-        key: 'npm | "$(Agent.OS)" | package-lock.json'
-        restoreKeys: |
-          npm | "$(Agent.OS)"
-        path: $(npm_config_cache)
-      displayName: 'Cache npm dependencies'
-
-    # Install dependencies
-    - script: |
-        npm ci --prefer-offline --no-audit
-      displayName: 'Install dependencies'
-
-    # Build application
-    - script: |
-        npm run build
-      displayName: 'Build application'
-      env:
-        CI: true
-
-    # Copy web.config for IIS deployment
-    - script: |
-        if exist web.config copy web.config dist\
-      displayName: 'Copy web.config to dist (if exists)'
-
-    # Archive dist folder contents to zip (contents at root of zip)
-    - task: ArchiveFiles@2
-      inputs:
-        rootFolderOrFile: 'dist'
-        includeRootFolder: false
-        archiveType: 'zip'
-        archiveFile: '$(Build.ArtifactStagingDirectory)/survey-builder.zip'
-        replaceExistingArchive: true
-      displayName: 'Archive build output to zip'
-
-    # Publish the zip file as artifact
-    - task: PublishBuildArtifacts@1
-      inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-        ArtifactName: 'survey-builder-dist'
-        publishLocation: 'Container'
-      displayName: 'Publish build artifacts'
-
-    # Publish test results (if tests are added later)
-    - task: PublishTestResults@2
-      inputs:
-        testResultsFiles: '**/test-results.xml'
-        testRunTitle: 'Survey Builder Tests'
-      condition: succeededOrFailed()
-      displayName: 'Publish test results'
+- script: |
+    echo Add other tasks to build, test, and deploy your project.
+    echo See https://aka.ms/yaml
+  displayName: 'Run a multi-line script'

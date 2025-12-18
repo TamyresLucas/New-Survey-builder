@@ -1,19 +1,109 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+# Survey Builder CI/CD Pipeline
+# Builds and deploys the React/TypeScript survey builder application
 
 trigger:
 - main
 
+pr:
+- main
+
 pool:
-  vmImage: ubuntu-latest
+  vmImage: 'windows-latest'  # Use Windows for IIS deployment compatibility
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+variables:
+  nodeVersion: '18.x'
+  npm_config_cache: $(Pipeline.Workspace)/.npm
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+stages:
+- stage: Build
+  displayName: 'Build Application'
+  jobs:
+  - job: Build
+    displayName: 'Build Survey Builder'
+    steps:
+
+    # Install Node.js
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '$(nodeVersion)'
+      displayName: 'Install Node.js $(nodeVersion)'
+
+    # Cache npm dependencies
+    - task: Cache@2
+      inputs:
+        key: 'npm | "$(Agent.OS)" | package-lock.json'
+        restoreKeys: |
+          npm | "$(Agent.OS)"
+        path: $(npm_config_cache)
+      displayName: 'Cache npm dependencies'
+
+    # Install dependencies
+    - script: |
+        npm ci --prefer-offline --no-audit
+      displayName: 'Install dependencies'
+
+    # Build application
+    - script: |
+        npm run build
+      displayName: 'Build application'
+      env:
+        CI: true
+
+    # Copy web.config for IIS deployment
+    - script: |
+        if exist web.config copy web.config dist\
+      displayName: 'Copy web.config to dist (if exists)'
+
+    # Publish build artifacts
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: 'dist'
+        ArtifactName: 'survey-builder-dist'
+        publishLocation: 'Container'
+      displayName: 'Publish build artifacts'
+
+    # Publish test results (if tests are added later)
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: '**/test-results.xml'
+        testRunTitle: 'Survey Builder Tests'
+      condition: succeededOrFailed()
+      displayName: 'Publish test results'
+
+- stage: Deploy
+  displayName: 'Deploy to IIS'
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: DeployIIS
+    displayName: 'Deploy to IIS Web App'
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+
+          # Download build artifacts
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              downloadType: 'single'
+              artifactName: 'survey-builder-dist'
+              downloadPath: '$(System.ArtifactsDirectory)'
+
+          # Deploy to IIS (using Azure Web App task for simplicity)
+          # Note: For on-premises IIS, you would use different deployment methods
+          - task: AzureRmWebAppDeployment@4
+            inputs:
+              ConnectionType: 'AzureRM'
+              azureSubscription: '$(azureSubscription)'
+              appType: 'webApp'
+              WebAppName: '$(webAppName)'
+              packageForLinux: false
+              RuntimeStack: ''  # Empty for static web app
+              StartupCommand: ''
+              WebConfigParameters: |
+                -IISWebApplicationName "$(iisAppName)"
+                -IISWebApplicationPath "$(iisAppPath)"
+              ConfigurationSettings: |
+                -WebsitePhysicalPath "%SystemDrive%\inetpub\wwwroot"
+            displayName: 'Deploy to Azure Web App (IIS)'

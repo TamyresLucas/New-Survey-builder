@@ -1,0 +1,24 @@
+This is a dummy file created to test the Azure DevOps build and release pipeline.
+
+Test Details:
+- Date: December 18, 2025
+- Purpose: Verify end-to-end CI/CD pipeline
+- Expected outcome: Build triggers, artifact is created with proper structure, and deployment succeeds
+
+Pipeline Flow:
+1. Commit triggers build on master branch
+2. npm install runs
+3. npm run build creates dist folder with base path /SurveyBuilderPoc/
+4. web.config is copied to dist
+5. Dist folder contents are archived to survey-builder.zip (contents at root)
+6. Artifact is published as 'survey-builder-dist'
+7. Release pipeline deploys to IIS
+
+Expected artifact structure:
+- survey-builder.zip
+  - index.html
+  - web.config
+  - assets/
+    - index-[hash].js
+
+This file can be deleted after successful testing.

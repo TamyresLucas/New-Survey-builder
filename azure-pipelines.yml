@@ -54,10 +54,20 @@ stages:
         if exist web.config copy web.config dist\
       displayName: 'Copy web.config to dist (if exists)'
 
-    # Publish build artifacts
+    # Archive dist folder contents to zip (contents at root of zip)
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: 'dist'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/survey-builder.zip'
+        replaceExistingArchive: true
+      displayName: 'Archive build output to zip'
+
+    # Publish the zip file as artifact
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: 'dist'
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
         ArtifactName: 'survey-builder-dist'
         publishLocation: 'Container'
       displayName: 'Publish build artifacts'

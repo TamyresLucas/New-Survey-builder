@@ -57,6 +57,7 @@ export const initialSurveyData: Survey = {
           qid: '',
           text: 'Welcome to our feedback survey! Your opinion is important to us.',
           type: QuestionType.Description,
+          label: 'Description 1'
         },
         {
           id: 'q1',
@@ -65,8 +66,8 @@ export const initialSurveyData: Survey = {
           type: QuestionType.Radio,
           autoAdvance: false,
           choices: [
-            { id: 'q1c1', text: 'Yes' },
-            { id: 'q1c2', text: 'No' },
+            { id: 'q1c1', text: 'Q1_1 Yes' },
+            { id: 'q1c2', text: 'Q1_2 No' }
           ],
           branchingLogic: {
             branches: [
@@ -92,6 +93,7 @@ export const initialSurveyData: Survey = {
           },
         },
       ],
+      bid: 'BL1'
     },
     {
       id: 'block2',
@@ -106,10 +108,17 @@ export const initialSurveyData: Survey = {
           text: 'What type of coffee do you usually order?',
           type: QuestionType.Checkbox,
           choices: [
-            { id: 'q2c1', text: 'Espresso' },
-            { id: 'q2c2', text: 'Latte/Cappuccino' },
-            { id: 'q2c3', text: 'Cold Brew' },
+            { id: 'q2c1', text: 'Q2_1 Espresso' },
+            { id: 'q2c2', text: 'Q2_2 Latte/Cappuccino' },
+            { id: 'q2c3', text: 'Q2_3 Cold Brew' },
           ],
+        },
+        {
+          id: 'pb-1766078580119-dukdmg6',
+          qid: '',
+          text: 'Page Break',
+          type: QuestionType.PageBreak,
+          isAutomatic: true,
         },
         {
           id: 'q3',
@@ -118,9 +127,9 @@ export const initialSurveyData: Survey = {
           type: QuestionType.ChoiceGrid,
           autoAdvance: false,
           choices: [
-            { id: 'q3r1', text: 'Product' },
-            { id: 'q3r2', text: 'Service' },
-            { id: 'q3r3', text: 'Speed' },
+            { id: 'q3r1', text: 'Q3_1 Product' },
+            { id: 'q3r2', text: 'Q3_2 Service' },
+            { id: 'q3r3', text: 'Q3_3 Speed' },
           ],
           scalePoints: [
             { id: 'q3s1', text: 'Very Dissatisfied' },
@@ -130,12 +139,40 @@ export const initialSurveyData: Survey = {
             { id: 'q3s5', text: 'Very Satisfied' },
           ],
           branchingLogic: {
+            branches: [
+              {
+                id: 'branch-q3-product-dissatisfied',
+                operator: 'AND',
+                conditions: [{ id: 'cond-q3-1', questionId: 'Q3', operator: 'equals', value: 'Product_Very Dissatisfied', isConfirmed: true }],
+                thenSkipTo: 'q3_why',
+                thenSkipToIsConfirmed: true,
+                pathName: 'Dissatisfied Customer',
+              }
+            ],
+            otherwiseSkipTo: 'block:block4',
+            otherwiseIsConfirmed: true,
+          },
+        },
+        {
+          id: 'pb-1766078580119-lnj9sy8',
+          qid: '',
+          text: 'Page Break',
+          type: QuestionType.PageBreak,
+          isAutomatic: true,
+        },
+        {
+          id: 'q3_why',
+          qid: 'Q4',
+          text: 'We are sorry to hear that. Can you tell us why?',
+          type: QuestionType.TextEntry,
+          branchingLogic: {
             branches: [],
             otherwiseSkipTo: 'block:block4',
             otherwiseIsConfirmed: true,
           },
         },
       ],
+      bid: 'BL2'
     },
     {
       id: 'block3',
@@ -146,19 +183,26 @@ export const initialSurveyData: Survey = {
       questions: [
         {
           id: 'q4',
-          qid: 'Q4',
+          qid: 'Q5',
           text: 'What are the main reasons for not purchasing?',
           type: QuestionType.Radio,
           autoAdvance: false,
           choices: [
-            { id: 'q4c1', text: 'Price' },
-            { id: 'q4c2', text: 'Location' },
-            { id: 'q4c3', text: 'Variety' },
+            { id: 'q4c1', text: 'Q5_1 Price' },
+            { id: 'q4c2', text: 'Q5_2 Location' },
+            { id: 'q4c3', text: 'Q5_3 Variety' },
           ],
         },
         {
+          id: 'pb-1766078580119-82fo389',
+          qid: '',
+          text: 'Page Break',
+          type: QuestionType.PageBreak,
+          isAutomatic: true,
+        },
+        {
           id: 'q5',
-          qid: 'Q5',
+          qid: 'Q6',
           text: 'What could we do to encourage you to visit?',
           type: QuestionType.TextEntry,
           branchingLogic: {
@@ -168,6 +212,7 @@ export const initialSurveyData: Survey = {
           },
         },
       ],
+      bid: 'BL3'
     },
     {
       id: 'block4',
@@ -177,16 +222,17 @@ export const initialSurveyData: Survey = {
       questions: [
         {
           id: 'q6',
-          qid: 'Q6',
+          qid: 'Q7',
           text: 'Would you like to receive special offers?',
           type: QuestionType.Radio,
           autoAdvance: false,
           choices: [
-            { id: 'q6c1', text: 'Yes' },
-            { id: 'q6c2', text: 'No' },
+            { id: 'q6c1', text: 'Q7_1 Yes' },
+            { id: 'q6c2', text: 'Q7_2 No' },
           ],
         },
       ],
+      bid: 'BL4'
     },
   ],
 };

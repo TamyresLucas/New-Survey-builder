@@ -6,6 +6,7 @@ import { CollapsibleSection } from '../logic-editor/shared';
 import { AdvancedLogicSectionEditor } from '../logic-editor/AdvancedLogicSectionEditor';
 import { ChoiceLayoutEditor, TextEntryAdvancedSettings } from './advanced';
 import { PreviewQuestion } from '../PreviewQuestion';
+import { MobilePreviewFrame } from '../MobilePreviewFrame';
 
 interface AdvancedTabProps {
     question: Question;
@@ -83,18 +84,58 @@ export const PreviewTab: React.FC<{
 }> = ({ question, survey, isExpanded }) => {
     // We need to mock answer change and validation for single question preview
     const [answer, setAnswer] = React.useState<any>(null);
+    const containerRef = React.useRef<HTMLDivElement>(null);
+    const [scale, setScale] = React.useState(1);
+
+    React.useEffect(() => {
+        const updateScale = () => {
+            if (containerRef.current) {
+                const availableHeight = containerRef.current.clientHeight;
+                const padding = 48; // p-6 * 2
+                const targetHeight = 670;
+
+                // Calculate scale to fit. Max scale is 1.
+                const newScale = Math.min(1, (availableHeight - padding) / targetHeight);
+                setScale(newScale);
+            }
+        };
+
+        // Initial update
+        updateScale();
+
+        const observer = new ResizeObserver(updateScale);
+        if (containerRef.current) {
+            observer.observe(containerRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, []);
 
     return (
-        <div className="p-6 flex justify-center bg-surface-container-high min-h-full">
-            <div className={`w-full max-w-md bg-surface p-6 rounded-lg shadow-sm border border-outline-variant ${isExpanded ? 'max-w-2xl' : ''}`}>
+        <div
+            ref={containerRef}
+            className="p-6 flex justify-center bg-surface-container-high h-full w-full overflow-hidden"
+        >
+            <MobilePreviewFrame
+                style={{
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'top center',
+                    // The scale affects layout space, so we use margin to compensate if needed, 
+                    // but usually top center origin works well in a flex center container.
+                    marginBottom: scale < 1 ? `-${670 * (1 - scale)}px` : undefined
+                }}
+            >
+                <header className="mb-4">
+                    <h1 className="text-xl font-bold text-on-surface mb-2">{survey.title}</h1>
+                </header>
                 <PreviewQuestion
                     question={question}
                     onAnswerChange={(_, val) => setAnswer(val)}
                     isInvalid={false}
-                    device="desktop"
+                    device="mobile"
                     value={answer}
                 />
-            </div>
+            </MobilePreviewFrame>
         </div>
     );
 };

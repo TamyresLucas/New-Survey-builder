@@ -124,7 +124,7 @@ export const ChoiceGridRenderer: React.FC<ChoiceGridRendererProps> = ({
                                         </td>
                                         {(question.scalePoints || []).map(sp => (
                                             <td key={sp.id} className="p-2 text-center">
-                                                <RadioButtonUncheckedIcon className="text-xl text-outline" />
+                                                <RadioButtonUncheckedIcon className="text-xl text-input-border" />
                                             </td>
                                         ))}
                                     </tr>

@@ -3,14 +3,12 @@ import React from 'react';
 import type { Question, Survey, ToolboxItemData } from '../../types';
 import { QuestionType } from '../../types';
 import { ActivateQuestionSection, ForceResponseSection } from '../logic-editor/shared';
-import { 
-    QuestionTypeSelector, 
-    QuestionTextEditor, 
+import {
+    QuestionTypeSelector,
     MultipleSelectionToggle,
     LinkChoicesSection,
-    AnswerFormatSelector 
+    AnswerFormatSelector
 } from './settings';
-import { ChoicesEditor } from './ChoicesEditor';
 import { ScalePointsEditor } from './ScalePointsEditor';
 
 interface ChoiceBasedSettingsTabProps {
@@ -38,33 +36,30 @@ export const ChoiceBasedSettingsTab: React.FC<ChoiceBasedSettingsTabProps> = ({
 
     return (
         <div className="p-6 space-y-6">
-            <QuestionTypeSelector 
-                question={question} 
-                onTypeSelect={(newType) => onUpdate({ type: newType })} 
-                toolboxItems={toolboxItems} 
+            <QuestionTypeSelector
+                question={question}
+                onTypeSelect={(newType) => onUpdate({ type: newType })}
+                toolboxItems={toolboxItems}
             />
 
             <ActivateQuestionSection question={question} handleUpdate={onUpdate} />
             <ForceResponseSection question={question} handleUpdate={onUpdate} />
 
             {(question.type === QuestionType.Radio || question.type === QuestionType.Checkbox) && (
-                <MultipleSelectionToggle 
-                    question={question} 
-                    onUpdate={onUpdate} 
-                />
-            )}
-            
-            {(question.type !== QuestionType.ChoiceGrid) && (
-                 <AnswerFormatSelector 
-                    question={question} 
-                    onUpdate={onUpdate} 
+                <MultipleSelectionToggle
+                    question={question}
+                    onUpdate={onUpdate}
                 />
             )}
 
-            <QuestionTextEditor 
-                text={question.text} 
-                onTextChange={(newText) => onUpdate({ text: newText })} 
-            />
+            {(question.type !== QuestionType.ChoiceGrid) && (
+                <AnswerFormatSelector
+                    question={question}
+                    onUpdate={onUpdate}
+                />
+            )}
+
+
 
             <LinkChoicesSection
                 question={question}
@@ -72,17 +67,10 @@ export const ChoiceBasedSettingsTab: React.FC<ChoiceBasedSettingsTabProps> = ({
                 previousQuestions={previousQuestions}
             />
 
-            <div className={isLinked ? 'opacity-50 pointer-events-none' : ''}>
-                <ChoicesEditor
-                    question={question}
-                    onUpdate={onUpdate}
-                    onAddChoice={onAddChoice}
-                    onDeleteChoice={onDeleteChoice}
-                />
-            </div>
-            
+
+
             {question.type === QuestionType.ChoiceGrid && (
-                 <div className={`mt-6 ${isLinked ? 'opacity-50 pointer-events-none' : ''}`}>
+                <div className={`mt-6 ${isLinked ? 'opacity-50 pointer-events-none' : ''}`}>
                     <ScalePointsEditor
                         question={question}
                         onUpdate={onUpdate}

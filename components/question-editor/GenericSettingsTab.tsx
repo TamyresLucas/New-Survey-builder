@@ -2,10 +2,9 @@
 import React from 'react';
 import type { Question, ToolboxItemData } from '../../types';
 import { ActivateQuestionSection, ForceResponseSection } from '../logic-editor/shared';
-import { 
-    QuestionTypeSelector, 
-    QuestionTextEditor,
-    TextValidationSettings 
+import {
+    QuestionTypeSelector,
+    TextValidationSettings
 } from './settings';
 
 interface GenericSettingsTabProps {
@@ -15,7 +14,7 @@ interface GenericSettingsTabProps {
 }
 
 export const GenericSettingsTab: React.FC<GenericSettingsTabProps> = ({ question, onUpdate, toolboxItems }) => {
-    
+
     const handleTypeSelect = (newType: Question['type']) => {
         onUpdate({ type: newType });
     };
@@ -26,19 +25,16 @@ export const GenericSettingsTab: React.FC<GenericSettingsTabProps> = ({ question
 
     return (
         <div className="p-6 space-y-6">
-            <QuestionTypeSelector 
-                question={question} 
-                onTypeSelect={handleTypeSelect} 
-                toolboxItems={toolboxItems} 
+            <QuestionTypeSelector
+                question={question}
+                onTypeSelect={handleTypeSelect}
+                toolboxItems={toolboxItems}
             />
 
             <ActivateQuestionSection question={question} handleUpdate={onUpdate} />
             <ForceResponseSection question={question} handleUpdate={onUpdate} />
-            
-            <QuestionTextEditor 
-                text={question.text} 
-                onTextChange={handleTextChange} 
-            />
+
+
         </div>
     );
 };
@@ -54,7 +50,7 @@ interface TextEntrySettingsTabProps {
 }
 
 export const TextEntrySettingsTab: React.FC<TextEntrySettingsTabProps> = ({ question, onUpdate, toolboxItems }) => {
-    
+
     const handleTypeSelect = (newType: Question['type']) => {
         onUpdate({ type: newType });
     };
@@ -65,21 +61,18 @@ export const TextEntrySettingsTab: React.FC<TextEntrySettingsTabProps> = ({ ques
 
     return (
         <div className="p-6 space-y-6">
-            <QuestionTypeSelector 
-                question={question} 
-                onTypeSelect={handleTypeSelect} 
-                toolboxItems={toolboxItems} 
+            <QuestionTypeSelector
+                question={question}
+                onTypeSelect={handleTypeSelect}
+                toolboxItems={toolboxItems}
             />
-            
+
             <ActivateQuestionSection question={question} handleUpdate={onUpdate} />
             <ForceResponseSection question={question} handleUpdate={onUpdate} />
 
-            <QuestionTextEditor 
-                text={question.text} 
-                onTextChange={handleTextChange} 
-            />
 
-            <TextValidationSettings 
+
+            <TextValidationSettings
                 question={question}
                 onUpdate={onUpdate}
             />

@@ -2,16 +2,18 @@ import React, { memo } from 'react';
 import type { NavItem } from '../types';
 import { mainNavItems } from '../constants';
 
-import { PanelLeftIcon, ArrowUpIcon } from './icons';
+import { PanelLeftIcon, ArrowUpIcon, UnfoldMoreIcon, UnfoldLessIcon } from './icons';
 
 interface LeftSidebarProps {
   activeTab: string;
   onTabSelect: (tabId: string) => void;
+  onToggleCollapseAll?: () => void;
+  allBlocksCollapsed?: boolean;
 }
 
-const LeftSidebar: React.FC<LeftSidebarProps> = memo(({ activeTab, onTabSelect }) => {
+const LeftSidebar: React.FC<LeftSidebarProps> = memo(({ activeTab, onTabSelect, onToggleCollapseAll, allBlocksCollapsed }) => {
   return (
-    <nav className="flex-shrink-0 w-16 bg-surface-container border-r border-[color:var(--border-bd-def)] flex flex-col gap-[10px]">
+    <nav className="flex-shrink-0 w-16 bg-surface-container border-r border-[color:var(--border-bd-def)] flex flex-col gap-[10px] h-full">
       {mainNavItems.map((item) => (
         <button
           key={item.id}
@@ -27,16 +29,29 @@ const LeftSidebar: React.FC<LeftSidebarProps> = memo(({ activeTab, onTabSelect }
         </button>
       ))}
       <div className="flex-1" />
-      <button
-        onClick={() => {
-          const el = document.getElementById('print-canvas-scroll-container') || document.getElementById('main-canvas-scroll-container');
-          if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        className="flex flex-col items-center justify-center w-full h-16 transition-colors gap-1 text-on-surface-variant hover:text-primary mb-2"
-        aria-label="Back to top"
-      >
-        <ArrowUpIcon className="text-xl" />
-      </button>
+      {activeTab !== 'Flow' && (
+        <>
+          {onToggleCollapseAll && (
+            <button
+              onClick={onToggleCollapseAll}
+              className="flex flex-col items-center justify-center w-full h-16 transition-colors gap-1 text-on-surface-variant hover:text-primary"
+              aria-label={allBlocksCollapsed ? "Expand all" : "Collapse all"}
+            >
+              {allBlocksCollapsed ? <UnfoldMoreIcon className="text-xl" /> : <UnfoldLessIcon className="text-xl" />}
+            </button>
+          )}
+          <button
+            onClick={() => {
+              const el = document.getElementById('print-canvas-scroll-container') || document.getElementById('main-canvas-scroll-container');
+              if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="flex flex-col items-center justify-center w-full h-16 transition-colors gap-1 text-on-surface-variant hover:text-primary mb-2"
+            aria-label="Back to top"
+          >
+            <ArrowUpIcon className="text-xl" />
+          </button>
+        </>
+      )}
     </nav>
   );
 });

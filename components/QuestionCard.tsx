@@ -4,6 +4,8 @@ import { useQuestionCardLogic } from '../hooks/useQuestionCardLogic';
 import { PageIndicator } from './question-card/PageIndicator';
 import { QuestionCardHeader } from './question-card/QuestionCardHeader';
 import { QuestionCardBody } from './question-card/QuestionCardBody';
+import { PasteChoicesModal } from './PasteChoicesModal';
+import { parseChoice } from '../utils';
 
 const QuestionCard: React.FC<{
     question: Question,
@@ -79,6 +81,13 @@ const QuestionCard: React.FC<{
 
     return (
         <>
+            <PasteChoicesModal
+                isOpen={logic.isPasteModalOpen}
+                onClose={() => logic.setIsPasteModalOpen(false)}
+                onSave={logic.handlePasteChoices}
+                initialChoicesText={(question.choices || []).map(c => parseChoice(c.text).label).join('\n')}
+                primaryActionLabel="Add Choices"
+            />
             <PageIndicator
                 id={id + '_page_indicator'} // Distinct ID for the implicit page indicator
                 question={question}
@@ -170,6 +179,7 @@ const QuestionCard: React.FC<{
                     handleAddColumn={logic.handleAddColumn}
                     handleScalePointTextChange={logic.handleScalePointTextChange}
                     setDropTargetChoiceId={logic.setDropTargetChoiceId}
+                    onPaste={() => logic.setIsPasteModalOpen(true)}
                 />
             </div>
         </>

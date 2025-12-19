@@ -54,20 +54,10 @@ stages:
         if exist web.config copy web.config dist\
       displayName: 'Copy web.config to dist (if exists)'
 
-    # Archive dist folder contents to zip (contents at root of zip)
-    - task: ArchiveFiles@2
-      inputs:
-        rootFolderOrFile: 'dist'
-        includeRootFolder: false
-        archiveType: 'zip'
-        archiveFile: '$(Build.ArtifactStagingDirectory)/survey-builder.zip'
-        replaceExistingArchive: true
-      displayName: 'Archive build output to zip'
-
-    # Publish the zip file as artifact
+    # Publish build artifacts
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        PathtoPublish: 'dist'
         ArtifactName: 'survey-builder-dist'
         publishLocation: 'Container'
       displayName: 'Publish build artifacts'
@@ -79,3 +69,41 @@ stages:
         testRunTitle: 'Survey Builder Tests'
       condition: succeededOrFailed()
       displayName: 'Publish test results'
+
+- stage: Deploy
+  displayName: 'Deploy to IIS'
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: DeployIIS
+    displayName: 'Deploy to IIS Web App'
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+
+          # Download build artifacts
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              downloadType: 'single'
+              artifactName: 'survey-builder-dist'
+              downloadPath: '$(System.ArtifactsDirectory)'
+
+          # Deploy to IIS (using Azure Web App task for simplicity)
+          # Note: For on-premises IIS, you would use different deployment methods
+          - task: AzureRmWebAppDeployment@4
+            inputs:
+              ConnectionType: 'AzureRM'
+              azureSubscription: '$(azureSubscription)'
+              appType: 'webApp'
+              WebAppName: '$(webAppName)'
+              packageForLinux: false
+              RuntimeStack: ''  # Empty for static web app
+              StartupCommand: ''
+              WebConfigParameters: |
+                -IISWebApplicationName "$(iisAppName)"
+                -IISWebApplicationPath "$(iisAppPath)"
+              ConfigurationSettings: |
+                -WebsitePhysicalPath "%SystemDrive%\inetpub\wwwroot"
+            displayName: 'Deploy to Azure Web App (IIS)'

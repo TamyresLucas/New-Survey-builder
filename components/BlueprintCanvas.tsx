@@ -22,6 +22,8 @@ interface BlueprintCanvasProps {
     onQuestionHover?: (id: string | null) => void;
     onSelectAll?: (checked: boolean) => void;
     allSelected?: boolean;
+    collapsedBlocks: Set<string>;
+    onToggleBlockCollapse: (blockId: string) => void;
 }
 
 export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
@@ -38,10 +40,11 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
     hoveredQuestionId,
     onQuestionHover,
     onSelectAll,
-    allSelected = false
+    allSelected = false,
+    collapsedBlocks,
+    onToggleBlockCollapse
 }) => {
     let globalPageCount = 0;
-    const [collapsedBlocks, setCollapsedBlocks] = React.useState<Set<string>>(new Set());
     const [isExportMenuOpen, setIsExportMenuOpen] = React.useState(false);
     const exportMenuRef = React.useRef<HTMLDivElement>(null);
 
@@ -54,16 +57,6 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
-
-    const toggleBlock = (blockId: string) => {
-        const next = new Set(collapsedBlocks);
-        if (next.has(blockId)) {
-            next.delete(blockId);
-        } else {
-            next.add(blockId);
-        }
-        setCollapsedBlocks(next);
-    };
 
     return (
         <div className="flex-1 overflow-y-auto bg-surface-container-lowest p-8 relative h-[calc(100vh-64px)] scroll-smooth print:h-auto print:overflow-visible print:p-0 print:bg-white" id="print-canvas-scroll-container">
@@ -144,7 +137,7 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
 
                                     {/* Collapse Button - Icon only tertiary */}
                                     <button
-                                        onClick={() => toggleBlock(block.id)}
+                                        onClick={() => onToggleBlockCollapse(block.id)}
                                         className="text-on-surface-variant hover:text-on-surface p-1 rounded hover:bg-surface-container-lowest transition-colors print:hidden"
                                     >
                                         {isCollapsed ? <ChevronDownIcon className="text-xl" /> : <ChevronUpIcon className="text-xl" />}

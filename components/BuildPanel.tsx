@@ -446,7 +446,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   };
 
   return (
-    <div className="w-80 bg-surface-container border-r border-outline flex flex-col flex-shrink-0">
+    <div className="w-80 bg-surface-container border-r border-outline flex flex-col flex-shrink-0 h-full">
       <div className="p-4 border-b border-outline">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium text-on-surface" style={{ fontFamily: "'Outfit', sans-serif" }}>Build</h2>
@@ -494,21 +494,6 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
         )
       }
       <div className="p-4 border-b border-outline">
-        {isSearchVisible && (
-          <div className="relative mb-3">
-            <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-              <SearchIcon className="text-xl text-on-surface-variant" />
-            </div>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search..."
-              className="w-full h-[32px] bg-transparent border border-input-border rounded-md pl-8 pr-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-2 focus:outline-primary transition-colors"
-              style={{ fontFamily: "'Open Sans', sans-serif" }}
-            />
-          </div>
-        )}
         {activeTab === 'Content' && (
           <DropdownField
             value={questionTypeFilter}
@@ -527,7 +512,6 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                 disabled: !isEnabled
               };
             })}
-            className={isSearchVisible ? "mt-3" : ""}
           />
         )}
         {activeTab === 'Toolbox' && (
@@ -539,7 +523,6 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
               { value: 'Multiple Choice', label: 'Multiple Choice' },
               { value: 'Text', label: 'Text' }
             ]}
-            className={isSearchVisible ? "mt-3" : ""}
           />
         )}
         {activeTab === 'Library' && (
@@ -551,8 +534,22 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
               { value: 'Templates', label: 'Templates' },
               { value: 'My questionnaires', label: 'My questionnaires' }
             ]}
-            className={isSearchVisible ? "mt-3" : ""}
           />
+        )}
+        {isSearchVisible && (
+          <div className="relative mt-3">
+            <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+              <SearchIcon className="text-xl text-on-surface-variant" />
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search..."
+              className="w-full h-[32px] bg-transparent border border-input-border rounded-md pl-8 pr-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-2 focus:outline-primary transition-colors"
+              style={{ fontFamily: "'Open Sans', sans-serif" }}
+            />
+          </div>
         )}
       </div>
       <div className="flex-1 overflow-y-auto overflow-x-visible">

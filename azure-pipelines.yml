@@ -2,10 +2,10 @@
 # Builds and deploys the React/TypeScript survey builder application
 
 trigger:
-- main
+- master
 
 pr:
-- main
+- master
 
 pool:
   vmImage: 'windows-latest'  # Use Windows for IIS deployment compatibility

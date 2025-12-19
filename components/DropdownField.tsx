@@ -16,6 +16,8 @@ interface DropdownFieldProps {
     onChange: (value: string) => void;
     className?: string;
     disabled?: boolean;
+    dropdownClassName?: string;
+    hasDropdownShadow?: boolean;
 }
 
 export const DropdownField: React.FC<DropdownFieldProps> = ({
@@ -24,6 +26,8 @@ export const DropdownField: React.FC<DropdownFieldProps> = ({
     onChange,
     className = '',
     disabled = false,
+    dropdownClassName = '',
+    hasDropdownShadow = true,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -67,7 +71,10 @@ export const DropdownField: React.FC<DropdownFieldProps> = ({
                 <ChevronDownIcon className="text-base text-on-surface-variant flex-shrink-0" />
             </button>
             {isOpen && (
-                <DropdownList className="absolute top-full left-0 right-0 mt-1 w-full max-h-60 overflow-y-auto">
+                <DropdownList
+                    className={`absolute top-full left-0 right-0 mt-1 w-full max-h-60 overflow-y-auto ${dropdownClassName}`}
+                    hasShadow={hasDropdownShadow}
+                >
                     {options.map((option) => (
                         <DropdownItem
                             key={option.value}

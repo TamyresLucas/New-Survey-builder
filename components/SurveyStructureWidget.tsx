@@ -218,6 +218,7 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
                             { value: 'one-per-page', label: 'One Question per Page' },
                             { value: 'multi-per-page', label: 'Multi-Question per Page' }
                         ]}
+                        hasDropdownShadow={false}
                     />
                 </div>
 
@@ -227,6 +228,7 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
                         onChange={onPathChange}
                         options={pathOptions.map(p => ({ value: p.id, label: p.name }))}
                         disabled={paths.length === 0}
+                        hasDropdownShadow={false}
                     />
                 </div>
 

@@ -129,26 +129,7 @@ export const QuestionCardHeader: React.FC<QuestionCardHeaderProps> = ({
 
                 {!printMode && (
                     <div className="flex items-center gap-2">
-                        <div ref={typeMenuContainerRef} className="relative">
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsTypeMenuOpen(prev => !prev);
-                                }}
-                                className={`h-[32px] flex items-center gap-2 rounded-md px-2 border border-input-border bg-transparent hover:border-input-border-hover transition-colors ${isTypeMenuOpen ? '!border-input-border-hover' : ''}`}
-                            >
-                                <div className="w-[19px] h-[19px] flex-shrink-0 flex items-center justify-center">
-                                    <CurrentQuestionTypeIcon className="text-base text-primary" />
-                                </div>
-                                <span className="font-semibold text-sm text-on-surface truncate leading-[19px]">{question.type}</span>
-                                <ChevronDownIcon className="text-lg text-on-surface-variant flex-shrink-0" />
-                            </button>
-                            {isTypeMenuOpen && (
-                                <div className="absolute top-full right-0 mt-2 w-64 z-20" style={{ fontFamily: "'Open Sans', sans-serif" }}>
-                                    <QuestionTypeSelectionMenuContent onSelect={handleTypeSelect} toolboxItems={toolboxItems} />
-                                </div>
-                            )}
-                        </div>
+
                         <div ref={actionsMenuContainerRef} className="relative transition-opacity">
                             <Button
                                 variant="tertiary"

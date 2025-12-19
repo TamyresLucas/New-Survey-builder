@@ -4,12 +4,14 @@ export interface DropdownListProps {
     children: React.ReactNode;
     className?: string;
     style?: React.CSSProperties;
+    hasShadow?: boolean;
 }
 
-export const DropdownList: React.FC<DropdownListProps> = ({ children, className = '', style }) => {
+export const DropdownList: React.FC<DropdownListProps> = ({ children, className = '', style, hasShadow = true }) => {
+    const shadowClass = hasShadow ? 'shadow-lg' : '';
     return (
         <div
-            className={`bg-surface-container border border-outline-variant rounded-md shadow-lg z-20 py-1 ${className}`}
+            className={`bg-surface-container border border-outline-variant rounded-md ${shadowClass} z-20 py-1 ${className}`}
             style={{ fontFamily: "'Open Sans', sans-serif", ...style }}
         >
             {children}

@@ -446,7 +446,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   };
 
   return (
-    <div className="w-80 bg-surface-container border-r border-outline flex flex-col flex-shrink-0">
+    <div className="w-80 bg-surface-container border-r border-outline flex flex-col flex-shrink-0 h-full">
       <div className="p-4 border-b border-outline">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium text-on-surface" style={{ fontFamily: "'Outfit', sans-serif" }}>Build</h2>

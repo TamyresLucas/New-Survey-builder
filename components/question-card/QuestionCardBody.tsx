@@ -29,6 +29,7 @@ interface QuestionCardBodyProps {
     handleAddColumn: () => void;
     handleScalePointTextChange: (id: string, text: string) => void;
     setDropTargetChoiceId: (id: string | null) => void;
+    onPaste: () => void;
 }
 
 export const QuestionCardBody: React.FC<QuestionCardBodyProps> = (props) => {

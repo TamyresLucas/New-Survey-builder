@@ -293,18 +293,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
 
     return (
         <div className="space-y-4">
-            <QuestionGroupEditor question={question} survey={survey} onUpdate={onUpdate} />
-
-            <Button
-                variant="secondary"
-                size="large"
-                onClick={handleSetRandomization}
-            >
-                <span>Set question randomization</span>
-                <ArrowRightAltIcon className="text-base ml-1" />
-            </Button>
-
-            <div className="border-t border-outline-variant pt-4">
+            <div>
                 <h3 className="text-sm font-medium text-on-surface mb-0.5">Question display logic</h3>
                 <p className="text-xs text-on-surface-variant mb-3">Conditionally show or hide this question to respondents.</p>
 
@@ -375,6 +364,10 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
                         </React.Fragment>
                     ))}
                 </div>
+            </div>
+
+            <div className="border-t border-outline-variant pt-4">
+                <QuestionGroupEditor question={question} survey={survey} onUpdate={onUpdate} />
             </div>
         </div>
     );

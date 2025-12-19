@@ -308,7 +308,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
         }}
       >
         <div className={`flex items-center ${!printMode ? 'cursor-grab' : ''} flex-grow min-w-0 mr-2`}>
-          {!printMode && <DragIndicatorIcon className="text-xl text-on-surface-variant mr-2 flex-shrink-0" />}
+          {/* DragIndicatorIcon removed but drag functionality preserved via parent div */}
           <div className="flex items-center cursor-pointer collapse-toggle-area w-full" onClick={(e) => { e.stopPropagation(); if (!printMode) onToggleCollapse(); }}>
             {!printMode && <ChevronDownIcon className={`text-xl mr-2 text-on-surface transition-transform duration-200 flex-shrink-0 ${isCollapsed ? '-rotate-90' : ''}`} />}
             <div className="truncate flex items-center w-full">

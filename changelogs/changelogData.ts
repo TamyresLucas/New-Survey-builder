@@ -11,6 +11,30 @@ export interface ChangelogEntry {
 // NOTE: Always update 'time' to the current local time when adding an entry.
 export const changelogs: ChangelogEntry[] = [
     {
+        id: '2025-12-19-1',
+        version: 'v1.0.17',
+        date: '2025-12-19',
+        time: '4:35 PM',
+        request: 'UI Refinement & Preview Sync',
+        improvements: [
+            'Question Editor Settings: Removed redundant "Question Text" and "Choices" editors from the Settings tab.',
+            'Behavior Tab Layout: Removed randomization button and relocated "Question Group" section to the bottom with a divider.',
+            'Preview Synchronization: Synced "Edit Question > Preview" to use the exact same mobile rendering component as the main Survey Preview.',
+            'Responsive Mobile Preview: Implemented auto-scaling for the sidebar mobile preview to fit available height without scrolling.',
+            'Choice Alignment: Aligned radio buttons/checkboxes with Question Text and moved drag handle to the left.',
+            'Multi-line Choices: Enabled text wrapping for long choice labels.',
+            'Icons: Updated "Allow Text Entry" icon to OpenEndAnswerIcon.'
+        ],
+        technicalChanges: [
+            'Created components/MobilePreviewFrame.tsx: Reusable mobile phone frame component.',
+            'Modified components/SurveyPreview.tsx: Refactored to use MobilePreviewFrame.',
+            'Modified components/question-editor/AdvancedTab.tsx: Refactored PreviewTab to use MobilePreviewFrame with ResizeObserver scaling.',
+            'Modified components/question-card/ChoiceListRenderer.tsx: Layout updates for alignment and multi-line support.',
+            'Modified components/question-editor/GenericSettingsTab.tsx & ChoiceBasedSettingsTab.tsx: Removed unused editors.',
+            'Modified components/question-editor/behavior/QuestionBehaviorSection.tsx: Refactored layout.'
+        ]
+    },
+    {
         id: '2025-12-15-1',
         version: 'v1.0.16',
         date: '2025-12-15',

@@ -42,6 +42,7 @@ export const useQuestionCardLogic = ({
     const [isEditingLabel, setIsEditingLabel] = useState(false);
     const [labelValue, setLabelValue] = useState(question.label || '');
     const [labelError, setLabelError] = useState<string | null>(null);
+    const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
 
     const isAnyMenuOpen = isTypeMenuOpen || isActionsMenuOpen;
 
@@ -195,6 +196,15 @@ export const useQuestionCardLogic = ({
         onUpdateQuestion(question.id, { scalePoints: newScalePoints });
     }, [question.id, question.scalePoints, onUpdateQuestion]);
 
+    // Paste Handlers
+    const handlePasteChoices = useCallback((pastedText: string) => {
+        const lines = pastedText.split('\n').filter(line => line.trim() !== '');
+        if (lines.length === 0) return;
+        const newChoices: Choice[] = lines.map(line => ({ id: generateId('c'), text: line.trim() }));
+        const currentChoices = question.choices || [];
+        onUpdateQuestion(question.id, { choices: [...currentChoices, ...newChoices] });
+    }, [question.id, question.choices, onUpdateQuestion]);
+
     // Page Name Handlers
     const handleSavePageName = useCallback(() => {
         if (pageInfo && pageNameValue.trim() && pageNameValue.trim() !== pageInfo.pageName) {
@@ -321,6 +331,9 @@ export const useQuestionCardLogic = ({
         handleChoiceDragEnd,
         handleAddColumn,
         handleScalePointTextChange,
+        handlePasteChoices,
+        isPasteModalOpen,
+        setIsPasteModalOpen,
         handleSavePageName,
         handlePageNameKeyDown,
         handleLabelEditClick,

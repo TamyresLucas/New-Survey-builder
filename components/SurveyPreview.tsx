@@ -5,6 +5,7 @@ import type { Survey, Question, DisplayLogicCondition, BranchingLogicCondition, 
 import { QuestionType } from '../types';
 import { XIcon, ArrowRightAltIcon, SignalIcon, BatteryIcon } from './icons';
 import { PreviewQuestion } from './PreviewQuestion';
+import { MobilePreviewFrame } from './MobilePreviewFrame';
 import { CHOICE_BASED_QUESTION_TYPES } from '../utils';
 
 interface SurveyPreviewProps {
@@ -497,35 +498,22 @@ export const SurveyPreview: React.FC<SurveyPreviewProps> = ({ survey, onClose })
           {/* Mobile Preview */}
           <div className="flex flex-col border-l border-outline-variant">
             <div className="flex-1 overflow-y-auto flex justify-center py-8 bg-surface-container-high">
-              <div className="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-full w-[340px] shadow-xl">
-                <div className="w-[140px] h-[18px] bg-gray-800 top-0 rounded-b-[1rem] left-1/2 -translate-x-1/2 absolute"></div>
-                <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[124px] rounded-l-lg"></div>
-                <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[178px] rounded-l-lg"></div>
-                <div className="h-[64px] w-[3px] bg-gray-800 absolute -right-[17px] top-[142px] rounded-r-lg"></div>
-                <div className="rounded-[2rem] overflow-hidden w-full h-full bg-surface-container">
-                  <div className="px-4 py-2 flex justify-between items-center text-xs text-on-surface-variant font-sans font-bold">
-                    <span>12:29</span>
-                    <div className="flex items-center gap-1">
-                      <SignalIcon className="text-base" />
-                      <BatteryIcon className="text-base" />
-                    </div>
-                  </div>
-                  <div ref={mobilePaneRef} onScroll={() => syncScroll('mobile')} className="p-4 overflow-y-auto h-[calc(100%-32px)]">
-                    <PreviewContent
-                      device="mobile"
-                      survey={survey}
-                      questions={currentQuestions}
-                      answers={answers}
-                      validationErrors={validationErrors}
-                      onAnswerChange={handleAnswerChange}
-                      isLastPage={isEffectivelyLastPage}
-                      currentPage={currentPage}
-                      onBack={handleBack}
-                      onNext={handleNext}
-                      questionIdToBlockMap={questionIdToBlockMap}
-                    />
-                  </div>
-                </div>
+              <div className="flex-1 overflow-y-auto flex justify-center py-8 bg-surface-container-high">
+                <MobilePreviewFrame ref={mobilePaneRef} onScroll={() => syncScroll('mobile')}>
+                  <PreviewContent
+                    device="mobile"
+                    survey={survey}
+                    questions={currentQuestions}
+                    answers={answers}
+                    validationErrors={validationErrors}
+                    onAnswerChange={handleAnswerChange}
+                    isLastPage={isEffectivelyLastPage}
+                    currentPage={currentPage}
+                    onBack={handleBack}
+                    onNext={handleNext}
+                    questionIdToBlockMap={questionIdToBlockMap}
+                  />
+                </MobilePreviewFrame>
               </div>
             </div>
           </div>

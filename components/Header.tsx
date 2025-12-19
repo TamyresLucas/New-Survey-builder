@@ -125,7 +125,7 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
               className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-on-success bg-success rounded-md hover:opacity-90 transition-opacity ml-2"
             >
               <PublishIcon className="text-base leading-none" />
-              <span>Update</span>
+              <span>Publish</span>
             </button>
           )}
         </div>

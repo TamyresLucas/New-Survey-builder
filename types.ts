@@ -433,9 +433,27 @@ export interface MultipleChoiceNode extends BaseNode {
 }
 
 /**
+ * Represents a choice grid matrix question.
+ */
+export interface ChoiceGridNode extends BaseNode {
+  type: 'choice_grid';
+  data: {
+    variableName: string;
+    question: string;
+    description?: string;
+    rows: Option[];
+    columns: Option[];
+    highlightSourceHandles?: boolean;
+    highlightInputHandle?: boolean;
+  };
+}
+
+/**
  * A discriminated union of all possible node types for the diagram.
  */
-export type Node = StartNode | EndNode | TextEntryNode | MultipleChoiceNode | DescriptionNode;
+export type Node = StartNode | EndNode | TextEntryNode | MultipleChoiceNode | DescriptionNode | ChoiceGridNode;
+
+export const isChoiceGridNode = (node: Node): node is ChoiceGridNode => node.type === 'choice_grid';
 
 
 export interface Edge {
@@ -455,6 +473,7 @@ export interface Edge {
   className?: string;
   type?: string;
   pathOptions?: any;
+  style?: React.CSSProperties;
 }
 
 export interface PathAnalysisResult {

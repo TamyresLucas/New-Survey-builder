@@ -497,6 +497,14 @@ const App: React.FC = () => {
                 <LeftSidebar
                     activeTab={activeMainTab}
                     onTabSelect={handleTabSelect}
+                    onToggleCollapseAll={() => {
+                        if (allBlocksCollapsed) {
+                            handleExpandAllBlocks();
+                        } else {
+                            handleCollapseAllBlocks();
+                        }
+                    }}
+                    allBlocksCollapsed={allBlocksCollapsed}
                 />
 
                 {activeMainTab === 'Blueprint' && isBlueprintPanelOpen && (
@@ -591,6 +599,8 @@ const App: React.FC = () => {
                             onQuestionHover={setHoveredQuestionId}
                             onSelectAll={handleToggleSelectAllPrint}
                             allSelected={areAllPrintSelected}
+                            collapsedBlocks={collapsedBlocks}
+                            onToggleBlockCollapse={handleToggleBlockCollapse}
                         />
                     ) : (
                         <div
@@ -746,14 +756,6 @@ const App: React.FC = () => {
                                     selectedPathId={selectedPathId}
                                     onPathChange={setSelectedPathId}
 
-                                    onToggleCollapseAll={() => {
-                                        if (allBlocksCollapsed) {
-                                            handleExpandAllBlocks();
-                                        } else {
-                                            handleCollapseAllBlocks();
-                                        }
-                                    }}
-                                    allBlocksCollapsed={allBlocksCollapsed}
                                     onPagingModeChange={(mode) => dispatchAndRecord({ type: SurveyActionType.SET_PAGING_MODE, payload: { pagingMode: mode } })}
                                     onGlobalAutoAdvanceChange={(enabled) => dispatchAndRecord({ type: SurveyActionType.SET_GLOBAL_AUTOADVANCE, payload: { enabled: enabled } })}
                                     logicIssues={logicIssues}

@@ -57,14 +57,12 @@ interface SurveyStructureWidgetProps {
     selectedPathId: string;
     onPathChange: (pathId: string) => void;
 
-    onToggleCollapseAll: () => void;
-    allBlocksCollapsed: boolean;
     onPagingModeChange: (mode: Survey['pagingMode']) => void;
     onGlobalAutoAdvanceChange: (enabled: boolean) => void;
     logicIssues: any[];
 }
 
-const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ survey, paths, selectedPathId, onPathChange, onToggleCollapseAll, allBlocksCollapsed, onPagingModeChange, onGlobalAutoAdvanceChange, logicIssues }) => {
+const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ survey, paths, selectedPathId, onPathChange, onPagingModeChange, onGlobalAutoAdvanceChange, logicIssues }) => {
 
     const pathOptions = useMemo(() => [
         { id: 'all-paths', name: 'All Paths' },
@@ -198,17 +196,6 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
                     </h2>
                 </div>
 
-                <div className="relative">
-                    <DropdownField
-                        value={survey.pagingMode}
-                        onChange={(value) => onPagingModeChange(value as Survey['pagingMode'])}
-                        options={[
-                            { value: 'one-per-page', label: 'One Question per Page' },
-                            { value: 'multi-per-page', label: 'Multi-Question per Page' }
-                        ]}
-                    />
-                </div>
-
                 <div className="flex items-center justify-between">
                     <div className="flex-1">
                         <label htmlFor="global-autoadvance" className="text-sm font-medium text-on-surface block">
@@ -220,6 +207,17 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
                         id="global-autoadvance"
                         checked={survey.globalAutoAdvance || false}
                         onChange={(checked) => onGlobalAutoAdvanceChange(checked)}
+                    />
+                </div>
+
+                <div className="relative">
+                    <DropdownField
+                        value={survey.pagingMode}
+                        onChange={(value) => onPagingModeChange(value as Survey['pagingMode'])}
+                        options={[
+                            { value: 'one-per-page', label: 'One Question per Page' },
+                            { value: 'multi-per-page', label: 'Multi-Question per Page' }
+                        ]}
                     />
                 </div>
 
@@ -246,13 +244,6 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
                         <DataCard icon={ClockSolidIcon} label="Completion time" value={completionTimeString} state={completionTimeState} />
                     </div>
                 </div>
-            </div>
-
-            <div className="flex justify-between items-center mt-2 border-t border-outline pt-2">
-
-                <Button variant="tertiary" onClick={onToggleCollapseAll} style={{ fontFamily: "'Open Sans', sans-serif" }}>
-                    {allBlocksCollapsed ? 'Expand All' : 'Collapse All'}
-                </Button>
             </div>
         </aside>
     );

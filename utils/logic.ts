@@ -1,6 +1,7 @@
 import type { Survey, Question, Block } from '../types';
 import { QuestionType } from '../types';
 import { generateId } from './id';
+import { parseChoice } from './parser';
 
 export const CHOICE_BASED_QUESTION_TYPES = new Set<QuestionType>([
     QuestionType.Radio,
@@ -15,11 +16,6 @@ export const NON_CHOICE_BASED_QUESTION_TYPES_WITH_TEXT = new Set<QuestionType>([
     QuestionType.TextEntry,
 ]);
 
-/**
- * Checks if a question has branching logic that covers every possible choice.
- * @param question The question to check.
- * @returns True if the branching logic is exhaustive, false otherwise.
- */
 export const isBranchingLogicExhaustive = (question: Question | undefined): boolean => {
     // 1. Must be a question with choices to be exhaustive.
     if (!question || !question.choices || question.choices.length === 0) {
@@ -32,43 +28,23 @@ export const isBranchingLogicExhaustive = (question: Question | undefined): bool
         return false;
     }
 
-    // 3. Collect all unique choice texts.
-    const allChoiceTexts = new Set(question.choices.map(c => c.text));
+    // 3. Check each choice against confirmed conditions
+    return question.choices.every(choice => {
+        const choiceLabel = parseChoice(choice.text).label.trim();
 
-    // 4. Collect all choice texts covered by a confirmed branch rule for this question.
-    // This assumes simple `IF Q1 equals 'Q1_1 Yes'` conditions.
-    const coveredChoiceTexts = new Set<string>();
-    for (const branch of logic.branches) {
-        // Only consider confirmed branches.
-        if (branch.thenSkipToIsConfirmed) {
-            for (const condition of branch.conditions) {
-                // Only consider simple, confirmed "equals" conditions on the question itself.
-                if (
-                    condition.isConfirmed &&
-                    condition.questionId === question.qid &&
-                    condition.operator === 'equals' &&
-                    condition.value
-                ) {
-                    coveredChoiceTexts.add(condition.value);
-                }
-            }
-        }
-    }
+        // Find if this choice is covered by any confirmed branch condition
+        return logic.branches.some(branch => {
+            if (!branch.thenSkipToIsConfirmed) return false;
 
-    // 5. If the number of covered choices doesn't match the total, it's not exhaustive.
-    if (coveredChoiceTexts.size !== allChoiceTexts.size) {
-        return false;
-    }
+            return branch.conditions.some(condition => {
+                if (!condition.isConfirmed || condition.questionId !== question.qid || !condition.value) return false;
 
-    // 6. As a final check, ensure every choice is actually in the covered set.
-    for (const choiceText of allChoiceTexts) {
-        if (!coveredChoiceTexts.has(choiceText)) {
-            return false;
-        }
-    }
-
-    // If we get here, every choice is covered by a confirmed branch.
-    return true;
+                // Check using normalized labels
+                const conditionLabel = parseChoice(condition.value).label.trim();
+                return conditionLabel === choiceLabel;
+            });
+        });
+    });
 };
 
 

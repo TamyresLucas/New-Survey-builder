@@ -7,6 +7,7 @@ import { QuestionType as QTEnum } from '../types';
 import type { PageInfo } from '../types';
 import { SurveyFlowDisplay, IncomingLogicDisplay } from './LogicDisplays';
 import { EditableText } from './EditableText';
+import { Badge } from './Badge';
 
 const DropIndicator = () => (
   <div className="relative h-px w-full bg-primary my-2">
@@ -325,9 +326,11 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
               />
               <span className="text-sm font-normal text-on-surface-variant ml-2">({questionCount} question{questionCount !== 1 ? 's' : ''})</span>
               {block.autoAdvance && (
-                <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-primary-container text-on-primary-container rounded-full flex-shrink-0">
-                  Autoadvance
-                </span>
+                <div className="ml-2">
+                  <Badge variant="periwinkle" active hideDot>
+                    Autoadvance
+                  </Badge>
+                </div>
               )}
             </div>
           </div>

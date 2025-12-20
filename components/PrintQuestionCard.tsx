@@ -2,6 +2,7 @@ import React from 'react';
 import { Question, QuestionType, Choice } from '../types';
 import { CheckboxFilledIcon, CheckboxOutlineIcon, ChevronDownIcon, ChevronUpIcon } from './icons';
 import { EditableText } from './EditableText';
+import { Badge } from './Badge';
 
 interface PrintQuestionCardProps {
     question: Question;

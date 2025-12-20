@@ -4,6 +4,7 @@ import { getPagesForBlock } from '../utils/pagination';
 import { CheckboxFilledIcon, CheckboxOutlineIcon, ChevronDownIcon, ChevronUpIcon, PageBreakIcon, PrintIcon } from './icons';
 import { PrintQuestionCard } from './PrintQuestionCard';
 import { Toggle } from './Toggle';
+import { Badge } from './Badge';
 import { Button } from './Button';
 import { DropdownList, DropdownItem } from './DropdownList';
 
@@ -59,7 +60,7 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
     }, []);
 
     return (
-        <div className="flex-1 overflow-y-auto bg-surface-container-lowest p-8 relative h-[calc(100vh-64px)] scroll-smooth print:h-auto print:overflow-visible print:p-0 print:bg-white" id="print-canvas-scroll-container">
+        <div className="flex-1 bg-surface p-8 relative print:h-auto print:overflow-visible print:p-0 print:bg-white text-on-surface">
 
             {/* Header: Select All and Print */}
             <div className="flex justify-between items-center mb-6 px-1 print:hidden">

@@ -32,6 +32,9 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
 
     const isBranchConfirmed = branch.conditions.every(c => c.isConfirmed) && branch.thenSkipToIsConfirmed;
 
+    const [validationErrors, setValidationErrors] = React.useState<Set<string>>(new Set());
+    const [conditionErrors, setConditionErrors] = React.useState<Map<string, Set<keyof BranchingLogicCondition>>>(new Map());
+
     useEffect(() => {
         // Only set originalBranchRef ONCE on mount if it's confirmed, or when it becomes confirmed.
         // If it's already set, we don't overwrite it with work-in-progress changes.
@@ -58,6 +61,8 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
             // But a better approach is: if we don't have an originalBranchRef, it means it was just created (empty).
             onRemove();
         }
+        setValidationErrors(new Set());
+        setConditionErrors(new Map());
     };
 
     const handleUpdateCondition = (conditionId: string, field: keyof BranchingLogicCondition, value: any) => {
@@ -65,6 +70,19 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
             c.id === conditionId ? { ...c, [field]: value, isConfirmed: false } : c
         );
         onUpdate({ conditions: newConditions });
+
+        // Clear error for this field
+        setConditionErrors(prev => {
+            const next = new Map(prev);
+            const errors = next.get(conditionId);
+            if (errors) {
+                const nextErrors = new Set(errors);
+                nextErrors.delete(field);
+                if (nextErrors.size === 0) next.delete(conditionId);
+                else next.set(conditionId, nextErrors);
+            }
+            return next;
+        });
     };
 
     const handleAddCondition = () => {
@@ -95,11 +113,50 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
         if (branch.conditions.length <= 1) return;
         const newConditions = branch.conditions.filter(c => c.id !== conditionId);
         onUpdate({ conditions: newConditions });
+
+        setConditionErrors(prev => {
+            const next = new Map(prev);
+            next.delete(conditionId);
+            return next;
+        });
     };
 
     const handleConfirm = () => {
+        let hasErrors = false;
+        const newValidationErrors = new Set<string>();
+        const newConditionErrors = new Map<string, Set<keyof BranchingLogicCondition>>();
+
+        // Validate Destination
+        if (!branch.thenSkipTo) {
+            newValidationErrors.add('thenSkipTo');
+            hasErrors = true;
+        }
+
+        // Validate Conditions
+        branch.conditions.forEach(condition => {
+            const errors = new Set<keyof BranchingLogicCondition>();
+            if (!condition.questionId) errors.add('questionId');
+            if (!condition.operator) errors.add('operator');
+
+            const requiresValue = !['is_empty', 'is_not_empty'].includes(condition.operator);
+            if (requiresValue && !condition.value) errors.add('value');
+
+            if (errors.size > 0) {
+                newConditionErrors.set(condition.id, errors);
+                hasErrors = true;
+            }
+        });
+
+        if (hasErrors) {
+            setValidationErrors(newValidationErrors);
+            setConditionErrors(newConditionErrors);
+            return;
+        }
+
         const newConditions = branch.conditions.map(c => ({ ...c, isConfirmed: true }));
         onUpdate({ conditions: newConditions, thenSkipToIsConfirmed: true });
+        setValidationErrors(new Set());
+        setConditionErrors(new Map());
     };
 
     return (
@@ -112,13 +169,21 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
                     <DestinationRow
                         label={<span className="text-sm font-medium text-on-surface whitespace-nowrap">Branch to</span>}
                         value={branch.thenSkipTo}
-                        onChange={(value) => onUpdate({ thenSkipTo: value, thenSkipToIsConfirmed: false })}
+                        onChange={(value) => {
+                            onUpdate({ thenSkipTo: value, thenSkipToIsConfirmed: false });
+                            setValidationErrors(prev => {
+                                const next = new Set(prev);
+                                next.delete('thenSkipTo');
+                                return next;
+                            });
+                        }}
                         isConfirmed={branch.thenSkipToIsConfirmed}
                         followingQuestions={[]}
                         survey={survey}
                         currentBlockId={currentBlockId}
                         hideNextQuestion={true}
                         className="flex-1"
+                        invalid={validationErrors.has('thenSkipTo')}
                     />
                     <span className="text-sm font-medium text-on-surface">if</span>
                 </div>
@@ -170,6 +235,7 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
                                 questionWidth="flex-[1.5] min-w-[120px]"
                                 valueWidth="flex-[1] min-w-[100px]"
                                 operatorWidth="flex-[1] min-w-[100px]"
+                                invalidFields={conditionErrors.get(condition.id) as any}
                             />
                         </div>
                     </div>

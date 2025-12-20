@@ -19,6 +19,7 @@ interface SkipLogicSetProps {
     currentBlockId?: string | null;
     transparentBackground?: boolean;
     onAddCondition?: () => void;
+    invalidDestination?: boolean;
 }
 
 export const SkipLogicSet: React.FC<SkipLogicSetProps & { children?: React.ReactNode }> = ({
@@ -35,6 +36,7 @@ export const SkipLogicSet: React.FC<SkipLogicSetProps & { children?: React.React
     currentBlockId,
     transparentBackground = false,
     onAddCondition,
+    invalidDestination = false,
     children
 }) => {
     const originalValueRef = useRef<string | null>(null);
@@ -87,7 +89,7 @@ export const SkipLogicSet: React.FC<SkipLogicSetProps & { children?: React.React
                         <select
                             value={value}
                             onChange={e => onChange(e.target.value)}
-                            className={`w-full bg-[var(--input-bg)] border rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none border-[var(--input-border)]`}
+                            className={`w-full bg-[var(--input-bg)] border rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none ${invalidDestination ? 'border-error focus:outline-error' : 'border-[var(--input-border)]'}`}
                         >
                             <option value="">Select destination...</option>
                             <option value="end">End of Survey</option>

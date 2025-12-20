@@ -11,6 +11,46 @@ export interface ChangelogEntry {
 // NOTE: Always update 'time' to the current local time when adding an entry.
 export const changelogs: ChangelogEntry[] = [
     {
+        id: '2025-12-19-3',
+        version: 'v1.0.19',
+        date: '2025-12-19',
+        time: '10:50 PM',
+        request: 'Survey Flow Logic & UI Polish',
+        improvements: [
+            'Smart Flow Connectivity: Survey diagram now visually separates "Exclusive Branches" (IF logic) from "Neutral Merge Points" (Otherwise/Skips), allowing proper visualization of paths merging back to common pages.',
+            'Flow Graph Cleanup: "Otherwise" logic that effectively acts as a simple skip or default path is now drawn as a clean connection line without the "Otherwise" label.',
+            'Autosave Fix: Restored accurate "Saved at" timestamp updates by fixing local storage persistence.',
+            'Publish Flow: Publishing a survey now automatically switches its status from "Draft" to "Active".',
+            'Settings Cleanup: Removed the unused "Columns" section from Choice Grid settings and the "Multiple selection" toggle from Radio/Checkbox settings.'
+        ],
+        technicalChanges: [
+            'Modified components/DiagramCanvas.tsx: Refined conditional block detection heuristics and edge drawing logic to distinguish between exclusive logic and merge paths.',
+            'Modified hooks/useSurveyState.ts: Fixed local storage key versioning and uncommented save logic.',
+            'Modified components/Header.tsx: Updated Publish workflow to set survey status.',
+            'Modified components/question-editor/ChoiceBasedSettingsTab.tsx: Removed ScalePointsEditor and MultipleSelectionToggle components.'
+        ]
+    },
+    {
+        id: '2025-12-19-2',
+        version: 'v1.0.18',
+        date: '2025-12-19',
+        time: '7:33 PM',
+        request: 'Desktop Preview & Sidebar UX Refinements',
+        improvements: [
+            'View Mode Switching: The "Edit Question > Preview" tab now automatically switches to a full-width Desktop Preview when the sidebar is expanded.',
+            'Sidebar UX: Expanding the Right Sidebar now automatically collapses the Left Sidebar for better focus.',
+            'Clean Navigation: Navigating away from Build or Flow tabs now automatically closes the Right Sidebar.',
+            'Documentation: Documented the `DesktopPreviewFrame` component.',
+            'Visual Refinement: Removed the browser frame from the Desktop Preview in the editor to match the main Survey Preview style.'
+        ],
+        technicalChanges: [
+            'Created components/DesktopPreviewFrame.tsx.',
+            'Created documentation/components/DesktopPreviewFrame.md.',
+            'Modified components/question-editor/AdvancedTab.tsx: Updated PreviewTab to switch between MobilePreviewFrame and a clean desktop container based on sidebar state.',
+            'Modified App.tsx: Updated sidebar state logic for expansion and navigation.'
+        ]
+    },
+    {
         id: '2025-12-19-1',
         version: 'v1.0.17',
         date: '2025-12-19',

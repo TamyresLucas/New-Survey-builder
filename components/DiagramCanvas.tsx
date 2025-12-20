@@ -67,6 +67,34 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             return { layoutNodes: [], layoutEdges: [] };
         }
 
+        // Identify Conditional Blocks (Target of Logic) to allow skipping them in default flow
+        const conditionalBlockIds = new Set<string>();
+        allQuestions.forEach(q => {
+            const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
+            const skipLogic = q.draftSkipLogic ?? q.skipLogic;
+
+            const addTarget = (dest: string | undefined) => {
+                if (!dest || dest === 'next' || dest === 'end') return;
+                let blockId: string | undefined;
+                if (dest.startsWith('block:')) {
+                    blockId = dest.substring(6);
+                } else {
+                    const targetQ = questionMap.get(dest);
+                    if (targetQ) blockId = questionIdToBlockIdMap.get(targetQ.id);
+                }
+                if (blockId) conditionalBlockIds.add(blockId);
+            };
+
+            if (branchingLogic) {
+                branchingLogic.branches.forEach(b => {
+                    if (b.thenSkipToIsConfirmed) addTarget(b.thenSkipTo);
+                });
+                // Note: We deliberately exclude 'otherwiseSkipTo', 'skipLogic', and 'block.continueTo'.
+                // These points represent Merge Nodes or Shortcuts, not Exclusive Branches.
+                // Only explicit 'IF' branches define an exclusive path that siblings must skip.
+            }
+        });
+
         const findNextQuestion = (startIndex: number, allQs: Question[]): Question | undefined => {
             for (let i = startIndex + 1; i < allQs.length; i++) {
                 if (allQs[i].type !== QuestionType.PageBreak) {
@@ -78,8 +106,31 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
 
         const resolveDestination = (dest: string, currentIndex: number): string | undefined => {
             if (dest === 'end') return 'end-node';
-            const nextQ = findNextQuestion(currentIndex, allQuestions);
-            if (dest === 'next') return nextQ ? nextQ.id : 'end-node';
+            if (dest === 'next') {
+                const currentQ = allQuestions[currentIndex];
+                const currentBlockId = questionIdToBlockIdMap.get(currentQ.id);
+
+                // Traverse forward to find next NEUTRAL question/block
+                for (let i = currentIndex + 1; i < allQuestions.length; i++) {
+                    const candidate = allQuestions[i];
+                    if (candidate.type === QuestionType.PageBreak) continue;
+
+                    const candidateBlockId = questionIdToBlockIdMap.get(candidate.id);
+
+                    // 1. Same Block: Always next (linear flow within block)
+                    if (candidateBlockId === currentBlockId) {
+                        return candidate.id;
+                    }
+
+                    // 2. Different Block: Only enter if NOT a conditional block
+                    if (candidateBlockId && !conditionalBlockIds.has(candidateBlockId)) {
+                        return candidate.id;
+                    }
+
+                    // If conditional, we skip this question (and effectively its block) and continue loop
+                }
+                return 'end-node';
+            }
             if (dest.startsWith('block:')) {
                 const blockId = dest.substring(6);
                 const targetBlock = survey.blocks.find(b => b.id === blockId);
@@ -403,17 +454,43 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             let logicHandled = false;
             const hasChoices = q.choices && q.choices.length > 0;
 
+            // Helper to determine edge style
+            const getEdgeStyle = (targetId: string, isExplicitLogic: boolean) => {
+                let isDashed = isExplicitLogic;
+                const targetQ = questionMap.get(targetId);
+
+                // If target has display logic, it's conditional entry -> dashed
+                if (targetQ && (
+                    (targetQ.displayLogic && targetQ.displayLogic.conditions && targetQ.displayLogic.conditions.length > 0) ||
+                    (targetQ.choiceDisplayLogic && (targetQ.choiceDisplayLogic.showConditions.length > 0 || targetQ.choiceDisplayLogic.hideConditions.length > 0))
+                )) {
+                    isDashed = true;
+                }
+
+                return isDashed ? { strokeDasharray: '5, 5' } : undefined;
+            };
+
             if (branchingLogic) {
-                logicHandled = true;
                 const hasConfirmedBranches = branchingLogic.branches.some(b => b.thenSkipToIsConfirmed);
+                const isOtherwiseConfirmed = branchingLogic.otherwiseIsConfirmed && branchingLogic.otherwiseSkipTo;
+
+
+                // Logic is handled if we extend a branch OR if we have an unconditional "Otherwise" skip
+                if (hasConfirmedBranches || isOtherwiseConfirmed) {
+                    logicHandled = true;
+                }
+
+                const handledChoiceIds = new Set<string>();
 
                 // 1. Create edges for explicit 'IF' branches
                 branchingLogic.branches.forEach(branch => {
+                    // ... existing loop ...
                     if (!branch.thenSkipToIsConfirmed) return;
                     const condition = branch.conditions.find(c => c.questionId === q.qid && c.isConfirmed);
                     if (condition) {
                         const choice = q.choices?.find(c => c.text === condition.value);
                         if (choice) {
+                            handledChoiceIds.add(choice.id);
                             const targetId = resolveDestination(branch.thenSkipTo, index);
                             if (targetId) {
                                 flowEdges.push({
@@ -421,67 +498,113 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                                     source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
                                     label: branch.pathName || parseChoice(choice.text).variable,
                                     markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
-                                    type: 'default'
+                                    type: 'default',
+                                    style: getEdgeStyle(targetId, true)
                                 });
                             }
                         }
                     }
                 });
 
-                // 2. Create a single edge for the 'otherwise' case
-                const isExhaustive = isBranchingLogicExhaustive(q);
-                if (branchingLogic.otherwiseIsConfirmed && branchingLogic.otherwiseSkipTo && !isExhaustive) {
-                    const isStructural = !hasConfirmedBranches;
-                    const targetId = resolveDestination(branchingLogic.otherwiseSkipTo, index);
+                // 2. Handle 'Otherwise' OR Fallthrough
+                // Fallback applies if explicit branches didn't cover everything, OR if we have no branches but do have otherwise.
+                // If hasConfirmedBranches is true, fallback is 'next' (unless overridden by otherwise).
+                // If hasConfirmedBranches is false, fallback is 'otherwise' (if confirmed) or null (if not).
+
+                let fallbackTarget: string | null = null;
+                if (hasConfirmedBranches) {
+                    fallbackTarget = isOtherwiseConfirmed ? branchingLogic.otherwiseSkipTo : 'next';
+                } else if (isOtherwiseConfirmed) {
+                    fallbackTarget = branchingLogic.otherwiseSkipTo;
+                }
+
+                if (fallbackTarget) {
+                    const targetId = resolveDestination(fallbackTarget, index);
+
                     if (targetId) {
-                        if (hasChoices && isStructural) {
+                        // Check if this fallback effectively just goes to the next question anyway
+                        const nextTargetId = resolveDestination('next', index);
+                        const isRedundant = targetId === nextTargetId;
+
+                        const isDefaultNext = fallbackTarget === 'next' || isRedundant;
+                        const isUnconditional = !hasConfirmedBranches;
+
+                        // Use a label only if:
+                        // 1. It's NOT a default/redundant flow AND
+                        // 2. Either it is a conditional fallback ("Otherwise") OR it has a custom name.
+                        // If it is an unconditional skip (isUnconditional) and has NO custom name, we show NO label (just an arrow).
+                        let label: string | null = null;
+                        if (!isDefaultNext) {
+                            if (!isUnconditional) {
+                                label = branchingLogic.otherwisePathName || 'Otherwise';
+                            } else {
+                                label = branchingLogic.otherwisePathName || null;
+                            }
+                        }
+
+                        const isDashed = !isDefaultNext; // Keep dashes for skips, solid for flow
+
+                        if (hasChoices) {
+                            // Wire up all unhandled choices
                             q.choices!.forEach(choice => {
-                                flowEdges.push({
-                                    id: `e-${q.id}-${choice.id}-otherwise-${targetId}`,
-                                    source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
-                                    label: parseChoice(choice.text).variable,
-                                    markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
-                                    type: 'default'
-                                });
+                                if (!handledChoiceIds.has(choice.id)) {
+                                    flowEdges.push({
+                                        id: `e-${q.id}-${choice.id}-fallback-${targetId}`,
+                                        source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
+                                        label: isDefaultNext ? parseChoice(choice.text).variable : label,
+                                        markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                                        type: 'default',
+                                        style: getEdgeStyle(targetId, !isDefaultNext) // Use isDashed logic essentially
+                                    });
+                                }
                             });
                         } else {
+                            // Text Entry / single path fallback
                             flowEdges.push({
-                                id: `e-${q.id}-otherwise-${targetId}`,
+                                id: `e-${q.id}-fallback-${targetId}`,
                                 source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
-                                label: isStructural ? q.qid : (branchingLogic.otherwisePathName || 'Otherwise'),
-                                className: isStructural ? 'structural' : undefined,
+                                label: label,
+                                className: isDefaultNext ? 'structural' : undefined,
                                 markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
-                                type: 'default'
+                                type: 'default',
+                                style: getEdgeStyle(targetId, !isDefaultNext)
                             });
                         }
                     }
                 }
-            } else if (skipLogic) {
-                logicHandled = true;
-                if (skipLogic.type === 'simple' && skipLogic.isConfirmed) {
-                    const targetId = resolveDestination(skipLogic.skipTo, index);
-                    if (targetId) {
-                        if (hasChoices) {
-                            q.choices!.forEach(choice => {
-                                flowEdges.push({
-                                    id: `e-${q.id}-${choice.id}-simple-skip-${targetId}`,
-                                    source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
-                                    label: parseChoice(choice.text).variable,
-                                    markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
-                                    type: 'default'
+
+            }
+            if (skipLogic && !logicHandled) {
+                if (skipLogic.type === 'simple') {
+                    if (skipLogic.isConfirmed) {
+                        logicHandled = true;
+                        const targetId = resolveDestination(skipLogic.skipTo, index);
+                        if (targetId) {
+                            if (hasChoices) {
+                                q.choices!.forEach(choice => {
+                                    flowEdges.push({
+                                        id: `e-${q.id}-${choice.id}-simple-skip-${targetId}`,
+                                        source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
+                                        label: parseChoice(choice.text).variable,
+                                        markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                                        type: 'default',
+                                        style: getEdgeStyle(targetId, true)
+                                    });
                                 });
-                            });
-                        } else {
-                            flowEdges.push({
-                                id: `e-${q.id}-skip-${targetId}`,
-                                source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
-                                label: q.qid,
-                                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
-                                type: 'default'
-                            });
+                            } else {
+                                flowEdges.push({
+                                    id: `e-${q.id}-skip-${targetId}`,
+                                    source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
+                                    label: q.qid,
+                                    markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                                    type: 'default',
+                                    style: getEdgeStyle(targetId, true)
+                                });
+                            }
                         }
                     }
                 } else if (skipLogic.type === 'per_choice') {
+                    logicHandled = true; // Per-choice logic always implies we handle edges, even if they fall through to 'next'
                     (q.choices || []).forEach(choice => {
                         const rule = skipLogic.rules.find(r => r.choiceId === choice.id);
                         const isConfirmedRule = rule && rule.isConfirmed;
@@ -497,7 +620,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                                 targetHandle: 'input',
                                 label: isConfirmedRule ? parseChoice(choice.text).variable : '',
                                 markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
-                                type: 'default'
+                                type: 'default',
+                                style: getEdgeStyle(targetId, isConfirmedRule)
                             });
                         }
                     });
@@ -532,6 +656,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                             className: 'structural',
                             markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
                             type: 'default',
+                            style: getEdgeStyle(targetId, false)
                         });
                     }
                 }

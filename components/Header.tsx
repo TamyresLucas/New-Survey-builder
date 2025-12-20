@@ -7,6 +7,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { DropdownList, DropdownItem, DropdownDivider } from './DropdownList';
 import { Toggle } from './Toggle';
 import type { SurveyStatus } from '../types';
+import { Badge } from './Badge';
 
 interface HeaderProps {
   surveyName: string;
@@ -17,9 +18,16 @@ interface HeaderProps {
   isDirty: boolean;
   onToggleActivateSurvey: () => void;
   onUpdateLiveSurvey: () => void;
+  lastSaved?: string;
 }
 
-const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onToggleGeminiPanel, onUpdateSurveyName, surveyStatus, isDirty, onToggleActivateSurvey, onUpdateLiveSurvey }) => {
+const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onToggleGeminiPanel, onUpdateSurveyName,
+  surveyStatus,
+  isDirty,
+  onToggleActivateSurvey,
+  onUpdateLiveSurvey,
+  lastSaved
+}) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
@@ -52,45 +60,21 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
   };
 
   const renderStatusBadge = () => {
-    if (surveyStatus === 'active' && isDirty) {
-      return (
-        <span
-          style={{ fontFamily: "'Open Sans', sans-serif" }}
-          className="flex items-center justify-center rounded-[16px] border border-warning bg-warning-container px-2 py-1 text-sm font-normal text-on-warning-container min-w-[110px] h-[27px]"
-        >
-          Pending update
-        </span>
-      );
-    }
-
     switch (surveyStatus) {
       case 'active':
-        return (
-          <span
-            style={{ fontFamily: "'Open Sans', sans-serif" }}
-            className="flex items-center justify-center rounded-[16px] border border-success bg-success-container px-2 py-1 text-sm font-normal text-on-success-container min-w-[56px] h-[27px]"
-          >
-            Active
-          </span>
+        return isDirty ? (
+          <Badge variant="yellow" active hideDot>Pending changes</Badge>
+        ) : (
+          <Badge variant="green" active hideDot>Published</Badge>
         );
       case 'stopped':
         return (
-          <span
-            style={{ fontFamily: "'Open Sans', sans-serif" }}
-            className="flex items-center justify-center rounded-[16px] border border-error bg-error-container px-2 py-1 text-sm font-normal text-on-error-container min-w-[71px] h-[27px]"
-          >
-            Stopped
-          </span>
+          <Badge variant="red" active>Stopped</Badge>
         );
       case 'draft':
       default:
         return (
-          <span
-            style={{ fontFamily: "'Open Sans', sans-serif" }}
-            className="flex items-center justify-center rounded-[16px] border border-outline bg-surface-container-high px-2 py-1 text-sm font-normal text-on-surface min-w-[56px] h-[27px]"
-          >
-            Draft
-          </span>
+          <Badge variant="grey" active hideDot>Draft</Badge>
         );
     }
   };
@@ -119,26 +103,33 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
         />
         <div className="flex items-center text-sm text-on-surface-variant ml-4" style={{ fontFamily: "'Open Sans', sans-serif" }}>
           {renderStatusBadge()}
-          {surveyStatus === 'active' && isDirty && (
+
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        {/* Showing Saved at timestamp as a "Last Published" indicator */}
+        {lastSaved && (
+          <span className="text-xs text-on-surface-variant mr-3">
+            Saved at {new Date(lastSaved).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        )}
+        {(() => {
+          const isPublishDisabled = !isDirty && surveyStatus !== 'draft';
+          return (
             <button
-              onClick={onUpdateLiveSurvey}
-              className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-on-success bg-success rounded-md hover:opacity-90 transition-opacity ml-2"
+              onClick={isPublishDisabled ? undefined : onUpdateLiveSurvey}
+              disabled={isPublishDisabled}
+              title={isPublishDisabled ? "There are no changes to be published" : undefined}
+              className={`flex items-center gap-2 px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${isPublishDisabled
+                ? 'bg-[var(--button-button-primary-disabled)] text-[var(--text-txt-on-color-disable)] cursor-not-allowed'
+                : 'text-on-success bg-success hover:opacity-90'
+                }`}
             >
               <PublishIcon className="text-base leading-none" />
               <span>Publish</span>
             </button>
-          )}
-        </div>
-      </div>
-      <div className="flex items-center space-x-5">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-on-surface" style={{ fontFamily: "'Open Sans', sans-serif" }}>Activate</span>
-          <Toggle
-            id="activate-survey-toggle"
-            checked={surveyStatus === 'active'}
-            onChange={onToggleActivateSurvey}
-          />
-        </div>
+          );
+        })()}
 
 
 

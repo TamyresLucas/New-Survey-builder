@@ -24,12 +24,15 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
 }) => {
     const logic = question.draftChoiceDisplayLogic ?? question.choiceDisplayLogic;
 
+    const [validationErrors, setValidationErrors] = React.useState<Map<string, Set<string>>>(new Map());
+
     const handleUpdate = (newLogic: ChoiceDisplayLogic | undefined) => {
         onUpdate({ choiceDisplayLogic: newLogic });
     };
 
     const handleRemoveAllLogic = () => {
         handleUpdate(undefined);
+        setValidationErrors(new Map());
     }
 
     const handleAddCondition = (type: 'show' | 'hide') => {
@@ -60,6 +63,15 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
 
         const handleRemoveCondition = (index: number) => {
             const currentLogic = logic!;
+            const conditionId = type === 'show' ? currentLogic.showConditions[index].id : currentLogic.hideConditions[index].id;
+
+            // Clean up errors for removed condition
+            setValidationErrors(prev => {
+                const next = new Map(prev);
+                next.delete(conditionId);
+                return next;
+            });
+
             let newConditions;
             if (type === 'show') {
                 newConditions = currentLogic.showConditions.filter((_, i) => i !== index);
@@ -73,6 +85,24 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
         const handleUpdateCondition = (index: number, field: keyof ChoiceDisplayCondition | 'questionId', value: any) => {
             const currentLogic = logic!;
             const updateField = (field === 'questionId' ? 'sourceQuestionId' : field) as keyof ChoiceDisplayCondition;
+
+            // Clear specific error field when user updates it
+            const condition = type === 'show' ? currentLogic.showConditions[index] : currentLogic.hideConditions[index];
+            if (validationErrors.has(condition.id)) {
+                setValidationErrors(prev => {
+                    const next = new Map(prev);
+                    const errors = next.get(condition.id);
+                    if (errors) {
+                        const nextErrors = new Set(errors);
+                        if (field === 'questionId') nextErrors.delete('sourceQuestionId');
+                        else nextErrors.delete(String(field));
+
+                        if (nextErrors.size === 0) next.delete(condition.id);
+                        else next.set(condition.id, nextErrors);
+                    }
+                    return next;
+                });
+            }
 
             if (type === 'show') {
                 const newConditions = [...currentLogic.showConditions];
@@ -96,8 +126,17 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
         const handleConfirmCondition = (index: number) => {
             const currentLogic = logic!;
             const condition = type === 'show' ? currentLogic.showConditions[index] : currentLogic.hideConditions[index];
+            const errors = new Set<string>();
 
-            if (!condition.targetChoiceId || !condition.sourceQuestionId || !condition.operator || (!condition.value && !['is_empty', 'is_not_empty'].includes(condition.operator))) {
+            if (!condition.targetChoiceId) errors.add('targetChoiceId');
+            if (!condition.sourceQuestionId) errors.add('sourceQuestionId');
+            if (!condition.operator) errors.add('operator');
+
+            const requiresValue = !['is_empty', 'is_not_empty'].includes(condition.operator);
+            if (requiresValue && !condition.value) errors.add('value');
+
+            if (errors.size > 0) {
+                setValidationErrors(prev => new Map(prev).set(condition.id, errors));
                 return;
             }
 
@@ -110,6 +149,13 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
                 newConditions[index] = { ...newConditions[index], isConfirmed: true };
                 handleUpdate({ ...currentLogic, hideConditions: newConditions });
             }
+
+            // Clear errors on success
+            setValidationErrors(prev => {
+                const next = new Map(prev);
+                next.delete(condition.id);
+                return next;
+            });
         };
 
         if (conditions.length === 0) {
@@ -143,38 +189,42 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
                 </div>
 
                 <div className="space-y-2">
-                    {conditions.map((condition, index) => (
-                        <div key={condition.id} className="p-2 bg-surface rounded-md space-y-2 border border-outline-variant">
-                            <div className="flex items-center gap-2">
-                                <div className="relative w-full">
-                                    <select
-                                        value={condition.targetChoiceId}
-                                        onChange={e => handleUpdateCondition(index, 'targetChoiceId', e.target.value)}
-                                        className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 focus:outline-primary appearance-none"
-                                        aria-label={`Target choice for ${type} logic`}
-                                    >
-                                        <option value="">Select choice to {type}...</option>
-                                        {(question.choices || []).map(c => (
-                                            <option key={c.id} value={c.id}>{truncate(parseChoice(c.text).label, 30)}</option>
-                                        ))}
-                                    </select>
-                                    <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-lg" />
+                    {conditions.map((condition, index) => {
+                        const conditionErrors = validationErrors.get(condition.id);
+                        return (
+                            <div key={condition.id} className={`p-2 bg-surface rounded-md space-y-2 border ${conditionErrors?.size ? 'border-error' : 'border-outline-variant'}`}>
+                                <div className="flex items-center gap-2">
+                                    <div className="relative w-full">
+                                        <select
+                                            value={condition.targetChoiceId}
+                                            onChange={e => handleUpdateCondition(index, 'targetChoiceId', e.target.value)}
+                                            className={`w-full bg-[var(--input-bg)] border rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 appearance-none ${conditionErrors?.has('targetChoiceId') ? 'border-error focus:outline-error' : 'border-[var(--input-border)] focus:outline-primary'}`}
+                                            aria-label={`Target choice for ${type} logic`}
+                                        >
+                                            <option value="">Select choice to {type}...</option>
+                                            {(question.choices || []).map(c => (
+                                                <option key={c.id} value={c.id}>{truncate(parseChoice(c.text).label, 30)}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-lg" />
+                                    </div>
+                                    <span className="text-sm font-bold text-primary">IF</span>
                                 </div>
-                                <span className="text-sm font-bold text-primary">IF</span>
+                                <LogicConditionRow
+                                    condition={{
+                                        ...condition,
+                                        questionId: condition.sourceQuestionId,
+                                    }}
+                                    onUpdateCondition={(field, value) => handleUpdateCondition(index, field as any, value)}
+                                    onRemoveCondition={() => handleRemoveCondition(index)}
+                                    onConfirm={() => handleConfirmCondition(index)}
+                                    availableQuestions={previousQuestions}
+                                    isConfirmed={condition.isConfirmed || false}
+                                    invalidFields={conditionErrors as any}
+                                />
                             </div>
-                            <LogicConditionRow
-                                condition={{
-                                    ...condition,
-                                    questionId: condition.sourceQuestionId,
-                                }}
-                                onUpdateCondition={(field, value) => handleUpdateCondition(index, field as any, value)}
-                                onRemoveCondition={() => handleRemoveCondition(index)}
-                                onConfirm={() => handleConfirmCondition(index)}
-                                availableQuestions={previousQuestions}
-                                isConfirmed={condition.isConfirmed || false}
-                            />
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         );

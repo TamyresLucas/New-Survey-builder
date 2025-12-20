@@ -7,6 +7,7 @@ import {
     AsteriskIcon, VisibilityOffIcon
 } from '../icons';
 import { QuestionActionsMenu, QuestionTypeSelectionMenuContent } from '../ActionMenus';
+import { Badge } from '../Badge';
 import { Toggle } from '../Toggle'; // Standard Toggle not used here yet (using checkbox for selection), but good to import if needed later. Checkbox is for selection.
 
 interface QuestionCardHeaderProps {
@@ -112,9 +113,11 @@ export const QuestionCardHeader: React.FC<QuestionCardHeaderProps> = ({
                     )}
 
                     {willAutoadvance && (
-                        <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-primary text-on-primary rounded-full">
-                            Autoadvance
-                        </span>
+                        <div className="ml-2">
+                            <Badge variant="periwinkle" active hideDot>
+                                Autoadvance
+                            </Badge>
+                        </div>
                     )}
                     {question.isHidden && (
                         <div className={`relative group / tooltip ${question.forceResponse || willAutoadvance ? 'ml-2' : ''} `}>

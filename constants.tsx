@@ -138,20 +138,7 @@ export const initialSurveyData: Survey = {
             { id: 'q3s4', text: 'Satisfied' },
             { id: 'q3s5', text: 'Very Satisfied' },
           ],
-          branchingLogic: {
-            branches: [
-              {
-                id: 'branch-q3-product-dissatisfied',
-                operator: 'AND',
-                conditions: [{ id: 'cond-q3-1', questionId: 'Q3', operator: 'equals', value: 'Product_Very Dissatisfied', isConfirmed: true }],
-                thenSkipTo: 'q3_why',
-                thenSkipToIsConfirmed: true,
-                pathName: 'Dissatisfied Customer',
-              }
-            ],
-            otherwiseSkipTo: 'block:block4',
-            otherwiseIsConfirmed: true,
-          },
+
         },
         {
           id: 'pb-1766078580119-lnj9sy8',
@@ -205,11 +192,7 @@ export const initialSurveyData: Survey = {
           qid: 'Q6',
           text: 'What could we do to encourage you to visit?',
           type: QuestionType.TextEntry,
-          branchingLogic: {
-            branches: [],
-            otherwiseSkipTo: 'block:block4',
-            otherwiseIsConfirmed: true,
-          },
+
         },
       ],
       bid: 'BL3'

@@ -5,11 +5,11 @@ import { QuestionType } from '../../types';
 import { ActivateQuestionSection, ForceResponseSection } from '../logic-editor/shared';
 import {
     QuestionTypeSelector,
-    MultipleSelectionToggle,
+
     LinkChoicesSection,
     AnswerFormatSelector
 } from './settings';
-import { ScalePointsEditor } from './ScalePointsEditor';
+
 
 interface ChoiceBasedSettingsTabProps {
     question: Question;
@@ -45,12 +45,7 @@ export const ChoiceBasedSettingsTab: React.FC<ChoiceBasedSettingsTabProps> = ({
             <ActivateQuestionSection question={question} handleUpdate={onUpdate} />
             <ForceResponseSection question={question} handleUpdate={onUpdate} />
 
-            {(question.type === QuestionType.Radio || question.type === QuestionType.Checkbox) && (
-                <MultipleSelectionToggle
-                    question={question}
-                    onUpdate={onUpdate}
-                />
-            )}
+
 
             {(question.type !== QuestionType.ChoiceGrid) && (
                 <AnswerFormatSelector
@@ -69,14 +64,7 @@ export const ChoiceBasedSettingsTab: React.FC<ChoiceBasedSettingsTabProps> = ({
 
 
 
-            {question.type === QuestionType.ChoiceGrid && (
-                <div className={`mt-6 ${isLinked ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <ScalePointsEditor
-                        question={question}
-                        onUpdate={onUpdate}
-                    />
-                </div>
-            )}
+
 
             {isLinked && (
                 <div className="-mt-4 p-3 bg-primary-container/30 text-on-primary-container text-xs rounded-md border border-primary-container/50">

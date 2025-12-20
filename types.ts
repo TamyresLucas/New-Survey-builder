@@ -103,8 +103,10 @@ export interface SkipLogicRule {
   isConfirmed?: boolean;
 
   // Fields for advanced conditions, primarily for Choice Grids
-  operator?: 'is_answered_with' | 'is_not_answered_with' | 'is_answered_after' | 'is_answered_before' | 'is_answered' | 'is_not_answered';
+  // Fields for advanced conditions, primarily for Choice Grids
+  operator?: 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty' | 'is_answered_with' | 'is_not_answered_with' | 'is_answered_after' | 'is_answered_before' | 'is_answered' | 'is_not_answered';
   valueChoiceId?: string; // The ID of the scale point to compare against.
+  conditions?: DisplayLogicCondition[]; // New: Support for multiple conditions (AND logic)
 }
 
 export type SkipLogic = {
@@ -320,6 +322,7 @@ export interface Survey {
   pagingMode: 'one-per-page' | 'multi-per-page';
   globalAutoAdvance?: boolean;
   lastLogicValidationMessage?: string;
+  lastSaved?: string;
 }
 
 export interface ToolboxItemData {

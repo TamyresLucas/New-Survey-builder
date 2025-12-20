@@ -4,7 +4,7 @@ import { initialSurveyData } from '../constants';
 import { renumberSurveyVariables } from '../utils'; // Using the re-exported utils
 import { surveyReducer, SurveyActionType, type Action } from '../state/surveyReducer';
 
-const LOCAL_STORAGE_KEY = 'surveyBuilderAppState';
+const LOCAL_STORAGE_KEY = 'surveyBuilderAppState_v2';
 
 const getInitialSurveyState = (): Survey => {
     try {
@@ -37,7 +37,7 @@ const getInitialPublishedSurvey = (): Survey => {
 export const useSurveyState = () => {
     const [survey, dispatch] = useReducer(surveyReducer, getInitialSurveyState(), renumberSurveyVariables);
     const [history, setHistory] = useState<Survey[]>([]);
-    const [surveyStatus, setSurveyStatus] = useState<SurveyStatus>('active');
+    const [surveyStatus, setSurveyStatus] = useState<SurveyStatus>('draft');
     const [publishedSurvey, setPublishedSurvey] = useState<Survey | null>(getInitialPublishedSurvey);
     const [isDirty, setIsDirty] = useState(false);
 
@@ -64,6 +64,10 @@ export const useSurveyState = () => {
         } else {
             setIsDirty(false); // If not active, it's not considered "dirty"
         }
+
+        // Autosave logic: persist to local storage whenever survey changes
+        // excluding publishedSurvey reference checks or status changes to be pure
+        window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(survey));
     }, [survey, surveyStatus, publishedSurvey]);
 
     const undoableActionTypes = useMemo(() => new Set([

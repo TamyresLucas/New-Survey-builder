@@ -254,6 +254,9 @@ const App: React.FC = () => {
 
     const handleExpandRightSidebar = useCallback(() => {
         setIsRightSidebarExpanded(true);
+        // Automatically collapse left sidebars when expanding right sidebar
+        setIsBuildPanelOpen(false);
+        setIsBlueprintPanelOpen(false);
     }, []);
 
     const handleToggleBlockCollapse = useCallback((blockId: string) => {
@@ -319,8 +322,16 @@ const App: React.FC = () => {
         } else if (tabId === 'Blueprint') {
             setIsBlueprintPanelOpen(true);
         }
+
+        // Close right sidebar when navigating to pages other than Build or Flow
+        if (tabId !== 'Build' && tabId !== 'Flow') {
+            handleSelectQuestion(null);
+            handleSelectBlock(null);
+            setIsRightSidebarExpanded(false);
+        }
+
         setActiveMainTab(tabId);
-    }, [activeMainTab]);
+    }, [activeMainTab, handleSelectQuestion, handleSelectBlock]);
 
     const allBlocksCollapsed = survey.blocks.length > 0 && collapsedBlocks.size === survey.blocks.length;
     const handleExpandAllBlocks = useCallback(() => setCollapsedBlocks(new Set()), []);
@@ -456,9 +467,16 @@ const App: React.FC = () => {
                 isDirty={isDirty}
                 onToggleActivateSurvey={() => setSurveyStatus(prev => prev === 'active' ? 'stopped' : 'active')}
                 onUpdateLiveSurvey={() => {
+                    const isDraft = surveyStatus === 'draft';
                     setPublishedSurvey(JSON.parse(JSON.stringify(survey)));
-                    showToast("Survey updated successfully!", 'success');
+                    // Manually update the 'lastSaved' timestamp on publish as autosave is disabled
+                    dispatch({ type: SurveyActionType.UPDATE_TIMESTAMP });
+                    if (isDraft) {
+                        setSurveyStatus('active');
+                    }
+                    showToast(isDraft ? "Survey published successfully!" : "Changes were published!", 'success');
                 }}
+                lastSaved={survey.lastSaved}
             />
 
             <SubHeader
@@ -584,24 +602,117 @@ const App: React.FC = () => {
                         </div>
                     )}
                     {activeMainTab === 'Blueprint' ? (
-                        <BlueprintCanvas
-                            survey={survey}
-                            selectedBlock={selectedBlock}
-                            selectedQuestion={selectedQuestion}
-                            onSelectBlock={() => { }}
-                            onSelectQuestion={() => { }}
-                            printSelectedQuestions={printSelectedQuestions}
-                            printSelectedBlocks={printSelectedBlocks}
-                            onToggleCheck={handleTogglePrintCheck}
-                            onToggleBlockCheck={handleTogglePrintBlockCheck}
-                            printDisplayOptions={printDisplayOptions}
-                            hoveredQuestionId={hoveredQuestionId}
-                            onQuestionHover={setHoveredQuestionId}
-                            onSelectAll={handleToggleSelectAllPrint}
-                            allSelected={areAllPrintSelected}
-                            collapsedBlocks={collapsedBlocks}
-                            onToggleBlockCollapse={handleToggleBlockCollapse}
-                        />
+                        <div
+                            id="print-canvas-scroll-container"
+                            className="flex flex-1 overflow-y-auto relative flex-row scroll-smooth"
+                        >
+                            <BlueprintCanvas
+                                survey={survey}
+                                selectedBlock={selectedBlock}
+                                selectedQuestion={selectedQuestion}
+                                onSelectBlock={() => { }}
+                                onSelectQuestion={() => { }}
+                                printSelectedQuestions={printSelectedQuestions}
+                                printSelectedBlocks={printSelectedBlocks}
+                                onToggleCheck={handleTogglePrintCheck}
+                                onToggleBlockCheck={handleTogglePrintBlockCheck}
+                                printDisplayOptions={printDisplayOptions}
+                                hoveredQuestionId={hoveredQuestionId}
+                                onQuestionHover={setHoveredQuestionId}
+                                onSelectAll={handleToggleSelectAllPrint}
+                                allSelected={areAllPrintSelected}
+                                collapsedBlocks={collapsedBlocks}
+                                onToggleBlockCollapse={handleToggleBlockCollapse}
+                            />
+                            {/* Re-use the Right Sidebar Logic for Blueprint */}
+                            {(isAnyRightPanelOpen || activeMainTab === 'Blueprint') && (
+                                <div
+                                    ref={rightPanelRef}
+                                    className={`bg-surface ${isAnyRightPanelOpen ? 'border-l border-outline-variant shadow-xl' : ''} transition-all duration-300 flex flex-col z-20 min-h-full`}
+                                    style={{
+                                        width: (selectedBlock || selectedQuestion || showBulkEditPanel || isGeminiPanelOpen)
+                                            ? (isRightSidebarExpanded ? '800px' : '400px')
+                                            : '400px'
+                                    }}
+                                >
+                                    {isGeminiPanelOpen ? (
+                                        <GeminiPanel
+                                            onClose={() => setIsGeminiPanelOpen(false)}
+                                            survey={survey}
+                                            onAddQuestion={actions.handleAddQuestionFromAI}
+                                            onUpdateQuestion={actions.handleUpdateQuestionFromAI}
+                                            onRepositionQuestion={actions.handleRepositionQuestion}
+                                            onDeleteQuestion={actions.handleDeleteQuestionFromAI}
+                                            onAddBlock={actions.handleAddBlockFromAI}
+                                            onUpdateBlock={actions.handleUpdateBlockFromAI}
+                                            helpTopic={geminiHelpTopic}
+                                            selectedQuestion={selectedQuestion}
+                                            logicIssues={logicIssues}
+                                        />
+                                    ) : showBulkEditPanel ? (
+                                        <BulkEditPanel
+                                            checkedQuestionCount={checkedQuestions.size}
+                                            onClose={() => setCheckedQuestions(new Set())}
+                                            onDuplicate={actions.handleBulkDuplicate}
+                                            onAddToLibrary={() => { }}
+                                            onMoveQuestions={() => { }}
+                                            onMoveToNewBlock={actions.handleBulkMoveToNewBlock}
+                                            onHideQuestion={actions.handleBulkHideQuestion}
+                                            onHideBackButton={actions.handleBulkHideBackButton}
+                                            onForceResponse={actions.handleBulkForceResponse}
+                                            showForceResponse={true}
+                                            onUnforceResponse={() => actions.handleBulkForceResponse()}
+                                            showUnforceResponse={true}
+                                            onDelete={actions.handleBulkDelete}
+                                        />
+                                    ) : selectedBlock ? (
+                                        <BlockSidebar
+                                            block={selectedBlock}
+                                            survey={survey}
+                                            onClose={() => handleSelectBlock(null)}
+                                            onUpdateBlock={actions.handleUpdateBlock}
+                                            isExpanded={isRightSidebarExpanded}
+                                            onToggleExpand={handleToggleRightSidebarExpand}
+                                            onExpandSidebar={handleExpandRightSidebar}
+                                            focusTarget={focusTarget}
+                                            onFocusHandled={handleFocusHandled}
+                                        />
+                                    ) : selectedQuestion ? (
+                                        <RightSidebar
+                                            question={selectedQuestion}
+                                            survey={survey}
+                                            logicIssues={logicIssues}
+                                            activeTab={activeRightSidebarTab}
+                                            onTabChange={setActiveRightSidebarTab}
+                                            focusedLogicSource={focusedLogicSource}
+                                            onUpdateQuestion={actions.handleUpdateQuestion}
+                                            onAddChoice={actions.handleAddChoice}
+                                            onDeleteChoice={actions.handleDeleteChoice}
+                                            isExpanded={isRightSidebarExpanded}
+                                            onToggleExpand={handleToggleRightSidebarExpand}
+                                            onExpandSidebar={handleExpandRightSidebar}
+                                            onSelectBlock={handleSelectBlock}
+                                            onClose={() => handleSelectQuestion(null)}
+                                            toolboxItems={toolboxItems}
+                                            onRequestGeminiHelp={handleRequestGeminiHelp}
+                                        />
+                                    ) : (
+                                        <div className="p-4">
+                                            <SurveyStructureWidget
+                                                survey={survey}
+                                                paths={paths}
+                                                selectedPathId={selectedPathId}
+                                                onPathChange={setSelectedPathId}
+
+                                                onPagingModeChange={(mode) => dispatchAndRecord({ type: SurveyActionType.SET_PAGING_MODE, payload: { pagingMode: mode } })}
+                                                onGlobalAutoAdvanceChange={(enabled) => dispatchAndRecord({ type: SurveyActionType.SET_GLOBAL_AUTOADVANCE, payload: { enabled: enabled } })}
+                                                logicIssues={logicIssues}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     ) : (
                         <div
                             id="main-canvas-scroll-container"

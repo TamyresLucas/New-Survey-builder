@@ -111,6 +111,29 @@ export const PreviewTab: React.FC<{
         return () => observer.disconnect();
     }, []);
 
+    // Return different layout based on sidebar expansion state
+    if (isExpanded) {
+        return (
+            <div className="flex-1 h-full overflow-hidden bg-surface-container flex flex-col">
+                <div className="flex-1 overflow-y-auto p-8">
+                    <div className="max-w-3xl mx-auto min-h-full">
+                        <header className="mb-4">
+                            <h1 className="text-3xl font-bold text-on-surface mb-2">{survey.title}</h1>
+                            <div className="w-16 h-1 bg-primary mb-8"></div>
+                        </header>
+                        <PreviewQuestion
+                            question={question}
+                            onAnswerChange={(_, val) => setAnswer(val)}
+                            isInvalid={false}
+                            device="desktop"
+                            value={answer}
+                        />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div
             ref={containerRef}

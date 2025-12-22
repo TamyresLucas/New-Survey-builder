@@ -202,13 +202,11 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                             if (targetId) targets.set(targetId, 'fallthrough');
                         }
                     } else {
-                        // Text entry or no choices, if not fully covered? 
-                        // Text entry doesn't have partial coverage usually.
-                        const hasConfirmedBranches = branchingLogic.branches.some(b => b.thenSkipToIsConfirmed);
-                        if (!hasConfirmedBranches) {
-                            const targetId = resolveDestination('next', index);
-                            if (targetId) targets.set(targetId, 'fallthrough');
-                        }
+                        // Text entry or no choices.
+                        // We assume there is always a fallthrough path (Implicit Else -> Next)
+                        // for text questions unless 'otherwise' serves that purpose.
+                        const targetId = resolveDestination('next', index);
+                        if (targetId) targets.set(targetId, 'fallthrough');
                     }
                 }
             } else if (skipLogic) {

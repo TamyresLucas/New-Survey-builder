@@ -17,7 +17,7 @@ const MultipleChoiceNodeComponent: React.FC<NodeProps<MultipleChoiceNode>> = ({ 
     const Icon = data.subtype === 'radio' ? RadioIcon : CheckboxToolboxIcon;
 
     return (
-        <div className={`w-80 bg-surface-container border rounded-lg shadow-lg transition-all ${data.hasLogicError ? 'border-error border-2' : (selected ? 'border-primary shadow-2xl' : 'border-outline')
+        <div className={`w-80 bg-surface-container border rounded-lg shadow-lg transition-all ${selected ? 'border-primary shadow-2xl' : 'border-outline'
             }`}>
             <header className="p-3 border-b border-outline">
                 <div className="flex items-center gap-2 min-w-0">

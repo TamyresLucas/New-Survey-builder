@@ -622,7 +622,17 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 // Straight (N = 1): Offset is 0. Stays in lane.
 
                 children.forEach((v, i) => {
-                    const targetLane = currentLane + offsets[i];
+                    let targetLane = currentLane + offsets[i];
+
+                    // FORCE NEUTRAL NODES TO LANE 0
+                    // If a node is NOT in a conditional block, it is part of the "Main Stem" (Backbone).
+                    // It should always return to the center.
+                    const qV = questionMap.get(v);
+                    const blockId = qV ? questionIdToBlockIdMap.get(qV.id) : null;
+                    if (blockId && !conditionalBlockIds.has(blockId)) {
+                        targetLane = 0;
+                    }
+
                     if (!laneMap.has(v)) {
                         laneMap.set(v, targetLane);
                         visitedLayout.add(v);

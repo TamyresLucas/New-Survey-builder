@@ -306,18 +306,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             });
         }
 
-        // --- Column Grouping & Vertical Placement ---
-        const columns: string[][] = [];
-        longestPath.forEach((col, qId) => {
-            if (questionMap.has(qId)) {
-                if (!columns[col]) columns[col] = [];
-                columns[col].push(qId);
-            }
-        });
-
-        const nodePositions = new Map<string, { x: number, y: number }>();
+        // --- PRE-CALCULATE NODE HEIGHTS ---
         const nodeHeights = new Map<string, number>();
-
         allQuestions.forEach(q => {
             let height = 120;
             if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid) {
@@ -328,36 +318,60 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             nodeHeights.set(q.id, height);
         });
 
-        columns.forEach((column, colIndex) => {
-            const sortedColumn = column.sort((a, b) => {
-                const rootA = branchRoot.get(a);
-                const rootB = branchRoot.get(b);
+        // --- Lane-based Vertical Placement (Fix horizontal alignment) ---
+        // Instead of centering columns, we assign each "Branch" (Chain) to a "Lane".
+        // All nodes in a Lane share the same Y-center.
 
-                const rootOrderA = rootA ? allQuestionsOrder.get(rootA) ?? Infinity : Infinity;
-                const rootOrderB = rootB ? allQuestionsOrder.get(rootB) ?? Infinity : Infinity;
+        // 1. Identify distinct Lanes (Branch Roots)
+        const uniqueLanes = Array.from(new Set(branchRoot.values()));
 
-                if (rootOrderA !== rootOrderB) {
-                    return rootOrderA > rootOrderB ? 1 : -1;
+        // 2. Sort Lanes to maintain vertical order (using the first node in the lane as proxy)
+        uniqueLanes.sort((rootA, rootB) => {
+            const orderA = allQuestionsOrder.get(rootA) ?? Infinity;
+            const orderB = allQuestionsOrder.get(rootB) ?? Infinity;
+            return orderA - orderB;
+        });
+
+        // 3. Calculate Height of each Lane
+        // A lane's height is the maximum height of any node belonging to that lane/branchRoot
+        const laneHeights = new Map<string, number>();
+        allQuestions.forEach(q => {
+            const root = branchRoot.get(q.id);
+            if (root) {
+                const h = nodeHeights.get(q.id) || 120;
+                const currentMax = laneHeights.get(root) || 0;
+                if (h > currentMax) {
+                    laneHeights.set(root, h);
                 }
+            }
+        });
 
-                const pathA = longestPath.get(a) ?? 0;
-                const pathB = longestPath.get(b) ?? 0;
-                if (pathA !== pathB) {
-                    return pathA > pathB ? 1 : -1;
-                }
+        // 4. Calculate Y-position for each Lane (Stacking them)
+        const laneYPositions = new Map<string, number>();
+        let currentLaneY = 0;
 
-                const orderA = allQuestionsOrder.get(a) ?? 0;
-                const orderB = allQuestionsOrder.get(b) ?? 0;
-                return orderA > orderB ? 1 : (orderA < orderB ? -1 : 0);
-            });
+        // Center the whole graph vertically around 0
+        const totalGraphHeight = uniqueLanes.reduce((sum, root) => sum + (laneHeights.get(root) || 120) + VERTICAL_GAP, 0) - VERTICAL_GAP;
+        let startY = -totalGraphHeight / 2;
 
-            let totalHeight = sortedColumn.reduce((sum, qId) => sum + (nodeHeights.get(qId) || 0), 0) + Math.max(0, sortedColumn.length - 1) * VERTICAL_GAP;
-            let currentY = -totalHeight / 2;
+        uniqueLanes.forEach(root => {
+            const h = laneHeights.get(root) || 120;
+            const centerY = startY + (h / 2);
+            laneYPositions.set(root, centerY);
+            startY += h + VERTICAL_GAP;
+        });
 
-            sortedColumn.forEach(qId => {
-                const height = nodeHeights.get(qId) || 0;
-                nodePositions.set(qId, { x: colIndex * X_SPACING, y: currentY + height / 2 });
-                currentY += height + VERTICAL_GAP;
+        // 5. Assign Node Positions
+        const nodePositions = new Map<string, { x: number, y: number }>();
+
+        allQuestions.forEach(q => {
+            const colIndex = longestPath.get(q.id) || 0;
+            const root = branchRoot.get(q.id);
+            const yPos = (root && laneYPositions.has(root)) ? laneYPositions.get(root)! : 0;
+
+            nodePositions.set(q.id, {
+                x: colIndex * X_SPACING,
+                y: yPos
             });
         });
 

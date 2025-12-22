@@ -382,6 +382,9 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
 
         const flowEdges: DiagramEdge[] = [];
 
+        // Initialize set to track questions with broken logic
+        const brokenLogicQuestionIds = new Set<string>();
+
         // GENERATE EDGES (Moved up from bottom)
         allQuestions.forEach((q, index) => {
             if (q.type === QuestionType.PageBreak) return;
@@ -403,6 +406,15 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             const skipLogic: SkipLogic | undefined = q.draftSkipLogic ?? q.skipLogic;
             let logicHandled = false;
             const hasChoices = q.choices && q.choices.length > 0;
+
+            const checkTargetValidity = (targetId: string | undefined, sourceQId: string) => {
+                if (!targetId) return false;
+                if (targetId === 'end-node') return true;
+                if (questionMap.has(targetId)) return true;
+                // If we resolved a target ID but it doesn't exist in the map, it's broken logic
+                brokenLogicQuestionIds.add(sourceQId);
+                return false;
+            };
 
             const getEdgeStyle = (targetId: string, isExplicitLogic: boolean) => {
                 let isDashed = isExplicitLogic;
@@ -433,29 +445,28 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                             if (choice) {
                                 handledChoiceIds.add(choice.id);
                                 const targetId = resolveDestination(branch.thenSkipTo, index);
-                                if (targetId) {
+                                if (checkTargetValidity(targetId, q.id)) {
                                     flowEdges.push({
                                         id: `e-${branch.id}-${targetId}`,
-                                        source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
+                                        source: q.id, sourceHandle: choice.id, target: targetId!, targetHandle: 'input',
                                         label: branch.pathName || parseChoice(choice.text).variable,
                                         markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
                                         type: 'default',
-                                        style: getEdgeStyle(targetId, true)
+                                        style: getEdgeStyle(targetId!, true)
                                     });
                                 }
                             }
                         } else {
                             // Handle Text Entry / Non-Choice Questions
-                            // (Previously skipped because it looked for choice)
                             const targetId = resolveDestination(branch.thenSkipTo, index);
-                            if (targetId) {
+                            if (checkTargetValidity(targetId, q.id)) {
                                 flowEdges.push({
                                     id: `e-${branch.id}-${targetId}`,
-                                    source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
-                                    label: branch.pathName || condition.operator, // Use logic name or operator
+                                    source: q.id, sourceHandle: 'output', target: targetId!, targetHandle: 'input',
+                                    label: branch.pathName || condition.operator,
                                     markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
                                     type: 'default',
-                                    style: getEdgeStyle(targetId, true)
+                                    style: getEdgeStyle(targetId!, true)
                                 });
                             }
                         }
@@ -471,7 +482,10 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
 
                 if (fallbackTarget) {
                     const targetId = resolveDestination(fallbackTarget, index);
-                    if (targetId) {
+                    // Check validity only if explicit logic. Next/Fallthrough usually valid unless block logic broken.
+                    if (isOtherwiseConfirmed && !checkTargetValidity(targetId, q.id)) {
+                        // Logic broken. Do not add edge.
+                    } else if (targetId) {
                         const nextTargetId = resolveDestination('next', index);
                         const isRedundant = targetId === nextTargetId;
                         const isDefaultNext = fallbackTarget === 'next' || isRedundant;
@@ -503,7 +517,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                                 id: `e-${q.id}-fallback-${targetId}`,
                                 source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
                                 label: label,
-                                className: isDefaultNext ? 'structural' : undefined,
+                                // className: isDefaultNext ? 'structural' : undefined, // Removed to ensure visibility
                                 markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
                                 type: 'default',
                                 style: getEdgeStyle(targetId, !isDefaultNext)
@@ -522,26 +536,26 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                         // This ensures Q4 -> Q8 (Skip) AND Q4 -> Q5 (Next) both appear.
                         // logicHandled = true; <--- REMOVED
                         const targetId = resolveDestination(skipLogic.skipTo, index);
-                        if (targetId) {
+                        if (checkTargetValidity(targetId, q.id)) {
                             if (hasChoices) {
                                 q.choices!.forEach(choice => {
                                     flowEdges.push({
                                         id: `e-${q.id}-${choice.id}-simple-skip-${targetId}`,
-                                        source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
+                                        source: q.id, sourceHandle: choice.id, target: targetId!, targetHandle: 'input',
                                         label: parseChoice(choice.text).variable,
                                         markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
                                         type: 'default',
-                                        style: getEdgeStyle(targetId, true)
+                                        style: getEdgeStyle(targetId!, true)
                                     });
                                 });
                             } else {
                                 flowEdges.push({
                                     id: `e-${q.id}-skip-${targetId}`,
-                                    source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
+                                    source: q.id, sourceHandle: 'output', target: targetId!, targetHandle: 'input',
                                     label: q.qid,
                                     markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
                                     type: 'default',
-                                    style: getEdgeStyle(targetId, true)
+                                    style: getEdgeStyle(targetId!, true)
                                 });
                             }
                         }
@@ -554,7 +568,9 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                         const dest = isConfirmedRule ? rule.skipTo : 'next';
                         const targetId = resolveDestination(dest, index);
 
-                        if (targetId) {
+                        if (isConfirmedRule && !checkTargetValidity(targetId, q.id)) {
+                            // Broken rule. No edge.
+                        } else if (targetId) {
                             flowEdges.push({
                                 id: `e-${q.id}-${choice.id}-${isConfirmedRule ? 'skip' : 'fallthrough'}-${targetId}`,
                                 source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
@@ -585,7 +601,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                         flowEdges.push({
                             id: `e-${q.id}-fallthrough-${targetId}`,
                             source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
-                            label: q.qid, className: 'structural',
+                            label: q.qid,
+                            // className: 'structural', // Removed to ensure visibility
                             markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
                             type: 'default',
                             style: getEdgeStyle(targetId, false)
@@ -798,7 +815,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 flowNodes.push({
                     id: q.id, type: 'description_node', position,
                     data: {
-                        question: q.text
+                        question: q.text,
+                        hasLogicError: brokenLogicQuestionIds.has(q.id)
                     },
                     width: NODE_WIDTH, height: nodeHeights.get(q.id) || 0,
                 });
@@ -811,14 +829,19 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                         subtype: q.type === QuestionType.Checkbox ? 'checkbox' : 'radio',
                         options: q.choices?.map(c => ({
                             id: c.id, text: parseChoice(c.text).label, variableName: parseChoice(c.text).variable
-                        })) || []
+                        })) || [],
+                        hasLogicError: brokenLogicQuestionIds.has(q.id)
                     },
                     width: NODE_WIDTH, height: nodeHeights.get(q.id) || 0,
                 });
             } else {
                 flowNodes.push({
                     id: q.id, type: 'text_entry', position,
-                    data: { variableName: q.qid, question: q.text },
+                    data: {
+                        variableName: q.qid,
+                        question: q.text,
+                        hasLogicError: brokenLogicQuestionIds.has(q.id)
+                    },
                     width: NODE_WIDTH, height: nodeHeights.get(q.id) || 0,
                 });
             }

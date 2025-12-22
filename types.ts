@@ -386,7 +386,7 @@ export interface BaseNode {
   width?: number;
   height?: number;
   // FIX: Changed data property from `unknown` to `any` to ensure compatibility with @xyflow/react's Node type, which expects `data: any`.
-  data: any;
+  data: any & { hasLogicError?: boolean; };
   selected?: boolean; // Add selected property for React Flow
   // FIX: Add optional properties to match react-flow's Node type and resolve type errors.
   sourcePosition?: HandlePosition;
@@ -400,7 +400,7 @@ export interface BaseNode {
  */
 export interface StartNode extends BaseNode {
   type: 'start';
-  data: { label: string; highlightSourceHandles?: boolean; highlightInputHandle?: boolean; };
+  data: { label: string; highlightSourceHandles?: boolean; highlightInputHandle?: boolean; hasLogicError?: boolean; };
 }
 
 /**
@@ -408,7 +408,7 @@ export interface StartNode extends BaseNode {
  */
 export interface EndNode extends BaseNode {
   type: 'end';
-  data: { label: string; highlightSourceHandles?: boolean; highlightInputHandle?: boolean; };
+  data: { label: string; highlightSourceHandles?: boolean; highlightInputHandle?: boolean; hasLogicError?: boolean; };
 }
 
 /**
@@ -416,7 +416,7 @@ export interface EndNode extends BaseNode {
  */
 export interface TextEntryNode extends BaseNode {
   type: 'text_entry';
-  data: { variableName: string; question: string; validationType?: string; highlightSourceHandles?: boolean; highlightInputHandle?: boolean; };
+  data: { variableName: string; question: string; validationType?: string; highlightSourceHandles?: boolean; highlightInputHandle?: boolean; hasLogicError?: boolean; };
 }
 
 /**
@@ -424,7 +424,7 @@ export interface TextEntryNode extends BaseNode {
  */
 export interface DescriptionNode extends BaseNode {
   type: 'description_node';
-  data: { question: string; highlightSourceHandles?: boolean; highlightInputHandle?: boolean; };
+  data: { question: string; highlightSourceHandles?: boolean; highlightInputHandle?: boolean; hasLogicError?: boolean; };
 }
 
 /**
@@ -432,7 +432,7 @@ export interface DescriptionNode extends BaseNode {
  */
 export interface MultipleChoiceNode extends BaseNode {
   type: 'multiple_choice';
-  data: { variableName: string; question: string; subtype: 'radio' | 'checkbox'; options: Option[]; highlightSourceHandles?: boolean; highlightInputHandle?: boolean; };
+  data: { variableName: string; question: string; subtype: 'radio' | 'checkbox'; options: Option[]; highlightSourceHandles?: boolean; highlightInputHandle?: boolean; hasLogicError?: boolean; };
 }
 
 /**

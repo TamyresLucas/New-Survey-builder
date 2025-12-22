@@ -33,11 +33,13 @@ const QuestionCard: React.FC<{
     pageInfo?: PageInfo;
     focusedLogicSource: string | null;
     printMode?: boolean;
+    isHovered?: boolean;
+    onHover?: (id: string | null) => void;
 }> = memo(({
     question, survey, parentBlock, currentBlockId, logicIssues, isSelected, isChecked, onSelect, onToggleCheck, id,
     onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, toolboxItems,
     isDragging, onDragStart, onDragEnd, onAddChoice, onAddPageBreakAfterQuestion, pageInfo, focusedLogicSource,
-    printMode = false
+    printMode = false, isHovered, onHover
 }) => {
 
     const logic = useQuestionCardLogic({
@@ -118,11 +120,15 @@ const QuestionCard: React.FC<{
                 onDragStart={onDragStart}
                 onDragEnd={onDragEnd}
                 onClick={(e) => { e.stopPropagation(); onSelect(question); }}
+                onMouseEnter={() => onHover?.(question.id)}
+                onMouseLeave={() => onHover?.(null)}
                 className={`p-4 rounded-lg border transition-all group relative grid grid-cols-[auto_1fr] items-start gap-x-3 bg-surface-container ${!printMode ? 'cursor-grab' : ''} ${isSelected
                     ? (hasLogicIssues ? 'border-error shadow-md' : 'border-primary shadow-md')
-                    : question.isHidden
-                        ? 'border-outline bg-surface-container opacity-60'
-                        : 'border-outline hover:border-outline hover:shadow-md'
+                    : isHovered
+                        ? 'border-input-border shadow-md'
+                        : question.isHidden
+                            ? 'border-outline bg-surface-container opacity-60'
+                            : 'border-outline hover:border-input-border hover:shadow-md'
                     } ${isDragging ? 'opacity-50' : ''} ${logic.isAnyMenuOpen ? 'z-10' : ''} ${hasDisplayLogic ? 'border-dashed' : ''}`}
             >
                 <QuestionCardHeader

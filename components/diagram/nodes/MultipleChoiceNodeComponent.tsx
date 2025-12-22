@@ -17,9 +17,9 @@ const MultipleChoiceNodeComponent: React.FC<NodeProps<MultipleChoiceNode>> = ({ 
     const Icon = data.subtype === 'radio' ? RadioIcon : CheckboxToolboxIcon;
 
     return (
-        <div className={`w-80 bg-surface-container border rounded-lg shadow-lg transition-all ${selected ? 'border-primary shadow-2xl' : 'border-outline-variant'
+        <div className={`w-80 bg-surface-container border rounded-lg shadow-lg transition-all ${selected ? 'border-primary shadow-2xl' : 'border-outline'
             }`}>
-            <header className="p-3 border-b border-outline-variant">
+            <header className="p-3 border-b border-outline">
                 <div className="flex items-center gap-2 min-w-0">
                     <Icon className="text-lg text-on-surface-variant flex-shrink-0" />
                     <span className="font-bold text-sm text-on-surface flex-shrink-0 mr-1">{data.variableName}</span>
@@ -32,7 +32,7 @@ const MultipleChoiceNodeComponent: React.FC<NodeProps<MultipleChoiceNode>> = ({ 
                 <InputHandle highlighted={data.highlightInputHandle} />
                 <ul className="p-3 space-y-2">
                     {data.options.map((option) => (
-                        <li key={option.id} className="relative flex items-center p-2 rounded bg-surface border border-outline-variant">
+                        <li key={option.id} className="relative flex items-center p-2 rounded bg-surface border border-outline">
                             <div className={`w-4 h-4 rounded-full border mr-2 flex items-center justify-center ${data.subtype === 'checkbox' ? 'rounded-sm' : ''
                                 } border-on-surface-variant`} />
                             <span className="text-sm text-on-surface truncate flex-1">{option.text}</span>

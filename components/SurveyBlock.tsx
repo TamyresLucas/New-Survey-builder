@@ -59,6 +59,8 @@ interface SurveyBlockProps {
   pageInfoMap: Map<string, PageInfo>;
   focusedLogicSource: string | null;
   printMode?: boolean;
+  hoveredQuestionId?: string | null;
+  onQuestionHover?: (id: string | null) => void;
 }
 
 const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
@@ -66,7 +68,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
   isBlockDragging, onBlockDragStart, onBlockDragEnd, isCollapsed, onToggleCollapse,
   onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onAddFromLibrary,
   pageInfoMap, focusedLogicSource,
-  printMode = false
+  printMode = false, hoveredQuestionId, onQuestionHover
 }) => {
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [isToolboxDragOver, setIsToolboxDragOver] = useState(false);
@@ -432,6 +434,8 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                       pageInfo={pageInfoMap.get(question.id)}
                       focusedLogicSource={focusedLogicSource}
                       printMode={printMode}
+                      isHovered={hoveredQuestionId === question.id}
+                      onHover={onQuestionHover}
                     />
                   </div>
                 </React.Fragment>

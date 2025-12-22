@@ -573,6 +573,8 @@ const App: React.FC = () => {
                         onSelectAllInBlock={actions.handleSelectAllInBlock}
                         onUnselectAllInBlock={actions.handleUnselectAllInBlock}
                         onUpdateQuestion={actions.handleUpdateQuestion}
+                        onQuestionHover={setHoveredQuestionId}
+                        hoveredQuestionId={hoveredQuestionId}
                     />
                 )}
 
@@ -776,6 +778,8 @@ const App: React.FC = () => {
                                             onAddFromLibrary={() => { }}
                                             focusedLogicSource={focusedLogicSource}
                                             printMode={isPrintMode}
+                                            hoveredQuestionId={hoveredQuestionId}
+                                            onQuestionHover={setHoveredQuestionId}
                                         />
                                     </div>
                                 )}

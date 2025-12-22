@@ -14,9 +14,9 @@ const choiceHandleStyle = {
 
 const ChoiceGridNodeComponent: React.FC<NodeProps<ChoiceGridNode>> = ({ data, selected }) => {
     return (
-        <div className={`w-[450px] bg-surface-container border rounded-lg shadow-lg transition-all ${selected ? 'border-primary shadow-2xl' : 'border-outline-variant'
+        <div className={`w-[450px] bg-surface-container border rounded-lg shadow-lg transition-all ${selected ? 'border-primary shadow-2xl' : 'border-outline'
             }`}>
-            <header className="p-3 border-b border-outline-variant bg-surface-container-high rounded-t-lg">
+            <header className="p-3 border-b border-outline bg-surface-container-high rounded-t-lg">
                 <div className="flex items-center gap-2 min-w-0">
                     <ChoiceGridIcon className="text-lg text-on-surface-variant flex-shrink-0" />
                     <span className="font-bold text-sm text-on-surface flex-shrink-0 mr-1">{data.variableName}</span>
@@ -34,10 +34,10 @@ const ChoiceGridNodeComponent: React.FC<NodeProps<ChoiceGridNode>> = ({ data, se
                     </div>
                 )}
 
-                <div className="border border-outline-variant rounded-md">
+                <div className="border border-outline rounded-md">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="bg-surface-container-low border-b border-outline-variant">
+                            <tr className="bg-surface-container-low border-b border-outline">
                                 <th className="p-2 text-left font-medium text-on-surface-variant w-1/3"></th>
                                 {data.columns.map(col => (
                                     <th key={col.id} className="p-2 text-center font-medium text-on-surface-variant text-xs break-words max-w-[80px]">
@@ -48,7 +48,7 @@ const ChoiceGridNodeComponent: React.FC<NodeProps<ChoiceGridNode>> = ({ data, se
                         </thead>
                         <tbody>
                             {data.rows.map(row => (
-                                <tr key={row.id} className="border-b border-outline-variant last:border-0 hover:bg-surface-container-highest transition-colors relative">
+                                <tr key={row.id} className="border-b border-outline last:border-0 hover:bg-surface-container-highest transition-colors relative">
                                     <td className="p-2 font-medium text-on-surface relative">
                                         {row.text}
                                     </td>

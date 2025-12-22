@@ -42,6 +42,8 @@ interface SurveyCanvasProps {
   onAddFromLibrary: () => void;
   focusedLogicSource: string | null;
   printMode?: boolean;
+  hoveredQuestionId?: string | null;
+  onQuestionHover?: (id: string | null) => void;
 }
 
 const DropIndicator = () => (
@@ -52,7 +54,7 @@ const DropIndicator = () => (
 );
 
 const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuestion, selectedBlock, checkedQuestions, logicIssues, onSelectQuestion, onSelectBlock, onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onReorderBlock, onAddBlockFromToolbox, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, collapsedBlocks, onToggleBlockCollapse, onCopyBlock, onExpandAllBlocks, onCollapseAllBlocks, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onUpdateSurveyTitle, onAddFromLibrary, focusedLogicSource,
-  printMode = false
+  printMode = false, hoveredQuestionId, onQuestionHover
 }) => {
   const [draggedQuestionId, setDraggedQuestionId] = useState<string | null>(null);
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
@@ -281,6 +283,8 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
             pageInfoMap={pageInfoMap}
             focusedLogicSource={focusedLogicSource}
             printMode={printMode}
+            hoveredQuestionId={hoveredQuestionId}
+            onQuestionHover={onQuestionHover}
           />
         </React.Fragment>
       ))}

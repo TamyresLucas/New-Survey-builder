@@ -39,6 +39,8 @@ interface BuildPanelProps {
   onUnselectAllInBlock: (blockId: string) => void;
   onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
   printMode?: boolean;
+  onQuestionHover?: (id: string | null) => void;
+  hoveredQuestionId?: string | null;
 }
 
 const enabledToolboxItems = new Set(['Block', 'Page Break', 'Description', 'Checkbox', 'Radio Button', 'Text Entry', 'Choice Grid']);
@@ -52,7 +54,7 @@ const DropIndicator = ({ small = false }: { small?: boolean }) => (
   </div>
 );
 
-const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, showDropIndicator, onSelectQuestion, onDragStart, onDragEnd, TypeIcon, onCopyQuestion, onDeleteQuestion, onAddPageBreakAfterQuestion, onMoveQuestionToNewBlock, onUpdateQuestion, hasIssues }: any) => {
+const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, showDropIndicator, onSelectQuestion, onDragStart, onDragEnd, TypeIcon, onCopyQuestion, onDeleteQuestion, onAddPageBreakAfterQuestion, onMoveQuestionToNewBlock, onUpdateQuestion, hasIssues, onQuestionHover, isHovered }: any) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -88,20 +90,15 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
 
   const DisplayIcon = hasIssues ? WarningIcon : TypeIcon;
 
-  let containerClasses = `box-border flex flex-row items-center px-2 gap-2 h-[32px] rounded text-sm transition-all group relative border cursor-grab`;
-  if (isSelected) {
-    if (hasIssues) {
-      containerClasses += ' bg-error border-error text-on-error';
-    } else {
-      containerClasses += ' bg-primary border-primary text-on-primary';
+  const containerClasses = `
+    box-border flex flex-row items-center px-2 gap-2 h-[32px] rounded text-sm transition-all group relative border cursor-grab
+    ${isSelected && hasIssues ? 'bg-error border-error text-on-error' :
+      isSelected ? 'bg-primary border-primary text-on-primary' :
+        isHovered ? 'bg-surface-container-lowest border-outline-hover' : // Matches the hover state below
+          'bg-surface-container border-outline-variant hover:bg-surface-container-lowest hover:border-outline-hover'
     }
-  } else {
-    containerClasses += ' bg-surface-container border-outline-variant hover:bg-surface-container-lowest hover:border-outline-hover';
-  }
-
-  if (isQuestionDragged) {
-    containerClasses += ' opacity-30';
-  }
+    ${isQuestionDragged ? 'opacity-30' : ''}
+  `;
 
   const iconClasses = `text-base mr-2 ${isSelected ? (hasIssues ? 'text-on-error' : 'text-on-primary') : (hasIssues ? 'text-error' : 'text-primary')}`;
   const textClasses = `font-semibold text-sm ${isSelected ? (hasIssues ? 'text-on-error' : 'text-on-primary') : 'text-on-surface'}`;
@@ -118,6 +115,8 @@ const ContentQuestionItem = memo(({ question, isSelected, isQuestionDragged, sho
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onClick={() => onSelectQuestion(question)}
+        onMouseEnter={() => onQuestionHover?.(question.id)}
+        onMouseLeave={() => onQuestionHover?.(null)}
         className={containerClasses}
       >
         <div className="flex items-center flex-shrink-0">
@@ -163,7 +162,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   onClose, survey, onSelectQuestion, selectedQuestion, selectedBlock, onSelectBlock, checkedQuestions, collapsedBlocks, toolboxItems, logicIssues, onReorderToolbox, onReorderQuestion, onReorderBlock,
   onMoveBlockUp, onMoveBlockDown, onAddBlock, onCopyBlock, onAddQuestionToBlock, onExpandAllBlocks, onCollapseAllBlocks, onDeleteBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock,
   onMoveQuestionToExistingBlock, onAddPageBreakAfterQuestion, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock, onUpdateQuestion,
-  printMode = false
+  printMode = false, onQuestionHover, hoveredQuestionId
 }) => {
   const [activeTab, setActiveTab] = useState('Content');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
@@ -688,6 +687,8 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                           onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
                           onUpdateQuestion={onUpdateQuestion}
                           hasIssues={logicIssues.some(i => i.questionId === question.id)}
+                          onQuestionHover={onQuestionHover}
+                          isHovered={hoveredQuestionId === question.id}
                         />
                       ))}
                       {!isSearching && dropContentTarget?.blockId === block.id && dropContentTarget.questionId === null && <DropIndicator small />}

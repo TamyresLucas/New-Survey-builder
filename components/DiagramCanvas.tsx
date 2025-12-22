@@ -172,15 +172,45 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
 
             if (branchingLogic) {
                 hasExplicitLogic = true;
+                const handledChoices = new Set<string>();
+
                 branchingLogic.branches.forEach(branch => {
                     if (branch.thenSkipToIsConfirmed && branch.thenSkipTo) {
                         const targetId = resolveDestination(branch.thenSkipTo, index);
                         if (targetId) targets.set(targetId, 'explicit');
+
+                        // Mark choices as handled
+                        branch.conditions.forEach(c => {
+                            if (c.questionId === q.qid && c.isConfirmed) {
+                                const ch = q.choices?.find(choice => choice.text === c.value);
+                                if (ch) handledChoices.add(ch.id);
+                            }
+                        });
                     }
                 });
+
                 if (branchingLogic.otherwiseIsConfirmed && branchingLogic.otherwiseSkipTo) {
                     const targetId = resolveDestination(branchingLogic.otherwiseSkipTo, index);
                     if (targetId) targets.set(targetId, 'explicit');
+                    // Otherwise effectively handles everything remaining
+                } else {
+                    // If no global otherwise, unhandled choices fall through to Next
+                    // We must add 'fallthrough' targets for them
+                    if (q.choices) {
+                        const hasUnhandled = q.choices.some(c => !handledChoices.has(c.id));
+                        if (hasUnhandled) {
+                            const targetId = resolveDestination('next', index);
+                            if (targetId) targets.set(targetId, 'fallthrough');
+                        }
+                    } else {
+                        // Text entry or no choices, if not fully covered? 
+                        // Text entry doesn't have partial coverage usually.
+                        const hasConfirmedBranches = branchingLogic.branches.some(b => b.thenSkipToIsConfirmed);
+                        if (!hasConfirmedBranches) {
+                            const targetId = resolveDestination('next', index);
+                            if (targetId) targets.set(targetId, 'fallthrough');
+                        }
+                    }
                 }
             } else if (skipLogic) {
                 if (skipLogic.type === 'simple' && skipLogic.isConfirmed) {

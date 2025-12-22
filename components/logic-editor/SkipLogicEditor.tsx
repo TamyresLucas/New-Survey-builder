@@ -394,6 +394,35 @@ export const SkipLogicEditor: React.FC<{
                             </div>
                         );
 
+                        const handleSubCandidateUpdate = (conditionId: string, field: string, val: any) => {
+                            const conditions = rule.conditions || [];
+                            const newConditions = conditions.map(c => {
+                                if (c.id === conditionId) {
+                                    return { ...c, [field]: val, isConfirmed: false };
+                                }
+                                return c;
+                            });
+                            handleRuleChange(rule.choiceId, { conditions: newConditions });
+                        };
+
+                        const handleSubCandidateRemove = (conditionId: string) => {
+                            const conditions = rule.conditions || [];
+                            const newConditions = conditions.filter(c => c.id !== conditionId);
+                            handleRuleChange(rule.choiceId, { conditions: newConditions });
+                        };
+
+                        const handleAddSubCondition = () => {
+                            const newCondition: any = { // Type casting to match internal definitions if needed
+                                id: generateId('cond'),
+                                questionId: '',
+                                operator: '',
+                                value: '',
+                                isConfirmed: false
+                            };
+                            const conditions = rule.conditions || [];
+                            handleRuleChange(rule.choiceId, { conditions: [...conditions, newCondition] });
+                        };
+
                         return (
                             <div key={rule.id} ref={el => { if (el && choice) choiceRowRefs.current[choice.id] = el; }}>
                                 <SkipLogicSet
@@ -407,10 +436,31 @@ export const SkipLogicEditor: React.FC<{
                                     followingQuestions={validFollowingQuestions}
                                     survey={survey}
                                     currentBlockId={currentBlockId}
-                                    onAddCondition={() => { }} // Placeholder for now
+                                    onAddCondition={handleAddSubCondition}
                                     invalidDestination={errors?.has('skipTo')}
                                 >
                                     {ChoiceSelector}
+
+                                    {/* Render Additional Conditions */}
+                                    {rule.conditions && rule.conditions.length > 0 && (
+                                        <div className="space-y-2 mt-2 pl-4 border-l-2 border-outline-variant">
+                                            {rule.conditions.map((cond, idx) => (
+                                                <div key={cond.id} className="relative">
+                                                    {idx >= 0 && <div className="absolute -left-6 top-1/2 -translate-y-1/2 bg-surface text-xs font-bold text-on-surface-variant px-1">AND</div>}
+                                                    <LogicConditionRow
+                                                        condition={cond}
+                                                        onUpdateCondition={(field, val) => handleSubCandidateUpdate(cond.id, field, val)}
+                                                        onRemoveCondition={() => handleSubCandidateRemove(cond.id)}
+                                                        onConfirm={() => { /* Auto-confirm not strictly needed for sub-conditions, or triggers parent confirm */ }}
+                                                        // We assume any question in the survey is available? No, only previous ones.
+                                                        // We can derive previous from survey + current question index.
+                                                        availableQuestions={survey.blocks.flatMap(b => b.questions)}
+                                                        isConfirmed={cond.isConfirmed === true}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </SkipLogicSet>
                             </div>
                         );

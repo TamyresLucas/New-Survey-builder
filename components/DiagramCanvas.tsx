@@ -122,12 +122,11 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                         return candidate.id;
                     }
 
-                    // 2. Different Block: Only enter if NOT a conditional block
-                    if (candidateBlockId && !conditionalBlockIds.has(candidateBlockId)) {
+                    // 2. Different Block: Always fall through to next physical block
+                    // (Previous logic incorrectly skipped blocks if they were targets of jumps)
+                    if (candidateBlockId) {
                         return candidate.id;
                     }
-
-                    // If conditional, we skip this question (and effectively its block) and continue loop
                 }
                 return 'end-node';
             }

@@ -600,13 +600,69 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             }
         }
 
-        const LANE_SPACING = 220;
+        // 3. Dynamic Lane Stacking (Fix Overlap)
+        // Group nodes by Lane
+        const nodesByLane = new Map<number, string[]>();
+        laneMap.forEach((lane, id) => {
+            if (!nodesByLane.has(lane)) nodesByLane.set(lane, []);
+            nodesByLane.get(lane)!.push(id);
+        });
+
+        // Calculate Max Height per Lane
+        const laneHeights = new Map<number, number>();
+        nodesByLane.forEach((ids, lane) => {
+            let maxH = 0;
+            ids.forEach(id => {
+                const h = nodeHeights.get(id) || 120;
+                if (h > maxH) maxH = h;
+            });
+            laneHeights.set(lane, maxH);
+        });
+
+        // Calculate Y Positions
+        // Lane 0 is at Y=0.
+        // Positive lanes stack DOWN. Negative lanes stack UP.
+        const laneYPositions = new Map<number, number>();
+        laneYPositions.set(0, 0);
+
+        const sortedLanes = Array.from(laneHeights.keys()).sort((a, b) => a - b);
+        const positiveLanes = sortedLanes.filter(l => l > 0);
+        const negativeLanes = sortedLanes.filter(l => l < 0).reverse(); // closest to 0 first
+
+        // Stack Positive
+        let currentY = 0;
+        let prevLane = 0;
+        positiveLanes.forEach(lane => {
+            const prevH = laneHeights.get(prevLane) || 120;
+            const currH = laneHeights.get(lane) || 120;
+            const gap = VERTICAL_GAP; // 80px
+
+            // Accumulate distance: half of previous + gap + half of current
+            currentY += (prevH / 2) + gap + (currH / 2);
+            laneYPositions.set(lane, currentY);
+            prevLane = lane;
+        });
+
+        // Stack Negative
+        currentY = 0;
+        prevLane = 0;
+        negativeLanes.forEach(lane => {
+            const prevH = laneHeights.get(prevLane) || 120;
+            const currH = laneHeights.get(lane) || 120;
+            const gap = VERTICAL_GAP;
+
+            currentY -= ((prevH / 2) + gap + (currH / 2));
+            laneYPositions.set(lane, currentY);
+            prevLane = lane;
+        });
 
         const nodePositions = new Map<string, { x: number, y: number }>();
         allQuestions.forEach(q => {
             const colIndex = longestPath.get(q.id) || 0;
             const lane = laneMap.get(q.id) ?? 0;
-            const laneCenterY = lane * LANE_SPACING;
+
+            // Fallback for fallback spacing if dynamic failed (unlikely)
+            const laneCenterY = laneYPositions.get(lane) ?? (lane * 220);
             const nodeHeight = nodeHeights.get(q.id) || 120;
 
             nodePositions.set(q.id, {
@@ -827,10 +883,16 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             >
                 <Background variant={BackgroundVariant.Dots} gap={12} size={1} color="var(--diagram-grid-dot)" />
                 <Controls className="bg-surface border-outline shadow-sm" />
-                <DiagramToolbar />
+                <DiagramToolbar onAddNode={() => { }} />
             </ReactFlow>
         </div>
     );
 };
 
-export default memo(DiagramCanvasContent);
+const DiagramCanvas: React.FC<DiagramCanvasProps> = (props) => (
+    <ReactFlowProvider>
+        <DiagramCanvasContent {...props} />
+    </ReactFlowProvider>
+);
+
+export default memo(DiagramCanvas);

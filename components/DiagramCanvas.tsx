@@ -967,6 +967,15 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         // Logic connection handlng... (omitted as not part of layout)
     }, [isValidConnection]);
 
+    const onNodeClick = useCallback((event: React.MouseEvent, node: DiagramNode) => {
+        // Find the question object from the survey
+        const question = survey.blocks.flatMap(b => b.questions).find(q => q.id === node.id);
+        if (question) {
+            // Open specifically on the Behavior tab
+            onSelectQuestion(question, { tab: 'Behavior' });
+        }
+    }, [survey, onSelectQuestion]);
+
     return (
         <div className="flex-1 w-full h-full relative">
             <ReactFlow
@@ -975,6 +984,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
+                onNodeClick={onNodeClick}
                 nodeTypes={nodeTypes}
                 fitView
                 className="bg-diagram-bg"

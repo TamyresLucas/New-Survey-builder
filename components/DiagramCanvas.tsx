@@ -403,15 +403,32 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     if (!branch.thenSkipToIsConfirmed) return;
                     const condition = branch.conditions.find(c => c.questionId === q.qid && c.isConfirmed);
                     if (condition) {
-                        const choice = q.choices?.find(c => c.text === condition.value);
-                        if (choice) {
-                            handledChoiceIds.add(choice.id);
+                        // Handle Choice-Based Questions
+                        if (q.choices && q.choices.length > 0) {
+                            const choice = q.choices.find(c => c.text === condition.value);
+                            if (choice) {
+                                handledChoiceIds.add(choice.id);
+                                const targetId = resolveDestination(branch.thenSkipTo, index);
+                                if (targetId) {
+                                    flowEdges.push({
+                                        id: `e-${branch.id}-${targetId}`,
+                                        source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
+                                        label: branch.pathName || parseChoice(choice.text).variable,
+                                        markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                                        type: 'default',
+                                        style: getEdgeStyle(targetId, true)
+                                    });
+                                }
+                            }
+                        } else {
+                            // Handle Text Entry / Non-Choice Questions
+                            // (Previously skipped because it looked for choice)
                             const targetId = resolveDestination(branch.thenSkipTo, index);
                             if (targetId) {
                                 flowEdges.push({
                                     id: `e-${branch.id}-${targetId}`,
-                                    source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
-                                    label: branch.pathName || parseChoice(choice.text).variable,
+                                    source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
+                                    label: branch.pathName || condition.operator, // Use logic name or operator
                                     markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
                                     type: 'default',
                                     style: getEdgeStyle(targetId, true)
@@ -475,7 +492,11 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             if (skipLogic && !logicHandled) {
                 if (skipLogic.type === 'simple') {
                     if (skipLogic.isConfirmed) {
-                        logicHandled = true;
+                        // For Simple Skip Logic, we add the skip edge.
+                        // BUT we do NOT mark logicHandled = true.
+                        // This allows the default "Fallthrough" edge (Line 530) to ALSO be added.
+                        // This ensures Q4 -> Q8 (Skip) AND Q4 -> Q5 (Next) both appear.
+                        // logicHandled = true; <--- REMOVED
                         const targetId = resolveDestination(skipLogic.skipTo, index);
                         if (targetId) {
                             if (hasChoices) {

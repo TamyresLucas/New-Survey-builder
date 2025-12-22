@@ -104,29 +104,53 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             return undefined;
         };
 
+        // 0. Pre-calculate Jump Targets to identify "Conditional Questions"
+        const jumpTargetIds = new Set<string>();
+        allQuestions.forEach(q => {
+            const bl = q.draftBranchingLogic ?? q.branchingLogic;
+            const sl = q.draftSkipLogic ?? q.skipLogic;
+            if (bl) {
+                bl.branches.forEach(b => { if (b.thenSkipTo) jumpTargetIds.add(b.thenSkipTo); });
+                if (bl.otherwiseSkipTo) jumpTargetIds.add(bl.otherwiseSkipTo);
+            }
+            if (sl) {
+                if (sl.type === 'simple' && sl.skipTo) jumpTargetIds.add(sl.skipTo);
+                if (sl.type === 'per_choice') sl.rules.forEach(r => { if (r.skipTo) jumpTargetIds.add(r.skipTo); });
+            }
+            const block = survey.blocks.find(b => b.questions.some(bq => bq.id === q.id));
+            if (block && block.continueTo && block.continueTo !== 'next' && block.continueTo !== 'end') {
+                // Block jumps are block-level, but if they point to a question we should know?
+                // Usually they point to a Block ID.
+            }
+        });
+
         const resolveDestination = (dest: string, currentIndex: number): string | undefined => {
             if (dest === 'end') return 'end-node';
             if (dest === 'next') {
                 const currentQ = allQuestions[currentIndex];
                 const currentBlockId = questionIdToBlockIdMap.get(currentQ.id);
 
-                // Traverse forward to find next NEUTRAL question/block
+                // Traverse forward to find next NEUTRAL question
+                // A Neutral question is one that is NOT the target of a jump AND has NO display logic.
                 for (let i = currentIndex + 1; i < allQuestions.length; i++) {
                     const candidate = allQuestions[i];
                     if (candidate.type === QuestionType.PageBreak) continue;
 
-                    const candidateBlockId = questionIdToBlockIdMap.get(candidate.id);
+                    // Skip candidates that are strictly conditional
+                    // 1. Has Display Logic
+                    const hasDisplayLogic = (candidate.displayLogic?.conditions?.length ?? 0) > 0 ||
+                        (candidate.choiceDisplayLogic?.showConditions?.length ?? 0) > 0;
+                    if (hasDisplayLogic) continue;
 
-                    // 1. Same Block: Always next (linear flow within block)
-                    if (candidateBlockId === currentBlockId) {
-                        return candidate.id;
-                    }
+                    // 2. Is a Jump Target (Branch Head)
+                    // If a question is a target of a specific jump, it usually starts a branch.
+                    // The default flow should skip it and find the merge point.
+                    // EXCEPTION: If it is in the SAME BLOCK, we usually fall through?
+                    // User says: "Q5 connecting to Q6 (separate branch)... Should never happen".
+                    // This implies even in same block, we skip jump targets.
+                    if (jumpTargetIds.has(candidate.id)) continue;
 
-                    // 2. Different Block: Always fall through to next physical block
-                    // (Previous logic incorrectly skipped blocks if they were targets of jumps)
-                    if (candidateBlockId) {
-                        return candidate.id;
-                    }
+                    return candidate.id;
                 }
                 return 'end-node';
             }

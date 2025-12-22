@@ -596,9 +596,11 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             });
         }
 
-        // BFS Layout with Backbone Anchoring
+        // 2. BFS Layout with Symmetrical Branching
         const laneMap = new Map<string, number>();
-        backboneNodes.forEach(id => laneMap.set(id, 0));
+        // Only Anchor Start (Q1) to Lane 0. 
+        // We let the topology determine the rest (Symmetrical Splits).
+        if (allQuestions.length > 0) laneMap.set(allQuestions[0].id, 0);
 
         const queueLayout = allQuestions.length > 0 ? [allQuestions[0].id] : [];
         const visitedLayout = new Set<string>(queueLayout);
@@ -607,20 +609,20 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             const u = queueLayout.shift()!;
             const currentLane = laneMap.get(u) ?? 0;
 
+            // Get children
             const children = (adj[u] || []).filter(v => v !== 'end-node');
+
             if (children.length > 0) {
                 const n = children.length;
                 const offsets: number[] = [];
                 for (let i = 0; i < n; i++) offsets.push(i - (n - 1) / 2);
 
-                let shift = 0;
-                const backboneChildIndex = children.findIndex(v => backboneNodes.has(v));
-                if (backboneChildIndex !== -1) {
-                    shift = -offsets[backboneChildIndex];
-                }
+                // Symmetrical Spread: No Backbone Shifting.
+                // Fork (N > 1): Splits around center. (e.g. -0.5, 0.5)
+                // Straight (N = 1): Offset is 0. Stays in lane.
 
                 children.forEach((v, i) => {
-                    const targetLane = currentLane + offsets[i] + shift;
+                    const targetLane = currentLane + offsets[i];
                     if (!laneMap.has(v)) {
                         laneMap.set(v, targetLane);
                         visitedLayout.add(v);
@@ -650,14 +652,12 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         });
 
         // Calculate Y Positions
-        // Lane 0 is at Y=0.
-        // Positive lanes stack DOWN. Negative lanes stack UP.
         const laneYPositions = new Map<number, number>();
         laneYPositions.set(0, 0);
 
         const sortedLanes = Array.from(laneHeights.keys()).sort((a, b) => a - b);
         const positiveLanes = sortedLanes.filter(l => l > 0);
-        const negativeLanes = sortedLanes.filter(l => l < 0).reverse(); // closest to 0 first
+        const negativeLanes = sortedLanes.filter(l => l < 0).reverse();
 
         // Stack Positive
         let currentY = 0;
@@ -665,9 +665,7 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         positiveLanes.forEach(lane => {
             const prevH = laneHeights.get(prevLane) || 120;
             const currH = laneHeights.get(lane) || 120;
-            const gap = VERTICAL_GAP; // 80px
-
-            // Accumulate distance: half of previous + gap + half of current
+            const gap = VERTICAL_GAP;
             currentY += (prevH / 2) + gap + (currH / 2);
             laneYPositions.set(lane, currentY);
             prevLane = lane;
@@ -680,7 +678,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             const prevH = laneHeights.get(prevLane) || 120;
             const currH = laneHeights.get(lane) || 120;
             const gap = VERTICAL_GAP;
-
             currentY -= ((prevH / 2) + gap + (currH / 2));
             laneYPositions.set(lane, currentY);
             prevLane = lane;
@@ -690,8 +687,6 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
         allQuestions.forEach(q => {
             const colIndex = longestPath.get(q.id) || 0;
             const lane = laneMap.get(q.id) ?? 0;
-
-            // Fallback for fallback spacing if dynamic failed (unlikely)
             const laneCenterY = laneYPositions.get(lane) ?? (lane * 220);
             const nodeHeight = nodeHeights.get(q.id) || 120;
 
@@ -713,6 +708,8 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             const firstQ = allQuestions[0];
             const pos = nodePositions.get(firstQ.id);
             if (pos) {
+                // Align Start Node: If Q1 is at lane 0 (usually), start is aligned.
+                // If Q1 is shifted? (Unlikely for Q1).
                 initialY = (pos.y + (nodeHeights.get(firstQ.id)! / 2)) + headerOffset - (startNodeHeight / 2);
             }
         }
@@ -777,14 +774,12 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
 
         // Set End Node Position
         const maxColumn = Math.max(0, ...Array.from(longestPath.values()));
-        let endNodeY = 0;
-        const lastQ = [...allQuestions].reverse().find(q => q.type !== QuestionType.PageBreak);
-        if (lastQ) {
-            const pos = nodePositions.get(lastQ.id);
-            if (pos) {
-                endNodeY = (pos.y + (nodeHeights.get(lastQ.id)! / 2)) + headerOffset - (60 / 2);
-            }
-        }
+        // Force End Node to Lane 0 Center
+        let endNodeY = (laneYPositions.get(0) || 0) + headerOffset - (60 / 2);
+
+        // Optional: If we want to align with "Last Element in Lane 0" if it exists? 
+        // Or "Last Element on Longest Path"?
+        // User wants global alignment. Center line (0) is safest.
 
         const endNode: EndNode = {
             id: 'end-node',

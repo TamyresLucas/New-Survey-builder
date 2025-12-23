@@ -97,7 +97,7 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     />
                 );
             }
-            if (question.type !== QuestionType.Description && question.type !== QuestionType.PageBreak) {
+            if (question.type !== QuestionType.PageBreak) {
                 return (
                     <GenericSettingsTab
                         question={question}

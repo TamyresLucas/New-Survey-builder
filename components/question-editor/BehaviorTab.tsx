@@ -1,4 +1,5 @@
 import React from 'react';
+import { QuestionType } from '../../types';
 import type { Question, Survey, LogicIssue, Block } from '../../types';
 import { CHOICE_BASED_QUESTION_TYPES } from '../../utils';
 import { CollapsibleSection } from '../logic-editor/shared';
@@ -58,19 +59,21 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({
                             focusedLogicSource={focusedLogicSource}
                         />
                     </div>
-                    <div className="py-6">
-                        <BranchingLogicEditor
-                            question={question}
-                            survey={survey}
-                            previousQuestions={previousQuestions}
-                            followingQuestions={followingQuestions}
-                            issues={issues.filter(i => i.type === 'branching')}
-                            onUpdate={onUpdate}
-                            onAddLogic={onAddLogic}
-                            onRequestGeminiHelp={onRequestGeminiHelp}
-                            focusedLogicSource={focusedLogicSource}
-                        />
-                    </div>
+                    {question.type !== QuestionType.Description && (
+                        <div className="py-6">
+                            <BranchingLogicEditor
+                                question={question}
+                                survey={survey}
+                                previousQuestions={previousQuestions}
+                                followingQuestions={followingQuestions}
+                                issues={issues.filter(i => i.type === 'branching')}
+                                onUpdate={onUpdate}
+                                onAddLogic={onAddLogic}
+                                onRequestGeminiHelp={onRequestGeminiHelp}
+                                focusedLogicSource={focusedLogicSource}
+                            />
+                        </div>
+                    )}
                 </div>
             </CollapsibleSection>
 

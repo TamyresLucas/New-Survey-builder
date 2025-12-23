@@ -508,6 +508,7 @@ const App: React.FC = () => {
                     window.print();
                 }}
                 onImportSurvey={() => setIsImportModalOpen(true)}
+                lastSaved={survey.lastSaved}
             />
 
 

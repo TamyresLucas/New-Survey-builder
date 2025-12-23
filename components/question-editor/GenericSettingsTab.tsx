@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { QuestionType } from '../../types';
 import type { Question, ToolboxItemData } from '../../types';
 import { ActivateQuestionSection, ForceResponseSection } from '../logic-editor/shared';
 import {
@@ -32,7 +33,9 @@ export const GenericSettingsTab: React.FC<GenericSettingsTabProps> = ({ question
             />
 
             <ActivateQuestionSection question={question} handleUpdate={onUpdate} />
-            <ForceResponseSection question={question} handleUpdate={onUpdate} />
+            {question.type !== QuestionType.Description && (
+                <ForceResponseSection question={question} handleUpdate={onUpdate} />
+            )}
 
 
         </div>

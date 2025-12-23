@@ -42,7 +42,7 @@ export const RightSidebar: React.FC<{
 }) => {
     const tabs = useMemo(() => {
         const baseTabs = ['Settings', 'Behavior', 'Advanced'];
-        if (![QuestionType.Description, QuestionType.PageBreak].includes(question.type)) {
+        if (![QuestionType.PageBreak].includes(question.type)) {
             baseTabs.push('Preview');
         }
         return baseTabs;

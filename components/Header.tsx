@@ -62,20 +62,12 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
   const renderStatusBadge = () => {
     switch (surveyStatus) {
       case 'active':
-        return isDirty ? (
-          <Badge variant="yellow" active hideDot>Pending changes</Badge>
-        ) : (
-          <Badge variant="green" active hideDot>Published</Badge>
-        );
+        return <Badge variant="green" active hideDot>Live</Badge>;
       case 'stopped':
-        return (
-          <Badge variant="red" active>Stopped</Badge>
-        );
+        return <Badge variant="red" active>Stopped</Badge>;
       case 'draft':
       default:
-        return (
-          <Badge variant="grey" active hideDot>Draft</Badge>
-        );
+        return <Badge variant="grey" active hideDot>Draft</Badge>;
     }
   };
 
@@ -103,16 +95,10 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
         />
         <div className="flex items-center text-sm text-on-surface-variant ml-4" style={{ fontFamily: "'Open Sans', sans-serif" }}>
           {renderStatusBadge()}
-
         </div>
       </div>
       <div className="flex items-center gap-2">
-        {/* Showing Saved at timestamp as a "Last Published" indicator */}
-        {lastSaved && (
-          <span className="text-xs text-on-surface-variant mr-3">
-            Saved at {new Date(lastSaved).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </span>
-        )}
+
         {(() => {
           const isPublishDisabled = !isDirty && surveyStatus !== 'draft';
           return (
@@ -126,7 +112,7 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
                 }`}
             >
               <PublishIcon className="text-base leading-none" />
-              <span>Publish</span>
+              <span>{surveyStatus === 'draft' ? 'Publish' : 'Publish changes'}</span>
             </button>
           );
         })()}

@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { MultipleChoiceNode } from '../../../types';
 import { CheckboxFilledIcon as CheckboxToolboxIcon, RadioIcon, RadioButtonUncheckedIcon, CheckboxOutlineIcon } from '../../icons';
-import { InputHandle } from './CustomNodeHandles';
+import { InputHandle, OutputHandle } from './CustomNodeHandles';
 
 // FIX: Add custom handle style for choice outputs.
 const choiceHandleStyle = {
@@ -52,6 +52,10 @@ const MultipleChoiceNodeComponent: React.FC<NodeProps<MultipleChoiceNode>> = ({ 
                         </li>
                     ))}
                 </ul>
+                <div style={{ position: 'absolute', bottom: 10, right: 0 }}>
+                    {/* Generic Output Handle for "Otherwise" / "Next" flows */}
+                    <OutputHandle highlighted={data.highlightSourceHandles} />
+                </div>
             </div>
         </div>
     );

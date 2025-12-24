@@ -132,3 +132,4 @@ export const BlueprintIcon: React.FC<IconProps> = ({ className, style }) => <Mat
 export const ArrowUpIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="arrow_upward" className={className} style={style} />;
 export const UnfoldMoreIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="unfold_more" className={className} style={style} />;
 export const UnfoldLessIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="unfold_less" className={className} style={style} />;
+export const ImageIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="image" className={className} style={style} />;

@@ -314,6 +314,7 @@ export interface Block {
   autoAdvance?: boolean;
   automaticPageBreaks?: boolean;
   hideBackButton?: boolean;
+  sharedConvergence?: boolean;
 }
 
 export interface Survey {
@@ -470,6 +471,7 @@ export interface Edge {
   data?: {
     condition?: string;
     logicType?: 'branch' | 'skip' | 'display';
+    edgeType?: 'branch' | 'sequence' | 'conditional';
   };
   markerEnd?: any;
   selected?: boolean;

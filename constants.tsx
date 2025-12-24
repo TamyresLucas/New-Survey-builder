@@ -268,7 +268,7 @@ export const toolboxItems: ToolboxItemData[] = [
 
 // --- DIAGRAM CANVAS CONSTANTS ---
 
-export const MIN_ZOOM = 0.2;
+export const MIN_ZOOM = 0.04;
 export const MAX_ZOOM = 4;
 export const DEFAULT_NODE_WIDTH = 320; // w-80 in tailwind
 
@@ -278,3 +278,93 @@ export const TEXT_ENTRY_NODE_HEIGHT = 120;
 export const MULTIPLE_CHOICE_NODE_BASE_HEIGHT = 100;
 export const MULTIPLE_CHOICE_OPTION_HEIGHT = 32;
 export const LOGIC_NODE_HEIGHT = 80;
+
+// --- TEST DATA FOR DIAGRAM VERIFICATION ---
+
+export const TEST_SURVEYS: Record<string, Survey> = {
+  linear: {
+    title: 'Linear Survey',
+    pagingMode: 'one-per-page',
+    blocks: [
+      {
+        id: 'b1', title: 'Start', questions: [
+          { id: 'q1', qid: 'Q1', text: 'Question 1', type: QuestionType.TextEntry },
+          { id: 'q2', qid: 'Q2', text: 'Question 2', type: QuestionType.TextEntry }
+        ]
+      },
+      {
+        id: 'b2', title: 'Middle', questions: [
+          { id: 'q3', qid: 'Q3', text: 'Question 3', type: QuestionType.TextEntry }
+        ]
+      }
+    ]
+  },
+  branching: {
+    title: 'Simple Branching',
+    pagingMode: 'one-per-page',
+    blocks: [
+      {
+        id: 'b1', title: 'Root', questions: [
+          {
+            id: 'root_q', qid: 'Q1', text: 'Branch?', type: QuestionType.Radio,
+            choices: [{ id: 'c1', text: 'A' }, { id: 'c2', text: 'B' }],
+            branchingLogic: {
+              branches: [
+                { id: 'br1', thenSkipTo: 'block:b2', thenSkipToIsConfirmed: true, pathName: 'Path A', operator: 'AND', conditions: [{ id: 'cond1', questionId: 'Q1', operator: 'equals', value: 'A', isConfirmed: true }] },
+                { id: 'br2', thenSkipTo: 'block:b3', thenSkipToIsConfirmed: true, pathName: 'Path B', operator: 'AND', conditions: [{ id: 'cond2', questionId: 'Q1', operator: 'equals', value: 'B', isConfirmed: true }] }
+              ],
+              otherwiseSkipTo: 'end', otherwiseIsConfirmed: true
+            }
+          }
+        ]
+      },
+      {
+        id: 'b2', title: 'Branch A', branchName: 'Path A', questions: [
+          { id: 'q_a1', qid: 'QA1', text: 'You chose A', type: QuestionType.TextEntry }
+        ]
+      },
+      {
+        id: 'b3', title: 'Branch B', branchName: 'Path B', questions: [
+          { id: 'q_b1', qid: 'QB1', text: 'You chose B', type: QuestionType.TextEntry }
+        ]
+      }
+    ]
+  },
+  convergence: {
+    title: 'Convergence',
+    pagingMode: 'one-per-page',
+    blocks: [
+      {
+        id: 'b1', title: 'Root', questions: [
+          {
+            id: 'root_q', qid: 'Q1', text: 'Branch?', type: QuestionType.Radio,
+            choices: [{ id: 'c1', text: 'A' }, { id: 'c2', text: 'B' }],
+            branchingLogic: {
+              branches: [
+                { id: 'br1', thenSkipTo: 'block:b2', thenSkipToIsConfirmed: true, pathName: 'Path A', operator: 'AND', conditions: [{ id: 'cond1', questionId: 'Q1', operator: 'equals', value: 'A', isConfirmed: true }] }
+              ],
+              otherwiseSkipTo: 'block:b3', otherwiseIsConfirmed: true, otherwisePathName: 'Path B'
+            }
+          }
+        ]
+      },
+      {
+        id: 'b2', title: 'Path A', branchName: 'Path A', questions: [
+          { id: 'q_a1', qid: 'QA1', text: 'A Step', type: QuestionType.TextEntry }
+        ],
+        continueTo: 'block:b_shared'
+      },
+      {
+        id: 'b3', title: 'Path B', branchName: 'Path B', questions: [
+          { id: 'q_b1', qid: 'QB1', text: 'B Step', type: QuestionType.TextEntry }
+        ],
+        continueTo: 'block:b_shared'
+      },
+      {
+        id: 'b_shared', title: 'Shared Convergence', sharedConvergence: true, questions: [
+          { id: 'q_end', qid: 'QEnd', text: 'Everyone sees this', type: QuestionType.TextEntry }
+        ]
+      }
+    ]
+  }
+};

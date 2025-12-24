@@ -8,7 +8,7 @@ import BlueprintSidebar from './components/BlueprintSidebar';
 import { PrintSidebar } from './components/PrintSidebar';
 import { BlueprintCanvas } from './components/BlueprintCanvas';
 import SurveyCanvas from './components/SurveyCanvas';
-import DiagramCanvas from './components/DiagramCanvas';
+import DiagramCanvas, { DiagramCanvasHandle } from './components/DiagramCanvas';
 import { RightSidebar } from './components/RightSidebar';
 import { BlockSidebar } from './components/BlockSidebar';
 import { BulkEditPanel } from './components/BulkEditPanel';
@@ -141,6 +141,7 @@ const App: React.FC = () => {
     // Refs
     const canvasContainerRef = useRef<HTMLDivElement>(null);
     const rightPanelRef = useRef<HTMLDivElement>(null);
+    const flowExportRef = useRef<DiagramCanvasHandle>(null);
 
     // --- Selection Hook ---
     const {
@@ -486,6 +487,20 @@ const App: React.FC = () => {
                     navigator.clipboard.writeText(json);
                     showToast("Survey JSON copied to clipboard", 'success');
                 }}
+                onCopySurveyFlow={async () => {
+                    if (activeMainTab !== 'Flow') {
+                        showToast("Please switch to the Flow tab to copy the diagram.", 'error');
+                        return;
+                    }
+                    if (flowExportRef.current) {
+                        try {
+                            await flowExportRef.current.exportAsPng();
+                            showToast("Survey flow copied to clipboard", "success");
+                        } catch (error) {
+                            showToast("Failed to copy survey flow", "error");
+                        }
+                    }
+                }}
                 onExportCsv={() => {
                     const csvContent = generateSurveyCsv(survey);
                     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -728,6 +743,7 @@ const App: React.FC = () => {
                                 ) : isDiagramView ? (
                                     <div className="h-full w-full">
                                         <DiagramCanvas
+                                            exportRef={flowExportRef}
                                             survey={survey}
                                             selectedQuestion={selectedQuestion}
                                             onSelectQuestion={handleSelectQuestion}

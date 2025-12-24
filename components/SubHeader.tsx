@@ -1,5 +1,5 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
-import { DotsHorizontalIcon, EyeIcon, PrintIcon } from './icons';
+import { DotsHorizontalIcon, EyeIcon, PrintIcon, ImageIcon } from './icons';
 import { DropdownList, DropdownItem, DropdownDivider } from './DropdownList';
 
 interface SubHeaderProps {
@@ -9,10 +9,11 @@ interface SubHeaderProps {
   onPrintBlueprint: () => void;
   onPrintSurvey: () => void;
   onImportSurvey: () => void;
+  onCopySurveyFlow?: () => void;
   lastSaved?: string;
 }
 
-const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurvey, onExportCsv, onPrintBlueprint, onPrintSurvey, onImportSurvey, lastSaved }) => {
+const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurvey, onExportCsv, onPrintBlueprint, onPrintSurvey, onImportSurvey, onCopySurveyFlow, lastSaved }) => {
   const navItems = ['Design', 'Test', 'Distribute', 'Results', 'Analyze'];
   const activeItem = 'Design';
 
@@ -98,8 +99,13 @@ const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurve
 
                 <DropdownDivider />
                 <DropdownItem onClick={() => { onCopySurvey(); setIsActionsOpen(false); }}>
-                  Copy survey
+                  Copy survey (JSON)
                 </DropdownItem>
+                {onCopySurveyFlow && (
+                  <DropdownItem onClick={() => { onCopySurveyFlow(); setIsActionsOpen(false); }} icon={ImageIcon}>
+                    Copy survey flow as PNG
+                  </DropdownItem>
+                )}
               </DropdownList>
             </div>
           )}

@@ -12,9 +12,10 @@ import {
     NodeTypes,
     MarkerType,
     OnNodesChange,
-    OnEdgesChange,
     Edge,
 } from '@xyflow/react';
+import { toPng, toBlob } from 'html-to-image';
+// import { toast } from 'react-toastify';
 
 import type { Survey, Question, SkipLogicRule, SkipLogic, EndNode, TextEntryNode, DescriptionNode, MultipleChoiceNode, StartNode } from '../types';
 import type { Node as DiagramNode, Edge as DiagramEdge } from '../types';
@@ -27,7 +28,9 @@ import MultipleChoiceNodeComponent from './diagram/nodes/MultipleChoiceNodeCompo
 import TextEntryNodeComponent from './diagram/nodes/TextEntryNodeComponent';
 import DescriptionNodeComponent from './diagram/nodes/DescriptionNodeComponent';
 import EndNodeComponent from './diagram/nodes/EndNodeComponent';
+
 import DiagramToolbar from './diagram/DiagramToolbar';
+import { MIN_ZOOM, MAX_ZOOM } from '../constants';
 
 const nodeTypes: NodeTypes = {
     start: StartNodeComponent,
@@ -42,6 +45,10 @@ const X_SPACING = 450;
 const VERTICAL_GAP = 80;
 
 
+export interface DiagramCanvasHandle {
+    exportAsPng: () => Promise<void>;
+}
+
 interface DiagramCanvasProps {
     survey: Survey;
     selectedQuestion: Question | null;
@@ -50,30 +57,67 @@ interface DiagramCanvasProps {
     activeMainTab: string;
 }
 
-const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab }) => {
+const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvasProps>(({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab }, ref) => {
     const { layoutNodes, layoutEdges } = useMemo(() => {
-        const allQuestions = survey.blocks.flatMap(b => b.questions);
-        const questionMap: Map<string, Question> = new Map(allQuestions.map(q => [q.id, q]));
-
+        const allQuestionsRaw = survey.blocks.flatMap(b => b.questions);
         const questionIdToBlockIdMap = new Map<string, string>();
-        survey.blocks.forEach(b => {
-            b.questions.forEach(q => {
-                questionIdToBlockIdMap.set(q.id, b.id);
-            });
-        });
-        const allQuestionsOrder = new Map(allQuestions.map((q, i) => [q.id, i]));
 
-        if (allQuestions.length === 0) {
-            return { layoutNodes: [], layoutEdges: [] };
+        // Populate maps with ALL questions (including PageBreaks)
+        survey.blocks.forEach(b => {
+            b.questions.forEach(q => questionIdToBlockIdMap.set(q.id, b.id));
+        });
+
+        // Compute "Next Visual Node" map
+        const nextVisualNodeMap = new Map<string, string>();
+        let nextVisualId = 'end-node';
+
+        for (let i = allQuestionsRaw.length - 1; i >= 0; i--) {
+            const q = allQuestionsRaw[i];
+            if (q.type === QuestionType.PageBreak) {
+                nextVisualNodeMap.set(q.id, nextVisualId);
+            } else {
+                nextVisualId = q.id;
+                nextVisualNodeMap.set(q.id, q.id);
+            }
         }
 
-        // Identify Conditional Blocks (Target of Logic) to allow skipping them in default flow
-        const conditionalBlockIds = new Set<string>();
+        // Filtered list (No PageBreaks)
+        const allQuestions = allQuestionsRaw.filter(q => q.type !== QuestionType.PageBreak);
+        const questionMap = new Map(allQuestions.map(q => [q.id, q]));
+
+        // --- 1. Map Branch IDs & Lanes ---
+        const branchMap = new Map<string, string>();
+        const blockToBranchId = new Map<string, string>();
+
+        survey.blocks.forEach(b => {
+            if (b.branchName) {
+                branchMap.set(b.branchName, b.branchName);
+                blockToBranchId.set(b.id, b.branchName);
+            }
+        });
+
+        if (allQuestions.length === 0) return { layoutNodes: [], layoutEdges: [] };
+
+        // --- 2. Build Graph (Adjacency List) & Edges Draft ---
+        // We do this first to analyze structure
+        const adj: Record<string, string[]> = {};
+        const revAdj: Record<string, string[]> = {};
+        const edgesDraft: DiagramEdge[] = [];
+
+        // Helper: Find next sequential question
+        const findNextQuestion = (startIndex: number, allQs: Question[]): Question | undefined => {
+            // Simply return the next question since list is filtered
+            return startIndex + 1 < allQs.length ? allQs[startIndex + 1] : undefined;
+        };
+
+        // Helper: Classify Blocks (Exclusive vs Normal)
+        // A block is exclusive if it is the target of an explicit jump (branch or skip).
+        const exclusiveBlockIds = new Set<string>();
         allQuestions.forEach(q => {
             const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
             const skipLogic = q.draftSkipLogic ?? q.skipLogic;
 
-            const addTarget = (dest: string | undefined) => {
+            const markTarget = (dest: string | undefined) => {
                 if (!dest || dest === 'next' || dest === 'end') return;
                 let blockId: string | undefined;
                 if (dest.startsWith('block:')) {
@@ -82,599 +126,502 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                     const targetQ = questionMap.get(dest);
                     if (targetQ) blockId = questionIdToBlockIdMap.get(targetQ.id);
                 }
-                if (blockId) conditionalBlockIds.add(blockId);
+                if (blockId) exclusiveBlockIds.add(blockId);
             };
 
             if (branchingLogic) {
                 branchingLogic.branches.forEach(b => {
-                    if (b.thenSkipToIsConfirmed) addTarget(b.thenSkipTo);
+                    if (b.thenSkipToIsConfirmed) markTarget(b.thenSkipTo);
                 });
-                // Note: We deliberately exclude 'otherwiseSkipTo', 'skipLogic', and 'block.continueTo'.
-                // These points represent Merge Nodes or Shortcuts, not Exclusive Branches.
-                // Only explicit 'IF' branches define an exclusive path that siblings must skip.
+                if (branchingLogic.otherwiseIsConfirmed) markTarget(branchingLogic.otherwiseSkipTo);
+            }
+            if (skipLogic) {
+                if (skipLogic.type === 'simple' && skipLogic.isConfirmed) {
+                    markTarget(skipLogic.skipTo);
+                } else if (skipLogic.type === 'per_choice') {
+                    skipLogic.rules.forEach(r => {
+                        if (r.isConfirmed) markTarget(r.skipTo);
+                    });
+                }
+            }
+
+            // Block ContinueTo logic
+            const block = survey.blocks.find(b => b.questions.some(bq => bq.id === q.id));
+            if (block && block.continueTo && block.continueTo !== 'next') {
+                markTarget(block.continueTo);
             }
         });
 
-        const findNextQuestion = (startIndex: number, allQs: Question[]): Question | undefined => {
-            for (let i = startIndex + 1; i < allQs.length; i++) {
-                if (allQs[i].type !== QuestionType.PageBreak) {
-                    return allQs[i];
+        // Refine Exclusive Blocks: Removing Shared Convergence Blocks
+        // If a block is marked sharedConvergence, it is NOT exclusive even if targeted by jumps.
+        if (exclusiveBlockIds.size > 0) {
+            survey.blocks.forEach(b => {
+                if (b.sharedConvergence && exclusiveBlockIds.has(b.id)) {
+                    exclusiveBlockIds.delete(b.id);
                 }
-            }
-            return undefined;
-        };
+            });
+        }
 
-        const resolveDestination = (dest: string, currentIndex: number): string | undefined => {
+        // Helper: Resolve destination ID
+        const resolveDestination = (dest: string | undefined, currentIndex: number): string | undefined => {
+            if (!dest) return undefined;
             if (dest === 'end') return 'end-node';
             if (dest === 'next') {
                 const currentQ = allQuestions[currentIndex];
                 const currentBlockId = questionIdToBlockIdMap.get(currentQ.id);
 
-                // Traverse forward to find next NEUTRAL question/block
+                // Traversal for "next" / fallthrough
+                // allQuestions is already filtered, so simply iterate
                 for (let i = currentIndex + 1; i < allQuestions.length; i++) {
                     const candidate = allQuestions[i];
-                    if (candidate.type === QuestionType.PageBreak) continue;
-
                     const candidateBlockId = questionIdToBlockIdMap.get(candidate.id);
 
-                    // 1. Same Block: Always next (linear flow within block)
-                    if (candidateBlockId === currentBlockId) {
+                    // 1. Same Block: Always flow to next question
+                    if (candidateBlockId === currentBlockId) return candidate.id;
+
+                    // 2. Different Block: Only flow if NOT exclusive
+                    if (candidateBlockId && !exclusiveBlockIds.has(candidateBlockId)) {
                         return candidate.id;
                     }
-
-                    // 2. Different Block: Only enter if NOT a conditional block
-                    if (candidateBlockId && !conditionalBlockIds.has(candidateBlockId)) {
-                        return candidate.id;
-                    }
-
-                    // If conditional, we skip this question (and effectively its block) and continue loop
                 }
                 return 'end-node';
             }
             if (dest.startsWith('block:')) {
                 const blockId = dest.substring(6);
                 const targetBlock = survey.blocks.find(b => b.id === blockId);
-                return targetBlock?.questions.find(q => q.type !== QuestionType.PageBreak)?.id;
+                const firstId = targetBlock?.questions[0]?.id;
+                return firstId ? nextVisualNodeMap.get(firstId) : undefined;
             }
-            const qById = allQuestions.find(q => q.id === dest);
-            if (qById) return qById.id;
-            return undefined;
+            // Resolve ID (potentially PageBreak) to next visual node
+            return nextVisualNodeMap.get(dest);
         };
 
-        // --- Graph Representation for Layout Algorithm ---
-        const adj: Record<string, string[]> = {};
-        const revAdj: Record<string, string[]> = {};
         allQuestions.forEach(q => {
-            if (q.type !== QuestionType.PageBreak) {
-                adj[q.id] = [];
-                revAdj[q.id] = [];
-            }
+            adj[q.id] = [];
+            revAdj[q.id] = revAdj[q.id] || [];
         });
 
+        // Edge Generation & Graph Building
         allQuestions.forEach((q, index) => {
-            if (q.type === QuestionType.PageBreak) return;
+            // No need to check for PageBreak, it is filtered.
 
+            // Description Node Logic
             if (q.type === QuestionType.Description) {
                 const nextQ = findNextQuestion(index, allQuestions);
                 if (nextQ) {
-                    adj[q.id].push(nextQ.id);
-                    revAdj[nextQ.id].push(q.id);
+                    const targetId = nextQ.id;
+                    adj[q.id].push(targetId);
+                    (revAdj[targetId] = revAdj[targetId] || []).push(q.id);
+                    edgesDraft.push({
+                        id: `e-${q.id}-${targetId}`,
+                        source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
+                        type: 'default',
+                        className: 'structural',
+                        markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--input-field-input-bd-def)' },
+                        data: { edgeType: 'sequence' }
+                    });
                 }
                 return;
             }
 
-            const targets = new Map<string, 'explicit' | 'fallthrough'>();
-
+            // Logic Handling
             const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
-            const skipLogic: SkipLogic | undefined = q.draftSkipLogic ?? q.skipLogic;
+            const skipLogic = q.draftSkipLogic ?? q.skipLogic;
+            const hasChoices = q.choices && q.choices.length > 0;
+            let logicHandled = false;
 
-            let hasExplicitLogic = false;
-
+            // --- BRANCHING LOGIC ---
             if (branchingLogic) {
-                hasExplicitLogic = true;
+                const hasConfirmedBranches = branchingLogic.branches.some(b => b.thenSkipToIsConfirmed);
+                const isOtherwiseConfirmed = branchingLogic.otherwiseIsConfirmed && branchingLogic.otherwiseSkipTo;
+
+                if (hasConfirmedBranches || isOtherwiseConfirmed) logicHandled = true;
+
+                // Branches
                 branchingLogic.branches.forEach(branch => {
                     if (branch.thenSkipToIsConfirmed && branch.thenSkipTo) {
                         const targetId = resolveDestination(branch.thenSkipTo, index);
-                        if (targetId) targets.set(targetId, 'explicit');
+                        if (targetId) {
+                            // Find associated choice for handle mapping if possible
+                            const condition = branch.conditions.find(c => c.questionId === q.qid && c.isConfirmed);
+                            const choice = condition ? q.choices?.find(c => c.text === condition.value) : null;
+                            const sourceHandle = choice ? choice.id : 'output';
+
+                            adj[q.id].push(targetId);
+                            (revAdj[targetId] = revAdj[targetId] || []).push(q.id);
+
+                            edgesDraft.push({
+                                id: `e-${branch.id}-${targetId}`,
+                                source: q.id, sourceHandle, target: targetId, targetHandle: 'input',
+                                label: branch.pathName || (choice ? parseChoice(choice.text).variable : 'Branch'),
+                                type: 'default',
+                                style: { strokeWidth: 2, stroke: 'var(--semantic-pri)' },
+                                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--semantic-pri)' },
+                                data: { edgeType: 'branch', logicType: 'branch' }
+                            });
+                        }
                     }
                 });
-                if (branchingLogic.otherwiseIsConfirmed && branchingLogic.otherwiseSkipTo) {
-                    const targetId = resolveDestination(branchingLogic.otherwiseSkipTo, index);
-                    if (targetId) targets.set(targetId, 'explicit');
+
+                // Otherwise / Fallback
+                // If we have branches, we MUST have a fallback (either explicit or implicit 'next')
+                // UNLESS it is an exhaustive Single Choice question (Radio), where we hide the fallback to keep "connector = choice".
+
+                const isRadio = q.type === QuestionType.Radio;
+                const isExhaustive = isRadio && isBranchingLogicExhaustive(q);
+
+                if (!isExhaustive) {
+                    const fallbackTargetStr = hasConfirmedBranches
+                        ? (isOtherwiseConfirmed ? branchingLogic.otherwiseSkipTo : 'next')
+                        : (isOtherwiseConfirmed ? branchingLogic.otherwiseSkipTo : null);
+
+                    if (fallbackTargetStr) {
+                        const targetId = resolveDestination(fallbackTargetStr, index);
+                        if (targetId) {
+                            const isImplicitNext = fallbackTargetStr === 'next';
+                            // Treat as unconditional skip if we have an explicit otherwise but NO branches
+                            const isUnconditionalSkip = !hasConfirmedBranches && isOtherwiseConfirmed;
+                            // If it's implicit next OR unconditional skip, we treat it visually as a sequence edge (solid)
+                            const isSequenceStyle = isImplicitNext || isUnconditionalSkip;
+
+                            adj[q.id].push(targetId);
+                            (revAdj[targetId] = revAdj[targetId] || []).push(q.id);
+
+                            // Label only if it's a true alternative branch (not implicit next, not unconditional skip)
+                            const label = !isSequenceStyle ? (branchingLogic.otherwisePathName || 'Otherwise') : undefined;
+
+                            edgesDraft.push({
+                                id: `e-${q.id}-fallback-${targetId}`,
+                                source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
+                                label,
+                                type: 'default',
+                                style: isSequenceStyle ? undefined : { strokeDasharray: '5, 5' },
+                                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                                data: { edgeType: isSequenceStyle ? 'sequence' : 'branch' }
+                            });
+                        }
+                    }
                 }
-            } else if (skipLogic) {
+            }
+
+            // --- SKIP LOGIC ---
+            else if (skipLogic) {
+                // Simplified Implementation for visual consistency
                 if (skipLogic.type === 'simple' && skipLogic.isConfirmed) {
-                    hasExplicitLogic = true;
+                    logicHandled = true;
                     const targetId = resolveDestination(skipLogic.skipTo, index);
-                    if (targetId) targets.set(targetId, 'explicit');
+                    if (targetId) {
+                        adj[q.id].push(targetId);
+                        (revAdj[targetId] = revAdj[targetId] || []).push(q.id);
+                        edgesDraft.push({
+                            id: `e-${q.id}-skip-${targetId}`,
+                            source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
+                            label: 'Skip',
+                            type: 'default',
+                            style: { strokeDasharray: '5, 5' },
+                            markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                            data: { edgeType: 'conditional' }
+                        });
+                    }
                 } else if (skipLogic.type === 'per_choice') {
-                    hasExplicitLogic = true; // Assume explicit even if some fall through
-                    const rulesChoices = new Set<string>();
-                    skipLogic.rules.forEach(rule => {
-                        rulesChoices.add(rule.choiceId);
-                        if (rule.isConfirmed) {
-                            const targetId = resolveDestination(rule.skipTo, index);
-                            if (targetId) targets.set(targetId, 'explicit');
-                        } else {
-                            const targetId = resolveDestination('next', index);
-                            if (targetId) targets.set(targetId, 'fallthrough');
+                    logicHandled = true;
+                    q.choices?.forEach(c => {
+                        const rule = skipLogic.rules.find(r => r.choiceId === c.id);
+                        const dest = (rule && rule.isConfirmed) ? rule.skipTo : 'next';
+                        const targetId = resolveDestination(dest, index);
+
+                        if (targetId) {
+                            adj[q.id].push(targetId);
+                            (revAdj[targetId] = revAdj[targetId] || []).push(q.id);
+
+                            const isSpecialSkip = dest !== 'next';
+                            edgesDraft.push({
+                                id: `e-${q.id}-${c.id}-${targetId}`,
+                                source: q.id, sourceHandle: c.id, target: targetId, targetHandle: 'input',
+                                label: isSpecialSkip ? parseChoice(c.text).variable : undefined,
+                                type: 'default',
+                                style: isSpecialSkip ? { strokeDasharray: '5, 5' } : undefined,
+                                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                                data: { edgeType: isSpecialSkip ? 'conditional' : 'sequence' }
+                            });
                         }
                     });
-                    const hasChoiceWithoutRule = q.choices?.some(c => !rulesChoices.has(c.id));
-                    if (hasChoiceWithoutRule) {
-                        const targetId = resolveDestination('next', index);
-                        if (targetId) targets.set(targetId, 'fallthrough');
-                    }
                 }
             }
 
-            if (!hasExplicitLogic) {
-                const blockOfQuestion = survey.blocks.find(b => b.questions.some(bq => bq.id === q.id));
-                const interactiveQuestionsInBlock = blockOfQuestion?.questions.filter(iq => iq.type !== QuestionType.PageBreak && iq.type !== QuestionType.Description);
-                const lastInteractiveInBlock = interactiveQuestionsInBlock?.[interactiveQuestionsInBlock.length - 1];
-
-                if (blockOfQuestion && lastInteractiveInBlock?.id === q.id && blockOfQuestion.continueTo && blockOfQuestion.continueTo !== 'next') {
-                    const targetId = resolveDestination(blockOfQuestion.continueTo, index);
-                    if (targetId) {
-                        targets.set(targetId, 'explicit');
-                    }
-                } else {
-                    const targetId = resolveDestination('next', index);
-                    if (targetId) targets.set(targetId, 'fallthrough');
-                }
-            }
-
-            if (targets.size === 0) {
+            // --- SEQUENCE / FALLTHROUGH ---
+            if (!logicHandled) {
                 const targetId = resolveDestination('next', index);
-                if (targetId) targets.set(targetId, 'fallthrough');
-            }
+                if (targetId) {
+                    adj[q.id].push(targetId);
+                    (revAdj[targetId] = revAdj[targetId] || []).push(q.id);
 
-            targets.forEach((type, targetId) => {
-                if (targetId && (questionMap.has(targetId) || targetId === 'end-node')) {
-                    let shouldAddToLayout = true;
-                    if (type === 'fallthrough') {
-                        const sourceBlock = questionIdToBlockIdMap.get(q.id);
-                        const targetBlock = questionIdToBlockIdMap.get(targetId);
-                        if (sourceBlock !== targetBlock) {
-                            shouldAddToLayout = false;
-                        }
+                    if (hasChoices) {
+                        q.choices!.forEach(c => {
+                            edgesDraft.push({
+                                id: `e-${q.id}-${c.id}-seq-${targetId}`,
+                                source: q.id, sourceHandle: c.id, target: targetId, targetHandle: 'input',
+                                type: 'default',
+                                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                                data: { edgeType: 'sequence' }
+                            });
+                        });
+                    } else {
+                        edgesDraft.push({
+                            id: `e-${q.id}-seq-${targetId}`,
+                            source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
+                            type: 'default',
+                            className: 'structural',
+                            markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                            data: { edgeType: 'sequence' }
+                        });
                     }
-                    if (shouldAddToLayout) {
-                        adj[q.id].push(targetId);
-                        if (revAdj[targetId]) {
-                            revAdj[targetId].push(q.id);
-                        } else {
-                            revAdj[targetId] = [q.id];
-                        }
+                }
+            }
+        });
+
+        // --- 4. Reachability & Swimlane Convergence Analysis ---
+        // We traverse to determine which branches reach each node
+        const nodeReachability = new Map<string, Set<string>>(); // qId -> Set<laneId>
+        const initialQueue: string[] = [];
+
+        // Initialize roots
+        // Start Node is virtual, but its targets are the entry points.
+        // We can treat questions with in-degree 0 (excluding structural) as roots.
+        // Better: Start with 'start-node' concept. The first question usually.
+        // Actually, we can just iterate top-down using our topological queue logic later, 
+        // OR simply do a BFS propagation now with the `adj` list we built.
+
+        // Initialize all to empty sets
+        allQuestions.forEach(q => nodeReachability.set(q.id, new Set()));
+
+        // Seed roots: Questions with no internal incomings (revAdj empty or from Start)
+        // Actually, let's look at `allQuestions[0]` if exists.
+        if (allQuestions.length > 0) {
+            // The first question is reachable from "shared" (Start)
+            const firstQ = allQuestions[0];
+            nodeReachability.get(firstQ.id)?.add('shared');
+            initialQueue.push(firstQ.id);
+        }
+
+        const reachQueue = [...initialQueue];
+        const processedForReach = new Set<string>(initialQueue); // Simple BFS visitation check might not be enough for DAG prop?
+        // DAG propagation requires processing parents before children.
+        // Let's use the inDegree counts to drive a topological sort propagation.
+
+        const reachInDegrees: Record<string, number> = {};
+        allQuestions.forEach(q => reachInDegrees[q.id] = revAdj[q.id]?.length || 0);
+        const topoQueue = allQuestions.filter(q => (reachInDegrees[q.id] || 0) === 0).map(q => q.id);
+
+        // Ensure first question is in queue if not already
+        if (allQuestions.length > 0 && reachInDegrees[allQuestions[0].id] > 0) {
+            // It has incoming edges (loops?), but conceptually it's a root.
+            // Cyclic graphs break topo sort. Survey flows *can* loop (randomization/loops).
+            // For layout, we often ignore back-edges.
+            // Fallback: Use standard BFS with Set merging which stabilizes? 
+            // Or just stick to the simple "longest path" topo queue logic we used for columns.
+            // Let's reuse the logic structure we're about to use for columns, but for reachability.
+        }
+
+        // Let's do a robust propagation (iterative calculation until stable? or just topological)
+        // Given surveys are mostly DAGs, Topo is fine.
+        // For loops, we break them (ignore back edges). We haven't identified back edges here yet.
+        // Let's treat it as a BFS propagation. If a node is visited again with NEW info, re-queue it.
+
+        const reachUpdateQueue = [...initialQueue];
+        const MAX_ITERATIONS = allQuestions.length * 5; // Safety break
+        let iter = 0;
+
+        while (reachUpdateQueue.length > 0 && iter++ < MAX_ITERATIONS) {
+            const u = reachUpdateQueue.shift()!;
+            const currentReach = nodeReachability.get(u)!;
+            if (currentReach.size === 0) continue; // Should not happen if seeded correctly
+
+            const uNeighbors = adj[u] || [];
+            uNeighbors.forEach(v => {
+                const nextQ = questionMap.get(v);
+                if (!nextQ) return; // 'end-node' or invalid
+
+                const targetBlockId = questionIdToBlockIdMap.get(v);
+                const targetBranchInfo = targetBlockId ? blockToBranchId.get(targetBlockId) : undefined;
+
+                let nextReachToAdd: Set<string>;
+
+                if (targetBranchInfo) {
+                    // Entering a specific branch block -> Flow narrows to that branch
+                    nextReachToAdd = new Set([targetBranchInfo]);
+                } else {
+                    // Entering a shared/neutral block -> Flow carries over
+                    nextReachToAdd = currentReach;
+                }
+
+                const vReach = nodeReachability.get(v)!;
+                let changed = false;
+                nextReachToAdd.forEach(lane => {
+                    if (!vReach.has(lane)) {
+                        vReach.add(lane);
+                        changed = true;
                     }
+                });
+
+                if (changed) {
+                    reachUpdateQueue.push(v);
                 }
             });
+        }
+
+        // Determine final Lane Assignment based on Reachability
+        const nodeLanes = new Map<string, string>(); // qId -> laneId
+
+        allQuestions.forEach(q => {
+            const reach = nodeReachability.get(q.id);
+            if (!reach || reach.size === 0) {
+                // Unreachable? Default to block property or shared
+                const blockId = questionIdToBlockIdMap.get(q.id);
+                const branch = blockId ? blockToBranchId.get(blockId) : undefined;
+                nodeLanes.set(q.id, branch || 'shared');
+            } else if (reach.size > 1) {
+                // Convergent -> Shared
+                nodeLanes.set(q.id, 'shared');
+            } else {
+                // Single source logic
+                const source = Array.from(reach)[0];
+                nodeLanes.set(q.id, source);
+            }
         });
 
-        // --- Longest Path Algorithm (for column placement) ---
+
+        // --- 5. Compute Columns (Longest Path in DAG) ---
         const longestPath = new Map<string, number>();
-        const inDegree: Record<string, number> = {};
+        const inDegrees: Record<string, number> = {};
         allQuestions.forEach(q => {
             longestPath.set(q.id, 0);
-            inDegree[q.id] = revAdj[q.id]?.length || 0;
+            inDegrees[q.id] = revAdj[q.id]?.length || 0;
         });
 
-        const queue: string[] = allQuestions.filter(q => (inDegree[q.id] || 0) === 0).map(q => q.id);
+        // "Start Node" virtual handling
+        // If we have questions with in-degree 0, they are effectively roots.
+        // We initialize them at col 0. 
+        const queue: string[] = allQuestions.filter(q => (inDegrees[q.id] || 0) === 0).map(q => q.id);
 
         while (queue.length > 0) {
             const u = queue.shift()!;
-            for (const v of (adj[u] || [])) {
-                if (!longestPath.has(v)) continue;
-                const newPathLength = (longestPath.get(u) || 0) + 1;
-                if (newPathLength > (longestPath.get(v) || 0)) {
-                    longestPath.set(v, newPathLength);
-                }
-                inDegree[v]--;
-                if (inDegree[v] === 0) {
-                    queue.push(v);
-                }
-            }
-        }
+            const uDist = longestPath.get(u) || 0;
 
-        // --- Branch-Aware Layouting ---
-        const branchRoot = new Map<string, string>(); // Maps node ID -> branch root ID
-        const branchQueue: string[] = allQuestions.filter(q => (revAdj[q.id]?.length || 0) === 0).map(q => q.id);
-        const visitedForBranching = new Set<string>();
-        branchQueue.forEach(qId => branchRoot.set(qId, qId));
-
-        let head = 0;
-        while (head < branchQueue.length) {
-            const u = branchQueue[head++];
-
-            const children = (adj[u] || []).sort((a, b) => {
-                const orderA = allQuestionsOrder.get(a) ?? 0;
-                const orderB = allQuestionsOrder.get(b) ?? 0;
-                return orderA > orderB ? 1 : (orderA < orderB ? -1 : 0);
-            });
-            const uIsFork = children.length > 1;
-
-            children.forEach(v => {
-                if (!questionMap.has(v)) return; // Don't process 'end-node' here
-                const newRoot = uIsFork ? v : (branchRoot.get(u) || v);
-                if (!branchRoot.has(v)) {
-                    branchRoot.set(v, newRoot);
+            (adj[u] || []).forEach(v => {
+                const currentDist = longestPath.get(v) || 0;
+                if (uDist + 1 > currentDist) {
+                    longestPath.set(v, uDist + 1);
                 }
-                if (!visitedForBranching.has(v)) {
-                    visitedForBranching.add(v);
-                    branchQueue.push(v);
-                }
+                inDegrees[v]--;
+                if (inDegrees[v] === 0) queue.push(v);
             });
         }
 
-        // --- Column Grouping & Vertical Placement ---
-        const columns: string[][] = [];
-        longestPath.forEach((col, qId) => {
-            if (questionMap.has(qId)) {
-                if (!columns[col]) columns[col] = [];
-                columns[col].push(qId);
-            }
+        // --- 6. Swimlane Indexing ---
+        // Map unique lanes to Y-indices
+        const distinctLanes = Array.from(new Set(nodeLanes.values())).sort();
+        // Ensure 'shared' is always 0
+        const laneIndexMap = new Map<string, number>();
+        laneIndexMap.set('shared', 0);
+        let laneCounter = 1;
+        distinctLanes.forEach(l => {
+            if (l !== 'shared') laneIndexMap.set(l, laneCounter++);
         });
 
-        const nodePositions = new Map<string, { x: number, y: number }>();
+        // --- 7. Final Positioning (X/Y) ---
+        const flowNodes: DiagramNode[] = [];
+        const LANE_HEIGHT = 200; // Vertical separation between lanes override
         const nodeHeights = new Map<string, number>();
 
         allQuestions.forEach(q => {
-            let height = 120;
+            let h = 120;
             if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid) {
-                height = 100 + (q.choices?.length || 0) * 40;
-            } else if (q.type === QuestionType.Description) {
-                height = 120;
+                h = 100 + (q.choices?.length || 0) * 40;
             }
-            nodeHeights.set(q.id, height);
+            nodeHeights.set(q.id, h);
         });
 
-        columns.forEach((column, colIndex) => {
-            const sortedColumn = column.sort((a, b) => {
-                const rootA = branchRoot.get(a);
-                const rootB = branchRoot.get(b);
-
-                const rootOrderA = rootA ? allQuestionsOrder.get(rootA) ?? Infinity : Infinity;
-                const rootOrderB = rootB ? allQuestionsOrder.get(rootB) ?? Infinity : Infinity;
-
-                if (rootOrderA !== rootOrderB) {
-                    return rootOrderA > rootOrderB ? 1 : -1;
-                }
-
-                const pathA = longestPath.get(a) ?? 0;
-                const pathB = longestPath.get(b) ?? 0;
-                if (pathA !== pathB) {
-                    return pathA > pathB ? 1 : -1;
-                }
-
-                const orderA = allQuestionsOrder.get(a) ?? 0;
-                const orderB = allQuestionsOrder.get(b) ?? 0;
-                return orderA > orderB ? 1 : (orderA < orderB ? -1 : 0);
-            });
-
-            let totalHeight = sortedColumn.reduce((sum, qId) => sum + (nodeHeights.get(qId) || 0), 0) + Math.max(0, sortedColumn.length - 1) * VERTICAL_GAP;
-            let currentY = -totalHeight / 2;
-
-            sortedColumn.forEach(qId => {
-                const height = nodeHeights.get(qId) || 0;
-                nodePositions.set(qId, { x: colIndex * X_SPACING, y: currentY + height / 2 });
-                currentY += height + VERTICAL_GAP;
-            });
-        });
-
-        // --- Create Nodes and Edges for React Flow ---
-        const flowNodes: DiagramNode[] = [];
-        const flowEdges: DiagramEdge[] = [];
-
-        // START NODE
-        const startNodeHeight = 60;
-        const initialY = allQuestions.length > 0
-            ? (nodePositions.get(allQuestions[0].id) || { y: 0 }).y
-            : 0;
-
+        // Start Node Position
         const startNode: StartNode = {
             id: 'start-node',
             type: 'start',
-            position: { x: -300, y: initialY }, // Position Start Node to the left of the graph
+            position: { x: -300, y: 0 },
             data: { label: 'Start of Survey' },
             width: 180,
-            height: startNodeHeight,
+            height: 60,
         };
         flowNodes.push(startNode);
 
-        // EDGE FROM START TO FIRST QUESTION
-        if (allQuestions.length > 0) {
-            flowEdges.push({
-                id: `e-start-${allQuestions[0].id}`,
-                source: 'start-node',
-                sourceHandle: 'output',
-                target: allQuestions[0].id,
-                targetHandle: 'input',
-                type: 'default',
-                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
-            });
-        }
+        // Questions
+        allQuestions.forEach(q => {
+            const col = longestPath.get(q.id) || 0;
+            const laneId = nodeLanes.get(q.id) || 'shared';
+            const laneIdx = laneIndexMap.get(laneId) || 0;
 
-        allQuestions.forEach((q) => {
-            if (q.type === QuestionType.PageBreak) return;
+            // X = column * spacing
+            // Y = lane * height + offset?
+            // To prevent overlap within same lane at same column (if DAG allows parallel nodes in same lane),
+            // we might need "local rows". But for survey flows, usually simple sequential within lane.
+            // If multiple nodes have same (Lane, Col), we stack them locally?
+            // Simplification: DAG usually resolves X separation.
 
-            const position = nodePositions.get(q.id) || { x: (longestPath.get(q.id) || 0) * X_SPACING, y: 0 };
+            const x = col * X_SPACING;
+            const y = laneIdx * (LANE_HEIGHT + 100); // Simple lane stacking
 
+            // Adjust y slightly if multiple nodes in same (lane, col)?
+            // For now, raw lane y.
+
+            const position = { x, y };
+
+            // Push Node
             if (q.type === QuestionType.Description) {
                 flowNodes.push({
                     id: q.id, type: 'description_node', position,
-                    data: {
-                        question: q.text
-                    },
-                    width: NODE_WIDTH, height: nodeHeights.get(q.id) || 0,
+                    data: { question: q.text }, width: NODE_WIDTH, height: nodeHeights.get(q.id),
                 });
             } else if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid) {
                 flowNodes.push({
                     id: q.id, type: 'multiple_choice', position,
                     data: {
-                        variableName: q.qid,
-                        question: q.text,
+                        variableName: q.qid, question: q.text,
                         subtype: q.type === QuestionType.Checkbox ? 'checkbox' : 'radio',
-                        options: q.choices?.map(c => ({
-                            id: c.id, text: parseChoice(c.text).label, variableName: parseChoice(c.text).variable
-                        })) || []
+                        options: q.choices?.map(c => ({ id: c.id, text: parseChoice(c.text).label, variableName: parseChoice(c.text).variable })) || []
                     },
-                    width: NODE_WIDTH, height: nodeHeights.get(q.id) || 0,
+                    width: NODE_WIDTH, height: nodeHeights.get(q.id),
                 });
             } else {
                 flowNodes.push({
                     id: q.id, type: 'text_entry', position,
                     data: { variableName: q.qid, question: q.text },
-                    width: NODE_WIDTH, height: nodeHeights.get(q.id) || 0,
+                    width: NODE_WIDTH, height: nodeHeights.get(q.id),
                 });
             }
         });
 
-        allQuestions.forEach((q, index) => {
-            if (q.type === QuestionType.PageBreak) return;
+        // Connect Start Node
+        if (allQuestions.length > 0) {
+            edgesDraft.push({
+                id: `e-start-${allQuestions[0].id}`,
+                source: 'start-node', sourceHandle: 'output', target: allQuestions[0].id, targetHandle: 'input',
+                type: 'default',
+                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                data: { edgeType: 'sequence' }
+            });
+        }
 
-            if (q.type === QuestionType.Description) {
-                const targetId = resolveDestination('next', index);
-                if (targetId && (questionMap.has(targetId) || targetId === 'end-node')) {
-                    flowEdges.push({
-                        id: `e-${q.id}-output-${targetId}`,
-                        source: q.id,
-                        sourceHandle: 'output',
-                        target: targetId,
-                        targetHandle: 'input',
-                        label: q.qid,
-                        className: 'structural',
-                        markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--input-field-input-bd-def)' }
-                    });
-                }
-                return;
-            }
-
-            const branchingLogic = q.draftBranchingLogic ?? q.branchingLogic;
-            const skipLogic: SkipLogic | undefined = q.draftSkipLogic ?? q.skipLogic;
-            let logicHandled = false;
-            const hasChoices = q.choices && q.choices.length > 0;
-
-            // Helper to determine edge style
-            const getEdgeStyle = (targetId: string, isExplicitLogic: boolean) => {
-                let isDashed = isExplicitLogic;
-                const targetQ = questionMap.get(targetId);
-
-                // If target has display logic, it's conditional entry -> dashed
-                if (targetQ && (
-                    (targetQ.displayLogic && targetQ.displayLogic.conditions && targetQ.displayLogic.conditions.length > 0) ||
-                    (targetQ.choiceDisplayLogic && (targetQ.choiceDisplayLogic.showConditions.length > 0 || targetQ.choiceDisplayLogic.hideConditions.length > 0))
-                )) {
-                    isDashed = true;
-                }
-
-                return isDashed ? { strokeDasharray: '5, 5' } : undefined;
-            };
-
-            if (branchingLogic) {
-                const hasConfirmedBranches = branchingLogic.branches.some(b => b.thenSkipToIsConfirmed);
-                const isOtherwiseConfirmed = branchingLogic.otherwiseIsConfirmed && branchingLogic.otherwiseSkipTo;
-
-
-                // Logic is handled if we extend a branch OR if we have an unconditional "Otherwise" skip
-                if (hasConfirmedBranches || isOtherwiseConfirmed) {
-                    logicHandled = true;
-                }
-
-                const handledChoiceIds = new Set<string>();
-
-                // 1. Create edges for explicit 'IF' branches
-                branchingLogic.branches.forEach(branch => {
-                    // ... existing loop ...
-                    if (!branch.thenSkipToIsConfirmed) return;
-                    const condition = branch.conditions.find(c => c.questionId === q.qid && c.isConfirmed);
-                    if (condition) {
-                        const choice = q.choices?.find(c => c.text === condition.value);
-                        if (choice) {
-                            handledChoiceIds.add(choice.id);
-                            const targetId = resolveDestination(branch.thenSkipTo, index);
-                            if (targetId) {
-                                flowEdges.push({
-                                    id: `e-${branch.id}-${targetId}`,
-                                    source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
-                                    label: branch.pathName || parseChoice(choice.text).variable,
-                                    markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
-                                    type: 'default',
-                                    style: getEdgeStyle(targetId, true)
-                                });
-                            }
-                        }
-                    }
-                });
-
-                // 2. Handle 'Otherwise' OR Fallthrough
-                // Fallback applies if explicit branches didn't cover everything, OR if we have no branches but do have otherwise.
-                // If hasConfirmedBranches is true, fallback is 'next' (unless overridden by otherwise).
-                // If hasConfirmedBranches is false, fallback is 'otherwise' (if confirmed) or null (if not).
-
-                let fallbackTarget: string | null = null;
-                if (hasConfirmedBranches) {
-                    fallbackTarget = isOtherwiseConfirmed ? branchingLogic.otherwiseSkipTo : 'next';
-                } else if (isOtherwiseConfirmed) {
-                    fallbackTarget = branchingLogic.otherwiseSkipTo;
-                }
-
-                if (fallbackTarget) {
-                    const targetId = resolveDestination(fallbackTarget, index);
-
-                    if (targetId) {
-                        // Check if this fallback effectively just goes to the next question anyway
-                        const nextTargetId = resolveDestination('next', index);
-                        const isRedundant = targetId === nextTargetId;
-
-                        const isDefaultNext = fallbackTarget === 'next' || isRedundant;
-                        const isUnconditional = !hasConfirmedBranches;
-
-                        // Use a label only if:
-                        // 1. It's NOT a default/redundant flow AND
-                        // 2. Either it is a conditional fallback ("Otherwise") OR it has a custom name.
-                        // If it is an unconditional skip (isUnconditional) and has NO custom name, we show NO label (just an arrow).
-                        let label: string | null = null;
-                        if (!isDefaultNext) {
-                            if (!isUnconditional) {
-                                label = branchingLogic.otherwisePathName || 'Otherwise';
-                            } else {
-                                label = branchingLogic.otherwisePathName || null;
-                            }
-                        }
-
-                        const isDashed = !isDefaultNext; // Keep dashes for skips, solid for flow
-
-                        if (hasChoices) {
-                            // Wire up all unhandled choices
-                            q.choices!.forEach(choice => {
-                                if (!handledChoiceIds.has(choice.id)) {
-                                    flowEdges.push({
-                                        id: `e-${q.id}-${choice.id}-fallback-${targetId}`,
-                                        source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
-                                        label: isDefaultNext ? parseChoice(choice.text).variable : label,
-                                        markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
-                                        type: 'default',
-                                        style: getEdgeStyle(targetId, !isDefaultNext) // Use isDashed logic essentially
-                                    });
-                                }
-                            });
-                        } else {
-                            // Text Entry / single path fallback
-                            flowEdges.push({
-                                id: `e-${q.id}-fallback-${targetId}`,
-                                source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
-                                label: label,
-                                className: isDefaultNext ? 'structural' : undefined,
-                                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
-                                type: 'default',
-                                style: getEdgeStyle(targetId, !isDefaultNext)
-                            });
-                        }
-                    }
-                }
-
-            }
-            if (skipLogic && !logicHandled) {
-                if (skipLogic.type === 'simple') {
-                    if (skipLogic.isConfirmed) {
-                        logicHandled = true;
-                        const targetId = resolveDestination(skipLogic.skipTo, index);
-                        if (targetId) {
-                            if (hasChoices) {
-                                q.choices!.forEach(choice => {
-                                    flowEdges.push({
-                                        id: `e-${q.id}-${choice.id}-simple-skip-${targetId}`,
-                                        source: q.id, sourceHandle: choice.id, target: targetId, targetHandle: 'input',
-                                        label: parseChoice(choice.text).variable,
-                                        markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
-                                        type: 'default',
-                                        style: getEdgeStyle(targetId, true)
-                                    });
-                                });
-                            } else {
-                                flowEdges.push({
-                                    id: `e-${q.id}-skip-${targetId}`,
-                                    source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
-                                    label: q.qid,
-                                    markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
-                                    type: 'default',
-                                    style: getEdgeStyle(targetId, true)
-                                });
-                            }
-                        }
-                    }
-                } else if (skipLogic.type === 'per_choice') {
-                    logicHandled = true; // Per-choice logic always implies we handle edges, even if they fall through to 'next'
-                    (q.choices || []).forEach(choice => {
-                        const rule = skipLogic.rules.find(r => r.choiceId === choice.id);
-                        const isConfirmedRule = rule && rule.isConfirmed;
-                        const dest = isConfirmedRule ? rule.skipTo : 'next';
-                        const targetId = resolveDestination(dest, index);
-
-                        if (targetId) {
-                            flowEdges.push({
-                                id: `e-${q.id}-${choice.id}-${isConfirmedRule ? 'skip' : 'fallthrough'}-${targetId}`,
-                                source: q.id,
-                                sourceHandle: choice.id,
-                                target: targetId,
-                                targetHandle: 'input',
-                                label: isConfirmedRule ? parseChoice(choice.text).variable : '',
-                                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
-                                type: 'default',
-                                style: getEdgeStyle(targetId, isConfirmedRule)
-                            });
-                        }
-                    });
-                }
-            }
-
-            // 3. Handle fallthrough (no explicit logic at all)
-            if (!logicHandled) {
-                const targetId = resolveDestination('next', index);
-                if (targetId) {
-                    if (q.choices && q.choices.length > 0) {
-                        q.choices.forEach(choice => {
-                            flowEdges.push({
-                                id: `e-${q.id}-${choice.id}-fallthrough-${targetId}`,
-                                source: q.id,
-                                sourceHandle: choice.id,
-                                target: targetId,
-                                targetHandle: 'input',
-                                label: parseChoice(choice.text).variable,
-                                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
-                                type: 'default'
-                            });
-                        });
-                    } else {
-                        flowEdges.push({
-                            id: `e-${q.id}-fallthrough-${targetId}`,
-                            source: q.id,
-                            sourceHandle: 'output',
-                            target: targetId,
-                            targetHandle: 'input',
-                            label: q.qid,
-                            className: 'structural',
-                            markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
-                            type: 'default',
-                            style: getEdgeStyle(targetId, false)
-                        });
-                    }
-                }
-            }
-        });
-
-        const maxColumn = Math.max(0, ...Array.from(longestPath.values()));
+        // Add End Node if needed or mapped
+        const maxCol = Math.max(0, ...Array.from(longestPath.values()));
         const endNode: EndNode = {
             id: 'end-node',
             type: 'end',
-            position: { x: (maxColumn + 1) * X_SPACING, y: 0 },
+            position: { x: (maxCol + 1) * X_SPACING, y: 0 }, // Place on shared lane?
             data: { label: 'End of Survey' },
-            width: 180,
-            height: 60,
+            width: 180, height: 60
         };
         flowNodes.push(endNode);
 
-        return { layoutNodes: flowNodes, layoutEdges: flowEdges };
+        return { layoutNodes: flowNodes, layoutEdges: edgesDraft };
     }, [survey]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState(layoutNodes);
@@ -894,6 +841,45 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
     );
 
 
+    React.useImperativeHandle(ref, () => ({
+        exportAsPng: async () => {
+            // We use the viewport class from React Flow to only capture the canvas content
+            // However, to capture the *entire* graph (not just visible area), we might need to adjust viewport temporarily or just use bounding box.
+            // A common approach for React Flow:
+            // 1. Get bounding box of all nodes
+            // 2. Calculate transform to fit them
+            // 3. Temporarily style the viewport or clone it
+            //
+            // Simpler approach for "Copy as PNG" often desired: Capture current view or fit view first.
+            // Let's try capturing the .react-flow__viewport element.
+
+            const viewportEl = document.querySelector('.react-flow__viewport') as HTMLElement;
+            if (!viewportEl) return;
+
+            try {
+                const element = document.querySelector('.react-flow') as HTMLElement;
+                if (!element) return;
+
+                const dataUrl = await toPng(element, {
+                    backgroundColor: '#ffffff', // survey-surface color usually white or light
+                    filter: (node) => {
+                        // Exclude controls from the screenshot
+                        return (!node.classList?.contains('react-flow__controls') && !node.classList?.contains('react-flow__panel'));
+                    }
+                });
+
+                // Write to Clipboard
+                const res = await fetch(dataUrl);
+                const blob = await res.blob();
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+
+            } catch (error) {
+                console.error('Failed to export diagram', error);
+                throw error; // Re-throw to let App handle toast
+            }
+        }
+    }));
+
     return (
         <div className="w-full h-full">
             <DiagramToolbar onAddNode={(type: 'multiple_choice' | 'text_entry' | 'logic') => console.log(type)} />
@@ -911,7 +897,10 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
                 nodeTypes={nodeTypes}
                 proOptions={{ hideAttribution: true }}
                 className="bg-surface"
+
                 fitView={true}
+                minZoom={MIN_ZOOM}
+                maxZoom={MAX_ZOOM}
             >
                 <Background
                     variant={BackgroundVariant.Dots}
@@ -924,13 +913,14 @@ const DiagramCanvasContent: React.FC<DiagramCanvasProps> = ({ survey, selectedQu
             </ReactFlow>
         </div>
     );
-};
+});
 
 
-const DiagramCanvas: React.FC<DiagramCanvasProps> = memo(({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab }) => {
+const DiagramCanvas: React.FC<DiagramCanvasProps & { exportRef?: React.Ref<DiagramCanvasHandle> }> = memo(({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab, exportRef }) => {
     return (
         <ReactFlowProvider>
             <DiagramCanvasContent
+                ref={exportRef}
                 survey={survey}
                 selectedQuestion={selectedQuestion}
                 onSelectQuestion={onSelectQuestion}

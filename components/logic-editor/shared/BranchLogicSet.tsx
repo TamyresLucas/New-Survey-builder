@@ -154,6 +154,7 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
         }
 
         const newConditions = branch.conditions.map(c => ({ ...c, isConfirmed: true }));
+
         onUpdate({ conditions: newConditions, thenSkipToIsConfirmed: true });
         setValidationErrors(new Set());
         setConditionErrors(new Map());

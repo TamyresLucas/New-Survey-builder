@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Survey, Block, Question, QuestionType, ToolboxItemData, LogicIssue, SurveyStatus } from './types';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
@@ -653,81 +654,83 @@ const App: React.FC = () => {
                                             : '400px'
                                     }}
                                 >
-                                    {isGeminiPanelOpen ? (
-                                        <GeminiPanel
-                                            onClose={() => setIsGeminiPanelOpen(false)}
-                                            survey={survey}
-                                            onAddQuestion={actions.handleAddQuestionFromAI}
-                                            onUpdateQuestion={actions.handleUpdateQuestionFromAI}
-                                            onRepositionQuestion={actions.handleRepositionQuestion}
-                                            onDeleteQuestion={actions.handleDeleteQuestionFromAI}
-                                            onAddBlock={actions.handleAddBlockFromAI}
-                                            onUpdateBlock={actions.handleUpdateBlockFromAI}
-                                            helpTopic={geminiHelpTopic}
-                                            selectedQuestion={selectedQuestion}
-                                            logicIssues={logicIssues}
-                                        />
-                                    ) : showBulkEditPanel ? (
-                                        <BulkEditPanel
-                                            checkedQuestionCount={checkedQuestions.size}
-                                            onClose={() => setCheckedQuestions(new Set())}
-                                            onDuplicate={actions.handleBulkDuplicate}
-                                            onAddToLibrary={() => { }}
-                                            onMoveQuestions={() => { }}
-                                            onMoveToNewBlock={actions.handleBulkMoveToNewBlock}
-                                            onHideQuestion={actions.handleBulkHideQuestion}
-                                            onHideBackButton={actions.handleBulkHideBackButton}
-                                            onForceResponse={actions.handleBulkForceResponse}
-                                            showForceResponse={true}
-                                            onUnforceResponse={() => actions.handleBulkForceResponse()}
-                                            showUnforceResponse={true}
-                                            onDelete={actions.handleBulkDelete}
-                                        />
-                                    ) : selectedBlock ? (
-                                        <BlockSidebar
-                                            block={selectedBlock}
-                                            survey={survey}
-                                            onClose={() => handleSelectBlock(null)}
-                                            onUpdateBlock={actions.handleUpdateBlock}
-                                            isExpanded={isRightSidebarExpanded}
-                                            onToggleExpand={handleToggleRightSidebarExpand}
-                                            onExpandSidebar={handleExpandRightSidebar}
-                                            focusTarget={focusTarget}
-                                            onFocusHandled={handleFocusHandled}
-                                        />
-                                    ) : selectedQuestion ? (
-                                        <RightSidebar
-                                            question={selectedQuestion}
-                                            survey={survey}
-                                            logicIssues={logicIssues}
-                                            activeTab={activeRightSidebarTab}
-                                            onTabChange={setActiveRightSidebarTab}
-                                            focusedLogicSource={focusedLogicSource}
-                                            onUpdateQuestion={actions.handleUpdateQuestion}
-                                            onAddChoice={actions.handleAddChoice}
-                                            onDeleteChoice={actions.handleDeleteChoice}
-                                            isExpanded={isRightSidebarExpanded}
-                                            onToggleExpand={handleToggleRightSidebarExpand}
-                                            onExpandSidebar={handleExpandRightSidebar}
-                                            onSelectBlock={handleSelectBlock}
-                                            onClose={() => handleSelectQuestion(null)}
-                                            toolboxItems={toolboxItems}
-                                            onRequestGeminiHelp={handleRequestGeminiHelp}
-                                        />
-                                    ) : (
-                                        <div className="p-4">
-                                            <SurveyStructureWidget
+                                    <ErrorBoundary fallback={<div className="p-4 text-error">Editor temporarily unavailable</div>}>
+                                        {isGeminiPanelOpen ? (
+                                            <GeminiPanel
+                                                onClose={() => setIsGeminiPanelOpen(false)}
                                                 survey={survey}
-                                                paths={paths}
-                                                selectedPathId={selectedPathId}
-                                                onPathChange={setSelectedPathId}
-
-                                                onPagingModeChange={(mode) => dispatchAndRecord({ type: SurveyActionType.SET_PAGING_MODE, payload: { pagingMode: mode } })}
-                                                onGlobalAutoAdvanceChange={(enabled) => dispatchAndRecord({ type: SurveyActionType.SET_GLOBAL_AUTOADVANCE, payload: { enabled: enabled } })}
+                                                onAddQuestion={actions.handleAddQuestionFromAI}
+                                                onUpdateQuestion={actions.handleUpdateQuestionFromAI}
+                                                onRepositionQuestion={actions.handleRepositionQuestion}
+                                                onDeleteQuestion={actions.handleDeleteQuestionFromAI}
+                                                onAddBlock={actions.handleAddBlockFromAI}
+                                                onUpdateBlock={actions.handleUpdateBlockFromAI}
+                                                helpTopic={geminiHelpTopic}
+                                                selectedQuestion={selectedQuestion}
                                                 logicIssues={logicIssues}
                                             />
-                                        </div>
-                                    )}
+                                        ) : showBulkEditPanel ? (
+                                            <BulkEditPanel
+                                                checkedQuestionCount={checkedQuestions.size}
+                                                onClose={() => setCheckedQuestions(new Set())}
+                                                onDuplicate={actions.handleBulkDuplicate}
+                                                onAddToLibrary={() => { }}
+                                                onMoveQuestions={() => { }}
+                                                onMoveToNewBlock={actions.handleBulkMoveToNewBlock}
+                                                onHideQuestion={actions.handleBulkHideQuestion}
+                                                onHideBackButton={actions.handleBulkHideBackButton}
+                                                onForceResponse={actions.handleBulkForceResponse}
+                                                showForceResponse={true}
+                                                onUnforceResponse={() => actions.handleBulkForceResponse()}
+                                                showUnforceResponse={true}
+                                                onDelete={actions.handleBulkDelete}
+                                            />
+                                        ) : selectedBlock ? (
+                                            <BlockSidebar
+                                                block={selectedBlock}
+                                                survey={survey}
+                                                onClose={() => handleSelectBlock(null)}
+                                                onUpdateBlock={actions.handleUpdateBlock}
+                                                isExpanded={isRightSidebarExpanded}
+                                                onToggleExpand={handleToggleRightSidebarExpand}
+                                                onExpandSidebar={handleExpandRightSidebar}
+                                                focusTarget={focusTarget}
+                                                onFocusHandled={handleFocusHandled}
+                                            />
+                                        ) : selectedQuestion ? (
+                                            <RightSidebar
+                                                question={selectedQuestion}
+                                                survey={survey}
+                                                logicIssues={logicIssues}
+                                                activeTab={activeRightSidebarTab}
+                                                onTabChange={setActiveRightSidebarTab}
+                                                focusedLogicSource={focusedLogicSource}
+                                                onUpdateQuestion={actions.handleUpdateQuestion}
+                                                onAddChoice={actions.handleAddChoice}
+                                                onDeleteChoice={actions.handleDeleteChoice}
+                                                isExpanded={isRightSidebarExpanded}
+                                                onToggleExpand={handleToggleRightSidebarExpand}
+                                                onExpandSidebar={handleExpandRightSidebar}
+                                                onSelectBlock={handleSelectBlock}
+                                                onClose={() => handleSelectQuestion(null)}
+                                                toolboxItems={toolboxItems}
+                                                onRequestGeminiHelp={handleRequestGeminiHelp}
+                                            />
+                                        ) : (
+                                            <div className="p-4">
+                                                <SurveyStructureWidget
+                                                    survey={survey}
+                                                    paths={paths}
+                                                    selectedPathId={selectedPathId}
+                                                    onPathChange={setSelectedPathId}
+
+                                                    onPagingModeChange={(mode) => dispatchAndRecord({ type: SurveyActionType.SET_PAGING_MODE, payload: { pagingMode: mode } })}
+                                                    onGlobalAutoAdvanceChange={(enabled) => dispatchAndRecord({ type: SurveyActionType.SET_GLOBAL_AUTOADVANCE, payload: { enabled: enabled } })}
+                                                    logicIssues={logicIssues}
+                                                />
+                                            </div>
+                                        )}
+                                    </ErrorBoundary>
                                 </div>
                             )}
                         </div>
@@ -811,81 +814,83 @@ const App: React.FC = () => {
                                             : '400px'
                                     }}
                                 >
-                                    {isGeminiPanelOpen ? (
-                                        <GeminiPanel
-                                            onClose={() => setIsGeminiPanelOpen(false)}
-                                            survey={survey}
-                                            onAddQuestion={actions.handleAddQuestionFromAI}
-                                            onUpdateQuestion={actions.handleUpdateQuestionFromAI}
-                                            onRepositionQuestion={actions.handleRepositionQuestion}
-                                            onDeleteQuestion={actions.handleDeleteQuestionFromAI}
-                                            onAddBlock={actions.handleAddBlockFromAI}
-                                            onUpdateBlock={actions.handleUpdateBlockFromAI}
-                                            helpTopic={geminiHelpTopic}
-                                            selectedQuestion={selectedQuestion}
-                                            logicIssues={logicIssues}
-                                        />
-                                    ) : showBulkEditPanel ? (
-                                        <BulkEditPanel
-                                            checkedQuestionCount={checkedQuestions.size}
-                                            onClose={() => setCheckedQuestions(new Set())}
-                                            onDuplicate={actions.handleBulkDuplicate}
-                                            onAddToLibrary={() => { }}
-                                            onMoveQuestions={() => { }}
-                                            onMoveToNewBlock={actions.handleBulkMoveToNewBlock}
-                                            onHideQuestion={actions.handleBulkHideQuestion}
-                                            onHideBackButton={actions.handleBulkHideBackButton}
-                                            onForceResponse={actions.handleBulkForceResponse}
-                                            showForceResponse={true}
-                                            onUnforceResponse={() => actions.handleBulkForceResponse()}
-                                            showUnforceResponse={true}
-                                            onDelete={actions.handleBulkDelete}
-                                        />
-                                    ) : selectedBlock ? (
-                                        <BlockSidebar
-                                            block={selectedBlock}
-                                            survey={survey}
-                                            onClose={() => handleSelectBlock(null)}
-                                            onUpdateBlock={actions.handleUpdateBlock}
-                                            isExpanded={isRightSidebarExpanded}
-                                            onToggleExpand={handleToggleRightSidebarExpand}
-                                            onExpandSidebar={handleExpandRightSidebar}
-                                            focusTarget={focusTarget}
-                                            onFocusHandled={handleFocusHandled}
-                                        />
-                                    ) : selectedQuestion ? (
-                                        <RightSidebar
-                                            question={selectedQuestion}
-                                            survey={survey}
-                                            logicIssues={logicIssues}
-                                            activeTab={activeRightSidebarTab}
-                                            onTabChange={setActiveRightSidebarTab}
-                                            focusedLogicSource={focusedLogicSource}
-                                            onUpdateQuestion={actions.handleUpdateQuestion}
-                                            onAddChoice={actions.handleAddChoice}
-                                            onDeleteChoice={actions.handleDeleteChoice}
-                                            isExpanded={isRightSidebarExpanded}
-                                            onToggleExpand={handleToggleRightSidebarExpand}
-                                            onExpandSidebar={handleExpandRightSidebar}
-                                            onSelectBlock={handleSelectBlock}
-                                            onClose={() => handleSelectQuestion(null)}
-                                            toolboxItems={toolboxItems}
-                                            onRequestGeminiHelp={handleRequestGeminiHelp}
-                                        />
-                                    ) : (
-                                        <div className="p-4">
-                                            <SurveyStructureWidget
+                                    <ErrorBoundary fallback={<div className="p-4 text-error">Editor temporarily unavailable</div>}>
+                                        {isGeminiPanelOpen ? (
+                                            <GeminiPanel
+                                                onClose={() => setIsGeminiPanelOpen(false)}
                                                 survey={survey}
-                                                paths={paths}
-                                                selectedPathId={selectedPathId}
-                                                onPathChange={setSelectedPathId}
-
-                                                onPagingModeChange={(mode) => dispatchAndRecord({ type: SurveyActionType.SET_PAGING_MODE, payload: { pagingMode: mode } })}
-                                                onGlobalAutoAdvanceChange={(enabled) => dispatchAndRecord({ type: SurveyActionType.SET_GLOBAL_AUTOADVANCE, payload: { enabled: enabled } })}
+                                                onAddQuestion={actions.handleAddQuestionFromAI}
+                                                onUpdateQuestion={actions.handleUpdateQuestionFromAI}
+                                                onRepositionQuestion={actions.handleRepositionQuestion}
+                                                onDeleteQuestion={actions.handleDeleteQuestionFromAI}
+                                                onAddBlock={actions.handleAddBlockFromAI}
+                                                onUpdateBlock={actions.handleUpdateBlockFromAI}
+                                                helpTopic={geminiHelpTopic}
+                                                selectedQuestion={selectedQuestion}
                                                 logicIssues={logicIssues}
                                             />
-                                        </div>
-                                    )}
+                                        ) : showBulkEditPanel ? (
+                                            <BulkEditPanel
+                                                checkedQuestionCount={checkedQuestions.size}
+                                                onClose={() => setCheckedQuestions(new Set())}
+                                                onDuplicate={actions.handleBulkDuplicate}
+                                                onAddToLibrary={() => { }}
+                                                onMoveQuestions={() => { }}
+                                                onMoveToNewBlock={actions.handleBulkMoveToNewBlock}
+                                                onHideQuestion={actions.handleBulkHideQuestion}
+                                                onHideBackButton={actions.handleBulkHideBackButton}
+                                                onForceResponse={actions.handleBulkForceResponse}
+                                                showForceResponse={true}
+                                                onUnforceResponse={() => actions.handleBulkForceResponse()}
+                                                showUnforceResponse={true}
+                                                onDelete={actions.handleBulkDelete}
+                                            />
+                                        ) : selectedBlock ? (
+                                            <BlockSidebar
+                                                block={selectedBlock}
+                                                survey={survey}
+                                                onClose={() => handleSelectBlock(null)}
+                                                onUpdateBlock={actions.handleUpdateBlock}
+                                                isExpanded={isRightSidebarExpanded}
+                                                onToggleExpand={handleToggleRightSidebarExpand}
+                                                onExpandSidebar={handleExpandRightSidebar}
+                                                focusTarget={focusTarget}
+                                                onFocusHandled={handleFocusHandled}
+                                            />
+                                        ) : selectedQuestion ? (
+                                            <RightSidebar
+                                                question={selectedQuestion}
+                                                survey={survey}
+                                                logicIssues={logicIssues}
+                                                activeTab={activeRightSidebarTab}
+                                                onTabChange={setActiveRightSidebarTab}
+                                                focusedLogicSource={focusedLogicSource}
+                                                onUpdateQuestion={actions.handleUpdateQuestion}
+                                                onAddChoice={actions.handleAddChoice}
+                                                onDeleteChoice={actions.handleDeleteChoice}
+                                                isExpanded={isRightSidebarExpanded}
+                                                onToggleExpand={handleToggleRightSidebarExpand}
+                                                onExpandSidebar={handleExpandRightSidebar}
+                                                onSelectBlock={handleSelectBlock}
+                                                onClose={() => handleSelectQuestion(null)}
+                                                toolboxItems={toolboxItems}
+                                                onRequestGeminiHelp={handleRequestGeminiHelp}
+                                            />
+                                        ) : (
+                                            <div className="p-4">
+                                                <SurveyStructureWidget
+                                                    survey={survey}
+                                                    paths={paths}
+                                                    selectedPathId={selectedPathId}
+                                                    onPathChange={setSelectedPathId}
+
+                                                    onPagingModeChange={(mode) => dispatchAndRecord({ type: SurveyActionType.SET_PAGING_MODE, payload: { pagingMode: mode } })}
+                                                    onGlobalAutoAdvanceChange={(enabled) => dispatchAndRecord({ type: SurveyActionType.SET_GLOBAL_AUTOADVANCE, payload: { enabled: enabled } })}
+                                                    logicIssues={logicIssues}
+                                                />
+                                            </div>
+                                        )}
+                                    </ErrorBoundary>
                                 </div>
                             )}
                         </div>

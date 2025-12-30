@@ -53,8 +53,7 @@ const MultipleChoiceNodeComponent: React.FC<NodeProps<MultipleChoiceNode>> = ({ 
                     ))}
                 </ul>
                 <div style={{ position: 'absolute', bottom: 10, right: 0 }}>
-                    {/* Generic Output Handle for "Otherwise" / "Next" flows */}
-                    <OutputHandle highlighted={data.highlightSourceHandles} />
+                    {/* Generic Output Handle removed per strict choice-only logic */}
                 </div>
             </div>
         </div>

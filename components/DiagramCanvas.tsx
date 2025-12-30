@@ -126,7 +126,14 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
                     const targetQ = questionMap.get(dest);
                     if (targetQ) blockId = questionIdToBlockIdMap.get(targetQ.id);
                 }
-                if (blockId) exclusiveBlockIds.add(blockId);
+                if (blockId) {
+                    const block = survey.blocks.find(b => b.id === blockId);
+                    // Only mark as exclusive if it is NOT a shared module (i.e., has a branch name)
+                    // Shared modules should be accessible by 'next' flow from anywhere.
+                    if (block && block.branchName) {
+                        exclusiveBlockIds.add(blockId);
+                    }
+                }
             };
 
             if (branchingLogic) {
@@ -263,44 +270,97 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
                     }
                 });
 
-                // Otherwise / Fallback
-                // If we have branches, we MUST have a fallback (either explicit or implicit 'next')
-                // UNLESS it is an exhaustive Single Choice question (Radio), where we hide the fallback to keep "connector = choice".
-
-                const isRadio = q.type === QuestionType.Radio;
-                const isExhaustive = isRadio && isBranchingLogicExhaustive(q);
-
-                if (!isExhaustive) {
-                    const fallbackTargetStr = hasConfirmedBranches
-                        ? (isOtherwiseConfirmed ? branchingLogic.otherwiseSkipTo : 'next')
-                        : (isOtherwiseConfirmed ? branchingLogic.otherwiseSkipTo : null);
-
-                    if (fallbackTargetStr) {
-                        const targetId = resolveDestination(fallbackTargetStr, index);
-                        if (targetId) {
-                            const isImplicitNext = fallbackTargetStr === 'next';
-                            // Treat as unconditional skip if we have an explicit otherwise but NO branches
-                            const isUnconditionalSkip = !hasConfirmedBranches && isOtherwiseConfirmed;
-                            // If it's implicit next OR unconditional skip, we treat it visually as a sequence edge (solid)
-                            const isSequenceStyle = isImplicitNext || isUnconditionalSkip;
-
-                            adj[q.id].push(targetId);
-                            (revAdj[targetId] = revAdj[targetId] || []).push(q.id);
-
-                            // Label only if it's a true alternative branch (not implicit next, not unconditional skip)
-                            const label = !isSequenceStyle ? (branchingLogic.otherwisePathName || 'Otherwise') : undefined;
-
-                            edgesDraft.push({
-                                id: `e-${q.id}-fallback-${targetId}`,
-                                source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
-                                label,
-                                type: 'default',
-                                style: isSequenceStyle ? undefined : { strokeDasharray: '5, 5' },
-                                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
-                                data: { edgeType: isSequenceStyle ? 'sequence' : 'branch' }
-                            });
+                // Strict "Fan-Out" Logic:
+                // We must ensure EVERY choice has a path.
+                // 1. Collect all choice IDs that have explicit logic.
+                const handledChoiceIds = new Set<string>();
+                branchingLogic.branches.forEach(b => {
+                    if (b.thenSkipToIsConfirmed) {
+                        const condition = b.conditions.find(c => c.questionId === q.qid && c.isConfirmed);
+                        if (condition && condition.value) {
+                            const choice = q.choices?.find(c => c.text === condition.value);
+                            if (choice) handledChoiceIds.add(choice.id);
                         }
                     }
+                });
+
+                // 2. Determine the "Fallback" target for choices NOT in the set.
+                // Priority: Otherwise -> Next (Implicit)
+                // STRICT DATA SOURCE TRUTH: Only use 'otherwiseSkipTo' if it exists in the JSON.
+                // If it is missing (undefined/null), it means "No Otherwise Path" (likely exhuastive).
+                // However, we still need 'next' as implicit fallthrough for non-exhaustive cases where explicit otherwise is missing?
+                // User said: "Otherwise edge only exists if otherwise skip to exists".
+                // So if otherwiseSkipTo is undefined, we do NOT draw an otherwise edge.
+
+                // Wait, what about "Next"? 
+                // If I have Choice A -> Jump. Choice B -> (Nothing defined).
+                // Is this "Exhaustive"? No.
+                // Does it have "Otherwise"? Maybe defaults to 'next'.
+                // If `otherwiseSkipTo` is undefined, does that mean "Next" or "Nothing"?
+                // In my logic editor update, I set `otherwiseSkipTo = 'next'` if non-exhaustive.
+                // So reliable data should have `otherwiseSkipTo` if it wants a path.
+
+                const fallbackTargetStr = branchingLogic.otherwiseSkipTo;
+                const fallbackTargetId = fallbackTargetStr ? resolveDestination(fallbackTargetStr, index) : null;
+
+                // 3. Draw edges for UNHANDLED choices to the fallback target
+                if (fallbackTargetId && q.choices) {
+                    const isImplicitNext = fallbackTargetStr === 'next';
+                    const isExplicitOtherwise = !isImplicitNext; // Only implicit next gets sequence style now? Or unconditional otherwise too?
+                    // User wants "Flow Customization". If I set "Otherwise -> End", that's a BRANCH.
+                    // So if it's NOT implicit next, it should be a branch style (solid or labeled?)
+                    // The "Otherwise" branch usually implies "Everything else".
+                    // If we fan it out, each edge represents that "Otherwise" path.
+
+                    // Let's stick to: Implicit 'next' = sequence style. Explicit 'Otherwise' = branch style.
+
+                    q.choices.forEach(c => {
+                        if (!handledChoiceIds.has(c.id)) {
+                            adj[q.id].push(fallbackTargetId);
+                            (revAdj[fallbackTargetId] = revAdj[fallbackTargetId] || []).push(q.id);
+
+                            // Label: If explicit otherwise, maybe label "Otherwise"? Or leave blank to reduce clutter?
+                            // User said "without sacrificing flow customization".
+                            // Clutter risk. If 5 lines say "Otherwise", it's messy.
+                            // Decision: No label on individual fan-out lines for otherwise to keep clean,
+                            // unless it's a specific single path.
+                            // BUT, if we don't label, how do we know it's "Otherwise" logic?
+                            // The destination (e.g. End Node) makes it clear it's not normal flow if it deviates.
+
+                            edgesDraft.push({
+                                id: `e-${q.id}-fallback-${c.id}-${fallbackTargetId}`,
+                                source: q.id,
+                                sourceHandle: c.id,
+                                target: fallbackTargetId,
+                                targetHandle: 'input',
+                                label: isExplicitOtherwise && branchingLogic.otherwisePathName ? branchingLogic.otherwisePathName : undefined,
+                                type: 'default',
+                                style: isExplicitOtherwise ? { stroke: 'var(--diagram-edge-def)', strokeDasharray: '5, 5' } : undefined, // Dashed for explicit otherwise? Or solid?
+                                // Let's keep consistent: "Otherwise" was dashed in my previous code for general.
+                                // But "Skip" is dashed. "Branch" is solid color.
+                                // Let's use dashed for "Otherwise" fan-out to distinguish from explicit "Branch".
+                                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                                data: { edgeType: isExplicitOtherwise ? 'branch' : 'sequence' }
+                            });
+                        }
+                    });
+                } else if (fallbackTargetId && !hasChoices) {
+                    // Non-choice questions (TextEntry) with "Otherwise" logic (which acts as main logic)
+                    const isImplicitNext = fallbackTargetStr === 'next';
+                    const isExplicitOtherwise = !isImplicitNext;
+
+                    edgesDraft.push({
+                        id: `e-${q.id}-fallback-${fallbackTargetId}`,
+                        source: q.id,
+                        sourceHandle: 'output',
+                        target: fallbackTargetId,
+                        targetHandle: 'input',
+                        label: isExplicitOtherwise && branchingLogic.otherwisePathName ? branchingLogic.otherwisePathName : undefined,
+                        type: 'default',
+                        style: isExplicitOtherwise ? { stroke: 'var(--diagram-edge-def)', strokeDasharray: '5, 5' } : undefined,
+                        markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
+                        data: { edgeType: isExplicitOtherwise ? 'branch' : 'sequence' }
+                    });
                 }
             }
 
@@ -349,7 +409,8 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
                 }
             }
 
-            // --- SEQUENCE / FALLTHROUGH ---
+
+            // --- SEQUENCE / FALLTHROUGH (NO LOGIC) ---
             if (!logicHandled) {
                 const targetId = resolveDestination('next', index);
                 if (targetId) {
@@ -357,6 +418,7 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
                     (revAdj[targetId] = revAdj[targetId] || []).push(q.id);
 
                     if (hasChoices) {
+                        // FAN OUT for simple sequence
                         q.choices!.forEach(c => {
                             edgesDraft.push({
                                 id: `e-${q.id}-${c.id}-seq-${targetId}`,
@@ -367,6 +429,7 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
                             });
                         });
                     } else {
+                        // Text Entry / Description (Keep Structural/Generic output)
                         edgesDraft.push({
                             id: `e-${q.id}-seq-${targetId}`,
                             source: q.id, sourceHandle: 'output', target: targetId, targetHandle: 'input',
@@ -428,65 +491,21 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
         // For loops, we break them (ignore back edges). We haven't identified back edges here yet.
         // Let's treat it as a BFS propagation. If a node is visited again with NEW info, re-queue it.
 
-        const reachUpdateQueue = [...initialQueue];
-        const MAX_ITERATIONS = allQuestions.length * 5; // Safety break
-        let iter = 0;
+        // Logic replaced with Strict Block Property Enforcement below
 
-        while (reachUpdateQueue.length > 0 && iter++ < MAX_ITERATIONS) {
-            const u = reachUpdateQueue.shift()!;
-            const currentReach = nodeReachability.get(u)!;
-            if (currentReach.size === 0) continue; // Should not happen if seeded correctly
-
-            const uNeighbors = adj[u] || [];
-            uNeighbors.forEach(v => {
-                const nextQ = questionMap.get(v);
-                if (!nextQ) return; // 'end-node' or invalid
-
-                const targetBlockId = questionIdToBlockIdMap.get(v);
-                const targetBranchInfo = targetBlockId ? blockToBranchId.get(targetBlockId) : undefined;
-
-                let nextReachToAdd: Set<string>;
-
-                if (targetBranchInfo) {
-                    // Entering a specific branch block -> Flow narrows to that branch
-                    nextReachToAdd = new Set([targetBranchInfo]);
-                } else {
-                    // Entering a shared/neutral block -> Flow carries over
-                    nextReachToAdd = currentReach;
-                }
-
-                const vReach = nodeReachability.get(v)!;
-                let changed = false;
-                nextReachToAdd.forEach(lane => {
-                    if (!vReach.has(lane)) {
-                        vReach.add(lane);
-                        changed = true;
-                    }
-                });
-
-                if (changed) {
-                    reachUpdateQueue.push(v);
-                }
-            });
-        }
-
-        // Determine final Lane Assignment based on Reachability
+        // Determine final Lane Assignment based on Strict Block Properties (User Request)
+        // If a block does NOT have a branch name, it is forced to 'shared'.
         const nodeLanes = new Map<string, string>(); // qId -> laneId
 
         allQuestions.forEach(q => {
-            const reach = nodeReachability.get(q.id);
-            if (!reach || reach.size === 0) {
-                // Unreachable? Default to block property or shared
-                const blockId = questionIdToBlockIdMap.get(q.id);
-                const branch = blockId ? blockToBranchId.get(blockId) : undefined;
-                nodeLanes.set(q.id, branch || 'shared');
-            } else if (reach.size > 1) {
-                // Convergent -> Shared
-                nodeLanes.set(q.id, 'shared');
+            const blockId = questionIdToBlockIdMap.get(q.id);
+            const branchName = blockId ? blockToBranchId.get(blockId) : undefined;
+
+            // Strict enforcement:
+            if (branchName) {
+                nodeLanes.set(q.id, branchName);
             } else {
-                // Single source logic
-                const source = Array.from(reach)[0];
-                nodeLanes.set(q.id, source);
+                nodeLanes.set(q.id, 'shared');
             }
         });
 
@@ -586,7 +605,7 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
                     data: {
                         variableName: q.qid, question: q.text,
                         subtype: q.type === QuestionType.Checkbox ? 'checkbox' : 'radio',
-                        options: q.choices?.map(c => ({ id: c.id, text: parseChoice(c.text).label, variableName: parseChoice(c.text).variable })) || []
+                        options: q.choices?.map(c => ({ id: c.id, text: parseChoice(c.text).label, variableName: parseChoice(c.text).variable })) || [],
                     },
                     width: NODE_WIDTH, height: nodeHeights.get(q.id),
                 });

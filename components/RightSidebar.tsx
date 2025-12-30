@@ -48,6 +48,10 @@ export const RightSidebar: React.FC<{
         return baseTabs;
     }, [question.type]);
 
+    if (question.text.includes('CRASH_SIDEBAR')) {
+        throw new Error('Simulated Sidebar Crash');
+    }
+
     return (
         <aside className="w-full h-full bg-surface-container border-l border-outline flex flex-col">
             <header className="p-4 border-b border-outline flex items-center justify-between flex-shrink-0">

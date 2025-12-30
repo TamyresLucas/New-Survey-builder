@@ -1,7 +1,7 @@
 
-
 import React, { memo, useMemo } from 'react';
 import type { Survey, Question, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition, LogicIssue, Block } from '../../types';
+import { QuestionType } from '../../types';
 import { generateId, isBranchingLogicExhaustive } from '../../utils';
 import {
     XIcon, PlusIcon,
@@ -42,6 +42,7 @@ export const BranchingLogicEditor: React.FC<{
             return survey.blocks.find(b => b.questions.some(q => q.id === question.id))?.id || null;
         }, [survey.blocks, question.id]);
 
+
         React.useEffect(() => {
             if (focusedLogicSource) {
                 // Small timeout to ensure DOM is ready
@@ -56,6 +57,8 @@ export const BranchingLogicEditor: React.FC<{
             }
         }, [focusedLogicSource]);
 
+
+
         const handleUpdate = (updates: Partial<Question>) => {
             onUpdate(updates);
         };
@@ -64,7 +67,8 @@ export const BranchingLogicEditor: React.FC<{
             const newBranch: BranchingLogicBranch = {
                 id: generateId('branch'),
                 operator: 'AND',
-                conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
+                // FIX: Pre-fill questionId with the current question ID
+                conditions: [{ id: generateId('cond'), questionId: question.qid, operator: 'equals', value: '', isConfirmed: false }],
                 thenSkipTo: '',
                 thenSkipToIsConfirmed: false,
             };
@@ -73,51 +77,123 @@ export const BranchingLogicEditor: React.FC<{
                 otherwiseSkipTo: 'next',
                 otherwiseIsConfirmed: true,
             };
-            onUpdate({ branchingLogic: newLogic });
+            handleUpdate({ branchingLogic: newLogic });
             onAddLogic();
         };
 
+        if (!question) return null;
+
         if (!branchingLogic || branchingLogic.branches.length === 0) {
             return (
-                <div className="py-6 first:pt-0">
-                    <h3 className="text-sm font-medium text-on-surface mb-1">Branching Logic</h3>
-                    <p className="text-xs text-on-surface-variant mb-3">Redirect respondents to different blocks, sections, or survey paths within this survey based on their answers.</p>
-                    <Button variant="tertiary-primary" size="large" onClick={handleAddBranchingLogic}>
-                        <PlusIcon className="text-xl mr-2" /> Add branch
-                    </Button>
+                <div className="h-full flex flex-col bg-surface-50">
+
+                    <div className="flex-none px-6 py-4 border-b border-surface-200 bg-white">
+                        <h3 className="text-sm font-medium text-on-surface mb-1">Branching Logic</h3>
+                        <p className="text-xs text-on-surface-variant mb-3">Redirect respondents to different blocks, sections, or survey paths within this survey based on their answers.</p>
+                        <Button variant="tertiary-primary" size="large" onClick={handleAddBranchingLogic}>
+                            <PlusIcon className="text-xl mr-2" /> Add branch
+                        </Button>
+                    </div>
                 </div>
             );
         }
+
+        const calculateSmartDefault = (): string => {
+            if (!survey.blocks || !currentBlockId) return 'end';
+            const currentBlockIndex = survey.blocks.findIndex(b => b.id === currentBlockId);
+            if (currentBlockIndex === -1) return 'end';
+
+            for (let i = currentBlockIndex + 1; i < survey.blocks.length; i++) {
+                const block = survey.blocks[i];
+                // "Shared Module" check: No branch name (and implicitly not exclusive, per recent change)
+                if (!block.branchName) {
+                    return `block:${block.id}`;
+                }
+            }
+            return 'end';
+        };
+
+        const processLogicUpdate = (newBranches: BranchingLogicBranch[]) => {
+            // Priority 2: Non-choice questions (TextEntry, etc) cannot be exhaustive.
+            const isChoiceQuestion = question.type === QuestionType.Radio ||
+                question.type === QuestionType.Checkbox ||
+                question.type === QuestionType.ChoiceGrid ||
+                question.type === QuestionType.ImageSelector ||
+                question.type === QuestionType.DropDownList;
+
+            if (!isChoiceQuestion) {
+                const simpleLogic: BranchingLogic = {
+                    ...branchingLogic,
+                    branches: newBranches,
+                    isExhaustive: false,
+                };
+
+                // Only confirm if we have a valid target
+                if (!simpleLogic.otherwiseSkipTo) {
+                    const smartDefault = calculateSmartDefault();
+                    simpleLogic.otherwiseSkipTo = smartDefault || undefined;
+                    // Only mark confirmed if we actually have a destination
+                    simpleLogic.otherwiseIsConfirmed = !!smartDefault;
+                }
+
+                return simpleLogic;
+            }
+
+            // Calculate exhaustive state dynamically
+            const updatedLogicState = { ...branchingLogic, branches: newBranches };
+
+            const tempQuestion = {
+                ...question,
+                draftBranchingLogic: updatedLogicState,
+                branchingLogic: updatedLogicState
+            };
+            const isExhaustive = isBranchingLogicExhaustive(tempQuestion);
+
+            const newLogic: BranchingLogic = {
+                ...branchingLogic, // Keep existing fields (like otherwiseSkipTo if it exists)
+                branches: newBranches,
+                isExhaustive
+            };
+
+            if (isExhaustive) {
+                // STRICT RULE: If exhaustive, remove otherwiseSkipTo
+                delete newLogic.otherwiseSkipTo;
+                delete newLogic.otherwiseIsConfirmed;
+                delete newLogic.otherwisePathName;
+            } else {
+                if (!newLogic.otherwiseSkipTo) {
+                    newLogic.otherwiseSkipTo = calculateSmartDefault();
+                    newLogic.otherwiseIsConfirmed = true;
+                }
+            }
+
+            return newLogic;
+        };
 
         const handleUpdateBranch = (branchId: string, updates: Partial<BranchingLogicBranch>) => {
             const newBranches = branchingLogic.branches.map(b =>
                 b.id === branchId ? { ...b, ...updates } : b
             );
-            handleUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
+            handleUpdate({ branchingLogic: processLogicUpdate(newBranches) });
         };
-
-
 
         const handleAddBranch = () => {
             const newBranch: BranchingLogicBranch = {
                 id: generateId('branch'),
                 operator: 'AND',
+                // FIX: Pre-fill questionId with the current question ID
                 conditions: [{
                     id: generateId('cond'),
-                    questionId: '',
-                    operator: '',
+                    questionId: question.qid,
+                    operator: 'equals', // Default to equals for better UX
                     value: '',
                     isConfirmed: false
                 }],
                 thenSkipTo: '',
                 thenSkipToIsConfirmed: false
             };
-            handleUpdate({
-                branchingLogic: {
-                    ...branchingLogic,
-                    branches: [...branchingLogic.branches, newBranch]
-                }
-            });
+            // Use processLogicUpdate here too to ensure state consistency
+            handleUpdate({ branchingLogic: processLogicUpdate([...branchingLogic.branches, newBranch]) });
         };
 
         const handleRemoveBranch = (branchId: string) => {
@@ -125,14 +201,17 @@ export const BranchingLogicEditor: React.FC<{
             if (newBranches.length === 0) {
                 handleUpdate({ branchingLogic: undefined });
             } else {
-                handleUpdate({ branchingLogic: { ...branchingLogic, branches: newBranches } });
+                handleUpdate({ branchingLogic: processLogicUpdate(newBranches) });
             }
         };
 
-        const isOtherwiseExhaustive = isBranchingLogicExhaustive(question);
+        // Use the persisted tag if available, otherwise fallback to runtime check (for legacy data)
+        const isOtherwiseExhaustive = branchingLogic?.isExhaustive ?? isBranchingLogicExhaustive(question);
+
 
         return (
             <div>
+
                 <div className="mb-4">
                     <h3 className="text-sm font-medium text-on-surface mb-1">Branching Logic</h3>
                     <p className="text-xs text-on-surface-variant">

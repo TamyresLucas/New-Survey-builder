@@ -162,18 +162,25 @@ export const questionReducer = (state: Survey, action: Action): Survey => {
                 }
                 delete finalUpdates.skipLogic;
             }
+
+
+
             if ('branchingLogic' in finalUpdates) {
                 if (finalUpdates.branchingLogic === undefined) {
                     delete questionInState.branchingLogic;
                     delete questionInState.draftBranchingLogic;
                 } else {
                     questionInState.draftBranchingLogic = finalUpdates.branchingLogic;
-                    const allConfirmed = questionInState.draftBranchingLogic.otherwiseIsConfirmed === true &&
-                        questionInState.draftBranchingLogic.branches?.every((b: any) =>
-                            b.thenSkipToIsConfirmed === true &&
-                            b.conditions.every((c: any) => c.isConfirmed === true)
-                        );
-                    if (allConfirmed) {
+
+                    const isOtherwiseReqSatisfied = questionInState.draftBranchingLogic.isExhaustive === true ||
+                        questionInState.draftBranchingLogic.otherwiseIsConfirmed === true;
+
+                    const allConfirmed = questionInState.draftBranchingLogic.branches?.every((b: any) =>
+                        b.thenSkipToIsConfirmed === true &&
+                        b.conditions.every((c: any) => c.isConfirmed === true)
+                    );
+
+                    if (allConfirmed && isOtherwiseReqSatisfied) {
                         questionInState.branchingLogic = questionInState.draftBranchingLogic;
                         delete questionInState.draftBranchingLogic;
                     }

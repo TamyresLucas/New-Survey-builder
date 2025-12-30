@@ -160,9 +160,10 @@ export interface BranchingLogicBranch {
 
 export interface BranchingLogic {
   branches: BranchingLogicBranch[];
-  otherwiseSkipTo: string; // 'next' | question ID (internal id) | 'end'
+  otherwiseSkipTo?: string; // 'next' | question ID (internal id) | 'end'
   otherwiseIsConfirmed?: boolean;
   otherwisePathName?: string;
+  isExhaustive?: boolean;
 }
 
 export interface ActionLogic {

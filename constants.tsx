@@ -100,6 +100,7 @@ export const initialSurveyData: Survey = {
       title: 'Purchase Details',
       pageName: 'Page 2',
       branchName: 'Purchaser Path',
+      continueTo: 'block:block4',
       autoAdvance: false,
       questions: [
         {
@@ -152,11 +153,6 @@ export const initialSurveyData: Survey = {
           qid: 'Q4',
           text: 'We are sorry to hear that. Can you tell us why?',
           type: QuestionType.TextEntry,
-          branchingLogic: {
-            branches: [],
-            otherwiseSkipTo: 'block:block4',
-            otherwiseIsConfirmed: true,
-          },
         },
       ],
       bid: 'BL2'
@@ -166,6 +162,7 @@ export const initialSurveyData: Survey = {
       title: 'Feedback for Non-Purchasers',
       pageName: 'Page 3',
       branchName: 'Non-Purchaser Path',
+      continueTo: 'block:block4',
       autoAdvance: false,
       questions: [
         {
@@ -192,7 +189,6 @@ export const initialSurveyData: Survey = {
           qid: 'Q6',
           text: 'What could we do to encourage you to visit?',
           type: QuestionType.TextEntry,
-
         },
       ],
       bid: 'BL3'

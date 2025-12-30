@@ -199,6 +199,8 @@ export const BranchingLogicEditor: React.FC<{
         const handleRemoveBranch = (branchId: string) => {
             const newBranches = branchingLogic.branches.filter(b => b.id !== branchId);
             if (newBranches.length === 0) {
+                // FIX: If removing the last branch, remove the entire branching logic.
+                // Natural fallthrough + block.continueTo will handle routing.
                 handleUpdate({ branchingLogic: undefined });
             } else {
                 handleUpdate({ branchingLogic: processLogicUpdate(newBranches) });

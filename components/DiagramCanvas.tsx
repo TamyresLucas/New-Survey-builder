@@ -43,6 +43,15 @@ const nodeTypes: NodeTypes = {
 const NODE_WIDTH = 320;
 const X_SPACING = 450;
 const VERTICAL_GAP = 80;
+const SWIMLANE_SPACING = 400;
+
+interface BranchNode {
+    questionId: string;
+    children: BranchNode[];
+    connectorIndex: number;
+    totalConnectors: number;
+    descendantCount: number;
+}
 
 
 export interface DiagramCanvasHandle {
@@ -262,8 +271,8 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
                                 source: q.id, sourceHandle, target: targetId, targetHandle: 'input',
                                 label: branch.pathName || (choice ? parseChoice(choice.text).variable : 'Branch'),
                                 type: 'default',
-                                style: { strokeWidth: 2, stroke: 'var(--semantic-pri)' },
-                                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--semantic-pri)' },
+                                style: { strokeDasharray: '5, 5' },
+                                markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--diagram-edge-def)' },
                                 data: { edgeType: 'branch', logicType: 'branch' }
                             });
                         }
@@ -443,74 +452,7 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
             }
         });
 
-        // --- 4. Reachability & Swimlane Convergence Analysis ---
-        // We traverse to determine which branches reach each node
-        const nodeReachability = new Map<string, Set<string>>(); // qId -> Set<laneId>
-        const initialQueue: string[] = [];
-
-        // Initialize roots
-        // Start Node is virtual, but its targets are the entry points.
-        // We can treat questions with in-degree 0 (excluding structural) as roots.
-        // Better: Start with 'start-node' concept. The first question usually.
-        // Actually, we can just iterate top-down using our topological queue logic later, 
-        // OR simply do a BFS propagation now with the `adj` list we built.
-
-        // Initialize all to empty sets
-        allQuestions.forEach(q => nodeReachability.set(q.id, new Set()));
-
-        // Seed roots: Questions with no internal incomings (revAdj empty or from Start)
-        // Actually, let's look at `allQuestions[0]` if exists.
-        if (allQuestions.length > 0) {
-            // The first question is reachable from "shared" (Start)
-            const firstQ = allQuestions[0];
-            nodeReachability.get(firstQ.id)?.add('shared');
-            initialQueue.push(firstQ.id);
-        }
-
-        const reachQueue = [...initialQueue];
-        const processedForReach = new Set<string>(initialQueue); // Simple BFS visitation check might not be enough for DAG prop?
-        // DAG propagation requires processing parents before children.
-        // Let's use the inDegree counts to drive a topological sort propagation.
-
-        const reachInDegrees: Record<string, number> = {};
-        allQuestions.forEach(q => reachInDegrees[q.id] = revAdj[q.id]?.length || 0);
-        const topoQueue = allQuestions.filter(q => (reachInDegrees[q.id] || 0) === 0).map(q => q.id);
-
-        // Ensure first question is in queue if not already
-        if (allQuestions.length > 0 && reachInDegrees[allQuestions[0].id] > 0) {
-            // It has incoming edges (loops?), but conceptually it's a root.
-            // Cyclic graphs break topo sort. Survey flows *can* loop (randomization/loops).
-            // For layout, we often ignore back-edges.
-            // Fallback: Use standard BFS with Set merging which stabilizes? 
-            // Or just stick to the simple "longest path" topo queue logic we used for columns.
-            // Let's reuse the logic structure we're about to use for columns, but for reachability.
-        }
-
-        // Let's do a robust propagation (iterative calculation until stable? or just topological)
-        // Given surveys are mostly DAGs, Topo is fine.
-        // For loops, we break them (ignore back edges). We haven't identified back edges here yet.
-        // Let's treat it as a BFS propagation. If a node is visited again with NEW info, re-queue it.
-
-        // Logic replaced with Strict Block Property Enforcement below
-
-        // Determine final Lane Assignment based on Strict Block Properties (User Request)
-        // If a block does NOT have a branch name, it is forced to 'shared'.
-        const nodeLanes = new Map<string, string>(); // qId -> laneId
-
-        allQuestions.forEach(q => {
-            const blockId = questionIdToBlockIdMap.get(q.id);
-            const branchName = blockId ? blockToBranchId.get(blockId) : undefined;
-
-            // Strict enforcement:
-            if (branchName) {
-                nodeLanes.set(q.id, branchName);
-            } else {
-                nodeLanes.set(q.id, 'shared');
-            }
-        });
-
-
-        // --- 5. Compute Columns (Longest Path in DAG) ---
+        // --- 4. Compute Columns (Longest Path in DAG) ---
         const longestPath = new Map<string, number>();
         const inDegrees: Record<string, number> = {};
         allQuestions.forEach(q => {
@@ -518,9 +460,6 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
             inDegrees[q.id] = revAdj[q.id]?.length || 0;
         });
 
-        // "Start Node" virtual handling
-        // If we have questions with in-degree 0, they are effectively roots.
-        // We initialize them at col 0. 
         const queue: string[] = allQuestions.filter(q => (inDegrees[q.id] || 0) === 0).map(q => q.id);
 
         while (queue.length > 0) {
@@ -537,21 +476,102 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
             });
         }
 
-        // --- 6. Swimlane Indexing ---
-        // Map unique lanes to Y-indices
-        const distinctLanes = Array.from(new Set(nodeLanes.values())).sort();
-        // Ensure 'shared' is always 0
-        const laneIndexMap = new Map<string, number>();
-        laneIndexMap.set('shared', 0);
-        let laneCounter = 1;
-        distinctLanes.forEach(l => {
-            if (l !== 'shared') laneIndexMap.set(l, laneCounter++);
+
+        // --- 5. Swimlane Assignment (Full Reachability Propagation) ---
+        // --- 5. Swimlane Assignment (Full Reachability Propagation) ---
+        // SWIMLANE_SPACING is defined at top level
+
+
+        // Step 1: Build a map of blockId -> branchName from survey data
+        const blockBranchNames = new Map<string, string>();
+        survey.blocks.forEach(b => {
+            if (b.branchName) {
+                blockBranchNames.set(b.id, b.branchName);
+            }
         });
 
-        // --- 7. Final Positioning (X/Y) ---
+        // Step 2: For each node, collect ALL branch names it's reachable from
+        const nodeReachableFromBranches = new Map<string, Set<string>>();
+
+        // Initialize: assign each node's initial branch based on its block
+        allQuestions.forEach(q => {
+            const blockId = questionIdToBlockIdMap.get(q.id);
+            const branchName = blockId ? blockBranchNames.get(blockId) : undefined;
+            // 'shared' implies it's in a block without a branch name (or start/convergence)
+            nodeReachableFromBranches.set(q.id, new Set(branchName ? [branchName] : ['shared']));
+        });
+
+        // Propagate: trace forward from branching points to mark reachability
+        const propagateQueue = allQuestions.map(q => q.id);
+
+        // Multiple passes to ensure full propagation (depth)
+        for (let pass = 0; pass < 3; pass++) {
+            propagateQueue.forEach(sourceId => {
+                const sourceBranches = nodeReachableFromBranches.get(sourceId);
+                if (!sourceBranches) return;
+
+                (adj[sourceId] || []).forEach(targetId => {
+                    if (targetId === 'end-node') return;
+                    const targetBranches = nodeReachableFromBranches.get(targetId);
+                    if (!targetBranches) return;
+
+                    // Merge source's branches into target's reachability
+                    sourceBranches.forEach(branch => targetBranches.add(branch));
+                });
+            });
+        }
+
+        // Step 3: Determine final swimlane for each node
+        const nodeSwimlane = new Map<string, string>();
+        const uniqueBranchNames = new Set<string>();
+
+        nodeReachableFromBranches.forEach((branches, nodeId) => {
+            branches.forEach(b => { if (b !== 'shared') uniqueBranchNames.add(b); });
+
+            // If reachable from multiple branches OR marked as shared, it's shared
+            const nonSharedBranches = Array.from(branches).filter(b => b !== 'shared');
+            if (nonSharedBranches.length > 1 || (nonSharedBranches.length === 0 && branches.has('shared'))) {
+                nodeSwimlane.set(nodeId, 'shared');
+            } else if (nonSharedBranches.length === 1) {
+                nodeSwimlane.set(nodeId, nonSharedBranches[0]);
+            } else {
+                nodeSwimlane.set(nodeId, 'shared');
+            }
+        });
+
+        // Step 4: Calculate Y offset for each swimlane
+        const swimlaneYOffset = new Map<string, number>();
+        swimlaneYOffset.set('shared', 0); // Center
+
+        // Sort branch names based on the order of blocks they first appear in,
+        // rather than alphabetical order. This ensures "Purchaser" (Block 2) comes before
+        // "Non-Purchaser" (Block 3) if that is the survey structure.
+        const branchOrder = new Map<string, number>();
+        survey.blocks.forEach((b, i) => {
+            if (b.branchName && !branchOrder.has(b.branchName)) {
+                branchOrder.set(b.branchName, i);
+            }
+        });
+
+        const sortedBranchNames = Array.from(uniqueBranchNames).sort((a, b) => {
+            return (branchOrder.get(a) ?? Infinity) - (branchOrder.get(b) ?? Infinity);
+        });
+
+        sortedBranchNames.forEach((branchName, index) => {
+            // Distribute branches above and below center
+            // index 0 -> -400 (Above)
+            // index 1 -> +400 (Below)
+            // index 2 -> -800 ...
+            const offset = index % 2 === 0
+                ? -SWIMLANE_SPACING * (Math.floor(index / 2) + 1)
+                : SWIMLANE_SPACING * (Math.floor(index / 2) + 1);
+            swimlaneYOffset.set(branchName, offset);
+        });
+
+        // --- 6. Final Positioning (X/Y) ---
         const flowNodes: DiagramNode[] = [];
-        const LANE_HEIGHT = 200; // Vertical separation between lanes override
         const nodeHeights = new Map<string, number>();
+        const allQuestionsOrder = new Map<string, number>(allQuestions.map((q, i) => [q.id, i])); // For sorting within lane
 
         allQuestions.forEach(q => {
             let h = 120;
@@ -561,61 +581,97 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
             nodeHeights.set(q.id, h);
         });
 
-        // Start Node Position
+        // Start Node
         const startNode: StartNode = {
             id: 'start-node',
             type: 'start',
             position: { x: -300, y: 0 },
             data: { label: 'Start of Survey' },
-            width: 180,
-            height: 60,
+            width: 180, height: 60,
         };
         flowNodes.push(startNode);
 
-        // Questions
+        // Compute Columns map first to iterate easily
+        const columns = new Map<number, string[]>();
         allQuestions.forEach(q => {
             const col = longestPath.get(q.id) || 0;
-            const laneId = nodeLanes.get(q.id) || 'shared';
-            const laneIdx = laneIndexMap.get(laneId) || 0;
+            if (!columns.has(col)) columns.set(col, []);
+            columns.get(col)!.push(q.id);
+        });
 
-            // X = column * spacing
-            // Y = lane * height + offset?
-            // To prevent overlap within same lane at same column (if DAG allows parallel nodes in same lane),
-            // we might need "local rows". But for survey flows, usually simple sequential within lane.
-            // If multiple nodes have same (Lane, Col), we stack them locally?
-            // Simplification: DAG usually resolves X separation.
+        // Iterate Columns and Position Groups
+        columns.forEach((columnNodes, colIndex) => {
+            // Group nodes by swimlane within this column
+            const swimlaneGroups = new Map<string, string[]>();
 
-            const x = col * X_SPACING;
-            const y = laneIdx * (LANE_HEIGHT + 100); // Simple lane stacking
+            columnNodes.forEach(qId => {
+                const lane = nodeSwimlane.get(qId) || 'shared';
+                if (!swimlaneGroups.has(lane)) {
+                    swimlaneGroups.set(lane, []);
+                }
+                swimlaneGroups.get(lane)!.push(qId);
+            });
 
-            // Adjust y slightly if multiple nodes in same (lane, col)?
-            // For now, raw lane y.
+            // Position each swimlane group
+            swimlaneGroups.forEach((nodesInLane, laneName) => {
+                const laneYOffset = swimlaneYOffset.get(laneName) || 0;
 
-            const position = { x, y };
-
-            // Push Node
-            if (q.type === QuestionType.Description) {
-                flowNodes.push({
-                    id: q.id, type: 'description_node', position,
-                    data: { question: q.text }, width: NODE_WIDTH, height: nodeHeights.get(q.id),
+                // Sort nodes within lane by their original order (preserve sequential flow logic visual)
+                const sortedNodes = nodesInLane.sort((a, b) => {
+                    const orderA = allQuestionsOrder.get(a) ?? 0;
+                    const orderB = allQuestionsOrder.get(b) ?? 0;
+                    return orderA - orderB;
                 });
-            } else if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid) {
-                flowNodes.push({
-                    id: q.id, type: 'multiple_choice', position,
-                    data: {
-                        variableName: q.qid, question: q.text,
-                        subtype: q.type === QuestionType.Checkbox ? 'checkbox' : 'radio',
-                        options: q.choices?.map(c => ({ id: c.id, text: parseChoice(c.text).label, variableName: parseChoice(c.text).variable })) || [],
-                    },
-                    width: NODE_WIDTH, height: nodeHeights.get(q.id),
+
+                // Calculate total height of nodes in this lane group
+                const totalHeight = sortedNodes.reduce(
+                    (sum, qId) => sum + (nodeHeights.get(qId) || 0), 0
+                ) + Math.max(0, sortedNodes.length - 1) * VERTICAL_GAP;
+
+                // Center the group around the lane's Y offset
+                let currentY = laneYOffset - totalHeight / 2;
+
+                sortedNodes.forEach(qId => {
+                    const height = nodeHeights.get(qId) || 0;
+                    const x = colIndex * X_SPACING;
+                    // Center the node itself at the split point
+                    // Note: 'position' in ReactFlow is usually top-left. 
+                    // But if we want 'currentY' to be top, that's fine.
+                    // Let's treat currentY as top.
+                    const y = currentY;
+
+                    // Push Node to Final List
+                    // We need to fetch the detailed question object again or store it.
+                    const q = questionMap.get(qId);
+                    if (q) {
+                        const position = { x, y };
+                        if (q.type === QuestionType.Description) {
+                            flowNodes.push({
+                                id: q.id, type: 'description_node', position,
+                                data: { question: q.text }, width: NODE_WIDTH, height: height,
+                            });
+                        } else if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid) {
+                            flowNodes.push({
+                                id: q.id, type: 'multiple_choice', position,
+                                data: {
+                                    variableName: q.qid, question: q.text,
+                                    subtype: q.type === QuestionType.Checkbox ? 'checkbox' : 'radio',
+                                    options: q.choices?.map(c => ({ id: c.id, text: parseChoice(c.text).label, variableName: parseChoice(c.text).variable })) || [],
+                                },
+                                width: NODE_WIDTH, height: height,
+                            });
+                        } else {
+                            flowNodes.push({
+                                id: q.id, type: 'text_entry', position,
+                                data: { variableName: q.qid, question: q.text },
+                                width: NODE_WIDTH, height: height,
+                            });
+                        }
+                    }
+
+                    currentY += height + VERTICAL_GAP;
                 });
-            } else {
-                flowNodes.push({
-                    id: q.id, type: 'text_entry', position,
-                    data: { variableName: q.qid, question: q.text },
-                    width: NODE_WIDTH, height: nodeHeights.get(q.id),
-                });
-            }
+            });
         });
 
         // Connect Start Node
@@ -634,7 +690,7 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
         const endNode: EndNode = {
             id: 'end-node',
             type: 'end',
-            position: { x: (maxCol + 1) * X_SPACING, y: 0 }, // Place on shared lane?
+            position: { x: (maxCol + 1) * X_SPACING, y: swimlaneYOffset.get('shared') || 0 }, // Place on shared lane
             data: { label: 'End of Survey' },
             width: 180, height: 60
         };
@@ -677,6 +733,11 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
             return {
                 ...e,
                 selected: isSelected,
+                style: {
+                    ...e.style,
+                    stroke: isSelected ? 'var(--semantic-pri)' : 'var(--diagram-edge-def)',
+                    strokeWidth: isSelected ? 2 : 1,
+                },
                 markerEnd: {
                     type: MarkerType.ArrowClosed,
                     color: isSelected ? 'var(--semantic-pri)' : 'var(--diagram-edge-def)'

@@ -199,25 +199,15 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
                     if (target === 'next' || target === 'end' || !target) return;
 
                     if (target.startsWith('block:')) {
-                        const blockId = target.substring(6);
-                        const targetBlockIndex = survey.blocks.findIndex(b => b.id === blockId);
-                        if (targetBlockIndex === -1) {
-                            issues.push({
-                                questionId: question.id,
-                                type: 'skip',
-                                message: `The destination block no longer exists.`,
-                                sourceId,
-                                field: 'skipTo',
-                            });
-                        } else if (targetBlockIndex < currentBlockIndex) {
-                            issues.push({
-                                questionId: question.id,
-                                type: 'skip',
-                                message: `Skipping backward to a previous block can cause loops.`,
-                                sourceId,
-                                field: 'skipTo',
-                            });
-                        }
+                        // FIX: Skip Logic should NEVER target a different block
+                        issues.push({
+                            questionId: question.id,
+                            type: 'skip',
+                            message: `Skip Logic cannot route to a different block. Use Branching Logic or block.continueTo for cross-block routing.`,
+                            sourceId,
+                            field: 'skipTo',
+                        });
+                        return;
                     } else {
                         const targetQuestion = byId.get(target);
                         if (!targetQuestion) {
@@ -230,7 +220,18 @@ export const validateSurveyLogic = (survey: Survey): LogicIssue[] => {
                             });
                         } else {
                             const targetQuestionIndex = byIndex.get(targetQuestion.id)!;
-                            if (targetQuestionIndex <= currentQuestionIndex) {
+                            const targetBlockIndex = blockOfQuestionMap.get(targetQuestion.id);
+
+                            // FIX: Validate that target question is in the same block
+                            if (targetBlockIndex !== undefined && targetBlockIndex !== currentBlockIndex) {
+                                issues.push({
+                                    questionId: question.id,
+                                    type: 'skip',
+                                    message: `Skip Logic can only route within the same block. ${targetQuestion.qid} is in a different block.`,
+                                    sourceId,
+                                    field: 'skipTo',
+                                });
+                            } else if (targetQuestionIndex <= currentQuestionIndex) {
                                 issues.push({
                                     questionId: question.id,
                                     type: 'skip',

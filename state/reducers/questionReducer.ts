@@ -169,6 +169,11 @@ export const questionReducer = (state: Survey, action: Action): Survey => {
                 if (finalUpdates.branchingLogic === undefined) {
                     delete questionInState.branchingLogic;
                     delete questionInState.draftBranchingLogic;
+                } else if (finalUpdates.branchingLogic.branches && finalUpdates.branchingLogic.branches.length === 0) {
+                    // FIX: If branches are empty, remove branching logic entirely.
+                    // Cross-block routing should be handled by block.continueTo
+                    delete questionInState.branchingLogic;
+                    delete questionInState.draftBranchingLogic;
                 } else {
                     questionInState.draftBranchingLogic = finalUpdates.branchingLogic;
 

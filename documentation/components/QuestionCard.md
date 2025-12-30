@@ -1,47 +1,60 @@
 # QuestionCard
 
-The `QuestionCard` component is the primary interface for viewing and editing individual survey questions. It supports various question types, drag-and-drop operations, and a specialized **Print View**.
+**File:** `components/QuestionCard.tsx`
 
-## Props
+## Purpose
 
-The component accepts standard question data and callbacks, plus:
-
-*   `printMode` (boolean): Optional. If `true`, renders the card in a simplified "Print View" state, hiding interactive controls. Defaults to `false`.
-
-## Print View State
-
-The Print View state is designed for generating static, printable representations of questions. It modifies the component structure as follows:
-
-### Hidden Elements
-In `printMode`, the following interactive elements are hidden to produce a clean output:
-
-1.  **Question Type Selector**: The dropdown menu button in the header is removed.
-2.  **Question Actions Menu**: The "More Actions" (three dots) button is removed.
-3.  **Add/Remove Controls**:
-    *   "Add row" / "Add column" buttons (Choice Grid).
-    *   "Add choice" button (Radio/Checkbox).
-    *   "Remove row" / "Remove column" / "Remove choice" buttons (X icons).
-4.  **Drag Indicators**: Handles for reordering choices, rows, or questions are hidden.
-5.  **Page Break Actions**: Interactive controls for Page Break questions are removed.
-
-### Visual Changes
-*   The overall card layout remains consistent (Grid based), maintaining visual parity with the editor but without "chrome".
-*   The card border and spacing remain to distinguish questions in the printed list.
-*   Field inputs (Text Entry areas) remain visible but static placeholders.
+The central component for displaying and editing a single survey question. It handles the display of the question text, input fields (based on type), and access to question-level actions (delete, duplicate, settings). It supports a specialized **Print View** for static rendering.
 
 ## Usage
 
-```tsx
-<QuestionCard
-  question={questionData}
-  survey={surveyData}
-  // ... required callbacks
-  printMode={true} // Enable Print View
-/>
-```
+This component is the primary building block of the "Build" view. It is rendered within a list of blocks/pages.
 
-## Design Compliance
+## Props
 
-- [x] Supports `printMode` prop for static rendering.
-- [x] Hides all non-essential UI elements (buttons, menus, drag handles) in Print View.
-- [x] Preserves core layout and content visibility.
+| Prop | Type | Default | Required | Description |
+|------|------|---------|----------|-------------|
+| `question` | `Question` | - | Yes | The full question object from state. |
+| `index` | `number` | - | Yes | Position in the list (view only). |
+| `isActive` | `boolean` | `false` | No | Whether this card is currently selected. |
+| `printMode` | `boolean` | `false` | No | If `true`, renders in read-only Print View. |
+| `onClick` | `() => void` | - | No | Callback when card is clicked. |
+| `onUpdate` | `(q) => void` | - | Yes | Callback to update question data. |
+
+## States
+
+| State | Appearance | Classes Used |
+|-------|------------|--------------|
+| Default | White card with border | `bg-surface-container border-outline-variant` |
+| Active/Selected | Blue border, elevated | `border-primary ring-1 ring-primary` |
+| Hover | Subtle border darken | `hover:border-outline-hover` |
+| Dragging | Reduced opacity, shadow | `opacity-50 shadow-elevation-3` |
+| Print Mode | Simplified, no controls | (See below) |
+
+## Print View State
+
+The Print View state (`printMode={true}`) represents the question for static printing:
+
+### Hidden Elements
+1.  **Question Type Selector**: Dropdown hidden.
+2.  **Action Menu**: "More Actions" hidden.
+3.  **Add/Remove Controls**: All "+" and "x" buttons hidden.
+4.  **Drag Indicators**: Handles hidden.
+5.  **Page Break Actions**: Hidden.
+
+### Visual Changes
+*   Maintains Grid layout but removes "chrome".
+*   Input fields remain as static placeholders.
+
+## Accessibility
+
+- [x] **Focus Order**: Card itself should be focusable if acts as selection.
+- [x] **Headings**: Question text should use standard heading hierarchy (h3/h4) relative to page.
+- [x] **ARIA**:
+    -   `aria-selected={isActive}` on the card container.
+    -   `aria-label` for "More Actions" menu.
+
+## Related Components
+
+- `LogicQuestionCard` — Simplified version used in the Logic Editor view.
+- `PrintQuestionCard` — (Note: This might be deprecated if QuestionCard handles printMode internally, or this is the specialized component itself).

@@ -11,6 +11,72 @@ export interface ChangelogEntry {
 // NOTE: Always update 'time' to the current local time when adding an entry.
 export const changelogs: ChangelogEntry[] = [
     {
+        id: '2025-12-30-1',
+        version: 'v1.0.23',
+        date: '2025-12-30',
+        time: '7:20 PM',
+        request: 'Implement Dynamic Swimlane Algorithm',
+        improvements: [
+            'Dynamic Swimlane Layout: The diagram now automatically detects logic forks and assigns parallel branches to dedicated swimlanes.',
+            'Convergence Handling: Nodes where paths merge (e.g., convergence points) are correctly identified and centered in the shared lane.',
+            'Visual Clarity: Branch paths are visually distinct, improving the readability of complex survey logic flows.'
+        ],
+        technicalChanges: [
+            'Modified components/DiagramCanvas.tsx: Implemented generic graph traversal (BFS) for fork detection and branch identity propagation.',
+            'Modified components/DiagramCanvas.tsx: Updated node positioning logic to use dynamic swimlane Y-offsets.',
+            'Updated documentation/components/DiagramCanvas.md: Documented the new generic algorithm.'
+        ]
+    },
+    {
+        id: '2025-12-29-1',
+        version: 'v1.0.22',
+        date: '2025-12-29',
+        time: '10:30 PM',
+        request: 'Implementing Error Boundaries',
+        improvements: [
+            'System Stability: Implemented Global Error Boundaries to catch application crashes and provide a user-friendly fallback UI.',
+            'Recovery Options: Added a "Reload Application" button to allow users to recover from critical errors without losing data.',
+            'Granular Protection: Wrapped core editor components in localized error boundaries to prevent a single component failure from crashing the entire app.'
+        ],
+        technicalChanges: [
+            'Created components/ErrorBoundary.tsx: Implemented React Error Boundary class with proper lifecycle logging.',
+            'Modified App.tsx: Wrapped AppContent and RightSidebar in ErrorBoundary.',
+            'Modified main.tsx: Wrapped root application render.'
+        ]
+    },
+    {
+        id: '2025-12-23-1',
+        version: 'v1.0.21',
+        date: '2025-12-23',
+        time: '3:50 PM',
+        request: 'Header Status & Diagram Logic Refinement',
+        improvements: [
+            'Survey Status Visibility: Added a status tag (e.g., "Draft", "Live") next to the survey name in the header.',
+            'Publish Workflow: "Publish" button is now labeled "Publish changes" when active and appropriately disabled when up-to-date.',
+            'Diagram Clarity: Suppressed redundant "Otherwise" connectors for exhaustive questions (e.g., Yes/No radio buttons).',
+            'Flow Optimization: Unconditional skips (e.g., "Always skip to block 4") are now rendered as solid sequence lines instead of dashed branch lines.'
+        ],
+        technicalChanges: [
+            'Modified components/Header.tsx: Implemented SurveyStatusTag and updated Publish button logic.',
+            'Modified components/DiagramCanvas.tsx: Refined edge generation logic to handle exhaustive choices and unconditional skips.',
+            'Modified components/SubHeader.tsx: Relocated "Saved at" timestamp.'
+        ]
+    },
+    {
+        id: '2025-12-22-1',
+        version: 'v1.0.20',
+        date: '2025-12-22',
+        time: '1:16 PM',
+        request: 'UI Polish & Diagram Research',
+        improvements: [
+            'Question Card Visuals: Refined hover and selection states for Question Cards, including cross-highlighting logic and harmonized periwinkle borders.',
+            'Diagram Layout Research: Exploratory work on module-based and backbone-based layout algorithms (work from this day was largely experimental and later superseded by the Generic Dynamic Swimlane algorithm).'
+        ],
+        technicalChanges: [
+            'Modified components/QuestionCard.tsx: Updated border and shadow class logic for selection and hover states.'
+        ]
+    },
+    {
         id: '2025-12-19-3',
         version: 'v1.0.19',
         date: '2025-12-19',

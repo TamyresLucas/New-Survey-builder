@@ -107,7 +107,7 @@ export const QuestionCardHeader: React.FC<QuestionCardHeaderProps> = ({
                         </div>
                     ) : (
                         <div className="flex items-center mr-2">
-                            <span className="font-bold text-on-surface">{question.qid}</span>
+                            <h4 className="font-bold text-on-surface text-sm m-0">{question.qid}</h4>
                             {question.forceResponse && <AsteriskIcon className="text-sm text-error ml-0.5" />}
                         </div>
                     )}

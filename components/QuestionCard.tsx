@@ -122,6 +122,13 @@ const QuestionCard: React.FC<{
                 onClick={(e) => { e.stopPropagation(); onSelect(question); }}
                 onMouseEnter={() => onHover?.(question.id)}
                 onMouseLeave={() => onHover?.(null)}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onSelect(question);
+                    }
+                }}
                 className={`p-4 rounded-lg border transition-all group relative grid grid-cols-[auto_1fr] items-start gap-x-3 bg-surface-container ${!printMode ? 'cursor-grab' : ''} ${isSelected
                     ? (hasLogicIssues ? 'border-error shadow-md' : 'border-primary shadow-md')
                     : isHovered
@@ -129,7 +136,9 @@ const QuestionCard: React.FC<{
                         : question.isHidden
                             ? 'border-outline bg-surface-container opacity-60'
                             : 'border-outline hover:border-input-border hover:shadow-md'
-                    } ${isDragging ? 'opacity-50' : ''} ${logic.isAnyMenuOpen ? 'z-10' : ''} ${hasDisplayLogic ? 'border-dashed' : ''}`}
+                    } ${isDragging ? 'opacity-50' : ''} ${logic.isAnyMenuOpen ? 'z-10' : ''} ${hasDisplayLogic ? 'border-dashed' : ''} outline-none focus-visible:ring-2 focus-visible:ring-primary`}
+                tabIndex={0}
+                aria-selected={isSelected}
             >
                 <QuestionCardHeader
                     question={question}

@@ -68,6 +68,22 @@ interface DiagramCanvasProps {
 
 const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvasProps>(({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab }, ref) => {
     const { layoutNodes, layoutEdges } = useMemo(() => {
+        // [DEBUG] Log full survey structure
+        console.group('DEBUG: Survey Structure');
+        survey.blocks.forEach(b => {
+            console.log(`Block ${b.id} (${b.title}):`, {
+                branchName: b.branchName,
+                continueTo: b.continueTo,
+                sharedConvergence: b.sharedConvergence,
+                questions: b.questions.map(q => ({
+                    id: q.id, qid: q.qid, type: q.type,
+                    branching: q.draftBranchingLogic ?? q.branchingLogic,
+                    skip: q.draftSkipLogic ?? q.skipLogic
+                }))
+            });
+        });
+        console.groupEnd();
+
         const allQuestionsRaw = survey.blocks.flatMap(b => b.questions);
         const questionIdToBlockIdMap = new Map<string, string>();
 
@@ -93,6 +109,7 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
         // Filtered list (No PageBreaks)
         const allQuestions = allQuestionsRaw.filter(q => q.type !== QuestionType.PageBreak);
         const questionMap = new Map(allQuestions.map(q => [q.id, q]));
+        const allQuestionsOrder = new Map<string, number>(allQuestions.map((q, i) => [q.id, i])); // Early init for logic use
 
         // --- 1. Map Branch IDs & Lanes ---
         const branchMap = new Map<string, string>();
@@ -315,7 +332,19 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
                 // 3. Draw edges for UNHANDLED choices to the fallback target
                 if (fallbackTargetId && q.choices) {
                     const isImplicitNext = fallbackTargetStr === 'next';
-                    const isExplicitOtherwise = !isImplicitNext; // Only implicit next gets sequence style now? Or unconditional otherwise too?
+
+                    // Detect if otherwiseSkipTo is just mirroring block's natural continueTo
+                    const currentBlockId = questionIdToBlockIdMap.get(q.id);
+                    const currentBlock = survey.blocks.find(b => b.id === currentBlockId);
+                    const isLastQuestionInBlock = currentBlock?.questions
+                        .filter(bq => bq.type !== QuestionType.PageBreak)
+                        .slice(-1)[0]?.id === q.id;
+                    const blockContinueTo = currentBlock?.continueTo;
+
+                    const isRedundantBlockFlow = isLastQuestionInBlock &&
+                        branchingLogic.otherwiseSkipTo === blockContinueTo;
+
+                    const isExplicitOtherwise = !isImplicitNext && !isRedundantBlockFlow; // Only explicit non-redundant otherwise gets dashed style
                     // User wants "Flow Customization". If I set "Otherwise -> End", that's a BRANCH.
                     // So if it's NOT implicit next, it should be a branch style (solid or labeled?)
                     // The "Otherwise" branch usually implies "Everything else".
@@ -328,14 +357,6 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
                             adj[q.id].push(fallbackTargetId);
                             (revAdj[fallbackTargetId] = revAdj[fallbackTargetId] || []).push(q.id);
 
-                            // Label: If explicit otherwise, maybe label "Otherwise"? Or leave blank to reduce clutter?
-                            // User said "without sacrificing flow customization".
-                            // Clutter risk. If 5 lines say "Otherwise", it's messy.
-                            // Decision: No label on individual fan-out lines for otherwise to keep clean,
-                            // unless it's a specific single path.
-                            // BUT, if we don't label, how do we know it's "Otherwise" logic?
-                            // The destination (e.g. End Node) makes it clear it's not normal flow if it deviates.
-
                             edgesDraft.push({
                                 id: `e-${q.id}-fallback-${c.id}-${fallbackTargetId}`,
                                 source: q.id,
@@ -344,7 +365,7 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
                                 targetHandle: 'input',
                                 label: isExplicitOtherwise && branchingLogic.otherwisePathName ? branchingLogic.otherwisePathName : undefined,
                                 type: 'default',
-                                style: isExplicitOtherwise ? { stroke: 'var(--diagram-edge-def)', strokeDasharray: '5, 5' } : undefined, // Dashed for explicit otherwise? Or solid?
+                                style: isExplicitOtherwise ? { stroke: 'var(--diagram-edge-def)', strokeDasharray: '5, 5' } : undefined,
                                 // Let's keep consistent: "Otherwise" was dashed in my previous code for general.
                                 // But "Skip" is dashed. "Branch" is solid color.
                                 // Let's use dashed for "Otherwise" fan-out to distinguish from explicit "Branch".
@@ -357,6 +378,9 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
                     // Non-choice questions (TextEntry) with "Otherwise" logic (which acts as main logic)
                     const isImplicitNext = fallbackTargetStr === 'next';
                     const isExplicitOtherwise = !isImplicitNext;
+
+                    adj[q.id].push(fallbackTargetId);
+                    (revAdj[fallbackTargetId] = revAdj[fallbackTargetId] || []).push(q.id);
 
                     edgesDraft.push({
                         id: `e-${q.id}-fallback-${fallbackTargetId}`,
@@ -422,6 +446,7 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
             // --- SEQUENCE / FALLTHROUGH (NO LOGIC) ---
             if (!logicHandled) {
                 const targetId = resolveDestination('next', index);
+
                 if (targetId) {
                     adj[q.id].push(targetId);
                     (revAdj[targetId] = revAdj[targetId] || []).push(q.id);
@@ -477,106 +502,128 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
         }
 
 
-        // --- 5. Swimlane Assignment (Full Reachability Propagation) ---
-        // --- 5. Swimlane Assignment (Full Reachability Propagation) ---
-        // SWIMLANE_SPACING is defined at top level
+        // === SWIMLANE ASSIGNMENT (Generic Algorithm) ===
 
-
-        // Step 1: Build a map of blockId -> branchName from survey data
-        const blockBranchNames = new Map<string, string>();
-        survey.blocks.forEach(b => {
-            if (b.branchName) {
-                blockBranchNames.set(b.id, b.branchName);
-            }
-        });
-
-        // Step 2: For each node, collect ALL branch names it's reachable from
-        const nodeReachableFromBranches = new Map<string, Set<string>>();
-
-        // Initialize: assign each node's initial branch based on its block
+        // Track which branch paths can reach each node
+        const reachableFrom = new Map<string, Set<string>>();
         allQuestions.forEach(q => {
-            const blockId = questionIdToBlockIdMap.get(q.id);
-            const branchName = blockId ? blockBranchNames.get(blockId) : undefined;
-            // 'shared' implies it's in a block without a branch name (or start/convergence)
-            nodeReachableFromBranches.set(q.id, new Set(branchName ? [branchName] : ['shared']));
+            if (q.type !== QuestionType.PageBreak) {
+                reachableFrom.set(q.id, new Set());
+            }
         });
 
-        // Propagate: trace forward from branching points to mark reachability
-        const propagateQueue = allQuestions.map(q => q.id);
+        // Find fork points dynamically (nodes with multiple outgoing edges)
+        const forkPoints = new Set<string>();
+        Object.entries(adj).forEach(([nodeId, children]) => {
+            if (children.length > 1) {
+                forkPoints.add(nodeId);
+            }
+        });
 
-        // Multiple passes to ensure full propagation (depth)
-        for (let pass = 0; pass < 3; pass++) {
-            propagateQueue.forEach(sourceId => {
-                const sourceBranches = nodeReachableFromBranches.get(sourceId);
-                if (!sourceBranches) return;
+        // Propagate branch identity from each fork's children
+        forkPoints.forEach(forkId => {
+            const children = adj[forkId] || [];
+            children.forEach(childId => {
+                // BFS: propagate this branch identity to all descendants
+                const branchId = childId;
+                const queue = [childId];
+                const visited = new Set<string>();
 
-                (adj[sourceId] || []).forEach(targetId => {
-                    if (targetId === 'end-node') return;
-                    const targetBranches = nodeReachableFromBranches.get(targetId);
-                    if (!targetBranches) return;
+                while (queue.length > 0) {
+                    const nodeId = queue.shift()!;
+                    if (visited.has(nodeId)) continue;
+                    visited.add(nodeId);
 
-                    // Merge source's branches into target's reachability
-                    sourceBranches.forEach(branch => targetBranches.add(branch));
-                });
+                    if (reachableFrom.has(nodeId)) {
+                        reachableFrom.get(nodeId)!.add(branchId);
+                    }
+
+                    (adj[nodeId] || []).forEach(child => {
+                        if (questionMap.has(child) && !visited.has(child)) {
+                            queue.push(child);
+                        }
+                    });
+                }
             });
-        }
+        });
 
-        // Step 3: Determine final swimlane for each node
+        // Identify convergence nodes (reachable from multiple branches)
+        const convergenceNodes = new Set<string>();
+        reachableFrom.forEach((branches, nodeId) => {
+            if (branches.size > 1) {
+                convergenceNodes.add(nodeId);
+            }
+        });
+
+        // Assign swimlanes
         const nodeSwimlane = new Map<string, string>();
-        const uniqueBranchNames = new Set<string>();
 
-        nodeReachableFromBranches.forEach((branches, nodeId) => {
-            branches.forEach(b => { if (b !== 'shared') uniqueBranchNames.add(b); });
+        // Convergence nodes and their descendants → 'shared'
+        const propagateShared = (nodeId: string, visited: Set<string>) => {
+            if (visited.has(nodeId)) return;
+            visited.add(nodeId);
+            nodeSwimlane.set(nodeId, 'shared');
+            (adj[nodeId] || []).forEach(child => {
+                if (questionMap.has(child)) {
+                    propagateShared(child, visited);
+                }
+            });
+        };
+        convergenceNodes.forEach(nodeId => propagateShared(nodeId, new Set()));
 
-            // If reachable from multiple branches OR marked as shared, it's shared
-            const nonSharedBranches = Array.from(branches).filter(b => b !== 'shared');
-            if (nonSharedBranches.length > 1 || (nonSharedBranches.length === 0 && branches.has('shared'))) {
-                nodeSwimlane.set(nodeId, 'shared');
-            } else if (nonSharedBranches.length === 1) {
-                nodeSwimlane.set(nodeId, nonSharedBranches[0]);
+        // Single-branch nodes → their branch's lane
+        allQuestions.forEach(q => {
+            if (q.type === QuestionType.PageBreak) return;
+            if (nodeSwimlane.has(q.id)) return; // Already assigned
+
+            const branches = reachableFrom.get(q.id);
+            if (branches && branches.size === 1) {
+                const branchRootId = [...branches][0];
+
+                // Get branch name from the fork's branching logic
+                const forkId = [...forkPoints].find(fp => (adj[fp] || []).includes(branchRootId));
+                if (forkId) {
+                    const forkQ = questionMap.get(forkId);
+                    const logic = forkQ?.draftBranchingLogic ?? forkQ?.branchingLogic;
+                    const branch = logic?.branches.find(b => {
+                        const targetId = resolveDestination(b.thenSkipTo, allQuestionsOrder.get(forkId) || 0);
+                        return targetId === branchRootId;
+                    });
+                    nodeSwimlane.set(q.id, branch?.pathName || `branch-${branchRootId}`);
+                } else {
+                    nodeSwimlane.set(q.id, 'shared');
+                }
             } else {
-                nodeSwimlane.set(nodeId, 'shared');
+                // No branches reach this node (before any fork) → shared
+                nodeSwimlane.set(q.id, 'shared');
             }
         });
 
-        // Step 4: Calculate Y offset for each swimlane
+        // Calculate Y offsets for each unique lane
+        const uniqueLanes = [...new Set(nodeSwimlane.values())].filter(l => l !== 'shared');
         const swimlaneYOffset = new Map<string, number>();
-        swimlaneYOffset.set('shared', 0); // Center
+        swimlaneYOffset.set('shared', 0);
 
-        // Sort branch names based on the order of blocks they first appear in,
-        // rather than alphabetical order. This ensures "Purchaser" (Block 2) comes before
-        // "Non-Purchaser" (Block 3) if that is the survey structure.
-        const branchOrder = new Map<string, number>();
-        survey.blocks.forEach((b, i) => {
-            if (b.branchName && !branchOrder.has(b.branchName)) {
-                branchOrder.set(b.branchName, i);
-            }
+        uniqueLanes.forEach((lane, index) => {
+            // Alternate: -SPACING, +SPACING, -2*SPACING, +2*SPACING...
+            const direction = index % 2 === 0 ? -1 : 1;
+            const magnitude = Math.floor(index / 2) + 1;
+            swimlaneYOffset.set(lane, direction * magnitude * SWIMLANE_SPACING);
         });
 
-        const sortedBranchNames = Array.from(uniqueBranchNames).sort((a, b) => {
-            return (branchOrder.get(a) ?? Infinity) - (branchOrder.get(b) ?? Infinity);
-        });
 
-        sortedBranchNames.forEach((branchName, index) => {
-            // Distribute branches above and below center
-            // index 0 -> -400 (Above)
-            // index 1 -> +400 (Below)
-            // index 2 -> -800 ...
-            const offset = index % 2 === 0
-                ? -SWIMLANE_SPACING * (Math.floor(index / 2) + 1)
-                : SWIMLANE_SPACING * (Math.floor(index / 2) + 1);
-            swimlaneYOffset.set(branchName, offset);
-        });
 
         // --- 6. Final Positioning (X/Y) ---
         const flowNodes: DiagramNode[] = [];
         const nodeHeights = new Map<string, number>();
-        const allQuestionsOrder = new Map<string, number>(allQuestions.map((q, i) => [q.id, i])); // For sorting within lane
+
 
         allQuestions.forEach(q => {
             let h = 120;
             if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid) {
                 h = 100 + (q.choices?.length || 0) * 40;
+            } else if (q.type === QuestionType.Description) {
+                h = 120;
             }
             nodeHeights.set(q.id, h);
         });
@@ -591,60 +638,65 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
         };
         flowNodes.push(startNode);
 
-        // Compute Columns map first to iterate easily
-        const columns = new Map<number, string[]>();
-        allQuestions.forEach(q => {
-            const col = longestPath.get(q.id) || 0;
-            if (!columns.has(col)) columns.set(col, []);
-            columns.get(col)!.push(q.id);
+        // --- Column Grouping with Swimlane-Aware Vertical Placement ---
+        const columns: string[][] = [];
+        longestPath.forEach((col, qId) => {
+            if (questionMap.has(qId)) {
+                if (!columns[col]) columns[col] = [];
+                columns[col].push(qId);
+            }
         });
 
-        // Iterate Columns and Position Groups
-        columns.forEach((columnNodes, colIndex) => {
-            // Group nodes by swimlane within this column
-            const swimlaneGroups = new Map<string, string[]>();
+        const nodePositions = new Map<string, { x: number, y: number }>();
 
-            columnNodes.forEach(qId => {
+        // Position nodes using swimlane Y offsets
+        columns.forEach((column, colIndex) => {
+            if (!column) return;
+
+            // Group by swimlane within this column
+            const laneGroups = new Map<string, string[]>();
+            column.forEach(qId => {
                 const lane = nodeSwimlane.get(qId) || 'shared';
-                if (!swimlaneGroups.has(lane)) {
-                    swimlaneGroups.set(lane, []);
-                }
-                swimlaneGroups.get(lane)!.push(qId);
+                if (!laneGroups.has(lane)) laneGroups.set(lane, []);
+                laneGroups.get(lane)!.push(qId);
             });
 
-            // Position each swimlane group
-            swimlaneGroups.forEach((nodesInLane, laneName) => {
-                const laneYOffset = swimlaneYOffset.get(laneName) || 0;
+            // Position each lane group centered around its Y offset
+            laneGroups.forEach((nodesInLane, lane) => {
+                const laneOffset = swimlaneYOffset.get(lane) || 0;
 
-                // Sort nodes within lane by their original order (preserve sequential flow logic visual)
                 const sortedNodes = nodesInLane.sort((a, b) => {
                     const orderA = allQuestionsOrder.get(a) ?? 0;
                     const orderB = allQuestionsOrder.get(b) ?? 0;
                     return orderA - orderB;
                 });
 
-                // Calculate total height of nodes in this lane group
-                const totalHeight = sortedNodes.reduce(
-                    (sum, qId) => sum + (nodeHeights.get(qId) || 0), 0
-                ) + Math.max(0, sortedNodes.length - 1) * VERTICAL_GAP;
+                const totalHeight = sortedNodes.reduce((sum, qId) =>
+                    sum + (nodeHeights.get(qId) || 0), 0) +
+                    Math.max(0, sortedNodes.length - 1) * VERTICAL_GAP;
 
-                // Center the group around the lane's Y offset
-                let currentY = laneYOffset - totalHeight / 2;
+                let currentY = laneOffset - totalHeight / 2;
 
                 sortedNodes.forEach(qId => {
                     const height = nodeHeights.get(qId) || 0;
                     const x = colIndex * X_SPACING;
-                    // Center the node itself at the split point
-                    // Note: 'position' in ReactFlow is usually top-left. 
-                    // But if we want 'currentY' to be top, that's fine.
-                    // Let's treat currentY as top.
-                    const y = currentY;
 
-                    // Push Node to Final List
-                    // We need to fetch the detailed question object again or store it.
+                    // Center Y is currentY + height/2.
+                    // ReactFlow default is top-left, so we might want top-left.
+                    // User requested generic algorithm. Let's use Top-Left logic for ReactFlow.
+                    // My previous code used `y: currentY`.
+                    // The proposed logic used `y: currentY + height / 2`.
+                    // Let's stick to consistent top-left if possible, but the snippet says centered.
+                    // I will use `y: currentY` which places the Top at Y.
+                    // Wait, if `laneOffset` is 0 (Center), and total height is 200.
+                    // Top is -100.
+                    // If I put node at -100, its center is -100 + h/2.
+
+                    // Let's use Top Left logic:
+                    const position = { x, y: currentY };
+
                     const q = questionMap.get(qId);
                     if (q) {
-                        const position = { x, y };
                         if (q.type === QuestionType.Description) {
                             flowNodes.push({
                                 id: q.id, type: 'description_node', position,
@@ -686,11 +738,14 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
         }
 
         // Add End Node if needed or mapped
-        const maxCol = Math.max(0, ...Array.from(longestPath.values()));
+        const maxColumn = Math.max(0, ...Array.from(longestPath.values()));
         const endNode: EndNode = {
             id: 'end-node',
             type: 'end',
-            position: { x: (maxCol + 1) * X_SPACING, y: swimlaneYOffset.get('shared') || 0 }, // Place on shared lane
+            position: {
+                x: (maxColumn + 1) * X_SPACING,
+                y: swimlaneYOffset.get('shared') || 0  // Align with shared lane
+            },
             data: { label: 'End of Survey' },
             width: 180, height: 60
         };

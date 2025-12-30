@@ -22,6 +22,7 @@ export const LogicConditionRow: React.FC<{
     questionWidth?: string;
     operatorWidth?: string;
     valueWidth?: string;
+    conditionIndex?: number;
 }> = ({
     condition,
     onUpdateCondition,
@@ -37,7 +38,8 @@ export const LogicConditionRow: React.FC<{
     usedValues,
     questionWidth = "w-48",
     operatorWidth = "w-40",
-    valueWidth = "flex-1 min-w-[150px]"
+    valueWidth = "flex-1 min-w-[150px]",
+    conditionIndex = 0
 }) => {
         const referencedQuestion = useMemo(() => {
             if (isFirstCondition && currentQuestion) {
@@ -158,6 +160,7 @@ export const LogicConditionRow: React.FC<{
                                 selectedQuestionId={condition.questionId}
                                 onSelect={(qid) => onUpdateCondition('questionId', qid)}
                                 className={`w-full ${questionBorderClass}`}
+                                aria-label={`Condition ${conditionIndex + 1}: Select question`}
                             />
                         </>
                     )}
@@ -174,7 +177,7 @@ export const LogicConditionRow: React.FC<{
                                         value={(condition as BranchingLogicCondition).value}
                                         onChange={(e) => onUpdateCondition('value', e.target.value)}
                                         className={`w-full bg-[var(--input-bg)] border rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
-                                        aria-label="Condition row"
+                                        aria-label={`Condition ${conditionIndex + 1}: Condition row`}
                                         disabled={valueIsDisabled}
                                     >
                                         <option value="">select row</option>
@@ -193,7 +196,7 @@ export const LogicConditionRow: React.FC<{
                                     value={condition.operator}
                                     onChange={handleOperatorChange}
                                     className={`w-full bg-[var(--input-bg)] border rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`}
-                                    aria-label="Select interaction"
+                                    aria-label={`Condition ${conditionIndex + 1}: Select interaction`}
                                     disabled={!referencedQuestion}
                                 >
                                     <option value="">Interaction</option>
@@ -210,7 +213,7 @@ export const LogicConditionRow: React.FC<{
                                         value={(condition as BranchingLogicCondition).gridValue || ''}
                                         onChange={(e) => onUpdateCondition('gridValue', e.target.value)}
                                         className={`w-full bg-[var(--input-bg)] border rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
-                                        aria-label="Condition scale point value"
+                                        aria-label={`Condition ${conditionIndex + 1}: Condition scale point value`}
                                         disabled={valueIsDisabled}
                                     >
                                         <option value="">select value...</option>
@@ -230,7 +233,7 @@ export const LogicConditionRow: React.FC<{
                                             value={(condition as BranchingLogicCondition).value}
                                             onChange={(e) => onUpdateCondition('value', e.target.value)}
                                             className={`w-full bg-[var(--input-bg)] border rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
-                                            aria-label="Condition value"
+                                            aria-label={`Condition ${conditionIndex + 1}: Condition value`}
                                             disabled={valueIsDisabled}
                                         >
                                             <option value="">select answer</option>
@@ -247,7 +250,7 @@ export const LogicConditionRow: React.FC<{
                                         onChange={(e) => onUpdateCondition('value', e.target.value)}
                                         placeholder="select answer"
                                         className={`w-full bg-[var(--input-bg)] border rounded-md px-2 py-1.5 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
-                                        aria-label="Condition value"
+                                        aria-label={`Condition ${conditionIndex + 1}: Condition value`}
                                         disabled={valueIsDisabled}
                                     />
                                 )}
@@ -260,7 +263,7 @@ export const LogicConditionRow: React.FC<{
                                     value={condition.operator}
                                     onChange={handleOperatorChange}
                                     className={`w-full bg-[var(--input-bg)] border rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 appearance-none ${operatorBorderClass}`}
-                                    aria-label="Select interaction"
+                                    aria-label={`Condition ${conditionIndex + 1}: Select interaction`}
                                     disabled={!referencedQuestion}
                                 >
                                     <option value="">Interaction</option>

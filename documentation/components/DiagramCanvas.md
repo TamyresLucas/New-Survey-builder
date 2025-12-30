@@ -1,64 +1,55 @@
-# Diagram Canvas Component
+# DiagramCanvas Logic Visualization Rules
 
-The Diagram Canvas is the primary visualization area for the survey flow. It creates a node-link diagram representing the questions, logic, and paths within a survey using `React Flow`.
+This document outlines the specific rules and logic used to render the survey flow diagram in `DiagramCanvas.tsx`.
 
-## Structure
+## 1. Visual Edge Types
 
-It wraps the `ReactFlow` provider and component, rendering custom nodes and edges based on the survey data.
+The diagram uses distinct edge styles to represent different types of logic flow:
 
-```tsx
-<div className="w-full h-full bg-surface-container-low transition-colors duration-200">
-  <ReactFlow
-    nodes={nodes}
-    edges={edges}
-    nodeTypes={nodeTypes}
-    edgeTypes={edgeTypes}
-    onNodesChange={onNodesChange}
-    onEdgesChange={onEdgesChange}
-    onNodeClick={...}
-    onPaneClick={...}
-    fitView
-    minZoom={0.1}
-    maxZoom={4}
-  >
-    <Background color="#71717a" gap={20} size={1} />
-    <Controls className="bg-surface border-outline-variant fill-on-surface" />
-    <DiagramToolbar onAddNode={...} />
-  </ReactFlow>
-</div>
-```
+| Logic Type | Condition | Visual Style | Notes |
+| :--- | :--- | :--- | :--- |
+| **Simple Sequence** | Flow from Question A to Question B with NO logic (Fallthrough) | **Solid Line** | Represents the natural flow of the survey. |
+| **Implicit Next** | Logic says "Otherwise -> Next" (Default) | **Solid Line** | Treated as a sequence flow. |
+| **Explicit Branch** | "Branch to [Specific Question/End]" | **Dashed Line** | Visualizes a jump or conditional path. |
+| **Skip Logic** | "Skip to [Question]" | **Dashed Line** | Visualizes a skip. |
+| **Divergent Otherwise** | "Otherwise -> [Specific Target]" (where target != Next) | **Dashed Line** | Represents a strict logic deviation. |
 
-## Styling Specifications
+## 2. Swimlane Assignment (Generic Dynamic Algorithm)
 
--   **Size**: `w-full h-full`
--   **Background**: `bg-surface-container-low` (Light grey/neutral background)
--   **Transition**: `transition-colors duration-200`
--   **Grid**:
-    -   Color: `#71717a` (Zinc 500)
-    -   Gap: `20px`
-    -   Dot Size: `1px`
+The diagram dynamically organizes nodes into "Swimlanes" to visualize parallel logic paths without hardcoded IDs or path names.
 
-## Key Features
+### Algorithm Overview
 
-1.  **Survey Structure Visualization**: Converts the linear survey list into a graph structure (`Start -> Questions -> End`).
-2.  **Interactive Selection**:
-    -   Clicking a node selects the corresponding question in the Survey Editor.
-    -   Clicking the background deselects items.
-3.  **Dynamic Highlighting**:
-    -   Highlights connected paths (Source handles, Edges, Input handles) when a node is selected.
-4.  **Zoom & Pan**: Built-in navigation controls (`minZoom: 0.1`, `maxZoom: 4`).
+1.  **Fork Point Detection**:
+    *   The system scans the graph to identify **Fork Points**: any node with more than one outgoing edge (e.g., a Question with confirmed Branching Logic).
 
-## Components Used
+2.  **Branch Identity Propagation (Reachable Sets)**:
+    *   For every child of a Fork Point, the system assigns a unique **Branch ID** (usually the child's ID or a generated ID).
+    *   Using BFS, this Branch ID is propagated to all downstream descendants.
+    *   Each node maintains a set of `reachableFrom` Branch IDs.
 
--   **ReactFlow** (Library): Core diagramming engine.
--   **DiagramToolbar**: Floating action bar (currently hidden).
--   **Nodes**:
-    -   `StartNodeComponent`
-    -   `EndNodeComponent`
-    -   `MultipleChoiceNodeComponent`
-    -   `TextEntryNodeComponent`
-    -   `DescriptionNodeComponent`
+3.  **Convergence Detection**:
+    *   **Convergence Nodes** are identified as nodes that are reachable from **more than one** distinct branch (or from a branch and the main path).
+    *   These nodes represent the point where parallel paths merge back together.
 
-## Usage
+4.  **Swimlane Assignment Rules**:
+    *   **Shared Lane (Center)**: 
+        *   The Start Node and End Node are always Shared.
+        *   **Convergence Nodes** are forced into the Shared Lane.
+        *   **Descendants** of Shared nodes inherit the Shared status (unless they themselves are new Fork Points).
+    *   **Branch Lanes**:
+        *   Nodes that are *uniquely* reachable from a specific Branch ID are assigned to that branch's specific Swimlane.
+        *   Lanes are named dynamically (e.g., `branch-[ForkID]-[ChildID]`).
 
-Used as the main view in the `RightSidebar` (or central canvas area) when the "Survey Flow" or "Build" view is active. It requires a valid `Survey` object to generate the graph.
+5.  **Layout Calculation**:
+    *   **Shared Lane**: Y = 0.
+    *   **Branch Lanes**: Offset alternately above and below the center (e.g., -400, +400, -800, +800) based on the order of discovery.
+    *   **End Node**: Always positioned in the Shared Lane at the end of the graph.
+
+## 3. Node Positioning
+
+*   **X-Axis (Columns)**: Nodes are assigned to columns based on the longest path from the start node (DAG Layering).
+*   **Y-Axis**: Nodes are grouped by their Swimlane within their column.
+    *   Nodes in the **Shared Lane** are centered at Y=0.
+    *   Nodes in **Branch Lanes** are centered at their lane's Y-offset.
+    *   Within a lane group, nodes are stacked vertically based on their original survey order.

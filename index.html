@@ -58,6 +58,18 @@
           accentColor: {
             primary: 'var(--semantic-pri)',
           },
+          boxShadow: {
+            'elevation-1': 'var(--elevation-1)',
+            'elevation-2': 'var(--elevation-2)',
+            'elevation-3': 'var(--elevation-3)',
+            'elevation-4': 'var(--elevation-4)',
+          },
+          transitionDuration: {
+            'instant': 'var(--duration-instant)',
+            'fast': 'var(--duration-fast)',
+            'normal': 'var(--duration-normal)',
+            'slow': 'var(--duration-slow)',
+          },
           fontWeight: {
             'button-text': 'var(--button-text-weight)',
             'button-primary': 'var(--button-primary-weight)',
@@ -315,6 +327,22 @@
       --button-text-weight: 600;
       --button-primary-weight: 600;
       --button-operator-weight: 600;
+
+      /* Elevation Tokens */
+      --elevation-0: none;
+      --elevation-1: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --elevation-2: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+      --elevation-3: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --elevation-4: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+      /* Animation Tokens */
+      --duration-instant: 75ms;
+      --duration-fast: 150ms;
+      --duration-normal: 300ms;
+      --duration-slow: 500ms;
+      --easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+      --easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+      --easing-accelerate: cubic-bezier(0.4, 0, 1, 1);
     }
 
     .dark {
@@ -337,6 +365,12 @@
       --md-sys-color-surface-container: hsla(228, 18%, 14%, 0.97);
       --md-sys-color-surface-container-high: hsla(228, 18%, 14%, 0.97);
       --md-sys-color-surface-container-highest: hsla(228, 18%, 14%, 0.97);
+
+      /* Dark mode elevation (stronger shadows) */
+      --elevation-1: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+      --elevation-2: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+      --elevation-3: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+      --elevation-4: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
 
       /* Legacy tokens for backward compatibility - will be removed after component updates */
       --background--surface-bg: var(--md-sys-color-surface);

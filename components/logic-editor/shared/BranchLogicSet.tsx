@@ -161,9 +161,9 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
     };
 
     return (
-        <div
+        <fieldset
             id={branch.id}
-            className="p-3 border border-outline-variant rounded-md bg-surface-container"
+            className="p-3 border border-outline-variant rounded-md bg-surface-container min-w-0"
         >
             <div className="flex justify-between items-center mb-3 gap-2 px-2">
                 <div className="flex items-center gap-3">
@@ -237,6 +237,7 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
                                 valueWidth="flex-[1] min-w-[100px]"
                                 operatorWidth="flex-[1] min-w-[100px]"
                                 invalidFields={conditionErrors.get(condition.id) as any}
+                                conditionIndex={index}
                             />
                         </div>
                     </div>
@@ -273,16 +274,25 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
                         {isBranchConfirmed ? 'Delete' : 'Cancel'}
                     </Button>
                     {!isBranchConfirmed && (
-                        <Button
-                            variant="primary"
-                            size="large"
-                            onClick={handleConfirm}
-                        >
-                            Apply
-                        </Button>
+                        <>
+                            <span id={`apply-status-${branch.id}`} className="sr-only">
+                                {(!branch.thenSkipTo || branch.conditions.some(c => !c.questionId || !c.operator))
+                                    ? 'Complete all required fields to apply changes'
+                                    : 'Ready to apply changes'}
+                            </span>
+                            <Button
+                                variant="primary"
+                                size="large"
+                                onClick={handleConfirm}
+                                aria-disabled={!branch.thenSkipTo || branch.conditions.some(c => !c.questionId || !c.operator)}
+                                aria-describedby={`apply-status-${branch.id}`}
+                            >
+                                Apply
+                            </Button>
+                        </>
                     )}
                 </div>
             </div>
-        </div>
+        </fieldset>
     );
 };

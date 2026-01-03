@@ -4,7 +4,7 @@ import { QuestionType } from '../../types';
 
 import { CollapsibleSection } from '../logic-editor/shared';
 import { AdvancedLogicSectionEditor } from '../logic-editor/AdvancedLogicSectionEditor';
-import { ChoiceLayoutEditor, TextEntryAdvancedSettings } from './advanced';
+import { TextEntryAdvancedSettings } from './advanced';
 import { PreviewQuestion } from '../PreviewQuestion';
 import { MobilePreviewFrame } from '../MobilePreviewFrame';
 
@@ -59,13 +59,7 @@ export const AdvancedTab: React.FC<AdvancedTabProps> = ({
                 </div>
             </CollapsibleSection>
 
-            {isChoiceBased && (
-                <CollapsibleSection title="Display & Layout" defaultExpanded={true}>
-                    <div className="py-6 first:pt-0">
-                        <ChoiceLayoutEditor question={question} onUpdate={onUpdate} />
-                    </div>
-                </CollapsibleSection>
-            )}
+
             {question.type === QuestionType.TextEntry && (
                 <CollapsibleSection title="Text Box Options" defaultExpanded={true}>
                     <div className="py-6 first:pt-0">

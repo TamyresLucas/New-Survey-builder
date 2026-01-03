@@ -81,7 +81,7 @@ export const SkipLogicEditor: React.FC<{
         if (!skipLogic) {
             return (
                 <div>
-                    <h3 className="text-sm font-medium text-on-surface mb-1">Skip Logic</h3>
+
                     <p className="text-xs text-on-surface-variant mb-3">Skip respondents to questions within the same block based on their answers.</p>
                     <div className="flex items-center gap-4">
                         <Button variant="tertiary-primary" size="large" onClick={handleEnable}>
@@ -106,7 +106,7 @@ export const SkipLogicEditor: React.FC<{
 
             return (
                 <div>
-                    <h3 className="text-sm font-medium text-on-surface mb-1">Skip Logic</h3>
+
                     <p className="text-xs text-on-surface-variant mb-3">Skip respondents to questions within the same block based on their answers.</p>
                     <SkipLogicSet
                         label="If answered, skip to"
@@ -285,7 +285,7 @@ export const SkipLogicEditor: React.FC<{
 
         return (
             <div>
-                <h3 className="text-sm font-medium text-on-surface mb-1">Skip Logic</h3>
+
                 <p className="text-xs text-on-surface-variant mb-3">Skip respondents to questions within the same block based on their answers.</p>
                 <div className="space-y-4 mb-4">
                     {(skipLogic.rules || []).map(rule => {

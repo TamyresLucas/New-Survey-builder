@@ -17,8 +17,7 @@ const ChoiceLayoutEditor: React.FC<{ question: Question, onUpdate: (updates: Par
         <div className="space-y-6">
             {!isChoiceGrid && (
                 <div>
-                    <h3 className="text-sm font-medium text-on-surface mb-2">Display & Layout</h3>
-                    <p className="text-xs text-on-surface-variant mb-4">Fine-tune the appearance of choices.</p>
+
 
                     <div className="space-y-4">
                         <div>
@@ -62,8 +61,7 @@ const ChoiceLayoutEditor: React.FC<{ question: Question, onUpdate: (updates: Par
                     </div>
                 </div>
             )}
-            <div className={!isChoiceGrid ? 'border-t border-outline-variant pt-6' : ''}>
-                <h3 className="text-sm font-medium text-on-surface mb-2">Mobile Layout</h3>
+            <div>
                 <div className="flex items-center justify-between">
                     <div className="flex-1">
                         <label htmlFor="enable-mobile-layout" className="text-sm font-medium text-on-surface block">

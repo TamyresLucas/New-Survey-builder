@@ -93,7 +93,9 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     <TextEntrySettingsTab
                         question={question}
                         onUpdate={handleUpdate}
+
                         toolboxItems={toolboxItems}
+                        survey={survey}
                     />
                 );
             }
@@ -102,13 +104,15 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     <GenericSettingsTab
                         question={question}
                         onUpdate={handleUpdate}
+
                         toolboxItems={toolboxItems}
+                        survey={survey}
                     />
                 );
             }
             return <p className="p-6 text-sm text-on-surface-variant text-center">This question type has no editable settings.</p>;
 
-        case 'Behavior':
+        case 'Logic':
             return (
                 <BehaviorTab
                     question={question}

@@ -5,7 +5,6 @@ import { CHOICE_BASED_QUESTION_TYPES } from '../../utils';
 import { CollapsibleSection } from '../logic-editor/shared';
 import {
     ChoiceBehaviorSection,
-    NavigationSettings,
     SkipLogicSection,
     QuestionBehaviorSection
 } from './behavior';
@@ -42,44 +41,28 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({
 
     return (
         <div className="p-6 space-y-8">
-            <CollapsibleSection title="Navigation" defaultExpanded={true}>
-                <div className="divide-y divide-outline-variant">
-                    <div className="py-6 first:pt-0">
-                        <NavigationSettings question={question} onUpdate={onUpdate} />
-                    </div>
-                    <div className="py-6">
-                        <SkipLogicSection
-                            question={question}
-                            survey={survey}
-                            followingQuestions={followingQuestions}
-                            issues={issues}
-                            onUpdate={onUpdate}
-                            onAddLogic={onAddLogic}
-                            onRequestGeminiHelp={onRequestGeminiHelp}
-                            focusedLogicSource={focusedLogicSource}
-                        />
-                    </div>
-                    {question.type !== QuestionType.Description && (
-                        <div className="py-6">
-                            <BranchingLogicEditor
-                                question={question}
-                                survey={survey}
-                                previousQuestions={previousQuestions}
-                                followingQuestions={followingQuestions}
-                                issues={issues.filter(i => i.type === 'branching')}
-                                onUpdate={onUpdate}
-                                onAddLogic={onAddLogic}
-                                onRequestGeminiHelp={onRequestGeminiHelp}
-                                focusedLogicSource={focusedLogicSource}
-                            />
-                        </div>
-                    )}
+
+
+            <CollapsibleSection title="Skip Logic" defaultExpanded={true}>
+                <div className="py-6 first:pt-0">
+                    <SkipLogicSection
+                        question={question}
+                        survey={survey}
+                        followingQuestions={followingQuestions}
+                        issues={issues}
+                        onUpdate={onUpdate}
+                        onAddLogic={onAddLogic}
+                        onRequestGeminiHelp={onRequestGeminiHelp}
+                        focusedLogicSource={focusedLogicSource}
+                    />
                 </div>
             </CollapsibleSection>
 
 
 
-            <CollapsibleSection title="Question" defaultExpanded={true}>
+
+
+            <CollapsibleSection title="Display Logic" defaultExpanded={true}>
                 <div className="py-6 first:pt-0">
                     <QuestionBehaviorSection
                         question={question}
@@ -93,21 +76,40 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({
                         focusedLogicSource={focusedLogicSource}
                     />
                 </div>
+                {isChoiceBased && (
+                    <div className="py-6 first:pt-0 border-t border-outline-variant">
+                        <ChoiceBehaviorSection
+                            question={question}
+                            survey={survey}
+                            previousQuestions={previousQuestions}
+                            onUpdate={onUpdate}
+                            onAddLogic={onAddLogic}
+                            isFirstInteractiveQuestion={isFirstInteractiveQuestion}
+                            issues={issues} // Pass issues down
+                        />
+                    </div>
+                )}
             </CollapsibleSection>
 
-            {isChoiceBased && (
-                <CollapsibleSection title="Choices" defaultExpanded={true}>
-                    <ChoiceBehaviorSection
-                        question={question}
-                        survey={survey}
-                        previousQuestions={previousQuestions}
-                        onUpdate={onUpdate}
-                        onAddLogic={onAddLogic}
-                        isFirstInteractiveQuestion={isFirstInteractiveQuestion}
-                        issues={issues} // Pass issues down
-                    />
+            {question.type !== QuestionType.Description && (
+                <CollapsibleSection title="Branching Logic" defaultExpanded={true}>
+                    <div className="py-6 first:pt-0">
+                        <BranchingLogicEditor
+                            question={question}
+                            survey={survey}
+                            previousQuestions={previousQuestions}
+                            followingQuestions={followingQuestions}
+                            issues={issues.filter(i => i.type === 'branching')}
+                            onUpdate={onUpdate}
+                            onAddLogic={onAddLogic}
+                            onRequestGeminiHelp={onRequestGeminiHelp}
+                            focusedLogicSource={focusedLogicSource}
+                        />
+                    </div>
                 </CollapsibleSection>
             )}
+
+
         </div>
     );
 };

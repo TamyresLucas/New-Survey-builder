@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { Question, Survey, DisplayLogicCondition, LogicSet as ILogicSet, LogicIssue } from '../../../types';
 import { CHOICE_BASED_QUESTION_TYPES, generateId, truncate, parseChoice, parseVoxcoLogic } from '../../../utils';
-import { RandomizeChoicesEditor } from '../../logic-editor/RandomizationEditor';
+
 import { ChoiceEliminationEditor } from '../../logic-editor/ChoiceEliminationEditor';
 import { ChoiceDisplayLogicEditor } from '../../logic-editor/ChoiceDisplayLogicEditor';
 import { PlusIcon, ChevronDownIcon, GridIcon, EditIcon } from '../../icons';
@@ -161,12 +161,7 @@ const ChoiceBehaviorSection: React.FC<ChoiceBehaviorSectionProps> = ({
 
     return (
         <div className="divide-y divide-outline-variant">
-            <div className="py-6 first:pt-0">
-                <RandomizeChoicesEditor
-                    question={question}
-                    onUpdate={onUpdate}
-                />
-            </div>
+
             {!isFirstInteractiveQuestion && previousQuestions.length > 0 && (
                 <div className="py-6 first:pt-0">
                     <ChoiceEliminationEditor

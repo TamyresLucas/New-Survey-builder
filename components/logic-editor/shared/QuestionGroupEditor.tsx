@@ -112,7 +112,7 @@ export const QuestionGroupEditor: React.FC<QuestionGroupEditorProps> = ({ questi
     return (
         <div ref={containerRef}>
             <label htmlFor="question-group-name" className="block text-sm font-medium text-on-surface mb-1">
-                Question Group
+                Assign question to group
             </label>
             <div className="relative">
                 <input
@@ -163,7 +163,7 @@ export const QuestionGroupEditor: React.FC<QuestionGroupEditorProps> = ({ questi
                     </div>
                 )}
             </div>
-            <p className="text-xs text-on-surface-variant mt-1">Group questions to use in randomization rules.</p>
+            <p className="text-xs text-on-surface-variant mt-0.5">To randomize questions in the block, assign questions to groups.</p>
         </div>
     );
 };

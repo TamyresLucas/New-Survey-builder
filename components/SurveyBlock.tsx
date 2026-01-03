@@ -284,10 +284,12 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
     [block.questions]
   );
 
+  const hasDisplayLogic = block.displayLogic && block.displayLogic.conditions.length > 0;
+
   return (
     <div
       className={`${printMode ? 'bg-surface' : 'bg-surface-container'} border rounded-lg mb-8 transition-all ${isBlockDragging ? 'opacity-50' : ''
-        } ${isSelected ? 'border-2 border-primary shadow-md' : 'border-outline-variant'}`}
+        } ${isSelected ? 'border-2 border-primary shadow-md' : 'border-outline-variant'} ${hasDisplayLogic ? 'border-dashed' : ''}`}
       data-block-id={block.id}
     >
       <div
@@ -327,13 +329,6 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                 style={{ fontFamily: "'Open Sans', sans-serif" }}
               />
               <span className="text-sm font-normal text-on-surface-variant ml-2">({questionCount} question{questionCount !== 1 ? 's' : ''})</span>
-              {block.autoAdvance && (
-                <div className="ml-2">
-                  <Badge variant="periwinkle" active hideDot>
-                    Autoadvance
-                  </Badge>
-                </div>
-              )}
             </div>
           </div>
         </div>

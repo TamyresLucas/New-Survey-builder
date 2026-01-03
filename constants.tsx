@@ -74,7 +74,7 @@ export const initialSurveyData: Survey = {
               {
                 id: 'branch-q1-purchaser',
                 operator: 'AND',
-                conditions: [{ id: 'cond-q1-1', questionId: 'Q1', operator: 'equals', value: 'Q1_1 Yes', isConfirmed: true }],
+                conditions: [{ id: 'cond-q1-1', questionId: 'Q1', operator: 'equals', value: 'Q1_1 Yes', choiceId: 'q1c1', isConfirmed: true }],
                 thenSkipTo: 'block:block2',
                 thenSkipToIsConfirmed: true,
                 pathName: 'Purchaser Path',
@@ -82,7 +82,7 @@ export const initialSurveyData: Survey = {
               {
                 id: 'branch-q1-nonpurchaser',
                 operator: 'AND',
-                conditions: [{ id: 'cond-q1-2', questionId: 'Q1', operator: 'equals', value: 'Q1_2 No', isConfirmed: true }],
+                conditions: [{ id: 'cond-q1-2', questionId: 'Q1', operator: 'equals', value: 'Q1_2 No', choiceId: 'q1c2', isConfirmed: true }],
                 thenSkipTo: 'block:block3',
                 thenSkipToIsConfirmed: true,
                 pathName: 'Non-Purchaser Path',

@@ -65,7 +65,7 @@ interface SurveyStructureWidgetProps {
 const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ survey, paths, selectedPathId, onPathChange, onPagingModeChange, onGlobalAutoAdvanceChange, logicIssues }) => {
 
     const pathOptions = useMemo(() => [
-        { id: 'all-paths', name: 'All Paths' },
+        { id: 'all-paths', name: 'Default' },
         ...paths,
     ], [paths]);
 
@@ -88,7 +88,7 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
 
                 return {
                     totalQuestions: selectedPath.questionCount,
-                    requiredQuestions: 'N/A', // Cannot be accurately determined for a specific path
+                    requiredQuestions: selectedPath.requiredQuestionCount,
                     totalPages: String(selectedPath.pageCount),
                     completionTimeString: selectedPath.completionTimeString,
                     maxMinutes: minutes

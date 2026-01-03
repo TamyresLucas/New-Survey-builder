@@ -1,4 +1,4 @@
-import type { Survey, Question, Block } from '../types';
+import type { Survey, Question, Block, PathAnalysisResult } from '../types';
 import { QuestionType } from '../types';
 import { generateId } from './id';
 import { parseChoice } from './parser';
@@ -179,17 +179,81 @@ export const renumberSurveyVariables = (survey: Survey): Survey => {
     return newSurvey;
 };
 
-export const analyzeSurveyPaths = (survey: Survey) => {
-    const questionCount = survey.blocks.reduce((acc, b) => acc + b.questions.length, 0);
-    const pageCount = survey.blocks.length;
-    return [{
-        id: 'default-path',
-        name: 'Default Path',
-        questionCount,
-        completionTimeString: '10m',
-        pageCount,
-        blockIds: survey.blocks.map(b => b.id)
-    }];
+export const analyzeSurveyPaths = (survey: Survey): PathAnalysisResult[] => {
+    const paths = new Map<string, PathAnalysisResult>();
+    const createPath = (name: string): PathAnalysisResult => ({
+        id: name.toLowerCase().replace(/\s+/g, '-'),
+        name,
+        questionCount: 0,
+        requiredQuestionCount: 0,
+        completionTimeString: '<1 min',
+        pageCount: 0,
+        blockIds: []
+    });
+
+    // 1. Identify all defined path names from logic
+    survey.blocks.forEach(block => {
+        block.questions.forEach(q => {
+            if (q.branchingLogic) {
+                q.branchingLogic.branches.forEach(branch => {
+                    if (branch.pathName && !paths.has(branch.pathName)) {
+                        paths.set(branch.pathName, createPath(branch.pathName));
+                    }
+                });
+                if (q.branchingLogic.otherwisePathName && !paths.has(q.branchingLogic.otherwisePathName)) {
+                    paths.set(q.branchingLogic.otherwisePathName, createPath(q.branchingLogic.otherwisePathName));
+                }
+            }
+        });
+    });
+
+    // 2. Also ensure any pathNames currently assigned to blocks exist in our map
+    survey.blocks.forEach(block => {
+        if (block.branchName && !paths.has(block.branchName)) {
+            paths.set(block.branchName, createPath(block.branchName));
+        }
+    });
+
+    // 3. Aggregate stats for each path
+    paths.forEach((pathResult, pathName) => {
+        let totalPoints = 0;
+        let qCount = 0;
+        let requiredCount = 0;
+        let pageCount = 0;
+
+        survey.blocks.forEach(block => {
+            if (block.branchName === pathName) {
+                pathResult.blockIds.push(block.id);
+
+                // Count pages (1 for block itself if not auto-breaks, plus manual breaks)
+                // Using simplified logic similar to SurveyStructureWidget
+                if (block.automaticPageBreaks) {
+                    pageCount += block.questions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak).length;
+                } else {
+                    pageCount += (block.questions.length > 0 ? 1 : 0) + block.questions.filter(q => q.type === QuestionType.PageBreak && !q.isAutomatic).length;
+                }
+
+                block.questions.forEach(q => {
+                    if (q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak) {
+                        qCount++;
+                        if (q.forceResponse) {
+                            requiredCount++;
+                        }
+                        totalPoints += calculateQuestionPoints(q);
+                    }
+                });
+            }
+        });
+
+        pathResult.questionCount = qCount;
+        pathResult.requiredQuestionCount = requiredCount;
+        pathResult.pageCount = pageCount;
+
+        const minutes = Math.round(totalPoints / 8); // simplified calc
+        pathResult.completionTimeString = minutes < 1 ? "<1 min" : `${minutes} min`;
+    });
+
+    return Array.from(paths.values());
 };
 
 /**

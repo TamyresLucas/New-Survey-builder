@@ -41,7 +41,7 @@ export const RightSidebar: React.FC<{
     onRequestGeminiHelp,
 }) => {
     const tabs = useMemo(() => {
-        const baseTabs = ['Settings', 'Behavior', 'Advanced'];
+        const baseTabs = ['Settings', 'Logic', 'Advanced'];
         if (![QuestionType.PageBreak].includes(question.type)) {
             baseTabs.push('Preview');
         }

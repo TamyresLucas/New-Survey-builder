@@ -352,8 +352,9 @@ export const SurveyFlowDisplay: React.FC<{ logic: SkipLogic; survey: Survey; onC
             onClick={onClick}
             className="p-3 border border-outline-variant rounded-md bg-surface-container-high cursor-pointer hover:border-primary"
         >
-            <div className="mb-2">
-                <h4 className="text-sm font-medium text-on-surface">Survey flow</h4>
+            <div className="flex items-center gap-2 mb-2">
+                <ArrowRightAltIcon className="text-lg text-primary" />
+                <h4 className="text-sm font-medium text-on-surface">Default path</h4>
             </div>
 
             <div className="space-y-2 text-sm">
@@ -391,7 +392,7 @@ export const SurveyFlowDisplay: React.FC<{ logic: SkipLogic; survey: Survey; onC
                         </>
                     ) : (
                         <>
-                            <span className="text-on-surface">Default path </span>
+                            <span className="text-on-surface">{sourceQuestion?.qid || 'Default path'} </span>
                             <ArrowRightAltIcon className="text-lg text-primary inline-block align-bottom mx-1.5" />
                             <span>{formatDestination((logic.type === 'simple' ? logic.skipTo : ''), survey)}</span>.
                         </>

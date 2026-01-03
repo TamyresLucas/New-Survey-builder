@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import type { Block, Survey, BranchingLogic, BranchingLogicBranch, BranchingLogicCondition } from '../../types';
 import { QuestionType } from '../../types';
-import { PlusIcon, XIcon } from '../icons';
+import { PlusIcon } from '../icons';
 import { generateId } from '../../utils';
-import { LogicConditionRow, DestinationRow, BranchLogicSet } from './shared';
+import { LogicConditionRow, DestinationRow } from './shared';
+import { Button } from '../Button';
 
 interface BlockSkipLogicEditorProps {
     block: Block;
@@ -14,8 +15,6 @@ interface BlockSkipLogicEditorProps {
 
 export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ block, survey, onUpdateBlock, onExpandSidebar }) => {
     const branchingLogic = block.draftBranchingLogic ?? block.branchingLogic;
-    const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof BranchingLogicCondition | 'skipTo'>>>(new Map());
-
 
     const questionsForConditions = useMemo(() =>
         survey.blocks
@@ -32,21 +31,21 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
         onUpdateBlock(block.id, updates);
     };
 
-
-
     if (!branchingLogic) {
         return (
             <div>
                 <p className="text-xs text-on-surface-variant mb-3">Create rules to skip this entire block based on previous answers.</p>
                 <div className="flex items-center gap-4">
-                    <button
+                    <Button
+                        variant="tertiary-primary"
+                        size="large"
                         onClick={() => {
                             handleUpdate({
                                 branchingLogic: {
                                     branches: [{
                                         id: generateId('branch'), operator: 'AND',
-                                        conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
-                                        thenSkipTo: '', thenSkipToIsConfirmed: false,
+                                        conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: true }],
+                                        thenSkipTo: '', thenSkipToIsConfirmed: true,
                                     }],
                                     otherwiseSkipTo: '',
                                     otherwiseIsConfirmed: true,
@@ -54,10 +53,9 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
                             });
                             onExpandSidebar();
                         }}
-                        className="flex items-center gap-1 text-xs font-semibold text-primary hover:bg-primary hover:text-on-primary rounded-md px-3 py-1.5"
                     >
-                        <PlusIcon className="text-base" /> Add Skip Logic
-                    </button>
+                        <PlusIcon className="text-xl mr-2" /> Add logic set
+                    </Button>
                 </div>
             </div>
         );
@@ -71,14 +69,21 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
     const handleUpdateCondition = (branchId: string, conditionId: string, field: keyof BranchingLogicCondition, value: any) => {
         const branch = branchingLogic.branches.find(b => b.id === branchId);
         if (!branch) return;
-        const newConditions = branch.conditions.map(c => c.id === conditionId ? { ...c, [field]: value, isConfirmed: false } : c);
-        handleUpdateBranch(branchId, { conditions: newConditions, thenSkipToIsConfirmed: false });
+        const newConditions = branch.conditions.map(c => c.id === conditionId ? { ...c, [field]: value } : c);
+
+        // Clear value if operator involves emptiness
+        if (field === 'operator' && (value === 'is_empty' || value === 'is_not_empty')) {
+            const cond = newConditions.find(c => c.id === conditionId);
+            if (cond) cond.value = '';
+        }
+
+        handleUpdateBranch(branchId, { conditions: newConditions });
     };
 
     const handleAddCondition = (branchId: string) => {
         const branch = branchingLogic.branches.find(b => b.id === branchId);
         if (!branch) return;
-        const newCondition: BranchingLogicCondition = { id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false };
+        const newCondition: BranchingLogicCondition = { id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: true };
         handleUpdateBranch(branchId, { conditions: [...branch.conditions, newCondition] });
     };
 
@@ -89,43 +94,11 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
         handleUpdateBranch(branchId, { conditions: newConditions });
     };
 
-    const handleConfirmBranch = (branchId: string) => {
-        const branch = branchingLogic.branches.find(b => b.id === branchId);
-        if (!branch) return;
-
-        const newValidationErrors = new Map(validationErrors);
-        let isBranchValid = true;
-        branch.conditions.forEach(c => {
-            const errors = new Set<keyof BranchingLogicCondition>();
-            if (!c.questionId) errors.add('questionId');
-            if (!c.operator) errors.add('operator');
-            if (!['is_empty', 'is_not_empty'].includes(c.operator) && !c.value) errors.add('value');
-            if (errors.size > 0) {
-                newValidationErrors.set(c.id, errors);
-                isBranchValid = false;
-            } else {
-                newValidationErrors.delete(c.id);
-            }
-        });
-        if (!branch.thenSkipTo) {
-            newValidationErrors.set(branch.id, new Set(['skipTo']));
-            isBranchValid = false;
-        } else {
-            newValidationErrors.delete(branch.id);
-        }
-        setValidationErrors(newValidationErrors);
-
-        if (isBranchValid) {
-            const newConditions = branch.conditions.map(c => ({ ...c, isConfirmed: true }));
-            handleUpdateBranch(branchId, { conditions: newConditions, thenSkipToIsConfirmed: true });
-        }
-    };
-
     const handleAddBranch = () => {
         const newBranch: BranchingLogicBranch = {
             id: generateId('branch'), operator: 'AND',
-            conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: false }],
-            thenSkipTo: '', thenSkipToIsConfirmed: false
+            conditions: [{ id: generateId('cond'), questionId: '', operator: '', value: '', isConfirmed: true }],
+            thenSkipTo: '', thenSkipToIsConfirmed: true
         };
         handleUpdate({ branchingLogic: { ...branchingLogic, branches: [...branchingLogic.branches, newBranch] } });
     };
@@ -143,32 +116,81 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
         <div>
             <div className="flex items-center justify-between gap-2 mb-4">
                 <div>
+                    <h3 className="text-sm font-medium text-on-surface">Skip Logic</h3>
                     <p className="text-xs text-on-surface-variant">Create rules to skip this entire block based on previous answers.</p>
                 </div>
-                <button onClick={() => handleUpdate({ branchingLogic: undefined, draftBranchingLogic: undefined })} className="text-sm font-semibold text-error hover:underline">Remove</button>
+                <button onClick={() => handleUpdate({ branchingLogic: undefined, draftBranchingLogic: undefined })} className="text-sm font-semibold text-error hover:underline px-2 py-1 rounded-md hover:bg-error-container/50">Remove</button>
             </div>
+
             <div className="space-y-4">
-                {branchingLogic.branches.map((branch) => (
-                    <BranchLogicSet
-                        key={branch.id}
-                        branch={branch}
-                        onUpdate={(updates) => handleUpdateBranch(branch.id, updates)}
-                        onRemove={() => handleRemoveBranch(branch.id)}
-                        availableQuestions={questionsForConditions}
-                        followingQuestions={followingQuestions}
-                        survey={survey}
-                        currentBlockId={block.id}
-                        issues={Array.from(validationErrors.entries()).flatMap(([id, errors]) =>
-                            Array.from(errors).map(field => ({
-                                sourceId: id,
-                                message: `Missing required field: ${field}`
-                            } as any)) // Mocking LogicIssue type slightly if needed, or better, adapt validationErrors to LogicIssue
-                        )}
-                    // currentQuestion is undefined for block logic
-                    />
+                {branchingLogic.branches.map((branch, index) => (
+                    <div key={branch.id} className="p-3 border border-outline-variant rounded-md bg-surface-container min-w-0">
+                        <div className="flex justify-between items-center mb-3 px-2">
+                            <div className="flex-1">
+                                <DestinationRow
+                                    label={<span className="text-sm font-medium text-on-surface whitespace-nowrap">Branch to</span>}
+                                    value={branch.thenSkipTo}
+                                    onChange={(value) => handleUpdateBranch(branch.id, { thenSkipTo: value })}
+                                    isConfirmed={true}
+                                    followingQuestions={[]}
+                                    survey={survey}
+                                    currentBlockId={block.id}
+                                    hideNextQuestion={true}
+                                    className="flex-1"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 mb-2 px-2">
+                            <span className="text-sm font-medium text-on-surface">if</span>
+                            {branch.conditions.length > 1 && (
+                                <div className="flex gap-1">
+                                    <button onClick={() => handleUpdateBranch(branch.id, { operator: 'AND' })} className={`px-2 py-0.5 text-[10px] font-button-operator rounded-full transition-colors ${branch.operator === 'AND' ? 'bg-primary text-on-primary' : 'bg-surface border border-outline text-on-surface-variant'}`}>AND</button>
+                                    <button onClick={() => handleUpdateBranch(branch.id, { operator: 'OR' })} className={`px-2 py-0.5 text-[10px] font-button-operator rounded-full transition-colors ${branch.operator === 'OR' ? 'bg-primary text-on-primary' : 'bg-surface border border-outline text-on-surface-variant'}`}>OR</button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="space-y-2 mb-3">
+                            {branch.conditions.map((condition, cIndex) => (
+                                <div key={condition.id} className="flex items-start gap-2 w-full">
+                                    {branch.conditions.length > 1 && (
+                                        <span className="text-xs font-medium text-on-surface-variant w-5 text-center mt-2">{cIndex + 1}.</span>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                        <LogicConditionRow
+                                            condition={condition}
+                                            onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
+                                            onRemoveCondition={branch.conditions.length > 1 ? () => handleRemoveCondition(branch.id, condition.id) : undefined}
+                                            availableQuestions={questionsForConditions}
+                                            isConfirmed={true}
+                                            isFirstCondition={cIndex === 0}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="flex items-center justify-between mt-3 px-2">
+                            <Button variant="tertiary-primary" size="large" onClick={() => handleAddCondition(branch.id)}>
+                                <PlusIcon className="text-xl mr-2" /> Add condition
+                            </Button>
+
+                            {branchingLogic.branches.length > 1 && (
+                                <Button variant="tertiary" size="large" onClick={() => handleRemoveBranch(branch.id)}>
+                                    Delete branch
+                                </Button>
+                            )}
+                        </div>
+                    </div>
                 ))}
             </div>
-            <button onClick={handleAddBranch} className="mt-4 flex items-center gap-1 text-sm font-semibold text-primary hover:bg-primary hover:text-on-primary rounded h-[32px] px-2 py-1.5 transition-colors"><PlusIcon className="text-lg" /> Add branch</button>
+
+            <div className="mt-4">
+                <Button onClick={handleAddBranch} variant="tertiary-primary" size="large">
+                    <PlusIcon className="text-xl mr-2" /> Add logic set
+                </Button>
+            </div>
         </div>
     );
 };

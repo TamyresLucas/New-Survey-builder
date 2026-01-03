@@ -78,6 +78,8 @@ export interface DisplayLogic {
   operator: 'AND' | 'OR';
   conditions: DisplayLogicCondition[];
   logicSets?: LogicSet[];
+  action?: 'show' | 'hide';
+  isConfirmed?: boolean;
 }
 
 export interface ChoiceDisplayCondition {
@@ -146,6 +148,7 @@ export interface BranchingLogicCondition {
   operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'is_empty' | 'is_not_empty' | '';
   value: string;
   gridValue?: string; // For ChoiceGrid, this will be the scale point's ID.
+  choiceId?: string; // The internal ID of the choice (e.g., "q1c1") for stable matching
   isConfirmed?: boolean;
 }
 
@@ -486,6 +489,7 @@ export interface PathAnalysisResult {
   id: string;
   name: string;
   questionCount: number;
+  requiredQuestionCount: number;
   completionTimeString: string;
   pageCount: number;
   blockIds: string[];

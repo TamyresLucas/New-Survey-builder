@@ -4,39 +4,41 @@ import { generateId } from '../../utils';
 import { PlusIcon } from '../icons';
 import { LogicExpressionEditor, CopyAndPasteButton, LogicConditionRow } from './shared';
 
-interface ConditionalLogicEditorProps {
+import { Button } from '../Button';
+
+interface ConditionalLogicEditorProps<T> {
     logicType: 'display' | 'hide';
     title: string;
     description: string;
-    logicProp: 'displayLogic' | 'hideLogic';
-    draftLogicProp: 'draftDisplayLogic' | 'draftHideLogic';
-    question: Question;
+    logicProp: keyof T;
+    draftLogicProp: keyof T;
+    target: T;
     previousQuestions: Question[];
-    issues: LogicIssue[];
-    onUpdate: (updates: Partial<Question>) => void;
+    issues?: LogicIssue[];
+    onUpdate: (updates: Partial<T>) => void;
     onAddLogic: () => void;
-    onRequestGeminiHelp: (topic: string) => void;
+    onRequestGeminiHelp?: (topic: string) => void;
 }
 
-export const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
+export const ConditionalLogicEditor = <T extends Record<string, any>>({
     logicType,
     title,
     description,
     logicProp,
     draftLogicProp,
-    question,
+    target,
     previousQuestions,
-    issues,
+    issues = [],
     onUpdate,
     onAddLogic,
     onRequestGeminiHelp,
-}) => {
-    const logic = question[draftLogicProp] ?? question[logicProp];
+}: ConditionalLogicEditorProps<T>) => {
+    const logic = target[draftLogicProp] ?? target[logicProp];
     const [validationErrors, setValidationErrors] = useState<Map<string, Set<keyof DisplayLogicCondition>>>(new Map());
     const [isPasting, setIsPasting] = useState(false);
 
     const handleUpdate = (newLogic: DisplayLogic | undefined) => {
-        onUpdate({ [logicProp]: newLogic });
+        onUpdate({ [logicProp]: newLogic } as Partial<T>);
     };
 
     const handleAddLogic = () => {
@@ -130,11 +132,25 @@ export const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
     const handleUpdateCondition = (index: number, field: keyof DisplayLogicCondition, value: any) => {
         if (!logic) return;
         const newConditions = [...logic.conditions];
-        newConditions[index] = { ...newConditions[index], [field]: value, isConfirmed: false };
+        const updatedCondition = { ...newConditions[index], [field]: value, isConfirmed: false };
+
         if (field === 'questionId') {
-            newConditions[index].value = '';
-            newConditions[index].operator = '';
+            updatedCondition.value = '';
+            updatedCondition.operator = '';
         }
+
+        if (field === 'value') {
+            const questionId = updatedCondition.questionId;
+            const question = previousQuestions.find(q => q.qid === questionId);
+            if (question && question.choices) {
+                const choice = question.choices.find(c => c.text === value);
+                if (choice) {
+                    (updatedCondition as any).choiceId = choice.id;
+                }
+            }
+        }
+
+        newConditions[index] = updatedCondition;
         handleUpdate({ ...logic, conditions: newConditions });
     };
 
@@ -166,10 +182,9 @@ export const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
                     />
                 ) : (
                     <div className="flex items-center gap-4">
-                        <button onClick={handleAddLogic} className="flex items-center gap-1 text-sm font-semibold text-primary hover:bg-primary hover:text-on-primary rounded h-[32px] px-2 py-1.5 transition-colors">
-                            <PlusIcon className="text-lg" />
-                            Add condition
-                        </button>
+                        <Button variant="tertiary-primary" size="large" onClick={handleAddLogic}>
+                            <PlusIcon className="text-xl mr-2" /> Add logic set
+                        </Button>
                         <CopyAndPasteButton onClick={() => setIsPasting(true)} label="Write expression" />
                     </div>
                 )}
@@ -201,10 +216,9 @@ export const ConditionalLogicEditor: React.FC<ConditionalLogicEditorProps> = ({
                         </div>
                     )}
                 </div>
-                <button onClick={handleAddLogic} className="flex items-center gap-1 text-sm font-semibold text-primary hover:bg-primary hover:text-on-primary rounded h-[32px] px-2 py-1.5 transition-colors">
-                    <PlusIcon className="text-lg" />
-                    Add condition
-                </button>
+                <Button variant="tertiary-primary" size="large" onClick={handleAddLogic}>
+                    <PlusIcon className="text-xl mr-2" /> Add logic set
+                </Button>
             </div>
 
             <div className="space-y-2 mb-3">

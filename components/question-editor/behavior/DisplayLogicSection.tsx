@@ -28,7 +28,7 @@ const DisplayLogicSection: React.FC<DisplayLogicSectionProps> = ({
                     description="Control when this question is shown to respondents"
                     logicProp="displayLogic"
                     draftLogicProp="draftDisplayLogic"
-                    question={question}
+                    target={question}
                     previousQuestions={previousQuestions}
                     issues={issues.filter(i => i.type === 'display')}
                     onUpdate={onUpdate}
@@ -43,7 +43,7 @@ const DisplayLogicSection: React.FC<DisplayLogicSectionProps> = ({
                     description="Control when this question is hidden from respondents"
                     logicProp="hideLogic"
                     draftLogicProp="draftHideLogic"
-                    question={question}
+                    target={question}
                     previousQuestions={previousQuestions}
                     issues={issues.filter(i => i.type === 'hide')}
                     onUpdate={onUpdate}

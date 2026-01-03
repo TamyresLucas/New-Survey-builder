@@ -51,12 +51,26 @@ export const LogicSet: React.FC<LogicSetProps> = ({
 
     const handleUpdateCondition = (index: number, field: keyof DisplayLogicCondition, value: any) => {
         const newConditions = [...logicSet.conditions];
-        newConditions[index] = { ...newConditions[index], [field]: value, isConfirmed: false };
+        const updatedCondition = { ...newConditions[index], [field]: value, isConfirmed: false };
 
         if (field === 'questionId') {
-            newConditions[index].operator = '';
-            newConditions[index].value = '';
+            updatedCondition.operator = '';
+            updatedCondition.value = '';
         }
+
+        // Handle value updates for choice-based questions to set stable ID
+        if (field === 'value') {
+            const questionId = updatedCondition.questionId;
+            const question = availableQuestions.find(q => q.qid === questionId);
+            if (question && question.choices) {
+                const choice = question.choices.find(c => c.text === value);
+                if (choice) {
+                    (updatedCondition as any).choiceId = choice.id;
+                }
+            }
+        }
+
+        newConditions[index] = updatedCondition;
 
         if (validationErrors.has(newConditions[index].id)) {
             const newErrors = new Map(validationErrors);
@@ -250,7 +264,7 @@ export const LogicSet: React.FC<LogicSetProps> = ({
 
                     <div className="flex items-center gap-2">
                         <Button
-                            variant="tertiary"
+                            variant={logicSet.isConfirmed ? 'danger' : 'tertiary'}
                             size="large"
                             onClick={logicSet.isConfirmed ? onRemove : handleCancel}
                         >

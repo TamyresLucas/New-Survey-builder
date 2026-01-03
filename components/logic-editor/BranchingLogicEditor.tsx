@@ -87,8 +87,8 @@ export const BranchingLogicEditor: React.FC<{
             return (
                 <div className="h-full flex flex-col bg-surface-50">
 
-                    <div className="flex-none px-6 py-4 border-b border-surface-200 bg-white">
-                        <h3 className="text-sm font-medium text-on-surface mb-1">Branching Logic</h3>
+                    <div className="flex-none bg-white">
+
                         <p className="text-xs text-on-surface-variant mb-3">Redirect respondents to different blocks, sections, or survey paths within this survey based on their answers.</p>
                         <Button variant="tertiary-primary" size="large" onClick={handleAddBranchingLogic}>
                             <PlusIcon className="text-xl mr-2" /> Add branch
@@ -215,7 +215,7 @@ export const BranchingLogicEditor: React.FC<{
             <div>
 
                 <div className="mb-4">
-                    <h3 className="text-sm font-medium text-on-surface mb-1">Branching Logic</h3>
+
                     <p className="text-xs text-on-surface-variant">
                         Redirect respondents to different blocks, sections, or survey paths within this survey based on their answers.
                     </p>
@@ -248,7 +248,7 @@ export const BranchingLogicEditor: React.FC<{
                 </Button>
 
                 {!isOtherwiseExhaustive && (
-                    <div className="mt-4 pt-4 border-t border-outline-variant">
+                    <div className="mt-4 pt-4">
                         <DestinationRow
                             label={<span className="text-sm font-medium text-on-surface">Otherwise skip to</span>}
                             value={branchingLogic.otherwiseSkipTo}

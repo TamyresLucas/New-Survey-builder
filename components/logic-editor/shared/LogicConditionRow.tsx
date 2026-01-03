@@ -175,7 +175,14 @@ export const LogicConditionRow: React.FC<{
                                 <div className="relative">
                                     <select
                                         value={(condition as BranchingLogicCondition).value}
-                                        onChange={(e) => onUpdateCondition('value', e.target.value)}
+                                        onChange={(e) => {
+                                            const text = e.target.value;
+                                            onUpdateCondition('value', text);
+                                            // FIX: Also set choiceId for stable matching
+                                            const choice = referencedQuestion.choices?.find(c => c.text === text);
+                                            // Cast to any to bypass type check for now since onUpdateCondition is generic
+                                            if (choice) onUpdateCondition('choiceId' as any, choice.id);
+                                        }}
                                         className={`w-full bg-[var(--input-bg)] border rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                                         aria-label={`Condition ${conditionIndex + 1}: Condition row`}
                                         disabled={valueIsDisabled}
@@ -231,7 +238,10 @@ export const LogicConditionRow: React.FC<{
                                     <div className="relative">
                                         <select
                                             value={(condition as BranchingLogicCondition).value}
-                                            onChange={(e) => onUpdateCondition('value', e.target.value)}
+                                            onChange={(e) => {
+                                                const text = e.target.value;
+                                                onUpdateCondition('value', text);
+                                            }}
                                             className={`w-full bg-[var(--input-bg)] border rounded-md px-2 py-1.5 pr-8 text-sm text-[var(--input-field-input-txt)] font-normal focus:outline-2 focus:outline-offset-1 appearance-none disabled:bg-surface-container-high disabled:cursor-not-allowed ${valueBorderClass}`}
                                             aria-label={`Condition ${conditionIndex + 1}: Condition value`}
                                             disabled={valueIsDisabled}

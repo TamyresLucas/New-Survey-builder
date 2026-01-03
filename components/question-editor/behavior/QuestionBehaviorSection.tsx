@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import type { Question, Survey, Block, DisplayLogicCondition, DisplayLogic, LogicSet as ILogicSet, LogicIssue } from '../../../types';
 import { ArrowRightAltIcon, PlusIcon, ChevronDownIcon, GridIcon, EditIcon } from '../../icons';
-import { QuestionGroupEditor, CopyAndPasteButton, CollapsibleSection, LogicSet, DisplayLogicSet, LogicExpressionEditor, LogicConditionRow } from '../../logic-editor/shared';
+import { CopyAndPasteButton, CollapsibleSection, LogicSet, DisplayLogicSet, LogicExpressionEditor, LogicConditionRow } from '../../logic-editor/shared';
 import { generateId, parseDisplayLogicString, parseVoxcoLogic } from '../../../utils';
 import { Button } from '../../Button';
 
@@ -366,9 +366,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
                 </div>
             </div>
 
-            <div className="border-t border-outline-variant pt-4">
-                <QuestionGroupEditor question={question} survey={survey} onUpdate={onUpdate} />
-            </div>
+
         </div>
     );
 };

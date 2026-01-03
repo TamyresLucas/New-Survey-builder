@@ -276,8 +276,14 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
                         const targetId = resolveDestination(branch.thenSkipTo, index);
                         if (targetId) {
                             // Find associated choice for handle mapping if possible
+                            // Find associated choice for handle mapping if possible
                             const condition = branch.conditions.find(c => c.questionId === q.qid && c.isConfirmed);
-                            const choice = condition ? q.choices?.find(c => c.text === condition.value) : null;
+                            // FIX: Use choiceId for stable matching if available, otherwise fallback to text value
+                            const choice = condition
+                                ? (condition.choiceId
+                                    ? q.choices?.find(c => c.id === condition.choiceId)
+                                    : q.choices?.find(c => c.text === condition.value))
+                                : null;
                             const sourceHandle = choice ? choice.id : 'output';
 
                             adj[q.id].push(targetId);
@@ -303,8 +309,12 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
                 branchingLogic.branches.forEach(b => {
                     if (b.thenSkipToIsConfirmed) {
                         const condition = b.conditions.find(c => c.questionId === q.qid && c.isConfirmed);
-                        if (condition && condition.value) {
-                            const choice = q.choices?.find(c => c.text === condition.value);
+                        if (condition) {
+                            // FIX: Use choiceId logic here too for strict fan-out check
+                            const choice = condition.choiceId
+                                ? q.choices?.find(c => c.id === condition.choiceId)
+                                : (condition.value ? q.choices?.find(c => c.text === condition.value) : undefined);
+
                             if (choice) handledChoiceIds.add(choice.id);
                         }
                     }

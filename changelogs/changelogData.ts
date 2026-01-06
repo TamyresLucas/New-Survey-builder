@@ -11,6 +11,23 @@ export interface ChangelogEntry {
 // NOTE: Always update 'time' to the current local time when adding an entry.
 export const changelogs: ChangelogEntry[] = [
     {
+        id: '2026-01-06-1',
+        version: 'v1.0.26',
+        date: '2026-01-06',
+        time: '7:24 PM',
+        request: 'Fix Block Hover Synchronization',
+        improvements: [
+            'UX: Fixed bidirectional hover synchronization between Sidebar and Canvas blocks for better visual feedback.',
+            'UX: Hovering a block in the sidebar now correctly highlights the corresponding block on the canvas.',
+            'UX: Hovering a block on the canvas now correctly highlights the corresponding card in the sidebar.'
+        ],
+        technicalChanges: [
+            'Verified state synchronization chain: SidebarCard -> SidebarBlock -> AppState -> SurveyBlock.',
+            'Removed temporary debug logging from SidebarCard.tsx, SidebarBlock.tsx, and SurveyBlock.tsx.',
+            'Confirmed hot-reload issue was preventing initial validation; no structural code changes were required.'
+        ]
+    },
+    {
         id: '2026-01-05-2',
         version: 'v1.0.25',
         date: '2026-01-05',

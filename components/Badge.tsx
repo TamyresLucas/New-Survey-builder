@@ -22,52 +22,70 @@ export const Badge: React.FC<BadgeProps> = ({
 }) => {
     const baseClasses = 'box-border flex flex-row justify-center items-center px-2 py-1 gap-2 absolute sm:static rounded-[16px] border h-[27px] min-w-[56px] transition-colors duration-200';
 
-    const textClasses = 'font-open-sans not-italic font-normal text-sm leading-[19px] flex items-end text-center text-on-surface';
+    const textClasses = 'font-open-sans not-italic font-normal text-sm leading-[19px] flex items-center text-center';
 
     const variantClasses = {
         purple: {
-            default: 'bg-white border-[#E0E4FF]',
-            active: 'bg-[#E8DAFF] border-[#8E25D0]', // chart-grape-20, chart-grape
-            dot: '#8E25D0',
+            bg: 'var(--tags-tag-bg--4)',
+            border: 'var(--tags-tag-bd-icon--4)',
+            text: 'var(--tags-tag-bd-icon--4)',
+            dot: 'var(--tags-tag-bd-icon--4)',
         },
         green: {
-            default: 'bg-white border-[#E0E4FF]',
-            active: 'bg-[#CEF1E1] border-[#00A078]', // chart-avocado-10, foundation-green (chart-avocado)
-            dot: '#00A078',
+            bg: 'var(--tags-tag-bg--9)',
+            border: 'var(--tags-tag-bd-icon--9)',
+            text: 'var(--tags-tag-bd-icon--9)',
+            dot: 'var(--tags-tag-bd-icon--9)',
         },
         grey: {
-            default: 'bg-white border-[#E0E4FF]',
-            active: 'bg-[#E2E5E7] border-[#707D89]', // chart-grey-20, chart-grey
-            dot: '#707D89',
+            bg: 'var(--tags-tag-bg--1)',
+            border: 'var(--tags-tag-bd-icon--1)',
+            text: 'var(--tags-tag-bd-icon--1)',
+            dot: 'var(--tags-tag-bd-icon--1)',
         },
         red: {
-            default: 'bg-white border-[#E0E4FF]',
-            active: 'bg-[#FEEFF1] border-[#EF576B]', // foundation-coral-light, foundation-coral (chart-apple)
-            dot: '#EF576B',
+            bg: 'var(--tags-tag-bg--2)',
+            border: 'var(--tags-tag-bd-icon--2)',
+            text: 'var(--tags-tag-bd-icon--2)',
+            dot: 'var(--tags-tag-bd-icon--2)',
         },
         periwinkle: {
-            default: 'bg-white border-[#E0E4FF]',
-            active: 'bg-[#D4E2FF] border-[#5568F2]', // tags-tag-bg--10, foundation-periwinkle-dark
-            dot: '#5568F2',
+            bg: 'var(--tags-tag-bg--10)',
+            border: 'var(--tags-tag-bd-icon--10)',
+            text: 'var(--tags-tag-bd-icon--10)',
+            dot: 'var(--tags-tag-bd-icon--10)',
         },
         yellow: {
-            default: 'bg-white border-[#E0E4FF]',
-            active: 'bg-[#FFFCF2] border-[#EC6B09]', // tags-tag-bg--11, foundation-tangerine
-            dot: '#EC6B09',
+            bg: 'var(--tags-tag-bg--11)',
+            border: 'var(--tags-tag-bd-icon--11)',
+            text: 'var(--tags-tag-bd-icon--11)',
+            dot: 'var(--tags-tag-bd-icon--11)',
         },
         cyan: {
-            default: 'bg-white border-[#E0E4FF]',
-            active: 'bg-[#DFF3FB] border-[#0192D0]',
-            dot: '#0192D0',
+            bg: 'var(--tags-tag-bg--5)',
+            border: 'var(--tags-tag-bd-icon--5)',
+            text: 'var(--tags-tag-bd-icon--5)',
+            dot: 'var(--tags-tag-bd-icon--5)',
         },
     };
 
     const selectedVariant = variantClasses[variant];
-    const stateClasses = active ? selectedVariant.active : selectedVariant.default;
+
+    const style = active ? {
+        backgroundColor: selectedVariant.bg,
+        borderColor: selectedVariant.border,
+    } : {
+        backgroundColor: 'var(--md-sys-color-surface)',
+        borderColor: 'var(--border-bd-def)',
+    };
+
     const dotColor = selectedVariant.dot;
 
     return (
-        <div className={classNames(baseClasses, stateClasses, className)}>
+        <div
+            className={classNames(baseClasses, className)}
+            style={style}
+        >
             {!icon && !hideDot && (
                 <div
                     className="w-[9px] h-[9px] rounded-full flex-none order-0 flex-grow-0"
@@ -79,7 +97,10 @@ export const Badge: React.FC<BadgeProps> = ({
                     {icon}
                 </div>
             )}
-            <span className={classNames(textClasses, 'flex-none order-2 flex-grow-1')}>
+            <span
+                className={classNames(textClasses, 'flex-none order-2 flex-grow-1')}
+                style={{ color: active ? 'var(--text-txt-pri)' : 'var(--text-txt-sec)' }}
+            >
                 {children}
             </span>
         </div>

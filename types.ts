@@ -506,4 +506,4 @@ export const isMultipleChoiceNode = (node: Node): node is MultipleChoiceNode => 
 export const isTextEntryNode = (node: Node): node is TextEntryNode => node.type === 'text_entry';
 export const isDescriptionNode = (node: Node): node is DescriptionNode => node.type === 'description_node';
 
-export type SurveyStatus = 'draft' | 'active' | 'stopped';
+export type SurveyStatus = 'draft' | 'active' | 'pending' | 'stopped';

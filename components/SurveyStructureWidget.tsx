@@ -222,15 +222,17 @@ const SurveyStructureWidget: React.FC<SurveyStructureWidgetProps> = memo(({ surv
                     />
                 </div>
 
-                <div className="relative">
-                    <DropdownField
-                        value={selectedPathId}
-                        onChange={onPathChange}
-                        options={pathOptions.map(p => ({ value: p.id, label: p.name }))}
-                        disabled={paths.length === 0}
-                        hasDropdownShadow={false}
-                    />
-                </div>
+                {paths.length > 1 && (
+                    <div className="relative">
+                        <DropdownField
+                            value={selectedPathId}
+                            onChange={onPathChange}
+                            options={pathOptions.map(p => ({ value: p.id, label: p.name }))}
+                            disabled={paths.length === 0}
+                            hasDropdownShadow={false}
+                        />
+                    </div>
+                )}
 
                 <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">

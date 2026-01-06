@@ -50,6 +50,8 @@ interface SidebarBlockProps {
     onExpandBlock: (blockId: string) => void;
     onCollapseBlock: (blockId: string) => void;
     onDeleteBlock: (blockId: string) => void;
+    hoveredBlockId?: string | null;
+    onBlockHover?: (id: string | null) => void;
 }
 
 export const SidebarBlock: React.FC<SidebarBlockProps> = ({
@@ -94,7 +96,9 @@ export const SidebarBlock: React.FC<SidebarBlockProps> = ({
     onUnselectAllInBlock,
     onExpandBlock,
     onCollapseBlock,
-    onDeleteBlock
+    onDeleteBlock,
+    hoveredBlockId,
+    onBlockHover
 }) => {
     const actionsMenuRef = useRef<HTMLDivElement>(null);
 
@@ -157,8 +161,11 @@ export const SidebarBlock: React.FC<SidebarBlockProps> = ({
             icon={BlockIcon}
             iconColorClass="text-primary"
             isSelected={isSelected}
+            isHovered={hoveredBlockId === block.id}
             isDragged={draggedBlockId === block.id}
             onClick={() => onSelectBlock(block)}
+            onMouseEnter={() => onBlockHover?.(block.id)}
+            onMouseLeave={() => onBlockHover?.(null)}
             onDragStart={!isSearching ? (e) => handleBlockDragStart(e, block.id) : undefined}
             onDragEnd={!isSearching ? handleBlockDragEnd : undefined}
             actionsMenu={actionsMenu}

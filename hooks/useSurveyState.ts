@@ -49,18 +49,23 @@ export const useSurveyState = () => {
 
     useEffect(() => {
         // Compare current survey with published version to detect changes
-        if (surveyStatus === 'active' && publishedSurvey) {
-            if (JSON.stringify(survey) !== JSON.stringify(publishedSurvey)) {
-                setIsDirty(true);
-            } else {
-                setIsDirty(false);
+        if (publishedSurvey) {
+            const hasChanges = JSON.stringify(survey) !== JSON.stringify(publishedSurvey);
+            setIsDirty(hasChanges);
+
+            // Automatically transition to 'pending' when active survey has changes
+            if (surveyStatus === 'active' && hasChanges) {
+                setSurveyStatus('pending');
+            }
+            // Transition back to 'active' if changes are reverted
+            if (surveyStatus === 'pending' && !hasChanges) {
+                setSurveyStatus('active');
             }
         } else {
-            setIsDirty(false); // If not active, it's not considered "dirty"
+            setIsDirty(false);
         }
 
         // Autosave logic: persist to local storage whenever survey changes
-        // excluding publishedSurvey reference checks or status changes to be pure
         window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(survey));
     }, [survey, surveyStatus, publishedSurvey]);
 

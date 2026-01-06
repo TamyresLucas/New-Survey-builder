@@ -469,7 +469,10 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
   };
 
   return (
-    <aside className="w-full h-full bg-surface-container border-l border-outline-variant flex flex-col">
+    <aside
+      className="w-full h-full bg-surface-container border-l border-outline-variant flex flex-col"
+      onClick={(e) => e.stopPropagation()}
+    >
       <header className="p-4 border-b border-outline-variant flex items-center justify-between flex-shrink-0">
         <h2 className="text-lg font-medium text-on-surface" style={{ fontFamily: "'Outfit', sans-serif" }}>
           Edit Block {block.bid}

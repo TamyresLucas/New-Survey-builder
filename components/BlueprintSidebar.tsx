@@ -33,7 +33,10 @@ const BlueprintSidebar: React.FC<BlueprintSidebarProps> = memo(({
     const [activeTab, setActiveTab] = useState('Survey outline');
 
     return (
-        <div className="w-80 bg-surface-container border-r border-outline flex flex-col flex-shrink-0 font-sans h-full">
+        <div
+            className="w-80 bg-surface-container border-r border-outline flex flex-col flex-shrink-0 font-sans h-full"
+            onClick={(e) => e.stopPropagation()}
+        >
             <div className="p-4 border-b border-outline">
                 <div className="flex items-center justify-between">
                     <h2 className="text-lg font-medium text-on-surface" style={{ fontFamily: "'Outfit', sans-serif" }}>Blueprint</h2>

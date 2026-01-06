@@ -42,6 +42,8 @@ interface BuildPanelProps {
   printMode?: boolean;
   onQuestionHover?: (id: string | null) => void;
   hoveredQuestionId?: string | null;
+  onBlockHover?: (id: string | null) => void;
+  hoveredBlockId?: string | null;
 }
 
 const enabledToolboxItems = new Set(['Block', 'Page Break', 'Description', 'Checkbox', 'Radio Button', 'Text Entry', 'Choice Grid']);
@@ -55,9 +57,9 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   onClose, survey, onSelectQuestion, selectedQuestion, selectedBlock, onSelectBlock, checkedQuestions, collapsedBlocks, toolboxItems, logicIssues, onReorderToolbox, onReorderQuestion, onReorderBlock,
   onMoveBlockUp, onMoveBlockDown, onAddBlock, onCopyBlock, onAddQuestionToBlock, onExpandAllBlocks, onCollapseAllBlocks, onDeleteBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock,
   onMoveQuestionToExistingBlock, onAddPageBreakAfterQuestion, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock, onUpdateQuestion,
-  printMode = false, onQuestionHover, hoveredQuestionId
+  printMode = false, onQuestionHover, hoveredQuestionId, onBlockHover, hoveredBlockId
 }) => {
-  const [activeTab, setActiveTab] = useState('Content');
+  const [activeTab, setActiveTab] = useState('Toolbox');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [questionTypeFilter, setQuestionTypeFilter] = useState('All content');
@@ -359,7 +361,10 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   };
 
   return (
-    <div className="w-80 bg-surface-container border-r border-outline flex flex-col flex-shrink-0 h-full">
+    <div
+      className="w-80 bg-surface-container border-r border-outline flex flex-col flex-shrink-0 h-full"
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="p-4 border-b border-outline">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium text-on-surface" style={{ fontFamily: "'Outfit', sans-serif" }}>Build</h2>
@@ -444,6 +449,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             onChange={setLibraryFilter}
             options={[
               { value: 'Question bank', label: 'Question bank' },
+              { value: 'Multimedia', label: 'Multimedia' },
               { value: 'Templates', label: 'Templates' },
               { value: 'My questionnaires', label: 'My questionnaires' }
             ]}
@@ -550,6 +556,8 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                   onExpandBlock={onExpandBlock}
                   onCollapseBlock={onCollapseBlock}
                   onDeleteBlock={onDeleteBlock}
+                  hoveredBlockId={hoveredBlockId}
+                  onBlockHover={onBlockHover}
                 />
               );
 

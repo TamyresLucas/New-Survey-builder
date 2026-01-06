@@ -53,7 +53,10 @@ export const RightSidebar: React.FC<{
     }
 
     return (
-        <aside className="w-full h-full bg-surface-container border-l border-outline flex flex-col">
+        <aside
+            className="w-full h-full bg-surface-container border-l border-outline flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+        >
             <header className="p-4 border-b border-outline flex items-center justify-between flex-shrink-0">
                 <h2 className="text-lg font-medium text-on-surface" style={{ fontFamily: "'Outfit', sans-serif" }}>
                     Edit {question.qid}

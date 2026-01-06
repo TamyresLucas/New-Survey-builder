@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { XIcon } from './icons';
+import { TextArea } from './TextArea';
+import { Button } from './Button';
 
 interface PasteChoicesModalProps {
   isOpen: boolean;
@@ -41,8 +43,8 @@ export const PasteChoicesModal: React.FC<PasteChoicesModalProps> = ({ isOpen, on
   const handleSave = () => {
     const lines = text.trim().split('\n').filter(line => line.trim() !== '');
     if (lines.length < 2) {
-        setError('At least 2 choices must be added.');
-        return;
+      setError('At least 2 choices must be added.');
+      return;
     }
     onSave(text.trim());
     onClose();
@@ -63,27 +65,30 @@ export const PasteChoicesModal: React.FC<PasteChoicesModalProps> = ({ isOpen, on
       >
         <div className="p-4 border-b border-outline-variant flex items-center justify-between">
           <h2 className="text-lg font-bold text-on-surface">Copy and Paste Choices</h2>
-          <button onClick={onClose} className="p-1 rounded-full text-on-surface-variant hover:bg-surface-container-lowest">
+          <Button
+            variant="tertiary"
+            iconOnly
+            onClick={onClose}
+            className="text-on-surface-variant"
+          >
             <XIcon className="text-xl" />
-          </button>
+          </Button>
         </div>
         <div className="p-6 flex-grow">
           <label htmlFor="paste-choices-area" className="block text-sm font-medium text-on-surface-variant mb-2">
             Paste your choices below, one per line.
           </label>
-          <textarea
+          <TextArea
             id="paste-choices-area"
             ref={textareaRef}
             value={text}
             onChange={(e) => {
-                setText(e.target.value);
-                if (error) setError(null);
+              setText(e.target.value);
+              if (error) setError(null);
             }}
             rows={10}
-            className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface focus:outline-2 focus:outline-offset-1 focus:outline-primary"
-            placeholder="Choice 1
-Choice 2
-Choice 3..."
+            error={!!error}
+            placeholder={"Choice 1\nChoice 2\nChoice 3..."}
           />
           {error && (
             <p className="text-sm text-error mt-2" role="alert">
@@ -92,18 +97,18 @@ Choice 3..."
           )}
         </div>
         <div className="p-4 border-t border-outline-variant flex justify-end gap-3">
-          <button
+          <Button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-button-primary text-primary rounded-full hover:bg-primary-container"
+            variant="tertiary"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSave}
-            className="px-6 py-2 text-sm font-button-primary text-on-primary bg-primary rounded-full hover:opacity-90"
+            variant="primary"
           >
             {primaryActionLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

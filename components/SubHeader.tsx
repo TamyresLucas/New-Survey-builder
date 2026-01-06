@@ -56,11 +56,6 @@ const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurve
 
       {/* Right-aligned Actions */}
       <div className="flex-1 flex items-center justify-end gap-2">
-        {lastSaved && (
-          <span className="text-xs text-on-surface-variant mr-3">
-            Saved at {new Date(lastSaved).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </span>
-        )}
         <button
           onClick={onTogglePreview}
           className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-on-primary bg-primary rounded-md hover:opacity-90 transition-opacity"

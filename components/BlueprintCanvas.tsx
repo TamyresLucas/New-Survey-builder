@@ -60,7 +60,10 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
     }, []);
 
     return (
-        <div className="flex-1 bg-surface p-8 relative print:h-auto print:overflow-visible print:p-0 print:bg-white text-on-surface">
+        <div
+            className="flex-1 bg-surface p-8 relative print:h-auto print:overflow-visible print:p-0 print:bg-white text-on-surface"
+            onClick={(e) => e.stopPropagation()}
+        >
 
             {/* Header: Select All and Print */}
             <div className="flex justify-between items-center mb-6 px-1 print:hidden">

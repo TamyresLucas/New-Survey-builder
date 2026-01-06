@@ -184,6 +184,22 @@ const App: React.FC = () => {
         }
     }, [originalHandleSelectBlock]);
 
+    // Escape to deselect (must be after handleSelectQuestion and handleSelectBlock are defined)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                const target = e.target as HTMLElement;
+                if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+                    return;
+                }
+                handleSelectQuestion(null);
+                handleSelectBlock(null);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [handleSelectQuestion, handleSelectBlock]);
+
     // --- Toast Logic ---
     const showToast = useCallback((message: string, type: ToastType = 'error', onUndo?: () => void) => {
         const id = Math.random().toString(36).substring(7);
@@ -360,6 +376,7 @@ const App: React.FC = () => {
 
     // Hover state for synchronized hover between print canvas and survey outline
     const [hoveredQuestionId, setHoveredQuestionId] = useState<string | null>(null);
+    const [hoveredBlockId, setHoveredBlockId] = useState<string | null>(null);
 
     const handleTogglePrintCheck = useCallback((id: string) => {
         setPrintSelectedQuestions(prev => {
@@ -470,10 +487,22 @@ const App: React.FC = () => {
                 onToggleActivateSurvey={() => setSurveyStatus(prev => prev === 'active' ? 'stopped' : 'active')}
                 onUpdateLiveSurvey={() => {
                     const isDraft = surveyStatus === 'draft';
-                    setPublishedSurvey(JSON.parse(JSON.stringify(survey)));
-                    // Manually update the 'lastSaved' timestamp on publish as autosave is disabled
-                    dispatch({ type: SurveyActionType.UPDATE_TIMESTAMP });
-                    if (isDraft) {
+                    const isPending = surveyStatus === 'pending';
+
+                    const newTimestamp = new Date().toISOString();
+
+                    // Update timestamp in survey state with explicit timestamp
+                    dispatch({
+                        type: SurveyActionType.UPDATE_TIMESTAMP,
+                        payload: newTimestamp
+                    });
+
+                    // Create snapshot with matching new timestamp
+                    const updatedSurvey = JSON.parse(JSON.stringify(survey));
+                    updatedSurvey.lastSaved = newTimestamp;
+                    setPublishedSurvey(updatedSurvey);
+
+                    if (isDraft || isPending) {
                         setSurveyStatus('active');
                     }
                     showToast(isDraft ? "Survey published successfully!" : "Changes were published!", 'success');
@@ -592,6 +621,8 @@ const App: React.FC = () => {
                         onUpdateQuestion={actions.handleUpdateQuestion}
                         onQuestionHover={setHoveredQuestionId}
                         hoveredQuestionId={hoveredQuestionId}
+                        onBlockHover={setHoveredBlockId}
+                        hoveredBlockId={hoveredBlockId}
                     />
                 )}
 
@@ -624,6 +655,10 @@ const App: React.FC = () => {
                         <div
                             id="print-canvas-scroll-container"
                             className="flex flex-1 overflow-y-auto relative flex-row scroll-smooth"
+                            onClick={() => {
+                                handleSelectQuestion(null);
+                                handleSelectBlock(null);
+                            }}
                         >
                             <BlueprintCanvas
                                 survey={survey}
@@ -739,6 +774,10 @@ const App: React.FC = () => {
                             id="main-canvas-scroll-container"
                             ref={canvasContainerRef}
                             className="flex-1 overflow-y-auto overflow-x-hidden bg-surface relative scroll-smooth flex flex-row"
+                            onClick={() => {
+                                handleSelectQuestion(null);
+                                handleSelectBlock(null);
+                            }}
                         >
                             <div className="flex-1 min-w-0">
                                 {activeMainTab === 'Blueprint' ? (
@@ -750,6 +789,7 @@ const App: React.FC = () => {
                                             survey={survey}
                                             selectedQuestion={selectedQuestion}
                                             onSelectQuestion={handleSelectQuestion}
+                                            onSelectBlock={handleSelectBlock}
                                             onUpdateQuestion={actions.handleUpdateQuestion}
                                             activeMainTab={activeMainTab}
                                         />
@@ -800,6 +840,8 @@ const App: React.FC = () => {
                                             printMode={isPrintMode}
                                             hoveredQuestionId={hoveredQuestionId}
                                             onQuestionHover={setHoveredQuestionId}
+                                            hoveredBlockId={hoveredBlockId}
+                                            onBlockHover={setHoveredBlockId}
                                         />
                                     </div>
                                 )}

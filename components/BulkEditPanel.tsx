@@ -32,8 +32,8 @@ const ActionButton: React.FC<{ icon: React.FC<{ className?: string }>, label: st
   <button
     onClick={onClick}
     className={`w-full flex items-center px-4 py-3 text-sm font-medium transition-colors ${isDestructive
-        ? 'text-error hover:bg-error-container'
-        : 'text-on-surface hover:bg-surface-container-lowest'
+      ? 'text-error hover:bg-error-container'
+      : 'text-on-surface hover:bg-surface-container-lowest'
       }`}
   >
     <Icon className="text-xl mr-3" />
@@ -57,7 +57,10 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
   onDelete
 }) => {
   return (
-    <aside className="w-full h-full bg-surface-container border-l border-outline-variant flex-shrink-0 flex flex-col">
+    <aside
+      className="w-full h-full bg-surface-container border-l border-outline-variant flex-shrink-0 flex flex-col"
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="p-4 border-b border-outline-variant flex items-center justify-between">
         <h2 className="text-lg font-medium text-on-surface" style={{ fontFamily: "'Outfit', sans-serif" }}>
           Bulk Edit ({checkedQuestionCount})

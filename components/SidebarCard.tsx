@@ -7,8 +7,11 @@ interface SidebarCardProps {
     subtitle?: string | ReactNode;
     icon?: React.ElementType;
     isSelected?: boolean;
+    isHovered?: boolean;
     isDragged?: boolean;
     onClick?: (e: React.MouseEvent) => void;
+    onMouseEnter?: () => void;
+    onMouseLeave?: () => void;
     onDragStart?: (e: React.DragEvent) => void;
     onDragEnd?: (e: React.DragEvent) => void;
     actionsMenu?: ReactNode;
@@ -25,8 +28,11 @@ export const SidebarCard: React.FC<SidebarCardProps> = ({
     subtitle,
     icon: Icon = DragIndicatorIcon,
     isSelected,
+    isHovered,
     isDragged,
     onClick,
+    onMouseEnter,
+    onMouseLeave,
     onDragStart,
     onDragEnd,
     actionsMenu,
@@ -48,7 +54,9 @@ export const SidebarCard: React.FC<SidebarCardProps> = ({
                     onDragStart={onDragStart}
                     onDragEnd={onDragEnd}
                     onClick={onClick}
-                    className={`px-4 h-[40px] cursor-pointer border-b border-t border-outline flex items-center justify-between group ${isSelected ? 'bg-primary text-on-primary' : 'bg-surface-container hover:bg-surface-container-lowest hover:border-outline-hover'} ${className}`}
+                    onMouseEnter={onMouseEnter}
+                    onMouseLeave={onMouseLeave}
+                    className={`px-4 h-[40px] cursor-pointer border-b border-t border-outline flex items-center justify-between group ${isSelected ? 'bg-primary text-on-primary' : isHovered ? 'bg-surface-container-lowest border-outline-hover' : 'bg-surface-container hover:bg-surface-container-lowest hover:border-outline-hover'} ${className}`}
                 >
                     <div className="flex items-center cursor-grab flex-grow truncate">
                         <div className="relative w-4 h-4 mr-2 flex-shrink-0 flex items-center justify-center">
@@ -61,7 +69,7 @@ export const SidebarCard: React.FC<SidebarCardProps> = ({
                         </h3>
                     </div>
                     {actionsMenu && (
-                        <div className="relative flex-shrink-0" ref={actionsMenuRef}>
+                        <div className={`relative flex-shrink-0 transition-opacity ${actionsMenuRef ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} ref={actionsMenuRef}>
                             {actionsMenu}
                         </div>
                     )}

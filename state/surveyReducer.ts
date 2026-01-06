@@ -11,9 +11,9 @@ export { SurveyActionType };
 export type { Action };
 
 // Helper to update timestamp
-const updateTimestamp = (state: Survey): Survey => ({
+const updateTimestamp = (state: Survey, timestamp?: string): Survey => ({
     ...state,
-    lastSaved: new Date().toISOString()
+    lastSaved: timestamp || new Date().toISOString()
 });
 
 export function surveyReducer(state: Survey, action: Action): Survey {
@@ -79,7 +79,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
         // Explicit Timestamp Update
         case SurveyActionType.UPDATE_TIMESTAMP:
-            return updateTimestamp(state);
+            return updateTimestamp(state, action.payload);
 
         default:
             return state;

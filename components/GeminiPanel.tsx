@@ -85,7 +85,10 @@ const GeminiPanel: React.FC<GeminiPanelProps> = ({
     };
 
     return (
-        <div className="flex flex-col h-full bg-surface">
+        <div
+            className="flex flex-col h-full bg-surface"
+            onClick={(e) => e.stopPropagation()}
+        >
             <div className="flex items-center justify-between p-4 border-b border-outline-variant bg-surface-container">
                 <div className="flex items-center gap-2 text-on-surface">
                     <SparkleIcon className="w-5 h-5 text-primary" />

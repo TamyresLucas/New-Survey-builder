@@ -63,6 +63,8 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
     switch (surveyStatus) {
       case 'active':
         return <Badge variant="green" active hideDot>Live</Badge>;
+      case 'pending':
+        return <Badge variant="yellow" active hideDot>Pending changes</Badge>;
       case 'stopped':
         return <Badge variant="red" active>Stopped</Badge>;
       case 'draft':
@@ -97,29 +99,29 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
           {renderStatusBadge()}
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-4">
+        {lastSaved && (
+          <span className="text-xs text-on-surface-variant" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+            Saved at {new Date(lastSaved).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        )}
 
-        {(() => {
-          const isPublishDisabled = !isDirty && surveyStatus !== 'draft';
-          return (
-            <button
-              onClick={isPublishDisabled ? undefined : onUpdateLiveSurvey}
-              disabled={isPublishDisabled}
-              title={isPublishDisabled ? "There are no changes to be published" : undefined}
-              className={`flex items-center gap-2 px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${isPublishDisabled
-                ? 'bg-[var(--button-button-primary-disabled)] text-[var(--text-txt-on-color-disable)] cursor-not-allowed'
-                : 'text-on-success bg-success hover:opacity-90'
-                }`}
-            >
-              <PublishIcon className="text-base leading-none" />
-              <span>{surveyStatus === 'draft' ? 'Publish' : 'Publish changes'}</span>
-            </button>
-          );
-        })()}
+        <div className="flex items-center gap-2">
+          {(() => {
+            const isPublishVisible = isDirty || surveyStatus === 'draft';
+            if (!isPublishVisible) return null;
 
+            return (
+              <button
+                onClick={onUpdateLiveSurvey}
+                className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold rounded-md transition-colors text-on-success bg-success hover:opacity-90"
+              >
+                <PublishIcon className="text-base leading-none" />
+                <span>{surveyStatus === 'draft' ? 'Publish' : 'Publish changes'}</span>
+              </button>
+            );
+          })()}
 
-
-        <div className="flex items-center space-x-2">
           <button
             onClick={handleCopyClick}
             className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors ${isCopied

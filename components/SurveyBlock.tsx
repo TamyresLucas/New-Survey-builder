@@ -61,6 +61,8 @@ interface SurveyBlockProps {
   printMode?: boolean;
   hoveredQuestionId?: string | null;
   onQuestionHover?: (id: string | null) => void;
+  hoveredBlockId?: string | null;
+  onBlockHover?: (id: string | null) => void;
   totalPages?: number;
 }
 
@@ -69,7 +71,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
   isBlockDragging, onBlockDragStart, onBlockDragEnd, isCollapsed, onToggleCollapse,
   onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onAddFromLibrary,
   pageInfoMap, focusedLogicSource,
-  printMode = false, hoveredQuestionId, onQuestionHover, totalPages = 1
+  printMode = false, hoveredQuestionId, onQuestionHover, hoveredBlockId, onBlockHover, totalPages = 1
 }) => {
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [isToolboxDragOver, setIsToolboxDragOver] = useState(false);
@@ -287,11 +289,15 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
 
   const hasDisplayLogic = block.displayLogic && block.displayLogic.conditions.length > 0;
 
+  const isBlockHovered = hoveredBlockId === block.id;
+
   return (
     <div
       className={`${printMode ? 'bg-surface' : 'bg-surface-container'} border rounded-lg mb-8 transition-all ${isBlockDragging ? 'opacity-50' : ''
-        } ${isSelected ? 'border-2 border-primary shadow-md' : 'border-outline-variant'} ${hasDisplayLogic ? 'border-dashed' : ''}`}
+        } ${isSelected ? 'border-2 border-primary shadow-md' : isBlockHovered ? 'border-primary/50 shadow-sm' : 'border-outline-variant'} ${hasDisplayLogic ? 'border-dashed' : ''}`}
       data-block-id={block.id}
+      onMouseEnter={() => onBlockHover?.(block.id)}
+      onMouseLeave={() => onBlockHover?.(null)}
     >
       <div
         className={`flex items-center justify-between p-4 rounded-t-lg ${!isCollapsed ? 'border-b border-outline-variant' : ''}`}
@@ -310,6 +316,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
           if ((e.target as HTMLElement).closest('button, input')) {
             return;
           }
+          e.stopPropagation();
           onSelectBlock(block);
         }}
       >
@@ -372,7 +379,10 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
           onDrop={handleDrop}
           onDragLeave={handleDragLeave}
           className="p-4 cursor-pointer"
-          onClick={() => onSelectBlock(block)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectBlock(block);
+          }}
         >
           {incomingBranches.length > 0 && (
             <div className="mb-6 space-y-2">

@@ -28,7 +28,7 @@ export const SidebarToolboxItem: React.FC<SidebarToolboxItemProps> = ({
             draggable={isEnabled && isDraggable}
             onDragStart={isEnabled && isDraggable ? onDragStart : undefined}
             onDragEnd={isEnabled && isDraggable ? onDragEnd : undefined}
-            className={`flex items-center justify-between px-4 py-1 border-b border-outline transition-all bg-surface-container group ${isEnabled ? 'hover:bg-surface-container-lowest cursor-grab' : 'cursor-not-allowed'
+            className={`flex items-center justify-between px-4 h-[40px] border-b border-outline transition-all bg-surface-container group ${isEnabled ? 'hover:bg-surface-container-lowest cursor-grab' : 'cursor-not-allowed'
                 } ${isDragged ? 'opacity-30' : ''} ${className}`}
         >
             <div className="flex items-center flex-grow truncate">
@@ -41,7 +41,7 @@ export const SidebarToolboxItem: React.FC<SidebarToolboxItemProps> = ({
                 </span>
             </div>
             {endAction && (
-                <div className="flex-shrink-0 ml-2">
+                <div className="flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     {endAction}
                 </div>
             )}

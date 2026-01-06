@@ -62,11 +62,12 @@ interface DiagramCanvasProps {
     survey: Survey;
     selectedQuestion: Question | null;
     onSelectQuestion: (question: Question | null, options?: { tab?: string; focusOn?: string }) => void;
+    onSelectBlock: (block: Block | null, options?: { tab: string; focusOn: string }) => void;
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
     activeMainTab: string;
 }
 
-const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvasProps>(({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab }, ref) => {
+const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvasProps>(({ survey, selectedQuestion, onSelectQuestion, onSelectBlock, onUpdateQuestion, activeMainTab }, ref) => {
     const { layoutNodes, layoutEdges } = useMemo(() => {
         // [DEBUG] Log full survey structure
         console.group('DEBUG: Survey Structure');
@@ -916,7 +917,8 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
 
     const onPaneClick = useCallback(() => {
         onSelectQuestion(null);
-    }, [onSelectQuestion]);
+        onSelectBlock(null);
+    }, [onSelectQuestion, onSelectBlock]);
 
     const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
         event.stopPropagation();
@@ -1061,7 +1063,7 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
 });
 
 
-const DiagramCanvas: React.FC<DiagramCanvasProps & { exportRef?: React.Ref<DiagramCanvasHandle> }> = memo(({ survey, selectedQuestion, onSelectQuestion, onUpdateQuestion, activeMainTab, exportRef }) => {
+const DiagramCanvas: React.FC<DiagramCanvasProps & { onSelectBlock: (block: Block | null, options?: { tab: string; focusOn: string }) => void; exportRef?: React.Ref<DiagramCanvasHandle> }> = memo(({ survey, selectedQuestion, onSelectQuestion, onSelectBlock, onUpdateQuestion, activeMainTab, exportRef }) => {
     return (
         <ReactFlowProvider>
             <DiagramCanvasContent
@@ -1069,6 +1071,7 @@ const DiagramCanvas: React.FC<DiagramCanvasProps & { exportRef?: React.Ref<Diagr
                 survey={survey}
                 selectedQuestion={selectedQuestion}
                 onSelectQuestion={onSelectQuestion}
+                onSelectBlock={onSelectBlock}
                 onUpdateQuestion={onUpdateQuestion}
                 activeMainTab={activeMainTab}
             />

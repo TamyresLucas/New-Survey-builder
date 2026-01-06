@@ -37,7 +37,6 @@ export enum SurveyActionType {
     ADD_SURVEY_FROM_LIBRARY = 'ADD_SURVEY_FROM_LIBRARY',
 }
 
-export interface Action {
-    type: SurveyActionType;
-    payload?: any;
-}
+export type Action =
+    | { type: SurveyActionType.UPDATE_TIMESTAMP; payload: string }
+    | { type: Exclude<SurveyActionType, SurveyActionType.UPDATE_TIMESTAMP>; payload?: any };

@@ -61,6 +61,7 @@ interface SurveyBlockProps {
   printMode?: boolean;
   hoveredQuestionId?: string | null;
   onQuestionHover?: (id: string | null) => void;
+  totalPages?: number;
 }
 
 const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
@@ -68,7 +69,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
   isBlockDragging, onBlockDragStart, onBlockDragEnd, isCollapsed, onToggleCollapse,
   onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onAddFromLibrary,
   pageInfoMap, focusedLogicSource,
-  printMode = false, hoveredQuestionId, onQuestionHover
+  printMode = false, hoveredQuestionId, onQuestionHover, totalPages = 1
 }) => {
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [isToolboxDragOver, setIsToolboxDragOver] = useState(false);
@@ -431,6 +432,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                       printMode={printMode}
                       isHovered={hoveredQuestionId === question.id}
                       onHover={onQuestionHover}
+                      totalPages={totalPages}
                     />
                   </div>
                 </React.Fragment>
@@ -450,38 +452,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
             </>
           ) : (
             <div className="text-center py-8">
-              {!printMode && (
-                <div className="flex justify-center space-x-4">
-                  <div className="relative" ref={addQuestionMenuRef}>
-                    <button
-                      onClick={() => setIsAddQuestionMenuOpen(prev => !prev)}
-                      className={`flex items-center gap-2 px-4 py-1.5 text-sm font-button-primary text-on-primary bg-primary rounded-md hover:opacity-90 transition-opacity ${isAddQuestionMenuOpen ? '!opacity-90' : ''}`}
-                      aria-haspopup="true"
-                      aria-expanded={isAddQuestionMenuOpen}
-                    >
-                      <span>Add new question</span>
-                      <ChevronDownIcon className="text-base" />
-                    </button>
-                    {isAddQuestionMenuOpen && (
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 z-10">
-                        <QuestionTypeSelectionMenuContent
-                          toolboxItems={toolboxItems}
-                          onSelect={(questionType) => {
-                            onAddQuestionToBlock(block.id, questionType);
-                            setIsAddQuestionMenuOpen(false);
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => alert('Add from library functionality not implemented.')}
-                    className="px-4 py-1.5 text-sm font-semibold text-on-surface bg-surface-container-high border border-outline rounded-md hover:bg-surface-container-lowestest transition-colors"
-                  >
-                    Add from library
-                  </button>
-                </div>
-              )}
+              <span className="text-on-surface-variant text-sm">Empty block</span>
             </div>
           )}
         </div>

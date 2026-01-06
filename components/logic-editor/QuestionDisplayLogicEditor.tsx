@@ -227,10 +227,7 @@ export const ConditionalLogicEditor = <T extends Record<string, any>>({
                         key={condition.id || index}
                         condition={condition}
                         onUpdateCondition={(field, value) => handleUpdateCondition(index, field, value)}
-                        onRemoveCondition={() => handleRemoveCondition(index)}
-                        onConfirm={() => handleConfirmCondition(condition.id)}
                         availableQuestions={previousQuestions}
-                        isConfirmed={condition.isConfirmed === true}
                         issues={issues.filter(i => i.sourceId === condition.id)}
                         invalidFields={validationErrors.get(condition.id)}
                     />

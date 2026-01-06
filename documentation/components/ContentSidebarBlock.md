@@ -35,7 +35,7 @@ The Content Sidebar Block represents a survey block (group of questions) within 
 | State | Background | Border | Text | Icon |
 | :--- | :--- | :--- | :--- | :--- |
 | **Default** | `bg-surface-container` | `border-outline-variant` | `text-on-surface` | `text-on-surface-variant` |
-| **Hover** | `bg-surface-container-high` | `border-outline-hover` | `text-on-surface` | `text-on-surface-variant` |
+| **Hover** | `bg-surface-container-lowest` | `border-outline-hover` | `text-on-surface` | `text-on-surface-variant` |
 | **Selected** | `bg-primary` | `border-outline-variant` | `text-on-primary` | `text-on-primary` |
 | **Dragged** | `opacity-30` | - | - | - |
 

@@ -217,9 +217,9 @@ export const ChoiceDisplayLogicEditor: React.FC<ChoiceDisplayLogicEditorProps> =
                                     }}
                                     onUpdateCondition={(field, value) => handleUpdateCondition(index, field as any, value)}
                                     onRemoveCondition={() => handleRemoveCondition(index)}
-                                    onConfirm={() => handleConfirmCondition(index)}
+                                    // onConfirm removed
                                     availableQuestions={previousQuestions}
-                                    isConfirmed={condition.isConfirmed || false}
+                                    // isConfirmed removed
                                     invalidFields={conditionErrors as any}
                                 />
                             </div>

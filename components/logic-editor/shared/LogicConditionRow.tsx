@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import type { Question, DisplayLogicCondition, BranchingLogicCondition, LogicIssue } from '../../../types';
 import { QuestionType } from '../../../types';
 import { CHOICE_BASED_QUESTION_TYPES, parseChoice, truncate } from '../../../utils';
-import { XIcon, ChevronDownIcon, CheckmarkIcon, InfoIcon, PlusIcon } from '../../icons';
+import { XIcon, ChevronDownIcon, InfoIcon, PlusIcon } from '../../icons';
 import { QuestionSelectorDropdown } from '../../QuestionSelectorDropdown';
 import { Button } from '../../Button';
 
@@ -11,9 +11,7 @@ export const LogicConditionRow: React.FC<{
     onUpdateCondition: (field: keyof (DisplayLogicCondition | BranchingLogicCondition), value: any) => void;
     onRemoveCondition?: () => void;
     onAddCondition?: () => void;
-    onConfirm?: () => void;
     availableQuestions: Question[];
-    isConfirmed: boolean;
     issues?: LogicIssue[];
     invalidFields?: Set<keyof (DisplayLogicCondition | BranchingLogicCondition) | 'skipTo'>;
     isFirstCondition?: boolean;
@@ -28,9 +26,7 @@ export const LogicConditionRow: React.FC<{
     onUpdateCondition,
     onRemoveCondition,
     onAddCondition,
-    onConfirm,
     availableQuestions,
-    isConfirmed,
     issues = [],
     invalidFields = new Set(),
     isFirstCondition = false,
@@ -308,17 +304,7 @@ export const LogicConditionRow: React.FC<{
                             <PlusIcon className="text-xl" />
                         </Button>
                     )}
-                    {!isConfirmed && onConfirm && (
-                        <Button
-                            variant="primary"
-                            size="large"
-                            iconOnly
-                            onClick={onConfirm}
-                            aria-label="Confirm condition"
-                        >
-                            <CheckmarkIcon className="text-xl" />
-                        </Button>
-                    )}
+
                 </div>
             </div >
         );

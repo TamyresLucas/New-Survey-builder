@@ -39,7 +39,7 @@ interface SurveyCanvasProps {
   onAddPageBreakAfterQuestion: (questionId: string) => void;
   onUpdateBlockTitle: (blockId: string, title: string) => void;
   onUpdateSurveyTitle: (title: string) => void;
-  onAddFromLibrary: () => void;
+  onAddFromLibrary: (surveyId: string, targetBlockId: string | null) => void;
   focusedLogicSource: string | null;
   printMode?: boolean;
   hoveredQuestionId?: string | null;
@@ -166,7 +166,7 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
   }, [selectedQuestion]);
 
   const handleDragEnter = (e: React.DragEvent) => {
-    if (e.dataTransfer.types.includes('application/survey-toolbox-block')) {
+    if (e.dataTransfer.types.includes('application/survey-toolbox-block') || e.dataTransfer.types.includes('application/survey-library-import')) {
       setIsDraggingNewBlock(true);
     }
   };
@@ -174,10 +174,11 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
   const handleBlockDragOver = (e: React.DragEvent) => {
     const isDraggingExistingBlock = !!draggedBlockId;
     const isAddingNewBlock = e.dataTransfer.types.includes('application/survey-toolbox-block');
+    const isImportingSurvey = e.dataTransfer.types.includes('application/survey-library-import');
 
-    // This handler is only for blocks. If we're not dragging a block, do nothing.
+    // This handler is only for blocks. If we're not dragging a block or importing a survey, do nothing.
     // This allows the dragOver event to be handled by child SurveyBlock components for question dragging.
-    if (!isDraggingExistingBlock && !isAddingNewBlock) return;
+    if (!isDraggingExistingBlock && !isAddingNewBlock && !isImportingSurvey) return;
 
     e.preventDefault();
 
@@ -203,13 +204,17 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
 
   const handleBlockDrop = (e: React.DragEvent) => {
     const isAddingNewBlock = e.dataTransfer.types.includes('application/survey-toolbox-block');
+    const isImportingSurvey = e.dataTransfer.types.includes('application/survey-library-import');
 
-    // This handler is only for blocks. If we're not dropping a block, do nothing.
-    if (isAddingNewBlock || draggedBlockId) {
+    // This handler is only for blocks (move or add) or survey import.
+    if (isAddingNewBlock || isImportingSurvey || draggedBlockId) {
       e.preventDefault();
 
       if (isAddingNewBlock) {
         onAddBlockFromToolbox(dropTargetBlockId);
+      } else if (isImportingSurvey) {
+        const surveyId = e.dataTransfer.getData('text/plain');
+        onAddFromLibrary(surveyId, dropTargetBlockId);
       } else if (draggedBlockId) {
         onReorderBlock(draggedBlockId, dropTargetBlockId);
       }
@@ -285,6 +290,7 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
             printMode={printMode}
             hoveredQuestionId={hoveredQuestionId}
             onQuestionHover={onQuestionHover}
+            totalPages={pageInfoMap.size > 0 ? Math.max(...Array.from(pageInfoMap.values()).map(p => p.pageNumber)) : 1}
           />
         </React.Fragment>
       ))}

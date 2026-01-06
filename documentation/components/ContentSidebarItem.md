@@ -34,7 +34,7 @@ The Content Sidebar Item represents a question or element (like Page Break or De
 | State | Background | Border | Text | Icon |
 | :--- | :--- | :--- | :--- | :--- |
 | **Default** | `bg-surface-container` | `border-outline-variant` | `text-on-surface` | `text-primary` |
-| **Hover** | `bg-surface-container-high` | `border-outline-hover` | `text-on-surface` | `text-primary` |
+| **Hover** | `bg-surface-container-lowest` | `border-outline-hover` | `text-on-surface` | `text-primary` |
 | **Selected** | `bg-primary` | `border-primary` | `text-on-primary` | `text-on-primary` |
 | **Selected (Error)** | `bg-error` | `border-error` | `text-on-error` | `text-on-error` |
 | **Error (Unselected)** | `bg-surface-container` | `border-outline-variant` | `text-error` | `text-error` |

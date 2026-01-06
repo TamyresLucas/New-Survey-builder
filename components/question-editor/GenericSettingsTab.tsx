@@ -51,13 +51,13 @@ export const GenericSettingsTab: React.FC<GenericSettingsTabProps> = ({ question
                 </div>
             </CollapsibleSection>
 
-            <CollapsibleSection title="Response" defaultExpanded={true}>
-                <div className="py-6 first:pt-0">
-                    {question.type !== QuestionType.Description && (
+            {question.type !== QuestionType.Description && (
+                <CollapsibleSection title="Response" defaultExpanded={true}>
+                    <div className="py-6 first:pt-0">
                         <ForceResponseSection question={question} handleUpdate={onUpdate} />
-                    )}
-                </div>
-            </CollapsibleSection>
+                    </div>
+                </CollapsibleSection>
+            )}
 
             <CollapsibleSection title="Navigation" defaultExpanded={true}>
                 <div className="py-6 first:pt-0">

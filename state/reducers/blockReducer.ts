@@ -64,7 +64,16 @@ export const blockReducer = (state: Survey, action: Action): Survey => {
         case SurveyActionType.ADD_BLOCK: {
             const newState = JSON.parse(JSON.stringify(state));
             const { blockId, position } = action.payload;
-            const newBlock: Block = { id: generateId('block'), title: 'New block', questions: [] };
+            const newBlock: Block = {
+                id: generateId('block'),
+                title: 'New block',
+                questions: [{
+                    id: generateId('q'),
+                    qid: '', // Will be renumbered
+                    text: 'This is a description question placeholder.',
+                    type: QTEnum.Description
+                }]
+            };
             const targetIndex = newState.blocks.findIndex((b: Block) => b.id === blockId);
             if (targetIndex === -1) return state;
 
@@ -81,7 +90,12 @@ export const blockReducer = (state: Survey, action: Action): Survey => {
                 newState.blocks.push({
                     id: generateId('block'),
                     title: 'Default Block',
-                    questions: []
+                    questions: [{
+                        id: generateId('q'),
+                        qid: '',
+                        text: 'This is a description question placeholder.',
+                        type: QTEnum.Description
+                    }]
                 });
             }
             return renumberSurveyVariables(newState);
@@ -193,7 +207,16 @@ export const blockReducer = (state: Survey, action: Action): Survey => {
         case SurveyActionType.ADD_BLOCK_FROM_TOOLBOX: {
             const newState = JSON.parse(JSON.stringify(state));
             const { targetBlockId } = action.payload;
-            const newBlock: Block = { id: generateId('block'), title: 'New block', questions: [] };
+            const newBlock: Block = {
+                id: generateId('block'),
+                title: 'New block',
+                questions: [{
+                    id: generateId('q'),
+                    qid: '',
+                    text: 'This is a description question placeholder.',
+                    type: QTEnum.Description
+                }]
+            };
 
             if (targetBlockId === null) {
                 // Dropped at the end
@@ -230,6 +253,157 @@ export const blockReducer = (state: Survey, action: Action): Survey => {
             }
 
             return applyPagingAndRenumber(newState);
+        }
+
+        case SurveyActionType.ADD_SURVEY_FROM_LIBRARY: {
+            const newState = JSON.parse(JSON.stringify(state));
+            const { sourceSurvey, targetBlockId } = action.payload;
+
+            if (!sourceSurvey || !sourceSurvey.blocks) return state;
+
+            // 1. Create ID Mappings
+            const idMap = new Map<string, string>(); // Maps oldId -> newId
+
+            // Generate new IDs for everything first
+            sourceSurvey.blocks.forEach((block: Block) => {
+                const newBlockId = generateId('block');
+                idMap.set(block.id, newBlockId);
+
+                block.questions.forEach((q: Question) => {
+                    const newQuestionId = generateId('q');
+                    idMap.set(q.id, newQuestionId);
+
+                    q.choices?.forEach((c: Choice) => {
+                        idMap.set(c.id, generateId('c'));
+                    });
+                });
+            });
+
+            // 2. Clone and Update IDs & References
+            const newBlocks: Block[] = sourceSurvey.blocks.map((block: Block) => {
+                const newBlockId = idMap.get(block.id)!;
+
+                const newQuestions = block.questions.map((q: Question) => {
+                    const newQuestionId = idMap.get(q.id)!;
+
+                    const newChoices = q.choices?.map((c: Choice) => ({
+                        ...c,
+                        id: idMap.get(c.id)!
+                    }));
+
+                    // Logic Cloning (references update later)
+                    // We need to deep copy logic to avoid referencing the original objects
+                    let newBranchingLogic = q.branchingLogic ? JSON.parse(JSON.stringify(q.branchingLogic)) : undefined;
+                    let newDisplayLogic = q.displayLogic ? JSON.parse(JSON.stringify(q.displayLogic)) : undefined;
+                    let newSkipLogic = q.skipLogic ? JSON.parse(JSON.stringify(q.skipLogic)) : undefined;
+
+                    return {
+                        ...q,
+                        id: newQuestionId,
+                        choices: newChoices,
+                        branchingLogic: newBranchingLogic,
+                        displayLogic: newDisplayLogic,
+                        skipLogic: newSkipLogic,
+                    };
+                });
+
+                return {
+                    ...block,
+                    id: newBlockId,
+                    questions: newQuestions,
+                };
+            });
+
+            // 3. Second Pass: Resolve References (Logic & Skips)
+            newBlocks.forEach((block: Block) => {
+                // Update Block continueTo
+                if (block.continueTo && block.continueTo.startsWith('block:')) {
+                    const oldTarget = block.continueTo.substring(6);
+                    if (idMap.has(oldTarget)) {
+                        block.continueTo = `block:${idMap.get(oldTarget)}`;
+                    } else {
+                        // If it points outside the imported survey, we might want to clear it or keep it?
+                        // For now, let's keep it if we can't find it (maybe it points to something not imported), 
+                        // BUT since it's a library import, external refs are likely invalid.
+                        // Ideally we clear it if it's internal-only import.
+                        // Let's assume library items are self-contained or point to 'end'.
+                        // If it points to 'end', we leave it.
+                    }
+                }
+
+                block.questions.forEach((q: Question) => {
+                    // Update Branching Logic
+                    if (q.branchingLogic) {
+                        q.branchingLogic.branches.forEach((b: any) => {
+                            if (b.thenSkipTo.startsWith('block:')) {
+                                const oldId = b.thenSkipTo.substring(6);
+                                if (idMap.has(oldId)) {
+                                    b.thenSkipTo = `block:${idMap.get(oldId)}`;
+                                }
+                            }
+                            // Update conditions
+                            b.conditions?.forEach((cond: any) => {
+                                if (idMap.has(cond.questionId)) cond.questionId = idMap.get(cond.questionId);
+                                // We also need to map value if it relies on choice IDs? 
+                                // Usually choiceId is stored separately if it's a choice match
+                                if (cond.choiceId && idMap.has(cond.choiceId)) cond.choiceId = idMap.get(cond.choiceId);
+                            });
+                        });
+                        if (q.branchingLogic.otherwiseSkipTo && q.branchingLogic.otherwiseSkipTo.startsWith('block:')) {
+                            const oldId = q.branchingLogic.otherwiseSkipTo.substring(6);
+                            if (idMap.has(oldId)) {
+                                q.branchingLogic.otherwiseSkipTo = `block:${idMap.get(oldId)}`;
+                            }
+                        }
+                    }
+
+                    // Update Display Logic
+                    if (q.displayLogic) {
+                        // Similar updates for display logic conditions
+                        q.displayLogic.conditions?.forEach((cond: any) => {
+                            if (idMap.has(cond.questionId)) cond.questionId = idMap.get(cond.questionId);
+                            if (cond.choiceId && idMap.has(cond.choiceId)) cond.choiceId = idMap.get(cond.choiceId);
+                        });
+                    }
+
+                    // Update Skip Logic
+                    if (q.skipLogic) {
+                        // Similar updates for skip logic
+                        q.skipLogic.conditions?.forEach((cond: any) => {
+                            if (idMap.has(cond.questionId)) cond.questionId = idMap.get(cond.questionId);
+                            if (cond.choiceId && idMap.has(cond.choiceId)) cond.choiceId = idMap.get(cond.choiceId);
+                        });
+                        if (q.skipLogic.action === 'skipTo' && q.skipLogic.target && q.skipLogic.target.startsWith('block:')) {
+                            const oldId = q.skipLogic.target.substring(6);
+                            if (idMap.has(oldId)) {
+                                q.skipLogic.target = `block:${idMap.get(oldId)}`;
+                            }
+                        }
+                    }
+                });
+            });
+
+
+            // 4. Insert New Blocks
+            if (targetBlockId === null) {
+                // Dropped at the end
+                newState.blocks.push(...newBlocks);
+            } else {
+                const targetIndex = newState.blocks.findIndex((b: Block) => b.id === targetBlockId);
+                // Insert AFTER the target block (or before? usually drop is "insert here")
+                // SurveyCanvas drop logic sends the ID of the block *dropped onto*.
+                // If we drop ON block A, do we insert BEFORE or AFTER?
+                // Standard reorder puts it before if coming from top, after if bottom.
+                // For simplified "Add" behavior, let's insert AFTER the target block to be safe, or simply splice at index.
+                // If I use splice at targetIndex, it pushes targetBlock down, so it inserts BEFORE.
+                if (targetIndex !== -1) {
+                    newState.blocks.splice(targetIndex, 0, ...newBlocks);
+                } else {
+                    newState.blocks.push(...newBlocks);
+                }
+            }
+
+            return renumberSurveyVariables(newState);
         }
 
         default:

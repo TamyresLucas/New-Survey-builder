@@ -3,6 +3,7 @@ import type { Survey, Question, Block, ToolboxItemData, QuestionType, Choice } f
 import { QuestionType as QTEnum } from '../types';
 import { SurveyActionType, type Action } from '../state/surveyReducer';
 import { generateId } from '../utils';
+import { customerFeedbackSurvey } from '../data/test-surveys';
 
 interface UseSurveyActionsProps {
     survey: Survey;
@@ -189,6 +190,21 @@ export const useSurveyActions = ({
     const handleAddBlock = useCallback((blockId: string, position: 'above' | 'below') => {
         dispatchAndRecord({ type: SurveyActionType.ADD_BLOCK, payload: { blockId, position } });
     }, [dispatchAndRecord]);
+
+    const handleAddSurveyFromLibrary = useCallback((surveyId: string, targetBlockId: string | null) => {
+        let sourceSurvey: Survey | undefined;
+        if (surveyId === 'customer_feedback') {
+            sourceSurvey = customerFeedbackSurvey;
+        }
+
+        if (sourceSurvey) {
+            dispatchAndRecord({ type: SurveyActionType.ADD_SURVEY_FROM_LIBRARY, payload: { sourceSurvey, targetBlockId } });
+            showToast('Survey imported successfully from library', 'success');
+        } else {
+            console.warn(`Survey with ID ${surveyId} not found in library.`);
+            showToast('Failed to import survey: Survey not found', 'error');
+        }
+    }, [dispatchAndRecord, showToast]);
 
     const handleCopyBlock = useCallback((blockId: string) => {
         dispatchAndRecord({ type: SurveyActionType.COPY_BLOCK, payload: { blockId } });
@@ -430,6 +446,9 @@ export const useSurveyActions = ({
         handleBulkMoveToNewBlock,
         handleBulkHideQuestion,
         handleBulkHideBackButton,
-        handleBulkForceResponse
+        handleBulkHideQuestion,
+        handleBulkHideBackButton,
+        handleBulkForceResponse,
+        handleAddSurveyFromLibrary
     };
 };

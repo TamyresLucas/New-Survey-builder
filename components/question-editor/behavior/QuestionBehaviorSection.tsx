@@ -340,9 +340,7 @@ const QuestionBehaviorSection: React.FC<QuestionBehaviorSectionProps> = ({ quest
                                         condition={item}
                                         onUpdateCondition={(field, value) => handleUpdateCondition(item.id, item.logicType, field, value)}
                                         onRemoveCondition={() => handleRemoveItem(item.id, 'condition', item.logicType)}
-                                        onConfirm={() => handleConfirmCondition(item.id, item.logicType)}
                                         availableQuestions={previousQuestions}
-                                        isConfirmed={item.isConfirmed === true}
                                     />
                                 </div>
                             ) : (

@@ -342,12 +342,12 @@ export const SkipLogicEditor: React.FC<{
                                 condition={conditionForRow}
                                 onUpdateCondition={handleUpdater}
                                 availableQuestions={[question]}
-                                isConfirmed={rule.isConfirmed}
+                                // isConfirmed removed
                                 isFirstCondition={true}
                                 currentQuestion={question}
                                 onRemoveCondition={undefined} // Hide delete button from Row, rely on SkipLogicSet
                                 onAddCondition={undefined}
-                                onConfirm={undefined} // handled by SkipLogicSet apply
+                                // onConfirm removed
                                 invalidFields={errors ? new Set(
                                     Array.from(errors).map(e => {
                                         if (e === 'choiceId') return 'value'; // Map choiceId error to 'value' field in row (which is the row selector)

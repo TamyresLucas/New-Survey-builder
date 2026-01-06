@@ -460,7 +460,7 @@ const BlockDisplayLogicEditor: React.FC<BlockDisplayLogicEditorProps> = ({ block
                     <LogicConditionRow
                         key={condition.id || index}
                         condition={condition}
-                        onUpdateCondition={(field, value) => handleUpdateCondition(index, field, value)}
+                        onUpdateCondition={(field, value) => handleUpdateCondition(index, field as keyof DisplayLogicCondition, value)}
                         onRemoveCondition={() => handleRemoveCondition(index)}
                         onConfirm={() => handleConfirmCondition(condition.id)}
                         availableQuestions={previousQuestions}

@@ -36,6 +36,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
         case SurveyActionType.MOVE_BLOCK_DOWN:
         case SurveyActionType.ADD_BLOCK_FROM_TOOLBOX:
         case SurveyActionType.ADD_BLOCK_FROM_AI:
+        case SurveyActionType.ADD_SURVEY_FROM_LIBRARY:
             newState = blockReducer(state, action);
             break;
 

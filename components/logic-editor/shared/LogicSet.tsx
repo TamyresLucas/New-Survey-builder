@@ -51,7 +51,7 @@ export const LogicSet: React.FC<LogicSetProps> = ({
 
     const handleUpdateCondition = (index: number, field: keyof DisplayLogicCondition, value: any) => {
         const newConditions = [...logicSet.conditions];
-        const updatedCondition = { ...newConditions[index], [field]: value, isConfirmed: false };
+        const updatedCondition = { ...newConditions[index], [field]: value };
 
         if (field === 'questionId') {
             updatedCondition.operator = '';
@@ -98,7 +98,6 @@ export const LogicSet: React.FC<LogicSetProps> = ({
             questionId: '',
             operator: '',
             value: '',
-            isConfirmed: false
         };
         onUpdate({ conditions: [...logicSet.conditions, newCondition], isConfirmed: false });
     };
@@ -109,7 +108,6 @@ export const LogicSet: React.FC<LogicSetProps> = ({
             questionId: '',
             operator: '',
             value: '',
-            isConfirmed: false
         };
         const newConditions = [...logicSet.conditions];
         newConditions.splice(index + 1, 0, newCondition);
@@ -137,9 +135,9 @@ export const LogicSet: React.FC<LogicSetProps> = ({
             if (errors.size > 0) {
                 isValid = false;
                 newValidationErrors.set(condition.id, errors);
-                return { ...condition, isConfirmed: false };
+                return { ...condition };
             }
-            return { ...condition, isConfirmed: true };
+            return { ...condition };
         });
 
         setValidationErrors(newValidationErrors);
@@ -245,7 +243,6 @@ export const LogicSet: React.FC<LogicSetProps> = ({
                                     onRemoveCondition={hasMultipleConditions ? () => handleRemoveCondition(index) : undefined}
                                     onAddCondition={() => handleAddConditionAtIndex(index)}
                                     availableQuestions={availableQuestions}
-                                    isConfirmed={true}
                                     questionWidth={questionWidth}
                                     operatorWidth={operatorWidth}
                                     valueWidth={valueWidth}

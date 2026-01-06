@@ -14,7 +14,16 @@ export const EditableText: React.FC<EditableTextProps> = ({ html, onChange, onFo
     const lastHtml = useRef(html);
 
     useEffect(() => {
-        if (elementRef.current && html !== elementRef.current.innerHTML) {
+        if (elementRef.current && elementRef.current.innerHTML === '') {
+            elementRef.current.innerHTML = html;
+        }
+    }, []);
+
+    useEffect(() => {
+        // Only update innerHTML if the element is NOT focused (user is not actively editing)
+        if (elementRef.current &&
+            html !== elementRef.current.innerHTML &&
+            document.activeElement !== elementRef.current) {
             elementRef.current.innerHTML = html;
         }
         lastHtml.current = html;
@@ -60,7 +69,6 @@ export const EditableText: React.FC<EditableTextProps> = ({ html, onChange, onFo
             style={style}
             contentEditable={!readOnly}
             suppressContentEditableWarning
-            dangerouslySetInnerHTML={{ __html: html }}
             onBlur={handleBlur}
             onFocus={readOnly ? undefined : onFocus}
             onClick={stopPropagation}

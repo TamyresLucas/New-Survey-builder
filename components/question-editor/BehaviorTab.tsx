@@ -43,20 +43,22 @@ export const BehaviorTab: React.FC<BehaviorTabProps> = ({
         <div className="p-6 space-y-8">
 
 
-            <CollapsibleSection title="Skip Logic" defaultExpanded={true}>
-                <div className="py-6 first:pt-0">
-                    <SkipLogicSection
-                        question={question}
-                        survey={survey}
-                        followingQuestions={followingQuestions}
-                        issues={issues}
-                        onUpdate={onUpdate}
-                        onAddLogic={onAddLogic}
-                        onRequestGeminiHelp={onRequestGeminiHelp}
-                        focusedLogicSource={focusedLogicSource}
-                    />
-                </div>
-            </CollapsibleSection>
+            {question.type !== QuestionType.Description && (
+                <CollapsibleSection title="Skip Logic" defaultExpanded={true}>
+                    <div className="py-6 first:pt-0">
+                        <SkipLogicSection
+                            question={question}
+                            survey={survey}
+                            followingQuestions={followingQuestions}
+                            issues={issues}
+                            onUpdate={onUpdate}
+                            onAddLogic={onAddLogic}
+                            onRequestGeminiHelp={onRequestGeminiHelp}
+                            focusedLogicSource={focusedLogicSource}
+                        />
+                    </div>
+                </CollapsibleSection>
+            )}
 
 
 

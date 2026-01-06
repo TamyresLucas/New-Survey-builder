@@ -1,10 +1,10 @@
 import { useReducer, useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import type { Survey, SurveyStatus } from '../types';
-import { initialSurveyData } from '../constants';
+import { type Survey, type SurveyStatus, QuestionType } from '../types';
+import { initialSurveyData } from '../data/default-survey';
 import { renumberSurveyVariables } from '../utils'; // Using the re-exported utils
 import { surveyReducer, SurveyActionType, type Action } from '../state/surveyReducer';
 
-const LOCAL_STORAGE_KEY = 'surveyBuilderAppState_v2';
+const LOCAL_STORAGE_KEY = 'surveyBuilderAppState_v4';
 
 const getInitialSurveyState = (): Survey => {
     try {
@@ -25,13 +25,7 @@ const getInitialSurveyState = (): Survey => {
 // Creates a "clean" version of the initial survey data to represent the "published" state
 // before any changes are made.
 const getInitialPublishedSurvey = (): Survey => {
-    const cleanData = JSON.parse(JSON.stringify(initialSurveyData));
-    // Revert the simulated change in constants.tsx
-    const introBlock = cleanData.blocks.find((b: any) => b.id === 'block1');
-    if (introBlock) {
-        introBlock.title = 'Introduction';
-    }
-    return cleanData;
+    return JSON.parse(JSON.stringify(initialSurveyData));
 };
 
 export const useSurveyState = () => {

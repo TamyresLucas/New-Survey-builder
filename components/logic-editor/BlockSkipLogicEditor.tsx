@@ -163,7 +163,7 @@ export const BlockSkipLogicEditor: React.FC<BlockSkipLogicEditorProps> = ({ bloc
                                             onUpdateCondition={(field, value) => handleUpdateCondition(branch.id, condition.id, field, value)}
                                             onRemoveCondition={branch.conditions.length > 1 ? () => handleRemoveCondition(branch.id, condition.id) : undefined}
                                             availableQuestions={questionsForConditions}
-                                            isConfirmed={true}
+                                            // isConfirmed removed
                                             isFirstCondition={cIndex === 0}
                                         />
                                     </div>

@@ -39,7 +39,7 @@ const QuestionCard: React.FC<{
     question, survey, parentBlock, currentBlockId, logicIssues, isSelected, isChecked, onSelect, onToggleCheck, id,
     onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, toolboxItems,
     isDragging, onDragStart, onDragEnd, onAddChoice, onAddPageBreakAfterQuestion, pageInfo, focusedLogicSource,
-    printMode = false, isHovered, onHover
+    printMode = false, isHovered, onHover, totalPages = 1
 }) => {
 
     const logic = useQuestionCardLogic({
@@ -80,6 +80,7 @@ const QuestionCard: React.FC<{
 
     const { hasDisplayLogic } = logic;
     const hasLogicIssues = logicIssues.length > 0;
+    const shouldShowPageIndicator = totalPages > 1;
 
     return (
         <>
@@ -90,28 +91,30 @@ const QuestionCard: React.FC<{
                 initialChoicesText={(question.choices || []).map(c => parseChoice(c.text).label).join('\n')}
                 primaryActionLabel="Add Choices"
             />
-            <PageIndicator
-                id={id + '_page_indicator'} // Distinct ID for the implicit page indicator
-                question={question}
-                pageInfo={pageInfo}
-                isEditingPageName={logic.isEditingPageName}
-                pageNameValue={logic.pageNameValue}
-                pageNameInputRef={logic.pageNameInputRef}
-                isDragging={isDragging}
-                isActionsMenuOpen={logic.isActionsMenuOpen}
-                actionsMenuContainerRef={logic.actionsMenuContainerRef}
-                printMode={printMode}
-                onSelect={onSelect}
-                onDragStart={onDragStart}
-                onDragEnd={onDragEnd}
-                toggleActionsMenu={(e) => { e.stopPropagation(); logic.setIsActionsMenuOpen(v => !v); }}
-                setIsEditingPageName={logic.setIsEditingPageName}
-                setPageNameValue={logic.setPageNameValue}
-                handleSavePageName={logic.handleSavePageName}
-                handlePageNameKeyDown={logic.handlePageNameKeyDown}
-                onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
-                onDeleteQuestion={onDeleteQuestion}
-            />
+            {shouldShowPageIndicator && (
+                <PageIndicator
+                    id={id + '_page_indicator'} // Distinct ID for the implicit page indicator
+                    question={question}
+                    pageInfo={pageInfo}
+                    isEditingPageName={logic.isEditingPageName}
+                    pageNameValue={logic.pageNameValue}
+                    pageNameInputRef={logic.pageNameInputRef}
+                    isDragging={isDragging}
+                    isActionsMenuOpen={logic.isActionsMenuOpen}
+                    actionsMenuContainerRef={logic.actionsMenuContainerRef}
+                    printMode={printMode}
+                    onSelect={onSelect}
+                    onDragStart={onDragStart}
+                    onDragEnd={onDragEnd}
+                    toggleActionsMenu={(e) => { e.stopPropagation(); logic.setIsActionsMenuOpen(v => !v); }}
+                    setIsEditingPageName={logic.setIsEditingPageName}
+                    setPageNameValue={logic.setPageNameValue}
+                    handleSavePageName={logic.handleSavePageName}
+                    handlePageNameKeyDown={logic.handlePageNameKeyDown}
+                    onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
+                    onDeleteQuestion={onDeleteQuestion}
+                />
+            )}
 
             <div
                 id={id}

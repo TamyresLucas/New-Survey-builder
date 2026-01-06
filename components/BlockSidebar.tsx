@@ -6,6 +6,7 @@ import { Toggle } from './Toggle';
 import { generateId, truncate, parseChoice, isBranchingLogicExhaustive } from '../utils';
 import { CollapsibleSection } from './logic-editor/shared';
 import { BlockDisplayLogicEditor } from './logic-editor/BlockDisplayLogicEditor';
+import { RandomizationSet } from './RandomizationSet';
 
 import { Button } from './Button';
 
@@ -192,8 +193,6 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
           id: generateId('rand'),
           startQuestionId: '',
           endQuestionId: '',
-          pattern: 'permutation',
-          isConfirmed: false,
         };
         onUpdateBlock(block.id, {
           questionRandomization: [newRule],
@@ -207,59 +206,7 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
     }
   };
 
-  const handleAddRandomizationRule = () => {
-    const newRule: QuestionRandomizationRule = {
-      id: generateId('rand'),
-      startQuestionId: '',
-      endQuestionId: '',
-      pattern: 'permutation',
-      isConfirmed: false,
-    };
-    onUpdateBlock(block.id, {
-      questionRandomization: [...(block.questionRandomization || []), newRule],
-    });
-  };
 
-  const handleUpdateRandomizationRule = (ruleId: string, updates: Partial<QuestionRandomizationRule>) => {
-    const newRules = (block.questionRandomization || []).map(rule => {
-      if (rule.id === ruleId) {
-        const updatedRule = { ...rule, ...updates, isConfirmed: false };
-
-        // When changing the pattern, reset the group if it's no longer valid.
-        if ('pattern' in updates) {
-          const newIsSync = updates.pattern === 'synchronized';
-          const oldIsSync = rule.pattern === 'synchronized';
-
-          if (newIsSync && !oldIsSync) { // Switched to sync
-            // if current group is a local group, reset it
-            if (localQuestionGroups.includes(rule.questionGroupId || '')) {
-              updatedRule.questionGroupId = undefined;
-            }
-          } else if (!newIsSync && oldIsSync) { // Switched from sync
-            // if current group is a global group, reset it
-            if (globalQuestionGroups.includes(rule.questionGroupId || '')) {
-              updatedRule.questionGroupId = undefined;
-            }
-          }
-        }
-        return updatedRule;
-      }
-      return rule;
-    });
-    onUpdateBlock(block.id, { questionRandomization: newRules });
-  };
-
-  const handleConfirmRandomizationRule = (ruleId: string) => {
-    const newRules = (block.questionRandomization || []).map(rule =>
-      rule.id === ruleId ? { ...rule, isConfirmed: true } : rule
-    );
-    onUpdateBlock(block.id, { questionRandomization: newRules });
-  };
-
-  const handleRemoveRandomizationRule = (ruleId: string) => {
-    const newRules = (block.questionRandomization || []).filter(rule => rule.id !== ruleId);
-    onUpdateBlock(block.id, { questionRandomization: newRules.length > 0 ? newRules : undefined });
-  };
 
   const renderSettingsTab = () => (
     <div className="space-y-6">
@@ -319,82 +266,6 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
           )}
 
 
-        </div>
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Questions" defaultExpanded={true}>
-        <div className="space-y-6">
-          {/* Question Randomization Section */}
-          <div ref={randomizationRef} tabIndex={-1} className="focus:outline-none rounded-md">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <label htmlFor="enable-randomization" className="text-sm font-medium text-on-surface block">
-                  Randomize questions
-                </label>
-                <p className="text-xs text-on-surface-variant mt-0.5">Randomize the order of questions in this block.</p>
-              </div>
-              <Toggle
-                id="enable-randomization"
-                checked={!!block.questionRandomization}
-                onChange={handleToggleRandomization}
-              />
-            </div>
-            {block.questionRandomization && (
-              <div className="mt-4 space-y-4">
-                <button onClick={handleAddRandomizationRule} className="flex items-center gap-1 text-sm font-button-text text-primary hover:underline">
-                  <PlusIcon className="text-base" /> Add randomization
-                </button>
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    {block.questionRandomization.map((rule) => {
-                      const availableQuestions = block.questions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak);
-                      const isSync = rule.pattern === 'synchronized';
-                      return (
-                        <div key={rule.id}>
-                          {/* Rule content placeholder */}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <label htmlFor="enable-looping" className="text-sm font-medium text-on-surface block">
-                  Loop questions
-                </label>
-                <p className="text-xs text-on-surface-variant mt-0.5">Repeat the questions in this block.</p>
-              </div>
-              <Toggle
-                id="enable-looping"
-                checked={block.loopingEnabled || false}
-                onChange={(checked) => onUpdateBlock(block.id, { loopingEnabled: checked })}
-              />
-            </div>
-            {block.loopingEnabled && (
-              <div className="mt-4 pl-4 border-l-2 border-outline-variant">
-                <label htmlFor="max-loop-size" className="block text-sm font-medium text-on-surface-variant mb-1">
-                  Max. Loop Size
-                </label>
-                <input
-                  type="number"
-                  id="max-loop-size"
-                  value={block.maxLoopSize || ''}
-                  onChange={(e) => {
-                    const value = e.target.value ? parseInt(e.target.value, 10) : undefined;
-                    onUpdateBlock(block.id, { maxLoopSize: value });
-                  }}
-                  className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary transition-colors"
-                  placeholder="e.g., 5"
-                  min="1"
-                />
-              </div>
-            )}
-          </div>
         </div>
       </CollapsibleSection>
 
@@ -496,6 +367,74 @@ export const BlockSidebar: React.FC<BlockSidebarProps> = ({ block, survey, onClo
           </div>
         </div>
       </CollapsibleSection>
+
+      <CollapsibleSection title="Questions" defaultExpanded={true}>
+        <div className="space-y-6">
+          {/* Question Randomization Section */}
+          <div ref={randomizationRef} tabIndex={-1} className="focus:outline-none rounded-md">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <label htmlFor="enable-randomization" className="text-sm font-medium text-on-surface block">
+                  Randomize questions
+                </label>
+                <p className="text-xs text-on-surface-variant mt-0.5">Randomize the order of questions in this block.</p>
+              </div>
+              <Toggle
+                id="enable-randomization"
+                checked={!!block.questionRandomization}
+                onChange={handleToggleRandomization}
+              />
+            </div>
+            {block.questionRandomization && (
+              <div className="mt-4">
+                <RandomizationSet
+                  rules={block.questionRandomization || []}
+                  onUpdate={(rules) => onUpdateBlock(block.id, { questionRandomization: rules.length > 0 ? rules : undefined })}
+                  availableQuestions={block.questions.filter(q => q.type !== QuestionType.Description && q.type !== QuestionType.PageBreak)}
+                  availableGroups={localQuestionGroups}
+                />
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <label htmlFor="enable-looping" className="text-sm font-medium text-on-surface block">
+                  Loop questions
+                </label>
+                <p className="text-xs text-on-surface-variant mt-0.5">Repeat the questions in this block.</p>
+              </div>
+              <Toggle
+                id="enable-looping"
+                checked={block.loopingEnabled || false}
+                onChange={(checked) => onUpdateBlock(block.id, { loopingEnabled: checked })}
+              />
+            </div>
+            {block.loopingEnabled && (
+              <div className="mt-4 pl-4 border-l-2 border-outline-variant">
+                <label htmlFor="max-loop-size" className="block text-sm font-medium text-on-surface-variant mb-1">
+                  Max. Loop Size
+                </label>
+                <input
+                  type="number"
+                  id="max-loop-size"
+                  value={block.maxLoopSize || ''}
+                  onChange={(e) => {
+                    const value = e.target.value ? parseInt(e.target.value, 10) : undefined;
+                    onUpdateBlock(block.id, { maxLoopSize: value });
+                  }}
+                  className="w-full bg-surface border border-outline rounded-md p-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-1 focus:outline-primary transition-colors"
+                  placeholder="e.g., 5"
+                  min="1"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      </CollapsibleSection>
+
+
     </div >
   );
 

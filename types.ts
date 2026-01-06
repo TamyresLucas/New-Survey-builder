@@ -287,15 +287,16 @@ export interface Question {
   linkedChoicesSource?: string; // ID of the question this one's choices are linked to
 }
 
-export type RandomizationPattern = 'rotation' | 'permutation' | 'synchronized' | 'reverse_order';
+export type RandomizationPattern = 'rotation' | 'permutation' | 'synchronized' | 'reverse_order' | 'random_reverse' | 'sort_by_text' | 'sort_by_code';
 
 export interface QuestionRandomizationRule {
   id: string;
   startQuestionId: string;
   endQuestionId: string;
-  pattern: RandomizationPattern;
+  pattern?: RandomizationPattern;
   questionGroupId?: string;
-  isConfirmed?: boolean;
+  groupingSize?: number;
+
 }
 
 export interface Block {
@@ -319,6 +320,7 @@ export interface Block {
   automaticPageBreaks?: boolean;
   hideBackButton?: boolean;
   sharedConvergence?: boolean;
+  issues?: LogicIssue[];
 }
 
 export interface Survey {
@@ -349,10 +351,10 @@ export interface ChatMessage {
 // --- NEW DATA MODEL FOR LOGIC VALIDATION ---
 export interface LogicIssue {
   questionId: string; // The question where the logic is defined
-  type: 'display' | 'skip' | 'branching' | 'hide'; // Which logic editor it belongs to
+  type: 'display' | 'skip' | 'branching' | 'hide' | 'randomization'; // Which logic editor it belongs to
   message: string; // The error message
   sourceId?: string; // The ID of the specific condition, rule, or branch that has the error
-  field?: 'questionId' | 'value' | 'operator' | 'skipTo'; // The specific field with the issue
+  field?: 'questionId' | 'value' | 'operator' | 'skipTo' | 'startQuestionId' | 'endQuestionId' | 'pattern' | 'questionGroupId'; // The specific field with the issue
 }
 
 // --- NEW TYPES FOR DIAGRAM CANVAS ---

@@ -11,6 +11,42 @@ export interface ChangelogEntry {
 // NOTE: Always update 'time' to the current local time when adding an entry.
 export const changelogs: ChangelogEntry[] = [
     {
+        id: '2026-01-05-2',
+        version: 'v1.0.25',
+        date: '2026-01-05',
+        time: '11:45 AM',
+        request: 'Standardize Randomization Component States',
+        improvements: [
+            'UX: Standardized Randomization components to match display logic editor behavior (Draft/Confirmed states).',
+            'UX: Added explicit \'Apply\' and \'Cancel\' actions for randomization rules.',
+            'UX: Added individual row confirmation checkmarks.'
+        ],
+        technicalChanges: [
+            'Modified components/RandomizationRow.tsx: Added isConfirmed prop and Confirm button.',
+            'Modified components/RandomizationSet.tsx: Implemented transactional editing state and standardized footer actions.',
+            'Modified components/BlockSidebar.tsx: Updated usage of RandomizationSet.'
+        ]
+    },
+    {
+        id: '2026-01-05-1',
+        version: 'v1.0.24',
+        date: '2026-01-05',
+        time: '11:18 AM',
+        request: 'Randomization Component Review & Documentation',
+        improvements: [
+            'Documentation: Created comprehensive documentation for `RandomizationRow` and `RandomizationSet` components.',
+            'Type Safety: Updated `LogicIssue` type to correctly support randomization-specific validation errors.',
+            'Accessibility: Added `aria-label` attributes to randomization editor inputs for improved accessibility.'
+        ],
+        technicalChanges: [
+            'Created documentation/components/RandomizationRow.md.',
+            'Created documentation/components/RandomizationSet.md.',
+            'Modified types.ts: Added \'randomization\' to LogicIssue type union.',
+            'Modified components/RandomizationSet.tsx: Updated validation logic to use new error type.',
+            'Modified components/RandomizationRow.tsx: Added accessibility attributes.'
+        ]
+    },
+    {
         id: '2025-12-30-1',
         version: 'v1.0.23',
         date: '2025-12-30',

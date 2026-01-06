@@ -227,7 +227,7 @@ export const BranchLogicSet: React.FC<BranchLogicSetProps> = ({
                                 }
                                 onAddCondition={() => handleAddConditionAtIndex(index)}
                                 availableQuestions={availableQuestions}
-                                isConfirmed={condition.isConfirmed || false}
+                                // isConfirmed removed
                                 issues={issues.filter(i => i.sourceId === condition.id)}
                                 isFirstCondition={index === 0}
                                 currentQuestion={currentQuestion}

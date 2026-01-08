@@ -371,7 +371,7 @@ export interface Option {
   variableName: string;
 }
 
-// FIX: Change HandlePosition to be an alias for the imported Position enum.
+// FIX: HandlePosition is already defined above, removing duplicate export.
 export type HandlePosition = Position;
 
 export interface Condition {

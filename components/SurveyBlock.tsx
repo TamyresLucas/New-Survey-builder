@@ -55,7 +55,7 @@ interface SurveyBlockProps {
   onAddChoice: (questionId: string) => void;
   onAddPageBreakAfterQuestion: (questionId: string) => void;
   onUpdateBlockTitle: (blockId: string, title: string) => void;
-  onAddFromLibrary: () => void;
+  onAddFromLibrary: (surveyId: string, targetBlockId: string | null) => void;
   pageInfoMap: Map<string, PageInfo>;
   focusedLogicSource: string | null;
   printMode?: boolean;
@@ -356,7 +356,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                 onEdit={() => { onSelectBlock(block); setIsActionsMenuOpen(false); }}
                 onDuplicate={() => { onCopyBlock(block.id); setIsActionsMenuOpen(false); }}
                 onAddSimpleQuestion={() => { onAddQuestionToBlock(block.id, QTEnum.Checkbox); setIsActionsMenuOpen(false); }}
-                onAddFromLibrary={() => { onAddFromLibrary(); setIsActionsMenuOpen(false); }}
+                onAddFromLibrary={() => { onAddFromLibrary('customer_feedback', block.id); setIsActionsMenuOpen(false); }}
                 onAddBlockAbove={() => { onAddBlock(block.id, 'above'); setIsActionsMenuOpen(false); }}
                 onAddBlockBelow={() => { onAddBlock(block.id, 'below'); setIsActionsMenuOpen(false); }}
                 onSelectAll={() => { onSelectAllInBlock(block.id); setIsActionsMenuOpen(false); }}

@@ -64,25 +64,25 @@ export const ChoiceListRenderer: React.FC<ChoiceListRendererProps> = ({
                             onDragOver={(e) => handleChoiceDragOver(e, choice.id)}
                             onDragEnd={handleChoiceDragEnd}
                         >
-                            <div className="flex items-start min-h-[32px] relative py-1">
-                                {!printMode && <DragIndicatorIcon className="absolute -left-8 top-1.5 text-xl text-on-surface-variant cursor-grab opacity-0 group-hover/choice:opacity-100" />}
+                            <div className="flex items-center min-h-[32px] relative py-1">
+                                {!printMode && <DragIndicatorIcon className="absolute -left-8 top-1/2 -translate-y-1/2 text-xl text-on-surface-variant cursor-grab opacity-0 group-hover/choice:opacity-100" />}
                                 {question.type === QuestionType.Radio ? (
                                     index === 0 ? (
-                                        <RadioIcon className="text-xl text-primary mr-2 mt-0.5" />
+                                        <RadioIcon className="text-xl text-primary mr-2 flex-shrink-0" />
                                     ) : (
-                                        <RadioButtonUncheckedIcon className="text-xl text-on-surface-variant mr-2 mt-0.5" />
+                                        <RadioButtonUncheckedIcon className="text-xl text-on-surface-variant mr-2 flex-shrink-0" />
                                     )
                                 ) : (
-                                    <CheckboxOutlineIcon className="text-xl text-on-surface-variant mr-2 mt-0.5" />
+                                    <CheckboxOutlineIcon className="text-xl text-on-surface-variant mr-2 flex-shrink-0" />
                                 )}
 
-                                <div className="text-on-surface flex-grow flex items-start gap-2">
-                                    {variable && <span className="font-semibold text-on-surface mr-2 mt-0.5">{variable}</span>}
+                                <div className="text-on-surface flex-grow flex items-center gap-2">
+                                    {variable && <span className="font-semibold text-on-surface mr-2 flex-shrink-0">{variable}</span>}
                                     {choice.visible === false && (
-                                        <VisibilityOffIcon className="text-on-surface-variant text-base mr-2 mt-1" />
+                                        <VisibilityOffIcon className="text-on-surface-variant text-base mr-2 flex-shrink-0" />
                                     )}
                                     {choice.allowTextEntry && (
-                                        <OpenEndAnswerIcon className="text-on-surface-variant text-base mr-2 mt-1" />
+                                        <OpenEndAnswerIcon className="text-on-surface-variant text-base mr-2 flex-shrink-0" />
                                     )}
                                     <EditableText
                                         html={label}

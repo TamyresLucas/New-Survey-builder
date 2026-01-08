@@ -77,7 +77,7 @@ const Toast: React.FC<{ message: string; type: ToastType; onDismiss: () => void;
 };
 
 const App: React.FC = () => {
-    console.log('App component starting render...');
+
 
     // --- State Hooks ---
     const {

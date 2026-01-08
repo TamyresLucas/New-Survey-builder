@@ -35,6 +35,7 @@ const QuestionCard: React.FC<{
     printMode?: boolean;
     isHovered?: boolean;
     onHover?: (id: string | null) => void;
+    totalPages?: number;
 }> = memo(({
     question, survey, parentBlock, currentBlockId, logicIssues, isSelected, isChecked, onSelect, onToggleCheck, id,
     onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, toolboxItems,
@@ -126,7 +127,11 @@ const QuestionCard: React.FC<{
                 onMouseEnter={() => onHover?.(question.id)}
                 onMouseLeave={() => onHover?.(null)}
                 onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
+                    // Don't intercept keyboard events when user is editing text
+                    const target = e.target as HTMLElement;
+                    const isEditingText = target.isContentEditable || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+
+                    if ((e.key === 'Enter' || e.key === ' ') && !isEditingText) {
                         e.preventDefault();
                         e.stopPropagation();
                         onSelect(question);

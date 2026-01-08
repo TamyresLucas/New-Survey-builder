@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       host: '0.0.0.0',
-      allowedHosts: ['wax-refused-magazines-seminars.trycloudflare.com', 'pharmacy-offerings-suggesting-rounds.trycloudflare.com', 'forms-twice-herbal-pat.trycloudflare.com'],
+      allowedHosts: ['liberal-sure-delegation-bacterial.trycloudflare.com', 'wax-refused-magazines-seminars.trycloudflare.com', 'pharmacy-offerings-suggesting-rounds.trycloudflare.com', 'forms-twice-herbal-pat.trycloudflare.com'],
     },
     plugins: [react(), copyWebConfig()],
     define: {

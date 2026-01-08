@@ -369,14 +369,18 @@ export const blockReducer = (state: Survey, action: Action): Survey => {
                     // Update Skip Logic
                     if (q.skipLogic) {
                         // Similar updates for skip logic
-                        q.skipLogic.conditions?.forEach((cond: any) => {
-                            if (idMap.has(cond.questionId)) cond.questionId = idMap.get(cond.questionId);
-                            if (cond.choiceId && idMap.has(cond.choiceId)) cond.choiceId = idMap.get(cond.choiceId);
-                        });
-                        if (q.skipLogic.action === 'skipTo' && q.skipLogic.target && q.skipLogic.target.startsWith('block:')) {
-                            const oldId = q.skipLogic.target.substring(6);
+                        if (q.skipLogic.type === 'per_choice') {
+                            q.skipLogic.rules.forEach((rule: any) => {
+                                rule.conditions?.forEach((cond: any) => {
+                                    if (idMap.has(cond.questionId)) cond.questionId = idMap.get(cond.questionId);
+                                    if (cond.choiceId && idMap.has(cond.choiceId)) cond.choiceId = idMap.get(cond.choiceId);
+                                });
+                            });
+                        }
+                        if (q.skipLogic.type === 'simple' && q.skipLogic.skipTo && q.skipLogic.skipTo.startsWith('block:')) {
+                            const oldId = q.skipLogic.skipTo.substring(6);
                             if (idMap.has(oldId)) {
-                                q.skipLogic.target = `block:${idMap.get(oldId)}`;
+                                q.skipLogic.skipTo = `block:${idMap.get(oldId)}`;
                             }
                         }
                     }

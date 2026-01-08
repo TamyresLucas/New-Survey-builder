@@ -9,7 +9,7 @@ interface SidebarLibrarySurveyProps {
     isDragged: boolean;
     onDragStart: (e: React.DragEvent) => void;
     onDragEnd: (e: React.DragEvent) => void;
-    onDragEnd: (e: React.DragEvent) => void;
+
     onClick?: () => void;
     isExpanded?: boolean;
 }

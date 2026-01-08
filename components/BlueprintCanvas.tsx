@@ -88,13 +88,13 @@ export const BlueprintCanvas: React.FC<BlueprintCanvasProps> = ({
                                 <DropdownItem onClick={() => { window.print(); setIsExportMenuOpen(false); }} icon={PrintIcon}>
                                     Print blueprint
                                 </DropdownItem>
-                                <DropdownItem onClick={() => { console.log('Export as Word'); setIsExportMenuOpen(false); }}>
+                                <DropdownItem onClick={() => { setIsExportMenuOpen(false); }}>
                                     Export as Word
                                 </DropdownItem>
-                                <DropdownItem onClick={() => { console.log('Export as Excel'); setIsExportMenuOpen(false); }}>
+                                <DropdownItem onClick={() => { setIsExportMenuOpen(false); }}>
                                     Export as Excel
                                 </DropdownItem>
-                                <DropdownItem onClick={() => { console.log('Export as HTML'); setIsExportMenuOpen(false); }}>
+                                <DropdownItem onClick={() => { setIsExportMenuOpen(false); }}>
                                     Export as HTML
                                 </DropdownItem>
                             </DropdownList>

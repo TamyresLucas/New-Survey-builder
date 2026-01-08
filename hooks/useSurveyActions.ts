@@ -446,8 +446,7 @@ export const useSurveyActions = ({
         handleBulkMoveToNewBlock,
         handleBulkHideQuestion,
         handleBulkHideBackButton,
-        handleBulkHideQuestion,
-        handleBulkHideBackButton,
+
         handleBulkForceResponse,
         handleAddSurveyFromLibrary
     };

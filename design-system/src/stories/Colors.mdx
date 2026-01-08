@@ -1,0 +1,26 @@
+import { Meta } from "@storybook/blocks";
+import { DynamicColorPalette } from "./DynamicColorPalette";
+import { TokenUsageTable } from "./TokenUsageTable";
+
+<Meta title="Design Tokens/Colors" />
+
+# Shadcn Color Tokens Reference Table
+
+The following table lists the core color tokens used in the design system, along with their HSL values for both Light and Dark modes.
+
+<TokenUsageTable />
+
+### **Key Usage Principles**
+
+- **Background/Foreground Pairing**: Each color token with a background purpose has a corresponding `-foreground` variant to ensure readable text contrast.
+- **Semantic Naming**: Token names reflect their purpose (primary, destructive, muted) rather than their appearance (blue, red, gray).
+- **Theme Inversion**: Notice how primary and foreground colors swap between light and dark modes to maintain proper contrast.
+- **Consistent References**: Components always reference these tokens rather than hard-coded colors, enabling automatic theme switching.
+
+---
+
+## Visual Reference
+
+Below is a live visual grid of the tokens.
+
+<DynamicColorPalette />

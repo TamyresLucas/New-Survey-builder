@@ -241,7 +241,7 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
       onDragOver={handleBlockDragOver}
       onDrop={handleBlockDrop}
       onDragLeave={handleBlockLeave}
-      className="max-w-4xl mx-auto"
+      className="max-w-4xl mx-auto pb-32"
     >
       {survey.blocks.map(block => (
         <React.Fragment key={block.id}>

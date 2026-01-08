@@ -190,3 +190,11 @@ Before completing any UI task:
 - [ ] Keyboard accessible (Tab, Enter, Escape)
 - [ ] No TypeScript errors
 - [ ] Follows existing component patterns
+
+## Project Isolation Rules (Strict)
+
+### Voxco Design System
+- **Do NOT** modify files in `design-system/` unless explicitly instructed.
+- **Do NOT** import from `design-system/` into the main `src/` application.
+- **Do NOT** add `design-system` as a dependency to the main `package.json`.
+- **EXCEPTION**: You may initialize and run Storybook within `design-system/` as a standalone project.

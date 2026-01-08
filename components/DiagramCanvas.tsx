@@ -18,7 +18,7 @@ import { toPng, toBlob } from 'html-to-image';
 // import { toast } from 'react-toastify';
 
 import type { Survey, Question, SkipLogicRule, SkipLogic, EndNode, TextEntryNode, DescriptionNode, MultipleChoiceNode, StartNode } from '../types';
-import type { Node as DiagramNode, Edge as DiagramEdge } from '../types';
+import type { Node as DiagramNode, Edge as DiagramEdge, Block } from '../types';
 
 import { generateId, parseChoice, isBranchingLogicExhaustive } from '../utils';
 import { QuestionType } from '../types';
@@ -1029,7 +1029,7 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
 
     return (
         <div className="w-full h-full">
-            <DiagramToolbar onAddNode={(type: 'multiple_choice' | 'text_entry' | 'logic') => console.log(type)} />
+            <DiagramToolbar onAddNode={(type: 'multiple_choice' | 'text_entry' | 'logic') => { /* no-op */ }} />
             <ReactFlow
                 nodes={nodes}
                 edges={edges}

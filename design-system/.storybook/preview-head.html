@@ -1,0 +1,34 @@
+<style>
+    /* Force all Storybook docs content to respect dark mode */
+
+    /* Target the main content container */
+    .sbdocs.sbdocs-content,
+    .sbdocs-content > div,
+    #storybook-docs,
+    .docs-story {
+        background-color: hsl(var(--background)) !important;
+        color: hsl(var(--foreground)) !important;
+    }
+
+    /* Target specific MDX wrapper divs */
+    .sbdocs-content > div > div,
+    .sbdocs-content > div > div > div {
+        background-color: hsl(var(--background)) !important;
+        color: hsl(var(--foreground)) !important;
+    }
+
+    /* Keep wrapper transparent so we can see the background */
+    .sbdocs.sbdocs-wrapper {
+        background-color: transparent !important;
+    }
+
+    /* Ensure headings are visible in both modes */
+    .sbdocs h1,
+    .sbdocs h2,
+    .sbdocs h3,
+    .sbdocs h4,
+    .sbdocs h5,
+    .sbdocs h6 {
+        color: hsl(var(--foreground)) !important;
+    }
+</style>

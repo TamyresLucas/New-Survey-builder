@@ -13,5 +13,8 @@
     "aliases": {
         "components": "@/components",
         "utils": "@/lib/utils"
+    },
+    "registries": {
+        "@bundui": "https://bundui.io/r/{name}.json"
     }
 }

@@ -22,6 +22,7 @@
     }
 
     :root {
+        --font-sans: "Inter", system-ui, sans-serif;
         --background: 0 0% 100%;
         --foreground: 222.2 84% 4.9%;
         --card: 0 0% 100%;
@@ -42,8 +43,8 @@
         --success-foreground: 210 40% 98%;
         --warning: 38 92% 50%;
         --warning-foreground: 210 40% 98%;
-        --info: 199 89% 48%;
-        --info-foreground: 210 40% 98%;
+        --info: var(--primary);
+        --info-foreground: var(--primary-foreground);
         --border: 214.3 31.8% 91.4%;
         --input: 214.3 31.8% 91.4%;
         --ring: 222.2 84% 4.9%;
@@ -76,8 +77,8 @@
         --success-foreground: 144 61% 20%;
         --warning: 38 92% 50%;
         --warning-foreground: 48 96% 89%;
-        --info: 199 89% 48%;
-        --info-foreground: 210 40% 98%;
+        --info: var(--primary);
+        --info-foreground: var(--primary-foreground);
         --border: 217.2 32.6% 17.5%;
         --input: 217.2 32.6% 17.5%;
         --ring: 212.7 26.8% 83.9%;
@@ -98,4 +99,19 @@
     body {
         @apply bg-background text-foreground;
     }
+}
+
+/* Override Storybook Docs Wrapper background for Dark Mode consistency */
+.sbdocs.sbdocs-wrapper {
+    background-color: transparent !important;
+}
+
+/* Override Storybook Docs Header colors to match theme */
+.sbdocs h1,
+.sbdocs h2,
+.sbdocs h3,
+.sbdocs h4,
+.sbdocs h5,
+.sbdocs h6 {
+    color: inherit !important;
 }

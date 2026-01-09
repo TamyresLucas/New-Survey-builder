@@ -81,7 +81,7 @@ stages:
         CleanTargetFolder: true
       displayName: 'Copy unzipped dist for Azure App Service'
 
-    # Copy package.json, package-lock.json, .deployment, and startup.sh for Azure App Service
+    # Copy package.json, package-lock.json, and .deployment for Azure App Service
     - task: CopyFiles@2
       inputs:
         SourceFolder: '$(Build.SourcesDirectory)'
@@ -89,7 +89,6 @@ stages:
           package.json
           package-lock.json
           .deployment
-          startup.sh
         TargetFolder: '$(Build.ArtifactStagingDirectory)/appservice-artifacts'
       displayName: 'Copy package and deployment config for Azure App Service'
 

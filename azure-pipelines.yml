@@ -73,15 +73,16 @@ stages:
         CleanTargetFolder: true
       displayName: 'Copy unzipped dist for Azure App Service'
 
-    # Copy package.json and package-lock.json for Azure App Service
+    # Copy package.json, package-lock.json, and .deployment for Azure App Service
     - task: CopyFiles@2
       inputs:
         SourceFolder: '$(Build.SourcesDirectory)'
         Contents: |
           package.json
           package-lock.json
+          .deployment
         TargetFolder: '$(Build.ArtifactStagingDirectory)/appservice-artifacts'
-      displayName: 'Copy package files for Azure App Service'
+      displayName: 'Copy package and deployment config for Azure App Service'
 
     # Publish ZIP artifact (for IIS deployment)
     - task: PublishBuildArtifacts@1

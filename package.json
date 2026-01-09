@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "serve dist -s -l 8080"
   },
   "dependencies": {
     "@google/genai": "^1.21.0",
@@ -15,7 +16,8 @@
     "html-to-image": "^1.11.13",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-markdown": "^10.1.0"
+    "react-markdown": "^10.1.0",
+    "serve": "^14.2.1"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

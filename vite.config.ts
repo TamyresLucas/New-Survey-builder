@@ -23,7 +23,7 @@ const copyWebConfig = () => ({
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: '/SurveyBuilderPoc/',  // Set base path for IIS virtual directory
+    base: '/',  // Root path for Azure App Service (use '/SurveyBuilderPoc/' for IIS)
     server: {
       port: 3000,
       host: '0.0.0.0',

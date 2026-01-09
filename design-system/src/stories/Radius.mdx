@@ -2,48 +2,82 @@ import { Meta } from '@storybook/blocks';
 
 <Meta title="Design Tokens/Radius" />
 
-# Border Radius
+<div className="space-y-16 bg-background text-foreground">
+  
+  {/* Header */}
+  <div className="space-y-4">
+    # Border Radius
 
-The following border radius values are defined in the design system.
-
-<div className="flex flex-col gap-4 mt-8">
-  <div className="flex items-center gap-4">
-    <div className="w-24 h-24 bg-primary rounded-sm flex items-center justify-center text-primary-foreground">
-      sm
+    <div className="text-lg text-muted-foreground">
+      Corner rounding tokens used to soften component edges. These tokens are variable-based (`--radius`), meaning the entire system's roundness can be adjusted by changing a single CSS variable.
     </div>
-    <div className="flex flex-col">
-      <span className="font-bold">rounded-sm</span>
-      <span className="text-muted-foreground text-sm">calc(var(--radius) - 4px)</span>
+
+    <div className="p-4 bg-muted/30 border rounded-lg text-sm text-muted-foreground border-l-4 border-l-primary">
+       <strong>Note:</strong> The default system radius is configured to <code>0.5rem</code> (8px). 
+       Interactive components (buttons, inputs) typically use <code>rounded-md</code>.
     </div>
   </div>
 
-  <div className="flex items-center gap-4">
-    <div className="w-24 h-24 bg-primary rounded-md flex items-center justify-center text-primary-foreground">
-      md
+  {/* Visual Reference */}
+  <div className="space-y-8 pb-16">
+    <div className="space-y-2">
+      <h2 className="text-2xl font-semibold border-b pb-2">Radius Scale</h2>
+      <div className="text-muted-foreground">Available radius utility classes.</div>
     </div>
-    <div className="flex flex-col">
-      <span className="font-bold">rounded-md (Default)</span>
-      <span className="text-muted-foreground text-sm">calc(var(--radius) - 2px)</span>
-    </div>
-  </div>
 
-  <div className="flex items-center gap-4">
-    <div className="w-24 h-24 bg-primary rounded-lg flex items-center justify-center text-primary-foreground">
-      lg
-    </div>
-    <div className="flex flex-col">
-      <span className="font-bold">rounded-lg</span>
-      <span className="text-muted-foreground text-sm">var(--radius)</span>
-    </div>
-  </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      
+      {/* sm */}
+      <div className="flex items-center gap-6 p-6 border rounded-lg bg-card/50">
+        <div className="w-24 h-24 bg-primary rounded-sm flex items-center justify-center text-primary-foreground shadow-sm my-auto">
+          sm
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="font-mono font-bold text-foreground">rounded-sm</span>
+          <span className="text-muted-foreground text-xs font-mono">calc(var(--radius) - 4px)</span>
+          <div className="text-sm text-muted-foreground mt-2">Used for smaller, tighter elements like badges or small tags.</div>
+        </div>
+      </div>
 
-  <div className="flex items-center gap-4">
-    <div className="w-24 h-24 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
-      full
-    </div>
-    <div className="flex flex-col">
-      <span className="font-bold">rounded-full</span>
-      <span className="text-muted-foreground text-sm">9999px</span>
+       {/* md */}
+      <div className="flex items-center gap-6 p-6 border rounded-lg bg-accent/20 border-primary/20">
+        <div className="w-24 h-24 bg-primary rounded-md flex items-center justify-center text-primary-foreground shadow-sm my-auto">
+          md
+        </div>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+             <span className="font-mono font-bold text-foreground">rounded-md</span>
+             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary text-primary-foreground uppercase tracking-wide">Default</span>
+          </div>
+          <span className="text-muted-foreground text-xs font-mono">calc(var(--radius) - 2px)</span>
+          <div className="text-sm text-muted-foreground mt-2">The standard radius for Buttons, Cards, Inputs, and Dialogs.</div>
+        </div>
+      </div>
+
+       {/* lg */}
+      <div className="flex items-center gap-6 p-6 border rounded-lg bg-card/50">
+        <div className="w-24 h-24 bg-primary rounded-lg flex items-center justify-center text-primary-foreground shadow-sm my-auto">
+          lg
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="font-mono font-bold text-foreground">rounded-lg</span>
+          <span className="text-muted-foreground text-xs font-mono">var(--radius)</span>
+          <div className="text-sm text-muted-foreground mt-2">Used for larger containers or outer modal wrappers.</div>
+        </div>
+      </div>
+
+       {/* full */}
+      <div className="flex items-center gap-6 p-6 border rounded-lg bg-card/50">
+        <div className="w-24 h-24 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-sm my-auto">
+          full
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="font-mono font-bold text-foreground">rounded-full</span>
+          <span className="text-muted-foreground text-xs font-mono">9999px</span>
+          <div className="text-sm text-muted-foreground mt-2">Used for Avatars, Switches, and circular buttons.</div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>

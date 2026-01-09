@@ -86,7 +86,7 @@ const SemanticColorsDemo = () => {
 };
 
 const meta = {
-    title: 'Design System/Semantic Colors',
+    title: 'Design Patterns/Semantic Colors',
     component: SemanticColorsDemo,
     parameters: {
         layout: 'padded',

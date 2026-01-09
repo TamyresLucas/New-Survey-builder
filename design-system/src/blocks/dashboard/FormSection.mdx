@@ -1,0 +1,90 @@
+import { Meta, Canvas, Controls, Story } from "@storybook/blocks"
+import * as FormSectionStories from "./FormSection.stories"
+
+<Meta of={FormSectionStories} />
+
+# FormSection
+
+A comprehensive set of components for structuring forms with consistent layouts, spacing, and visual hierarchy.
+
+## Overview
+
+The FormSection family includes:
+
+- **FormSection**: Main container for grouping related form fields
+- **FormFieldGrid**: Responsive grid layout for form fields
+- **FormActions**: Consistent button placement for form submissions
+
+## Use Cases in Voxco
+
+- **Survey Settings**: Organize survey configuration options
+- **Question Editor**: Structure question properties and settings
+- **User Profile**: Group personal information fields
+- **Export Configuration**: Organize export options
+
+---
+
+## Variants
+
+### Two-Column Layout
+
+Organize fields in a responsive two-column grid.
+
+<Canvas of={FormSectionStories.TwoColumnForm} />
+
+### Multi-Section Form
+
+Multiple sections with titles and descriptions.
+
+<Canvas of={FormSectionStories.MultiSectionForm} />
+
+### Settings Form
+
+Compact settings with toggles and selects.
+
+<Canvas of={FormSectionStories.SettingsForm} />
+
+### Field Grid Example
+
+Using FormFieldGrid for responsive layouts.
+
+<Canvas of={FormSectionStories.FieldGridExample} />
+
+---
+
+## API Reference
+
+### FormSection Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `title` | `string` | - | Section title |
+| `description` | `string` | - | Section description |
+| `columns` | `1 \| 2` | `1` | Number of columns for fields |
+| `showSeparator` | `boolean` | `false` | Show separator after section |
+| `children` | `ReactNode` | Required | Form fields content |
+| `className` | `string` | - | Additional CSS classes |
+
+### FormFieldGrid Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `columns` | `1 \| 2 \| 3 \| 4` | `2` | Number of grid columns |
+| `gap` | `"sm" \| "md" \| "lg"` | `"md"` | Gap between fields |
+| `children` | `ReactNode` | Required | Form fields |
+| `className` | `string` | - | Additional CSS classes |
+
+### FormActions Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `align` | `"left" \| "right" \| "between"` | `"right"` | Button alignment |
+| `children` | `ReactNode` | Required | Action buttons |
+| `className` | `string` | - | Additional CSS classes |
+
+### Best Practices
+
+1. **Group related fields** - Use FormSection to visually group related inputs
+2. **Use consistent column layouts** - Stick to 1 or 2 columns for most forms
+3. **Add descriptions** - Help users understand each section's purpose
+4. **Right-align actions** - Primary actions should be on the right

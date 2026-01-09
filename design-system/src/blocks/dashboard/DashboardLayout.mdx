@@ -1,0 +1,124 @@
+import { Meta, Canvas, Controls, Story } from "@storybook/blocks"
+import * as DashboardLayoutStories from "./DashboardLayout.stories"
+
+<Meta of={DashboardLayoutStories} />
+
+# DashboardLayout
+
+A flexible page layout system for building dashboard interfaces with consistent structure and navigation patterns.
+
+## Overview
+
+The DashboardLayout family includes:
+
+- **DashboardLayout**: Main layout wrapper with sidebar and content areas
+- **DashboardSidebar**: Collapsible navigation panel
+- **DashboardHeader**: Top bar with title and actions
+- **DashboardContent**: Scrollable main content area
+
+## Use Cases in Voxco
+
+- **Survey Dashboard**: Main survey management interface
+- **Analytics View**: Data visualization with filters
+- **Settings Pages**: Configuration with navigation
+- **Report Builder**: Full-width editing interface
+
+---
+
+## Layout Variants
+
+### Left Sidebar
+
+Standard dashboard layout with navigation on the left. Most common pattern for admin interfaces.
+
+<Canvas of={DashboardLayoutStories.LeftSidebarLayout} />
+
+### Right Sidebar
+
+Layout with filters or details panel on the right. Useful for data-heavy views.
+
+<Canvas of={DashboardLayoutStories.RightSidebarLayout} />
+
+### Full Width
+
+No sidebar layout for focused content views or builders.
+
+<Canvas of={DashboardLayoutStories.FullWidthLayout} />
+
+### Collapsible Sidebar
+
+Sidebar that can be collapsed to maximize content area.
+
+<Canvas of={DashboardLayoutStories.CollapsibleSidebar} />
+
+---
+
+## Complete Example
+
+### Survey Dashboard
+
+A complete implementation showing all components working together.
+
+<Canvas of={DashboardLayoutStories.SurveyDashboardExample} />
+
+---
+
+## API Reference
+
+### DashboardLayout Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `variant` | `"left-sidebar" \| "right-sidebar" \| "full-width"` | `"left-sidebar"` | Layout variant |
+| `sidebar` | `ReactNode` | - | Sidebar content (ignored for full-width) |
+| `header` | `ReactNode` | - | Header content |
+| `children` | `ReactNode` | Required | Main content |
+| `sidebarWidth` | `"sm" \| "md" \| "lg"` | `"md"` | Sidebar width preset |
+| `collapsible` | `boolean` | `false` | Allow sidebar to collapse |
+| `defaultCollapsed` | `boolean` | `false` | Default collapsed state |
+| `className` | `string` | - | Additional CSS classes |
+
+### DashboardSidebar Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `ReactNode` | Required | Sidebar content |
+| `width` | `"sm" \| "md" \| "lg"` | `"md"` | Width preset |
+| `collapsed` | `boolean` | `false` | Whether sidebar is collapsed |
+| `onCollapsedChange` | `(collapsed: boolean) => void` | - | Collapse state callback |
+| `showCollapseButton` | `boolean` | `true` | Show collapse toggle |
+| `className` | `string` | - | Additional CSS classes |
+
+### DashboardHeader Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `title` | `string` | - | Page title |
+| `subtitle` | `ReactNode` | - | Breadcrumb or subtitle |
+| `actions` | `ReactNode` | - | Actions on the right side |
+| `onMenuClick` | `() => void` | - | Mobile menu toggle callback |
+| `showMenuToggle` | `boolean` | `false` | Show mobile menu button |
+| `className` | `string` | - | Additional CSS classes |
+
+### DashboardContent Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `ReactNode` | Required | Content |
+| `padded` | `boolean` | `true` | Add padding |
+| `className` | `string` | - | Additional CSS classes |
+
+### Sidebar Width Presets
+
+| Size | Expanded | Collapsed |
+|------|----------|-----------|
+| `sm` | 224px (w-56) | 64px (w-16) |
+| `md` | 256px (w-64) | 64px (w-16) |
+| `lg` | 288px (w-72) | 80px (w-20) |
+
+### Accessibility
+
+- Sidebar uses `role="navigation"` with descriptive `aria-label`
+- Menu toggle button has screen reader text
+- Content area uses semantic `<main>` element
+- Header uses semantic `<header>` element

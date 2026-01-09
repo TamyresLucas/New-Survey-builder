@@ -11,7 +11,6 @@ import { BlueprintCanvas } from './components/BlueprintCanvas';
 import SurveyCanvas from './components/SurveyCanvas';
 import DiagramCanvas, { DiagramCanvasHandle } from './components/DiagramCanvas';
 import { RightSidebar } from './components/RightSidebar';
-import { BlockSidebar } from './components/BlockSidebar';
 import { BulkEditPanel } from './components/BulkEditPanel';
 import GeminiPanel from './components/GeminiPanel';
 import { SurveyPreview } from './components/SurveyPreview';
@@ -721,17 +720,9 @@ const App: React.FC = () => {
                                                 onDelete={actions.handleBulkDelete}
                                             />
                                         ) : selectedBlock ? (
-                                            <BlockSidebar
-                                                block={selectedBlock}
-                                                survey={survey}
-                                                onClose={() => handleSelectBlock(null)}
-                                                onUpdateBlock={actions.handleUpdateBlock}
-                                                isExpanded={isRightSidebarExpanded}
-                                                onToggleExpand={handleToggleRightSidebarExpand}
-                                                onExpandSidebar={handleExpandRightSidebar}
-                                                focusTarget={focusTarget}
-                                                onFocusHandled={handleFocusHandled}
-                                            />
+                                            <div className="p-4 text-on-surface-variant">
+                                                Block editor temporarily unavailable
+                                            </div>
                                         ) : selectedQuestion ? (
                                             <RightSidebar
                                                 question={selectedQuestion}
@@ -888,17 +879,9 @@ const App: React.FC = () => {
                                                 onDelete={actions.handleBulkDelete}
                                             />
                                         ) : selectedBlock ? (
-                                            <BlockSidebar
-                                                block={selectedBlock}
-                                                survey={survey}
-                                                onClose={() => handleSelectBlock(null)}
-                                                onUpdateBlock={actions.handleUpdateBlock}
-                                                isExpanded={isRightSidebarExpanded}
-                                                onToggleExpand={handleToggleRightSidebarExpand}
-                                                onExpandSidebar={handleExpandRightSidebar}
-                                                focusTarget={focusTarget}
-                                                onFocusHandled={handleFocusHandled}
-                                            />
+                                            <div className="p-4 text-on-surface-variant">
+                                                Block editor temporarily unavailable
+                                            </div>
                                         ) : selectedQuestion ? (
                                             <RightSidebar
                                                 question={selectedQuestion}

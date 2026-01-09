@@ -10,14 +10,21 @@
   },
   "dependencies": {
     "@google/genai": "^1.21.0",
+    "@radix-ui/react-collapsible": "^1.1.12",
+    "@radix-ui/react-separator": "^1.1.8",
+    "@radix-ui/react-slot": "^1.2.4",
     "@types/classnames": "^2.3.0",
     "@xyflow/react": "^12.8.6",
+    "class-variance-authority": "^0.7.1",
     "classnames": "^2.5.1",
+    "clsx": "^2.1.1",
     "html-to-image": "^1.11.13",
+    "lucide-react": "^0.562.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-markdown": "^10.1.0",
-    "serve": "^14.2.1"
+    "serve": "^14.2.1",
+    "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

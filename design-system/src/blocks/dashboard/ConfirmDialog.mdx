@@ -1,0 +1,84 @@
+import { Meta, Canvas, Controls, Story } from "@storybook/blocks"
+import * as ConfirmDialogStories from "./ConfirmDialog.stories"
+
+<Meta of={ConfirmDialogStories} />
+
+# ConfirmDialog
+
+A versatile dialog component for confirmation actions, informational messages, and form-based interactions.
+
+## Overview
+
+`ConfirmDialog` wraps shadcn/ui's `AlertDialog` and `Dialog` primitives to provide a consistent pattern for modal interactions. It automatically selects the appropriate underlying component based on the `type` prop:
+
+- **Destructive**: Uses `AlertDialog` for better accessibility with dangerous actions
+- **Informational/Default**: Uses `Dialog` for general confirmations and forms
+
+## Use Cases in Voxco
+
+- **Delete Survey**: Confirm before permanently deleting a survey
+- **Publish Changes**: Confirm publishing survey changes to live respondents
+- **Discard Draft**: Warn users before discarding unsaved changes
+- **Export Data**: Inform users about export completion
+
+---
+
+## Variants
+
+### Destructive
+
+Use for dangerous actions that cannot be undone.
+
+<Canvas of={ConfirmDialogStories.Destructive} />
+
+### Informational
+
+Use for success messages or positive confirmations.
+
+<Canvas of={ConfirmDialogStories.Informational} />
+
+### With Form Content
+
+Use when additional input is needed before confirmation.
+
+<Canvas of={ConfirmDialogStories.WithForm} />
+
+---
+
+## Voxco Examples
+
+### Delete Survey Confirmation
+
+<Canvas of={ConfirmDialogStories.Destructive} />
+
+### Publish Survey
+
+<Canvas of={ConfirmDialogStories.Informational} />
+
+---
+
+## API Reference
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `type` | `"destructive" \| "informational" \| "default"` | `"default"` | Dialog type determines styling and icon |
+| `title` | `string` | Required | Dialog title |
+| `description` | `string` | Required | Dialog description/message |
+| `confirmLabel` | `string` | `"Confirm"` | Label for confirm button |
+| `cancelLabel` | `string` | `"Cancel"` | Label for cancel button |
+| `open` | `boolean` | - | Controlled open state |
+| `onOpenChange` | `(open: boolean) => void` | - | Callback when open state changes |
+| `onConfirm` | `() => void` | - | Callback when confirm is clicked |
+| `onCancel` | `() => void` | - | Callback when cancel is clicked |
+| `trigger` | `ReactNode` | - | Trigger element to open dialog |
+| `children` | `ReactNode` | - | Additional content (e.g., form fields) |
+| `className` | `string` | - | Additional CSS classes |
+
+### Accessibility
+
+- Uses `role="alertdialog"` for destructive type
+- Focus is automatically moved to the dialog when opened
+- Escape key closes the dialog
+- Screen readers announce the dialog title and description

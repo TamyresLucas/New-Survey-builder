@@ -68,6 +68,45 @@ const preview: Preview = {
         console.log('[Storybook Dark Mode] Has "dark" class?', html.classList.contains('dark'));
       }, [isDark]);
 
+      // Handle color changes - separate effect
+      useEffect(() => {
+        const html = document.documentElement;
+
+        const updateColors = (e?: CustomEvent) => {
+          let colors = {};
+
+          // If event provides detail, use it; otherwise load from storage
+          if (e?.detail) {
+            colors = e.detail;
+          } else {
+            const saved = localStorage.getItem("global-colors");
+            if (saved) {
+              colors = JSON.parse(saved);
+            }
+          }
+
+          // Apply all keys as CSS variations
+          Object.entries(colors).forEach(([token, value]) => {
+            if (typeof value === 'string') {
+              html.style.setProperty(`--${token}`, value);
+            }
+          });
+        };
+
+        // Run immediately on mount to restore persistent colors
+        updateColors();
+
+        // Listen for color changes from ColorPaletteEditor
+        // @ts-ignore
+        window.addEventListener('color-changed', updateColors);
+
+        return () => {
+          // @ts-ignore
+          window.removeEventListener('color-changed', updateColors);
+        };
+      }, []);
+
+
       // Handle font changes - separate effect
       useEffect(() => {
         const html = document.documentElement;

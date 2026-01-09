@@ -1,0 +1,112 @@
+import { Meta, Canvas, Controls, Story } from "@storybook/blocks"
+import * as WizardFormStories from "./WizardForm.stories"
+
+<Meta of={WizardFormStories} />
+
+# WizardForm
+
+A multi-step form component with visual progress indicator and navigation controls.
+
+## Overview
+
+`WizardForm` provides a pattern for breaking complex forms into manageable steps. It includes:
+
+- **Visual progress indicator** with step numbers and labels
+- **Previous/Next navigation** with customizable button labels
+- **Step completion tracking** with visual feedback
+- **Loading state support** for async operations
+
+## Use Cases in Voxco
+
+- **Survey Creation Wizard**: Guide users through survey setup
+- **Export Configuration**: Step-by-step export settings
+- **Account Setup**: Multi-step onboarding flow
+- **Template Selection**: Guided template customization
+
+---
+
+## Variants
+
+### Survey Creation Wizard
+
+Complete example with multiple content sections.
+
+<Canvas of={WizardFormStories.SurveyCreationWizard} />
+
+### Simple Three-Step Wizard
+
+Basic wizard with minimal content.
+
+<Canvas of={WizardFormStories.ThreeStepWizard} />
+
+### Loading State
+
+Showing async operation in progress.
+
+<Canvas of={WizardFormStories.WithLoadingState} />
+
+---
+
+## API Reference
+
+### WizardFormProps
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `steps` | `WizardStep[]` | Required | Array of step definitions |
+| `currentStep` | `number` | Required | Currently active step index (0-based) |
+| `onStepChange` | `(stepIndex: number) => void` | - | Callback when step changes |
+| `onBack` | `() => void` | - | Callback when back button is clicked |
+| `onNext` | `() => void` | - | Callback when next/submit button is clicked |
+| `backLabel` | `string` | `"Previous"` | Label for back button |
+| `nextLabel` | `string` | `"Next"` | Label for next button |
+| `submitLabel` | `string` | `"Finish"` | Label for final submit button |
+| `isLoading` | `boolean` | `false` | Disable navigation and show loading state |
+| `children` | `ReactNode` | Required | Step content |
+| `className` | `string` | - | Additional CSS classes |
+
+### WizardStep
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `id` | `string` | Unique step identifier |
+| `label` | `string` | Display label for the step |
+| `description` | `string` | Optional description shown when step is active |
+| `isComplete` | `boolean` | Whether step validation passed |
+| `hasError` | `boolean` | Whether step has validation errors |
+
+### Implementation Example
+
+```tsx
+const [currentStep, setCurrentStep] = useState(0)
+
+const steps = [
+  { id: "basics", label: "Basics" },
+  { id: "questions", label: "Questions" },
+  { id: "review", label: "Review" },
+]
+
+<WizardForm
+  steps={steps}
+  currentStep={currentStep}
+  onStepChange={setCurrentStep}
+  onNext={() => {
+    if (currentStep === steps.length - 1) {
+      handleSubmit()
+    } else {
+      setCurrentStep(prev => prev + 1)
+    }
+  }}
+>
+  {currentStep === 0 && <BasicsForm />}
+  {currentStep === 1 && <QuestionsForm />}
+  {currentStep === 2 && <ReviewForm />}
+</WizardForm>
+```
+
+### Accessibility
+
+- Steps are rendered as an ordered list (`<ol>`) for screen readers
+- Active step is marked with `aria-current="step"`
+- Step status is announced via `aria-live` region
+- Connector lines are hidden from assistive technology

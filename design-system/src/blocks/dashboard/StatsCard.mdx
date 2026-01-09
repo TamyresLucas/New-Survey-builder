@@ -1,0 +1,130 @@
+import { Meta, Canvas, Story, Controls } from "@storybook/blocks"
+import * as StatsCardStories from "./StatsCard.stories"
+
+<Meta of={StatsCardStories} />
+
+# Stats Cards
+
+Statistics cards for displaying metrics and KPIs in dashboards.
+
+## Import
+
+```tsx
+import { StatsCard } from "@voxco/design-system/blocks/dashboard"
+```
+
+## Voxco Use Cases
+
+| Scenario | Recommended Variant |
+|----------|---------------------|
+| Results Dashboard | SimpleWithPositiveTrend |
+| Abandonment Rate | SimpleWithNegativeTrend |
+| Revenue/Billing | MonetaryValue |
+| Active Surveys | LargeNumber |
+| Status Distribution | WithList |
+| Multiple Analytics | WithMultipleMetrics |
+| Response Goal | WithProgressBar |
+
+---
+
+## Variants
+
+### 1. Simple Card with Positive Trend
+
+Ideal for metrics showing growth.
+
+<Canvas of={StatsCardStories.SimpleWithPositiveTrend} />
+
+<Controls of={StatsCardStories.SimpleWithPositiveTrend} />
+
+### 2. Card with Negative Trend
+
+For metrics showing decline (e.g., abandonment rate).
+
+<Canvas of={StatsCardStories.SimpleWithNegativeTrend} />
+
+### 3. Card with Monetary Value
+
+For displaying revenue or financial values.
+
+<Canvas of={StatsCardStories.MonetaryValue} />
+
+### 4. Card with Large Number
+
+For counters and totals.
+
+<Canvas of={StatsCardStories.LargeNumber} />
+
+### 5. Card with Neutral Trend
+
+For stable metrics with no variation.
+
+<Canvas of={StatsCardStories.NeutralTrend} />
+
+### 6. Card with Item List
+
+Item distribution with percentages and values.
+
+<Canvas of={StatsCardStories.WithList} />
+
+### 7. Card with Multiple Metrics
+
+Grid of related metrics.
+
+<Canvas of={StatsCardStories.WithMultipleMetrics} />
+
+### 8. Card with Progress Bar
+
+Goal with visual segment distribution.
+
+<Canvas of={StatsCardStories.WithProgressBar} />
+
+---
+
+## Complete Showcase
+
+All variants in a responsive dashboard grid.
+
+<Canvas of={StatsCardStories.AllVariations} />
+
+---
+
+## API
+
+### Props
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `title` | `string` | Title displayed at the top of the card |
+| `value` | `string \| number` | Main highlighted value |
+| `trend` | `{ value: number, type: 'positive' \| 'negative' \| 'neutral' }` | Trend indicator |
+| `comparison` | `string` | Comparison text (e.g., "vs. last month") |
+| `subtitle` | `string` | Subtitle or additional description |
+| `items` | `StatsListItem[]` | List of items for list variant |
+| `metrics` | `StatsMetric[]` | Metrics grid for multi-metric variant |
+| `progress` | `StatsProgressItem[]` | Progress segments for bar variant |
+| `className` | `string` | Additional CSS classes |
+
+### Types
+
+```tsx
+type TrendType = "positive" | "negative" | "neutral"
+
+interface StatsListItem {
+  label: string
+  value: string
+  amount?: string
+  color?: string
+}
+
+interface StatsMetric {
+  label: string
+  value: string
+}
+
+interface StatsProgressItem {
+  label: string
+  percentage: number
+  color?: "primary" | "secondary" | "success" | "warning" | "destructive"
+}
+```

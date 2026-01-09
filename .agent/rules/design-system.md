@@ -11,3 +11,4 @@ trigger: always_on
 - **EXCEPTION**: You may initialize and run Storybook within `design-system/` as a standalone project.
 - **Do NOT** hardcode values
 - **ALWAYS** use context7 for every request focused **ONLY** in `design-system/`
+- **ALWAYS** ensure new components are using the current design tokens from storybook.

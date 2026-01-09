@@ -23,13 +23,7 @@ const SemanticColorsDemo = () => {
                             Your account is about to expire. Please renew your subscription.
                         </AlertDescription>
                     </Alert>
-                    <Alert variant="info">
-                        <Info className="h-4 w-4" />
-                        <AlertTitle>Info</AlertTitle>
-                        <AlertDescription>
-                            New features are available in the dashboard.
-                        </AlertDescription>
-                    </Alert>
+
                 </div>
             </div>
 
@@ -65,19 +59,7 @@ const SemanticColorsDemo = () => {
                         </div>
                     </div>
 
-                    {/* Info */}
-                    <div className="space-y-2">
-                        <div className="p-4 rounded-md bg-info text-info-foreground">
-                            <span className="font-bold">bg-info</span>
-                            <br />
-                            <span className="text-sm opacity-90">text-info-foreground</span>
-                        </div>
-                        <div className="p-4 rounded-md border border-info text-info">
-                            <span className="font-bold">text-info</span>
-                            <br />
-                            <span className="text-sm opacity-90">border-info</span>
-                        </div>
-                    </div>
+
 
                 </div>
             </div>

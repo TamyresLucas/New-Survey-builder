@@ -22,8 +22,14 @@ const copyWebConfig = () => ({
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
+  
+  // Determine base path based on build target
+  // IIS deployment needs '/SurveyBuilderPoc/' (virtual directory)
+  // Azure App Service needs '/' (root deployment)
+  const basePath = process.env.BUILD_TARGET === 'azure' ? '/' : '/SurveyBuilderPoc/';
+  
   return {
-    base: '/',  // Root path for Azure App Service (use '/SurveyBuilderPoc/' for IIS)
+    base: basePath,
     server: {
       port: 3000,
       host: '0.0.0.0',

@@ -75,11 +75,11 @@ stages:
     # Copy unzipped dist folder for Azure App Service deployment
     - task: CopyFiles@2
       inputs:
-        SourceFolder: 'dist'
-        Contents: '**'
+        SourceFolder: '.'
+        Contents: 'dist/**'
         TargetFolder: '$(Build.ArtifactStagingDirectory)/appservice-artifacts'
         CleanTargetFolder: true
-      displayName: 'Copy unzipped dist for Azure App Service'
+      displayName: 'Copy dist folder for Azure App Service'
 
     # Copy package.json, package-lock.json, and .deployment for Azure App Service
     - task: CopyFiles@2

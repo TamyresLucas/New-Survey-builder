@@ -11,7 +11,7 @@ pool:
   vmImage: 'windows-latest'  # Use Windows for IIS deployment compatibility
 
 variables:
-  nodeVersion: '18.x'
+  nodeVersion: '20.x'
   npm_config_cache: $(Pipeline.Workspace)/.npm
 
 stages:
@@ -54,23 +54,50 @@ stages:
         if exist web.config copy web.config dist\
       displayName: 'Copy web.config to dist (if exists)'
 
-    # Archive dist folder contents to zip (contents at root of zip)
+    # Archive dist folder contents to zip (for IIS deployment)
     - task: ArchiveFiles@2
       inputs:
         rootFolderOrFile: 'dist'
         includeRootFolder: false
         archiveType: 'zip'
-        archiveFile: '$(Build.ArtifactStagingDirectory)/survey-builder.zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/zip-artifacts/survey-builder.zip'
         replaceExistingArchive: true
-      displayName: 'Archive build output to zip'
+      displayName: 'Archive build output to zip (IIS)'
 
-    # Publish the zip file as artifact
+    # Copy unzipped dist folder for Azure App Service deployment
+    - task: CopyFiles@2
+      inputs:
+        SourceFolder: 'dist'
+        Contents: '**'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)/appservice-artifacts'
+        CleanTargetFolder: true
+      displayName: 'Copy unzipped dist for Azure App Service'
+
+    # Copy package.json and package-lock.json for Azure App Service
+    - task: CopyFiles@2
+      inputs:
+        SourceFolder: '$(Build.SourcesDirectory)'
+        Contents: |
+          package.json
+          package-lock.json
+        TargetFolder: '$(Build.ArtifactStagingDirectory)/appservice-artifacts'
+      displayName: 'Copy package files for Azure App Service'
+
+    # Publish ZIP artifact (for IIS deployment)
     - task: PublishBuildArtifacts@1
       inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-        ArtifactName: 'survey-builder-dist'
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/zip-artifacts'
+        ArtifactName: 'survey-builder-iis'
         publishLocation: 'Container'
-      displayName: 'Publish build artifacts'
+      displayName: 'Publish IIS ZIP artifact'
+
+    # Publish unzipped artifact (for Azure App Service deployment)
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/appservice-artifacts'
+        ArtifactName: 'survey-builder-appservice'
+        publishLocation: 'Container'
+      displayName: 'Publish Azure App Service artifact'
 
     # Publish test results (if tests are added later)
     - task: PublishTestResults@2

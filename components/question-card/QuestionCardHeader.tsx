@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Question, ToolboxItemData } from '../../types';
+import type { Question, ToolboxItemData, Block } from '../../types';
 import { QuestionType } from '../../types';
 import { Button } from '../Button';
 import {
@@ -43,6 +43,9 @@ interface QuestionCardHeaderProps {
     onDeleteQuestion: (id: string) => void;
     onAddPageBreakAfterQuestion: (id: string) => void;
     onMoveQuestionToNewBlock: (id: string) => void;
+    onMoveQuestionToExistingBlock?: (id: string, targetBlockId: string) => void;
+    onMoveTo?: (id: string) => void;
+    blocks?: Block[];
     handlePreview: () => void;
     handleActivate: () => void;
     handleDeactivate: () => void;
@@ -54,10 +57,19 @@ export const QuestionCardHeader: React.FC<QuestionCardHeaderProps> = ({
     isEditingLabel, labelValue, labelError,
     onToggleCheck, setLabelValue, setLabelError, saveLabel, handleLabelKeyDown, handleLabelEditClick,
     setIsTypeMenuOpen, handleTypeSelect, setIsActionsMenuOpen,
-    onCopyQuestion, onDeleteQuestion, onAddPageBreakAfterQuestion, onMoveQuestionToNewBlock,
-    handlePreview, handleActivate, handleDeactivate
+    onCopyQuestion, onDeleteQuestion, onAddPageBreakAfterQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock,
+    onMoveTo, handlePreview, handleActivate, handleDeactivate, blocks
 }) => {
     const CurrentQuestionTypeIcon = questionTypeOptions.find(o => o.type === question.type)?.icon || RadioIcon;
+
+    const handleMoveToBlock = (target: string | 'new') => {
+        setIsActionsMenuOpen(false);
+        if (target === 'new') {
+            onMoveQuestionToNewBlock(question.id);
+        } else if (onMoveQuestionToExistingBlock) {
+            onMoveQuestionToExistingBlock(question.id, target);
+        }
+    };
 
     return (
         <>
@@ -153,6 +165,9 @@ export const QuestionCardHeader: React.FC<QuestionCardHeaderProps> = ({
                                     onDelete={() => { onDeleteQuestion(question.id); setIsActionsMenuOpen(false); }}
                                     onAddPageBreak={() => { onAddPageBreakAfterQuestion(question.id); setIsActionsMenuOpen(false); }}
                                     onMoveToNewBlock={() => { onMoveQuestionToNewBlock(question.id); setIsActionsMenuOpen(false); }}
+                                    onMoveTo={onMoveTo ? () => { onMoveTo(question.id); setIsActionsMenuOpen(false); } : undefined}
+                                    blocks={blocks}
+                                    onMoveToBlock={handleMoveToBlock}
                                     onPreview={handlePreview}
                                     onActivate={handleActivate}
                                     onDeactivate={handleDeactivate}

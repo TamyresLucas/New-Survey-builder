@@ -11,6 +11,7 @@ import { BlueprintCanvas } from './components/BlueprintCanvas';
 import SurveyCanvas from './components/SurveyCanvas';
 import DiagramCanvas, { DiagramCanvasHandle } from './components/DiagramCanvas';
 import { RightSidebar } from './components/RightSidebar';
+import { BlockSidebar } from './components/BlockSidebar';
 import { BulkEditPanel } from './components/BulkEditPanel';
 import GeminiPanel from './components/GeminiPanel';
 import { SurveyPreview } from './components/SurveyPreview';
@@ -18,6 +19,7 @@ import { SurveyExport } from './components/SurveyExport';
 import PathAnalysisPanel from './components/diagram/PathAnalysisPanel';
 
 import { ImportSurveyModal } from './components/ImportSurveyModal';
+import { MoveQuestionsModal } from './components/MoveQuestionsModal';
 import { useSurveyState } from './hooks/useSurveyState';
 import { useSelection } from './hooks/useSelection';
 import { useSurveyActions } from './hooks/useSurveyActions';
@@ -132,6 +134,8 @@ const App: React.FC = () => {
     const [isPrintMode, setIsPrintMode] = useState(false); // Kept for logic compatibility but effectively unused or aliased
 
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [isAppChangelogModalOpen, setIsAppChangelogModalOpen] = useState(false);
+    const [isMoveQuestionsModalOpen, setIsMoveQuestionsModalOpen] = useState(false);
     const [toasts, setToasts] = useState<{ id: string; message: string; type: ToastType; onUndo?: () => void }[]>([]);
     const [selectedPathId, setSelectedPathId] = useState('all-paths');
 
@@ -286,6 +290,20 @@ const App: React.FC = () => {
             }
             return newSet;
         });
+    }, []);
+
+    const handleConfirmMove = (targetBlockId: string | 'new') => {
+        if (targetBlockId === 'new') {
+            actions.handleBulkMoveToNewBlock();
+        } else {
+            actions.handleBulkMoveToExistingBlock(targetBlockId);
+        }
+        setIsMoveQuestionsModalOpen(false);
+    };
+
+    const handleMoveTo = useCallback((questionId: string) => {
+        setCheckedQuestions(new Set([questionId]));
+        setIsMoveQuestionsModalOpen(true);
     }, []);
 
     const handleExpandBlock = useCallback((blockId: string) => {
@@ -507,6 +525,7 @@ const App: React.FC = () => {
                     showToast(isDraft ? "Survey published successfully!" : "Changes were published!", 'success');
                 }}
                 lastSaved={survey.lastSaved}
+                onCopyLink={() => showToast("Link copied successfully", 'success')}
             />
 
             <SubHeader
@@ -612,6 +631,7 @@ const App: React.FC = () => {
                         onCopyQuestion={actions.handleCopyQuestion}
                         onMoveQuestionToNewBlock={actions.handleMoveQuestionToNewBlock}
                         onMoveQuestionToExistingBlock={actions.handleMoveQuestionToExistingBlock}
+                        onMoveTo={handleMoveTo}
                         onAddPageBreakAfterQuestion={actions.handleAddPageBreakAfterQuestion}
                         onExpandBlock={handleExpandBlock}
                         onCollapseBlock={handleCollapseBlock}
@@ -707,22 +727,23 @@ const App: React.FC = () => {
                                             <BulkEditPanel
                                                 checkedQuestionCount={checkedQuestions.size}
                                                 onClose={() => setCheckedQuestions(new Set())}
-                                                onDuplicate={actions.handleBulkDuplicate}
-                                                onAddToLibrary={() => { }}
-                                                onMoveQuestions={() => { }}
-                                                onMoveToNewBlock={actions.handleBulkMoveToNewBlock}
-                                                onHideQuestion={actions.handleBulkHideQuestion}
-                                                onHideBackButton={actions.handleBulkHideBackButton}
+                                                onMoveTo={() => setIsMoveQuestionsModalOpen(true)}
                                                 onForceResponse={actions.handleBulkForceResponse}
-                                                showForceResponse={true}
-                                                onUnforceResponse={() => actions.handleBulkForceResponse()}
-                                                showUnforceResponse={true}
+                                                onAutoAdvance={actions.handleBulkAutoAdvance}
                                                 onDelete={actions.handleBulkDelete}
                                             />
                                         ) : selectedBlock ? (
-                                            <div className="p-4 text-on-surface-variant">
-                                                Block editor temporarily unavailable
-                                            </div>
+                                            <BlockSidebar
+                                                block={selectedBlock}
+                                                survey={survey}
+                                                onClose={() => handleSelectBlock(null)}
+                                                onUpdateBlock={actions.handleUpdateBlock}
+                                                isExpanded={isRightSidebarExpanded}
+                                                onToggleExpand={handleToggleRightSidebarExpand}
+                                                onExpandSidebar={handleExpandRightSidebar}
+                                                focusTarget={focusTarget}
+                                                onFocusHandled={handleFocusHandled}
+                                            />
                                         ) : selectedQuestion ? (
                                             <RightSidebar
                                                 question={selectedQuestion}
@@ -804,6 +825,7 @@ const App: React.FC = () => {
                                             onCopyQuestion={actions.handleCopyQuestion}
                                             onMoveQuestionToNewBlock={actions.handleMoveQuestionToNewBlock}
                                             onMoveQuestionToExistingBlock={actions.handleMoveQuestionToExistingBlock}
+                                            onMoveTo={handleMoveTo}
                                             onDeleteBlock={actions.handleDeleteBlock}
                                             onReorderQuestion={actions.handleReorderQuestion}
                                             onReorderBlock={actions.handleReorderBlock}
@@ -866,22 +888,23 @@ const App: React.FC = () => {
                                             <BulkEditPanel
                                                 checkedQuestionCount={checkedQuestions.size}
                                                 onClose={() => setCheckedQuestions(new Set())}
-                                                onDuplicate={actions.handleBulkDuplicate}
-                                                onAddToLibrary={() => { }}
-                                                onMoveQuestions={() => { }}
-                                                onMoveToNewBlock={actions.handleBulkMoveToNewBlock}
-                                                onHideQuestion={actions.handleBulkHideQuestion}
-                                                onHideBackButton={actions.handleBulkHideBackButton}
+                                                onMoveTo={() => setIsMoveQuestionsModalOpen(true)}
                                                 onForceResponse={actions.handleBulkForceResponse}
-                                                showForceResponse={true}
-                                                onUnforceResponse={() => actions.handleBulkForceResponse()}
-                                                showUnforceResponse={true}
+                                                onAutoAdvance={actions.handleBulkAutoAdvance}
                                                 onDelete={actions.handleBulkDelete}
                                             />
                                         ) : selectedBlock ? (
-                                            <div className="p-4 text-on-surface-variant">
-                                                Block editor temporarily unavailable
-                                            </div>
+                                            <BlockSidebar
+                                                block={selectedBlock}
+                                                survey={survey}
+                                                onClose={() => handleSelectBlock(null)}
+                                                onUpdateBlock={actions.handleUpdateBlock}
+                                                isExpanded={isRightSidebarExpanded}
+                                                onToggleExpand={handleToggleRightSidebarExpand}
+                                                onExpandSidebar={handleExpandRightSidebar}
+                                                focusTarget={focusTarget}
+                                                onFocusHandled={handleFocusHandled}
+                                            />
                                         ) : selectedQuestion ? (
                                             <RightSidebar
                                                 question={selectedQuestion}
@@ -931,6 +954,16 @@ const App: React.FC = () => {
 
             </div>
 
+            {isMoveQuestionsModalOpen && (
+                <MoveQuestionsModal
+                    isOpen={isMoveQuestionsModalOpen}
+                    onClose={() => setIsMoveQuestionsModalOpen(false)}
+                    onMove={handleConfirmMove}
+                    survey={survey}
+                    questionCount={checkedQuestions.size}
+                />
+            )}
+
             <ImportSurveyModal
                 isOpen={isImportModalOpen}
                 onClose={() => setIsImportModalOpen(false)}
@@ -954,7 +987,7 @@ const App: React.FC = () => {
                     </div>
                 ))}
             </div>
-        </div >
+        </div>
     );
 };
 

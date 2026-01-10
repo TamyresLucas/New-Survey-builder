@@ -185,7 +185,7 @@ export const ChoiceListRenderer: React.FC<ChoiceListRendererProps> = ({
                     }}
                     className="mt-2 ml-4"
                 >
-                    <ContentPasteIcon className="text-xl mr-2" /> Paste
+                    <PlusIcon className="text-xl mr-2" /> Add multiple
                 </Button>
             )}
         </div>

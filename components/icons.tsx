@@ -100,6 +100,7 @@ export const DeleteIcon: React.FC<IconProps> = ({ className, style }) => <Materi
 export const ToggleOffIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="toggle_off" className={className} style={style} />;
 
 export const ChevronRightIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="chevron_right" className={className} style={style} />;
+export const ChevronLeftIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="chevron_left" className={className} style={style} />;
 export const MoreVertIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="more_vert" className={className} style={style} />;
 export const CheckCircleIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="check_circle" className={className} style={style} />;
 

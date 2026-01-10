@@ -83,8 +83,8 @@ const CopyAndPasteButton: React.FC<{ onClick: () => void; className?: string; di
         disabled={disabled}
         className={`flex items-center gap-1 ${className} font-medium text-primary hover:underline transition-colors disabled:text-on-surface-variant disabled:no-underline disabled:cursor-not-allowed`}
     >
-        <ContentPasteIcon className="text-base" />
-        <span>Paste</span>
+        <PlusIcon className="text-base" />
+        <span>Add multiple</span>
     </button>
 );
 

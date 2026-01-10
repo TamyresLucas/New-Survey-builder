@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import type { Question, QuestionType, ToolboxItemData, Survey } from '../types';
-import { ChevronRightIcon, DownloadIcon } from './icons';
+import type { Question, QuestionType, ToolboxItemData, Survey, Block } from '../types';
+import { ChevronRightIcon, DownloadIcon, ChevronLeftIcon, BlockIcon } from './icons';
 import { DropdownList, DropdownItem, DropdownDivider } from './DropdownList';
 
 export const QuestionTypeSelectionMenuContent: React.FC<{
@@ -125,12 +125,60 @@ interface QuestionActionsMenuProps {
   onPreview?: () => void;
   onActivate?: () => void;
   onDeactivate?: () => void;
+  blocks?: Block[];
+  onMoveToBlock?: (blockId: string | 'new') => void;
+  onMoveTo?: () => void;
 }
 
-export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ question, onDuplicate, onDelete, onAddPageBreak, onMoveToNewBlock, onReplaceFromLibrary, onPreview, onActivate, onDeactivate }) => {
+export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ question, onDuplicate, onDelete, onAddPageBreak, onMoveToNewBlock, onReplaceFromLibrary, onPreview, onActivate, onDeactivate, blocks, onMoveToBlock, onMoveTo }) => {
+  const [submenu, setSubmenu] = useState<'main' | 'moveto'>('main');
+
+  if (submenu === 'moveto' && blocks && onMoveToBlock && !onMoveTo) {
+    return (
+      <DropdownList className="absolute top-full right-0 mt-2 w-64 max-h-80 overflow-y-auto">
+        <DropdownItem
+          onClick={(e) => { e.stopPropagation(); setSubmenu('main'); }}
+          icon={ChevronLeftIcon}
+        >
+          Back
+        </DropdownItem>
+        <DropdownDivider />
+        <DropdownItem
+          onClick={(e) => { e.stopPropagation(); onMoveToBlock('new'); }}
+          icon={BlockIcon}
+        >
+          New block
+        </DropdownItem>
+        <div className="border-t border-outline-variant my-1"></div>
+        {blocks.map(block => (
+          <DropdownItem
+            key={block.id}
+            onClick={(e) => { e.stopPropagation(); onMoveToBlock(block.id); }}
+            icon={BlockIcon}
+          >
+            {block.title || 'Untitled Block'}
+          </DropdownItem>
+        ))}
+      </DropdownList>
+    );
+  }
+
   return (
     <DropdownList className="absolute top-full right-0 mt-2 w-56">
-      {onMoveToNewBlock && (
+      {onMoveTo ? (
+        <DropdownItem onClick={(e) => { e.stopPropagation(); onMoveTo(); }}>
+          Move to
+        </DropdownItem>
+      ) : onMoveToBlock && blocks ? (
+        <DropdownItem
+          onClick={(e) => { e.stopPropagation(); setSubmenu('moveto'); }}
+        >
+          <div className="flex items-center justify-between w-full">
+            <span>Move to</span>
+            <ChevronRightIcon className="text-base" />
+          </div>
+        </DropdownItem>
+      ) : onMoveToNewBlock && (
         <DropdownItem onClick={(e) => { e.stopPropagation(); onMoveToNewBlock(); }}>
           Move to new block
         </DropdownItem>

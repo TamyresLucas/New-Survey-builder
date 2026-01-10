@@ -35,6 +35,7 @@ interface BuildPanelProps {
   onCopyQuestion: (questionId: string) => void;
   onMoveQuestionToNewBlock: (questionId: string) => void;
   onMoveQuestionToExistingBlock: (questionId: string, targetBlockId: string) => void;
+  onMoveTo?: (questionId: string) => void;
   onAddPageBreakAfterQuestion: (questionId: string) => void;
   onSelectAllInBlock: (blockId: string) => void;
   onUnselectAllInBlock: (blockId: string) => void;
@@ -56,7 +57,7 @@ import { SidebarToolboxItem } from './SidebarToolboxItem';
 const BuildPanel: React.FC<BuildPanelProps> = memo(({
   onClose, survey, onSelectQuestion, selectedQuestion, selectedBlock, onSelectBlock, checkedQuestions, collapsedBlocks, toolboxItems, logicIssues, onReorderToolbox, onReorderQuestion, onReorderBlock,
   onMoveBlockUp, onMoveBlockDown, onAddBlock, onCopyBlock, onAddQuestionToBlock, onExpandAllBlocks, onCollapseAllBlocks, onDeleteBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock,
-  onMoveQuestionToExistingBlock, onAddPageBreakAfterQuestion, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock, onUpdateQuestion,
+  onMoveQuestionToExistingBlock, onMoveTo, onAddPageBreakAfterQuestion, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock, onUpdateQuestion,
   printMode = false, onQuestionHover, hoveredQuestionId, onBlockHover, hoveredBlockId
 }) => {
   const [activeTab, setActiveTab] = useState('Toolbox');
@@ -542,6 +543,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                   onCopyQuestion={onCopyQuestion}
                   onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
                   onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
+                  onMoveTo={onMoveTo}
                   onUpdateQuestion={onUpdateQuestion}
                   hoveredQuestionId={hoveredQuestionId}
                   onQuestionHover={onQuestionHover}

@@ -18,6 +18,7 @@ interface SidebarQuestionProps {
     onDeleteQuestion: (questionId: string) => void;
     onAddPageBreakAfterQuestion: (questionId: string) => void;
     onMoveQuestionToNewBlock: (questionId: string) => void;
+    onMoveTo?: (questionId: string) => void;
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
     hasIssues?: boolean;
     onQuestionHover?: (id: string | null) => void;
@@ -37,6 +38,7 @@ export const SidebarQuestion = memo(({
     onDeleteQuestion,
     onAddPageBreakAfterQuestion,
     onMoveQuestionToNewBlock,
+    onMoveTo,
     onUpdateQuestion,
     hasIssues,
     onQuestionHover,
@@ -136,6 +138,7 @@ export const SidebarQuestion = memo(({
                             onDuplicate={() => { onCopyQuestion(question.id); setIsMenuOpen(false); }}
                             onAddPageBreak={() => { onAddPageBreakAfterQuestion(question.id); setIsMenuOpen(false); }}
                             onMoveToNewBlock={() => { onMoveQuestionToNewBlock(question.id); setIsMenuOpen(false); }}
+                            onMoveTo={onMoveTo ? () => { onMoveTo(question.id); setIsMenuOpen(false); } : undefined}
                             onPreview={handlePreview}
                             onActivate={handleActivate}
                             onDeactivate={handleDeactivate}

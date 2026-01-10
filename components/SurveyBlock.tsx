@@ -33,6 +33,7 @@ interface SurveyBlockProps {
   onCopyQuestion: (questionId: string) => void;
   onMoveQuestionToNewBlock: (questionId: string) => void;
   onMoveQuestionToExistingBlock: (questionId: string, targetBlockId: string) => void;
+  onMoveTo?: (questionId: string) => void;
   onDeleteBlock: (blockId: string) => void;
   onReorderQuestion: (draggedQuestionId: string, targetQuestionId: string | null, targetBlockId: string) => void;
   onAddQuestion: (questionType: QuestionType, targetQuestionId: string | null, targetBlockId: string) => void;
@@ -67,7 +68,7 @@ interface SurveyBlockProps {
 }
 
 const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
-  block, survey, selectedQuestion, selectedBlock, checkedQuestions, logicIssues, hasBranchingLogicInSurvey, branchedToBlockIds, onSelectQuestion, onSelectBlock, onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
+  block, survey, selectedQuestion, selectedBlock, checkedQuestions, logicIssues, hasBranchingLogicInSurvey, branchedToBlockIds, onSelectQuestion, onSelectBlock, onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onMoveTo, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
   isBlockDragging, onBlockDragStart, onBlockDragEnd, isCollapsed, onToggleCollapse,
   onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onAddFromLibrary,
   pageInfoMap, focusedLogicSource,
@@ -427,6 +428,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                       onCopyQuestion={onCopyQuestion}
                       onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
                       onMoveQuestionToExistingBlock={onMoveQuestionToExistingBlock}
+                      onMoveTo={onMoveTo}
                       onToggleCheck={onToggleQuestionCheck}
                       toolboxItems={toolboxItems}
                       isDragging={draggedQuestionId === question.id}

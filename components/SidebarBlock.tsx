@@ -36,6 +36,7 @@ interface SidebarBlockProps {
     onCopyQuestion: (questionId: string) => void;
     onAddPageBreakAfterQuestion: (questionId: string) => void;
     onMoveQuestionToNewBlock: (questionId: string) => void;
+    onMoveTo?: (questionId: string) => void;
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
     hoveredQuestionId: string | null;
     onQuestionHover: (id: string | null) => void;
@@ -83,6 +84,7 @@ export const SidebarBlock: React.FC<SidebarBlockProps> = ({
     onCopyQuestion,
     onAddPageBreakAfterQuestion,
     onMoveQuestionToNewBlock,
+    onMoveTo,
     onUpdateQuestion,
     hoveredQuestionId,
     onQuestionHover,
@@ -194,6 +196,7 @@ export const SidebarBlock: React.FC<SidebarBlockProps> = ({
                             onCopyQuestion={onCopyQuestion}
                             onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
                             onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
+                            onMoveTo={onMoveTo}
                             onUpdateQuestion={onUpdateQuestion}
                             hasIssues={logicIssues.some(i => i.questionId === question.id)}
                             onQuestionHover={onQuestionHover}

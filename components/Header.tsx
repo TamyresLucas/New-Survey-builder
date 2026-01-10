@@ -19,6 +19,7 @@ interface HeaderProps {
   onToggleActivateSurvey: () => void;
   onUpdateLiveSurvey: () => void;
   lastSaved?: string;
+  onCopyLink?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onToggleGeminiPanel, onUpdateSurveyName,
@@ -26,7 +27,8 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
   isDirty,
   onToggleActivateSurvey,
   onUpdateLiveSurvey,
-  lastSaved
+  lastSaved,
+  onCopyLink
 }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -57,6 +59,9 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
 
   const handleCopyClick = () => {
     setIsCopied(true);
+    if (onCopyLink) {
+      onCopyLink();
+    }
   };
 
   const renderStatusBadge = () => {
@@ -129,6 +134,7 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
               : 'border border-[color:var(--button-btn-bd-def)] text-on-surface hover:bg-surface-container-lowest'
               }`}
             aria-label={isCopied ? "Link copied" : "Copy link"}
+            title={isCopied ? "Link copied successfully" : "Copy link"}
           >
             {isCopied ? <CheckmarkIcon className="text-xl" /> : <LinkIcon className="text-xl" />}
           </button>

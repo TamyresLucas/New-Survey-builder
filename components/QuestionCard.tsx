@@ -24,6 +24,7 @@ const QuestionCard: React.FC<{
     onCopyQuestion: (questionId: string) => void;
     onMoveQuestionToNewBlock: (questionId: string) => void;
     onMoveQuestionToExistingBlock: (questionId: string, targetBlockId: string) => void;
+    onMoveTo?: (questionId: string) => void;
     toolboxItems: ToolboxItemData[];
     isDragging: boolean;
     onDragStart: () => void;
@@ -38,7 +39,7 @@ const QuestionCard: React.FC<{
     totalPages?: number;
 }> = memo(({
     question, survey, parentBlock, currentBlockId, logicIssues, isSelected, isChecked, onSelect, onToggleCheck, id,
-    onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, toolboxItems,
+    onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onMoveTo, toolboxItems,
     isDragging, onDragStart, onDragEnd, onAddChoice, onAddPageBreakAfterQuestion, pageInfo, focusedLogicSource,
     printMode = false, isHovered, onHover, totalPages = 1
 }) => {
@@ -178,6 +179,9 @@ const QuestionCard: React.FC<{
                     onDeleteQuestion={onDeleteQuestion}
                     onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
                     onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
+                    onMoveQuestionToExistingBlock={onMoveQuestionToExistingBlock}
+                    onMoveTo={onMoveTo}
+                    blocks={survey.blocks}
                     handlePreview={logic.handlePreview}
                     handleActivate={logic.handleActivate}
                     handleDeactivate={logic.handleDeactivate}

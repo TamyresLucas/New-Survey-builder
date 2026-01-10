@@ -1,30 +1,18 @@
 import React from 'react';
 import {
   XIcon,
-  ContentCopyIcon,
-  LibraryAddIcon,
-  DriveFileMoveIcon,
-  CreateNewFolderIcon,
-  VisibilityOffIcon,
-  HideSourceIcon,
-  TaskAltIcon,
+  AsteriskIcon,
   DeleteIcon,
-  ToggleOffIcon,
+  DoubleArrowRightIcon,
+  DriveFileMoveIcon,
 } from './icons';
 
 interface BulkEditPanelProps {
   checkedQuestionCount: number;
   onClose: () => void;
-  onDuplicate: () => void;
-  onAddToLibrary: () => void;
-  onMoveQuestions: () => void;
-  onMoveToNewBlock: () => void;
-  onHideQuestion: () => void;
-  onHideBackButton: () => void;
+  onMoveTo: () => void;
   onForceResponse: () => void;
-  showForceResponse: boolean;
-  onUnforceResponse: () => void;
-  showUnforceResponse: boolean;
+  onAutoAdvance: () => void;
   onDelete: () => void;
 }
 
@@ -44,16 +32,9 @@ const ActionButton: React.FC<{ icon: React.FC<{ className?: string }>, label: st
 export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
   checkedQuestionCount,
   onClose,
-  onDuplicate,
-  onAddToLibrary,
-  onMoveQuestions,
-  onMoveToNewBlock,
-  onHideQuestion,
-  onHideBackButton,
+  onMoveTo,
   onForceResponse,
-  showForceResponse,
-  onUnforceResponse,
-  showUnforceResponse,
+  onAutoAdvance,
   onDelete
 }) => {
   return (
@@ -71,14 +52,9 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
       </div>
       <div className="flex-1 overflow-y-auto" style={{ fontFamily: "'Open Sans', sans-serif" }}>
         <nav className="py-2">
-          <ActionButton icon={ContentCopyIcon} label="Duplicate" onClick={onDuplicate} />
-          <ActionButton icon={LibraryAddIcon} label="Add to Library" onClick={onAddToLibrary} />
-          <ActionButton icon={DriveFileMoveIcon} label="Move questions" onClick={onMoveQuestions} />
-          <ActionButton icon={CreateNewFolderIcon} label="Move to a new block" onClick={onMoveToNewBlock} />
-          <ActionButton icon={VisibilityOffIcon} label="Hide question" onClick={onHideQuestion} />
-          <ActionButton icon={HideSourceIcon} label="Hide back button" onClick={onHideBackButton} />
-          {showForceResponse && <ActionButton icon={TaskAltIcon} label="Force response" onClick={onForceResponse} />}
-          {showUnforceResponse && <ActionButton icon={ToggleOffIcon} label="Make Optional" onClick={onUnforceResponse} />}
+          <ActionButton icon={DriveFileMoveIcon} label="Move to" onClick={onMoveTo} />
+          <ActionButton icon={AsteriskIcon} label="Force response" onClick={onForceResponse} />
+          <ActionButton icon={DoubleArrowRightIcon} label="Auto advance" onClick={onAutoAdvance} />
           <ActionButton icon={DeleteIcon} label="Delete" onClick={onDelete} isDestructive />
         </nav>
       </div>

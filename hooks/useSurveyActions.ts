@@ -406,6 +406,20 @@ export const useSurveyActions = ({
         dispatchAndRecord({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { forceResponse: true } } });
     }, [checkedQuestions, dispatchAndRecord]);
 
+    const handleBulkAutoAdvance = useCallback(() => {
+        dispatchAndRecord({ type: SurveyActionType.BULK_UPDATE_QUESTIONS, payload: { questionIds: checkedQuestions, updates: { autoAdvance: true } } });
+    }, [checkedQuestions, dispatchAndRecord]);
+
+    const handleBulkMoveToExistingBlock = useCallback((targetBlockId: string) => {
+        checkedQuestions.forEach(questionId => {
+            dispatchAndRecord({
+                type: SurveyActionType.MOVE_QUESTION_TO_EXISTING_BLOCK,
+                payload: { questionId, targetBlockId }
+            });
+        });
+        setCheckedQuestions(new Set());
+    }, [checkedQuestions, dispatchAndRecord, setCheckedQuestions]);
+
     return {
         handleUpdateQuestion,
         handleReorderQuestion,
@@ -448,6 +462,8 @@ export const useSurveyActions = ({
         handleBulkHideBackButton,
 
         handleBulkForceResponse,
+        handleBulkAutoAdvance,
+        handleBulkMoveToExistingBlock,
         handleAddSurveyFromLibrary
     };
 };

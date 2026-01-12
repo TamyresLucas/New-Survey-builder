@@ -206,6 +206,10 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   };
 
   const handleToolboxDragOver = (e: React.DragEvent) => {
+    // Ignore choice drags - those are handled within QuestionCard
+    if (e.dataTransfer.types.includes('application/survey-choice')) {
+      return;
+    }
     e.preventDefault();
     if (draggedToolboxIndex === null || !toolboxListRef.current) return;
 
@@ -235,6 +239,10 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   };
 
   const handleToolboxDrop = (e: React.DragEvent) => {
+    // Ignore choice drags - those are handled within QuestionCard
+    if (e.dataTransfer.types.includes('application/survey-choice')) {
+      return;
+    }
     e.preventDefault();
     if (draggedToolboxIndex === null || dropToolboxTargetIndex === null) {
       handleToolboxDragEnd();
@@ -267,6 +275,10 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   };
 
   const handleContentDragOver = (e: React.DragEvent, blockId: string) => {
+    // Ignore choice drags - those are handled within QuestionCard
+    if (e.dataTransfer.types.includes('application/survey-choice')) {
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
     if (draggedBlockId || !draggedContentId) return;
@@ -292,6 +304,10 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   };
 
   const handleContentDrop = (e: React.DragEvent) => {
+    // Ignore choice drags - those are handled within QuestionCard
+    if (e.dataTransfer.types.includes('application/survey-choice')) {
+      return;
+    }
     e.preventDefault();
     if (draggedContentId && dropContentTarget) {
       onReorderQuestion(draggedContentId, dropContentTarget.questionId, dropContentTarget.blockId);
@@ -317,6 +333,10 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   };
 
   const handleBlockDragOver = (e: React.DragEvent) => {
+    // Ignore choice drags - those are handled within QuestionCard
+    if (e.dataTransfer.types.includes('application/survey-choice')) {
+      return;
+    }
     e.preventDefault();
     if (!draggedBlockId || !contentListRef.current) return;
 
@@ -338,6 +358,10 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   };
 
   const handleBlockDrop = (e: React.DragEvent) => {
+    // Ignore choice drags - those are handled within QuestionCard
+    if (e.dataTransfer.types.includes('application/survey-choice')) {
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
     if (draggedBlockId) {

@@ -134,10 +134,15 @@ export const useQuestionCardLogic = ({
     const handleChoiceDragStart = useCallback((e: React.DragEvent, choiceId: string) => {
         e.stopPropagation();
         setDraggedChoiceId(choiceId);
+        e.dataTransfer.setData('application/survey-choice', choiceId);
         e.dataTransfer.effectAllowed = 'move';
     }, []);
 
     const handleChoiceDragOver = useCallback((e: React.DragEvent, choiceId: string) => {
+        // Only handle choice drags - let other drag types bubble to parent handlers
+        if (!e.dataTransfer.types.includes('application/survey-choice')) {
+            return;
+        }
         e.preventDefault();
         e.stopPropagation();
         if (draggedChoiceId !== choiceId) {
@@ -146,6 +151,11 @@ export const useQuestionCardLogic = ({
     }, [draggedChoiceId]);
 
     const handleChoiceDrop = useCallback((e: React.DragEvent) => {
+        // Only handle choice drags
+        if (!e.dataTransfer.types.includes('application/survey-choice')) {
+            return;
+        }
+
         e.preventDefault();
         e.stopPropagation();
 

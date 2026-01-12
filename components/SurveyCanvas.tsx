@@ -169,12 +169,21 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
   }, [selectedQuestion]);
 
   const handleDragEnter = (e: React.DragEvent) => {
+    // Ignore choice drags - those are handled within QuestionCard
+    if (e.dataTransfer.types.includes('application/survey-choice')) {
+      return;
+    }
     if (e.dataTransfer.types.includes('application/survey-toolbox-block') || e.dataTransfer.types.includes('application/survey-library-import')) {
       setIsDraggingNewBlock(true);
     }
   };
 
   const handleBlockDragOver = (e: React.DragEvent) => {
+    // Ignore choice drags - those are handled within QuestionCard
+    if (e.dataTransfer.types.includes('application/survey-choice')) {
+      return;
+    }
+
     const isDraggingExistingBlock = !!draggedBlockId;
     const isAddingNewBlock = e.dataTransfer.types.includes('application/survey-toolbox-block');
     const isImportingSurvey = e.dataTransfer.types.includes('application/survey-library-import');
@@ -206,6 +215,11 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
   };
 
   const handleBlockDrop = (e: React.DragEvent) => {
+    // Ignore choice drags - those are handled within QuestionCard
+    if (e.dataTransfer.types.includes('application/survey-choice')) {
+      return;
+    }
+
     const isAddingNewBlock = e.dataTransfer.types.includes('application/survey-toolbox-block');
     const isImportingSurvey = e.dataTransfer.types.includes('application/survey-library-import');
 

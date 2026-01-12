@@ -127,17 +127,21 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
             );
           })()}
 
-          <button
-            onClick={handleCopyClick}
-            className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors ${isCopied
-              ? 'bg-success text-on-success'
-              : 'border border-[color:var(--button-btn-bd-def)] text-on-surface hover:bg-surface-container-lowest'
-              }`}
-            aria-label={isCopied ? "Link copied" : "Copy link"}
-            title={isCopied ? "Link copied successfully" : "Copy link"}
-          >
-            {isCopied ? <CheckmarkIcon className="text-xl" /> : <LinkIcon className="text-xl" />}
-          </button>
+          <div className="relative group/tooltip">
+            <button
+              onClick={handleCopyClick}
+              className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors ${isCopied
+                ? 'bg-success text-on-success'
+                : 'border border-[color:var(--button-btn-bd-def)] text-on-surface hover:bg-surface-container-lowest'
+                }`}
+              aria-label={isCopied ? "Link copied" : "Copy link"}
+            >
+              {isCopied ? <CheckmarkIcon className="text-xl" /> : <LinkIcon className="text-xl" />}
+            </button>
+            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-max bg-surface-container-highest text-on-surface text-xs rounded-md px-2 py-1 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
+              {isCopied ? "Link copied" : "Copy link"}
+            </div>
+          </div>
           <div className="h-6 w-px bg-outline-variant mx-1"></div>
           <button
             onClick={onToggleGeminiPanel}

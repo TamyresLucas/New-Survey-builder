@@ -261,7 +261,13 @@ export const questionReducer = (state: Survey, action: Action): Survey => {
                     ];
                     newQuestion.answerFormat = 'grid';
                     newQuestion.advancedSettings = { enableMobileLayout: true };
+                } else if (questionType === QTEnum.Radio) {
+                    newQuestion.choices = [
+                        { id: generateId('c'), text: 'Click to write choice 1' },
+                        { id: generateId('c'), text: 'Click to write choice 2' },
+                    ];
                 } else {
+                    // Checkbox and other choice-based types get 3 choices
                     newQuestion.choices = [
                         { id: generateId('c'), text: 'Click to write choice 1' },
                         { id: generateId('c'), text: 'Click to write choice 2' },

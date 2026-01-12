@@ -121,8 +121,15 @@ const QuestionCard: React.FC<{
             <div
                 id={id}
                 data-question-id={question.id}
-                draggable={true}
-                onDragStart={onDragStart}
+                draggable={!logic.draggedChoiceId}
+                onDragStart={(e) => {
+                    // Prevent question drag when choice is being dragged
+                    if (logic.draggedChoiceId) {
+                        e.preventDefault();
+                        return;
+                    }
+                    onDragStart();
+                }}
                 onDragEnd={onDragEnd}
                 onClick={(e) => { e.stopPropagation(); onSelect(question); }}
                 onMouseEnter={() => onHover?.(question.id)}

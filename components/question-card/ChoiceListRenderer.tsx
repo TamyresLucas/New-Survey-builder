@@ -47,8 +47,18 @@ export const ChoiceListRenderer: React.FC<ChoiceListRendererProps> = ({
             className="mt-4 space-y-2"
             onDrop={handleChoiceDrop}
             onDragOver={(e) => {
+                // Only accept choice drags - ignore question/block drags
+                if (!e.dataTransfer.types.includes('application/survey-choice')) {
+                    return;
+                }
                 e.preventDefault();
                 setDropTargetChoiceId(null);
+            }}
+            onDragLeave={(e) => {
+                // Clear drop target when leaving the container entirely
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setDropTargetChoiceId(null);
+                }
             }}
         >
             {question.choices.map((choice, index) => {

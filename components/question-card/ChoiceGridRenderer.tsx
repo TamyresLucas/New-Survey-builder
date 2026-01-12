@@ -69,9 +69,19 @@ export const ChoiceGridRenderer: React.FC<ChoiceGridRendererProps> = ({
                     <tbody
                         onDrop={handleChoiceDrop}
                         onDragOver={(e) => {
+                            // Only accept choice drags - ignore question/block drags
+                            if (!e.dataTransfer.types.includes('application/survey-choice')) {
+                                return;
+                            }
                             e.preventDefault();
                             e.stopPropagation();
                             setDropTargetChoiceId(null);
+                        }}
+                        onDragLeave={(e) => {
+                            // Clear drop target when leaving the container entirely
+                            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                setDropTargetChoiceId(null);
+                            }
                         }}
                     >
                         {(question.choices || []).map(choice => {

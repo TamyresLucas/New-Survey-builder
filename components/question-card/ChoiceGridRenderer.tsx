@@ -23,12 +23,13 @@ interface ChoiceGridRendererProps {
     handleChoiceDrop: (e: React.DragEvent) => void;
     handleChoiceDragEnd: (e: React.DragEvent) => void;
     setDropTargetChoiceId: (id: string | null) => void;
+    onPaste: () => void;
 }
 
 export const ChoiceGridRenderer: React.FC<ChoiceGridRendererProps> = ({
     question, printMode, draggedChoiceId, dropTargetChoiceId,
     onSelect, onUpdateQuestion, onAddChoice, handleAddColumn, handleScalePointTextChange,
-    handleChoiceDragStart, handleChoiceDragOver, handleChoiceDrop, handleChoiceDragEnd, setDropTargetChoiceId
+    handleChoiceDragStart, handleChoiceDragOver, handleChoiceDrop, handleChoiceDragEnd, setDropTargetChoiceId, onPaste
 }) => {
     return (
         <div className="mt-4">
@@ -164,6 +165,15 @@ export const ChoiceGridRenderer: React.FC<ChoiceGridRendererProps> = ({
                         className="flex items-center text-sm text-primary font-semibold transition-colors hover:bg-primary hover:text-on-primary rounded-md px-4 py-1.5"
                     >
                         <PlusIcon className="text-base mr-1" /> Add column
+                    </button>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onPaste();
+                        }}
+                        className="flex items-center text-sm text-primary font-semibold transition-colors hover:bg-primary hover:text-on-primary rounded-md px-4 py-1.5"
+                    >
+                        <PlusIcon className="text-base mr-1" /> Add multiple
                     </button>
                 </div>
             )}

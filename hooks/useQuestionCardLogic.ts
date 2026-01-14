@@ -215,6 +215,22 @@ export const useQuestionCardLogic = ({
         onUpdateQuestion(question.id, { choices: [...currentChoices, ...newChoices] });
     }, [question.id, question.choices, onUpdateQuestion]);
 
+    const handlePasteGrid = useCallback((rowsText: string, columnsText: string) => {
+        const rowLines = rowsText.split('\n').filter(line => line.trim() !== '');
+        const colLines = columnsText.split('\n').filter(line => line.trim() !== '');
+
+        const newChoices: Choice[] = rowLines.map(line => ({ id: generateId('c'), text: line.trim() }));
+        const newScalePoints: Choice[] = colLines.map(line => ({ id: generateId('s'), text: line.trim() }));
+
+        const currentChoices = question.choices || [];
+        const currentScalePoints = question.scalePoints || [];
+
+        onUpdateQuestion(question.id, {
+            choices: [...currentChoices, ...newChoices],
+            scalePoints: [...currentScalePoints, ...newScalePoints]
+        });
+    }, [question.id, question.choices, question.scalePoints, onUpdateQuestion]);
+
     // Page Name Handlers
     const handleSavePageName = useCallback(() => {
         if (pageInfo && pageNameValue.trim() && pageNameValue.trim() !== pageInfo.pageName) {
@@ -342,6 +358,7 @@ export const useQuestionCardLogic = ({
         handleAddColumn,
         handleScalePointTextChange,
         handlePasteChoices,
+        handlePasteGrid,
         isPasteModalOpen,
         setIsPasteModalOpen,
         handleSavePageName,

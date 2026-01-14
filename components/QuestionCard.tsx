@@ -1,10 +1,12 @@
 import React, { memo } from 'react';
 import type { Question, ToolboxItemData, Survey, LogicIssue, Block, PageInfo } from '../types';
+import { QuestionType } from '../types';
 import { useQuestionCardLogic } from '../hooks/useQuestionCardLogic';
 import { PageIndicator } from './question-card/PageIndicator';
 import { QuestionCardHeader } from './question-card/QuestionCardHeader';
 import { QuestionCardBody } from './question-card/QuestionCardBody';
 import { PasteChoicesModal } from './PasteChoicesModal';
+import { PasteGridModal } from './PasteGridModal';
 import { parseChoice } from '../utils';
 
 const QuestionCard: React.FC<{
@@ -86,13 +88,23 @@ const QuestionCard: React.FC<{
 
     return (
         <>
-            <PasteChoicesModal
-                isOpen={logic.isPasteModalOpen}
-                onClose={() => logic.setIsPasteModalOpen(false)}
-                onSave={logic.handlePasteChoices}
-                initialChoicesText={(question.choices || []).map(c => parseChoice(c.text).label).join('\n')}
-                primaryActionLabel="Add Choices"
-            />
+            {question.type === QuestionType.ChoiceGrid ? (
+                <PasteGridModal
+                    isOpen={logic.isPasteModalOpen}
+                    onClose={() => logic.setIsPasteModalOpen(false)}
+                    onSave={logic.handlePasteGrid}
+                    initialRowsText={(question.choices || []).map(c => parseChoice(c.text).label).join('\n')}
+                    initialColumnsText={(question.scalePoints || []).map(sp => sp.text).join('\n')}
+                />
+            ) : (
+                <PasteChoicesModal
+                    isOpen={logic.isPasteModalOpen}
+                    onClose={() => logic.setIsPasteModalOpen(false)}
+                    onSave={logic.handlePasteChoices}
+                    initialChoicesText={(question.choices || []).map(c => parseChoice(c.text).label).join('\n')}
+                    primaryActionLabel="Confirm"
+                />
+            )}
             {shouldShowPageIndicator && (
                 <PageIndicator
                     id={id + '_page_indicator'} // Distinct ID for the implicit page indicator

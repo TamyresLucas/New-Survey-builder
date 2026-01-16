@@ -1,0 +1,97 @@
+/* LyteNyte Grid Custom Styles */
+
+/* Override LyteNyte's built-in CSS variables with design tokens */
+.lng-grid {
+    --lng1771-row-selected: hsl(var(--primary) / 0.15);
+    --lng1771-primary-50: hsl(var(--primary));
+    --lng1771-gray-00: hsl(var(--background));
+    --lng1771-gray-10: var(--muted);
+    --lng1771-gray-20: var(--border);
+    --lng1771-gray-80: hsl(var(--foreground));
+    --lng1771-focus-outline: hsl(var(--primary));
+}
+
+/* Checkbox styling with primary color */
+.lng-grid input[type="checkbox"] {
+    accent-color: hsl(var(--primary));
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* Row selection highlight */
+[data-ln-row-selected="true"] {
+    background-color: hsl(var(--primary) / 0.15) !important;
+}
+
+[data-ln-row-selected="true"]:hover {
+    background-color: hsl(var(--primary) / 0.25) !important;
+}
+
+/* Row hover effect - same as ghost button */
+[data-ln-row]:hover {
+    background-color: var(--accent);
+}
+
+/* Apply hover background to cells to override any internal backgrounds */
+[data-ln-row]:hover [data-ln-cell] {
+    background-color: var(--accent) !important;
+}
+
+/* Row actions - hidden by default, visible on hover */
+[data-ln-row] .row-action-button {
+    opacity: 0;
+    transition: opacity 150ms ease-in-out;
+}
+
+[data-ln-row]:hover .row-action-button,
+[data-ln-row] .row-action-button[data-state="open"] {
+    opacity: 1;
+}
+
+/* Header styling */
+[data-ln-header-cell] {
+    font-weight: 600;
+    background-color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+}
+
+[data-ln-header-cell]:hover {
+    background-color: var(--accent);
+    color: hsl(var(--accent-foreground));
+}
+
+/* Cell styling with vertical centering */
+[data-ln-cell] {
+    border-right: 1px solid color-mix(in hsl, var(--border) 30%, transparent);
+    border-bottom: 1px solid color-mix(in hsl, var(--border) 30%, transparent);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+}
+
+/* Editable cell on edit */
+[data-ln-cell-editing] {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: -2px;
+}
+
+/* Pinned columns shadow */
+[data-ln-colpin="start"] {
+    box-shadow: 2px 0 4px hsl(var(--foreground) / 0.1);
+}
+
+[data-ln-colpin="end"] {
+    box-shadow: -2px 0 4px hsl(var(--foreground) / 0.1);
+}
+
+/* Sort indicator styling */
+.sort-indicator {
+    margin-left: 4px;
+    font-size: 0.75rem;
+}

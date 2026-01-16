@@ -36,15 +36,15 @@ export const ChoiceGridRenderer: React.FC<ChoiceGridRendererProps> = ({
             <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
                     <thead>
-                        <tr className="border-b border-outline">
+                        <tr className="table-header-row">
                             <th className="py-2 pr-2 text-left"></th>
                             {(question.scalePoints || []).map(sp => (
-                                <th key={sp.id} className="py-2 px-3 text-center text-xs font-normal text-on-surface-variant align-bottom group/header relative">
+                                <th key={sp.id} className="py-2 px-3 text-center text-xs font-normal text-muted-foreground align-bottom group/header relative">
                                     <EditableText
                                         html={sp.text}
                                         onChange={(newText) => handleScalePointTextChange(sp.id, newText)}
                                         onFocus={() => onSelect(question)}
-                                        className="text-on-surface-variant"
+                                        className="text-muted-foreground"
                                         readOnly={printMode}
                                     />
                                     {!printMode && (
@@ -92,7 +92,7 @@ export const ChoiceGridRenderer: React.FC<ChoiceGridRendererProps> = ({
                                 <React.Fragment key={choice.id}>
                                     {dropTargetChoiceId === choice.id && <TableDropIndicator colSpan={numColumns} />}
                                     <tr
-                                        className={`border-b border-outline last:border-b-0 group/choice transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
+                                        className={`table-body-row last:border-b-0 group/choice ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
                                         draggable
                                         onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
                                         onDragOver={(e) => handleChoiceDragOver(e, choice.id)}

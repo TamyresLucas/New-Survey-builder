@@ -33,23 +33,33 @@
         --popover-foreground: 222.2 84% 4.9%;
         --primary: 220 100% 50%;
         --primary-foreground: 210 40% 98%;
-        --secondary: 210 40% 96.1%;
+        --secondary: color-mix(in oklab, hsl(var(--primary)) 5%, hsl(var(--background)));
+        --secondary-hover: color-mix(in oklab, hsl(var(--primary)) 15%, hsl(var(--background)));
         --secondary-foreground: 222.2 47.4% 11.2%;
         --muted: color-mix(in oklab, hsl(var(--primary)) 5%, hsl(var(--background)));
-        --muted-foreground: 215.4 16.3% 46.9%;
-        --disabled-foreground: var(--border);
+        --muted-foreground: color-mix(in oklab, hsl(var(--primary)) 30%, hsl(var(--foreground)));
+        --disabled-foreground: color-mix(in oklab, hsl(var(--primary)) 40%, hsl(var(--background)));
+        --placeholder-foreground: rgba(0, 0, 0, 0.6);
         --accent: color-mix(in oklab, hsl(var(--primary)) 10%, hsl(var(--background)));
         --accent-foreground: 222.2 47.4% 11.2%;
         --destructive: 0 84.2% 60.2%;
         --destructive-foreground: 210 40% 98%;
+        --background-destructive: color-mix(in oklab, hsl(var(--destructive)) 10%, hsl(var(--background)));
+        --border-destructive: color-mix(in oklab, hsl(var(--destructive)) 50%, hsl(var(--background)));
         --success: 142 76% 36%;
         --success-foreground: 210 40% 98%;
+        --background-success: color-mix(in oklab, hsl(var(--success)) 10%, hsl(var(--background)));
+        --border-success: color-mix(in oklab, hsl(var(--success)) 50%, hsl(var(--background)));
         --warning: 38 92% 50%;
         --warning-foreground: 210 40% 98%;
+        --background-warning: color-mix(in oklab, hsl(var(--warning)) 10%, hsl(var(--background)));
+        --border-warning: color-mix(in oklab, hsl(var(--warning)) 50%, hsl(var(--background)));
         --info: var(--primary);
         --info-foreground: var(--primary-foreground);
-        --border: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background)));
-        --input: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background)));
+        --background-info: color-mix(in oklab, hsl(var(--info)) 10%, hsl(var(--background)));
+        --border-info: color-mix(in oklab, hsl(var(--info)) 50%, hsl(var(--background)));
+        --border: color-mix(in oklab, color-mix(in oklab, hsl(var(--primary)), hsl(0 0% 70%) 40%) 50%, hsl(var(--background)));
+        --input: color-mix(in oklab, color-mix(in oklab, hsl(var(--primary)), hsl(0 0% 70%) 40%) 50%, hsl(var(--background)));
         --ring: 222.2 84% 4.9%;
         --radius: 0.5rem;
         --chart-1: 12 76% 61%;
@@ -68,23 +78,33 @@
         --popover-foreground: 210 40% 98%;
         --primary: 210 40% 98%;
         --primary-foreground: 222.2 47.4% 11.2%;
-        --secondary: 217.2 32.6% 17.5%;
+        --secondary: color-mix(in oklab, hsl(var(--primary)) 5%, hsl(var(--background)));
+        --secondary-hover: color-mix(in oklab, hsl(var(--primary)) 15%, hsl(var(--background)));
         --secondary-foreground: 210 40% 98%;
         --muted: color-mix(in oklab, hsl(var(--primary)) 5%, hsl(var(--background)));
-        --muted-foreground: 215 20.2% 65.1%;
-        --disabled-foreground: var(--border);
+        --muted-foreground: color-mix(in oklab, hsl(var(--primary)) 30%, hsl(var(--foreground)));
+        --disabled-foreground: color-mix(in oklab, hsl(var(--primary)) 40%, hsl(var(--background)));
+        --placeholder-foreground: rgba(255, 255, 255, 0.6);
         --accent: color-mix(in oklab, hsl(var(--primary)) 10%, hsl(var(--background)));
         --accent-foreground: 210 40% 98%;
         --destructive: 0 62.8% 30.6%;
         --destructive-foreground: 210 40% 98%;
+        --destructive-background: color-mix(in oklab, hsl(var(--destructive)) 10%, hsl(var(--background)));
+        --border-destructive: color-mix(in oklab, hsl(var(--destructive)) 50%, hsl(var(--background)));
         --success: 142 70% 45%;
         --success-foreground: 144 61% 20%;
+        --success-background: color-mix(in oklab, hsl(var(--success)) 10%, hsl(var(--background)));
+        --border-success: color-mix(in oklab, hsl(var(--success)) 50%, hsl(var(--background)));
         --warning: 38 92% 50%;
         --warning-foreground: 48 96% 89%;
+        --warning-background: color-mix(in oklab, hsl(var(--warning)) 10%, hsl(var(--background)));
+        --border-warning: color-mix(in oklab, hsl(var(--warning)) 50%, hsl(var(--background)));
         --info: var(--primary);
         --info-foreground: var(--primary-foreground);
-        --border: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background)));
-        --input: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background)));
+        --info-background: color-mix(in oklab, hsl(var(--info)) 10%, hsl(var(--background)));
+        --border-info: color-mix(in oklab, hsl(var(--info)) 50%, hsl(var(--background)));
+        --border: color-mix(in oklab, color-mix(in oklab, hsl(var(--primary)), hsl(0 0% 30%) 40%) 50%, hsl(var(--background)));
+        --input: color-mix(in oklab, color-mix(in oklab, hsl(var(--primary)), hsl(0 0% 30%) 40%) 50%, hsl(var(--background)));
         --ring: 212.7 26.8% 83.9%;
         --chart-1: 220 70% 50%;
         --chart-2: 160 60% 45%;
@@ -111,7 +131,7 @@
     /* For TableHeader component (applies to tr inside thead.table-header) */
     .table-header tr,
     .table-header-row {
-        background-color: color-mix(in oklab, var(--muted) 50%, transparent);
+        background-color: var(--muted);
         transition-property: color, background-color;
         transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
         transition-duration: 150ms;
@@ -134,6 +154,11 @@
     .table-body-row:hover {
         background-color: var(--accent);
         color: hsl(var(--accent-foreground));
+    }
+
+    /* Utility for placeholder text using placeholder-foreground token */
+    .placeholder-muted::placeholder {
+        color: var(--placeholder-foreground);
     }
 }
 

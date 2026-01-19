@@ -1007,18 +1007,20 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
                 const element = document.querySelector('.react-flow') as HTMLElement;
                 if (!element) return;
 
-                const dataUrl = await toPng(element, {
-                    backgroundColor: '#ffffff', // survey-surface color usually white or light
-                    filter: (node) => {
-                        // Exclude controls from the screenshot
-                        return (!node.classList?.contains('react-flow__controls') && !node.classList?.contains('react-flow__panel'));
-                    }
-                });
+                setTimeout(async () => {
+                    const dataUrl = await toPng(element, {
+                        backgroundColor: '#ffffff', // survey-surface color usually white or light
+                        filter: (node) => {
+                            // Exclude controls from the screenshot
+                            return (!node.classList?.contains('react-flow__controls') && !node.classList?.contains('react-flow__panel'));
+                        }
+                    });
 
-                // Write to Clipboard
-                const res = await fetch(dataUrl);
-                const blob = await res.blob();
-                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                    // Write to Clipboard
+                    const res = await fetch(dataUrl);
+                    const blob = await res.blob();
+                    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                }, 500);
 
             } catch (error) {
                 console.error('Failed to export diagram', error);

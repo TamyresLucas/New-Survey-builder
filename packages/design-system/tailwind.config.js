@@ -23,28 +23,37 @@ export default {
 					foreground: 'hsl(var(--primary-foreground))'
 				},
 				secondary: {
-					DEFAULT: 'hsl(var(--secondary))',
+					DEFAULT: 'var(--secondary)',
+					hover: 'var(--secondary-hover)',
 					foreground: 'hsl(var(--secondary-foreground))'
 				},
 				destructive: {
 					DEFAULT: 'hsl(var(--destructive))',
-					foreground: 'hsl(var(--destructive-foreground))'
+					foreground: 'hsl(var(--destructive-foreground))',
+					background: 'var(--background-destructive)',
+					border: 'var(--border-destructive)'
 				},
 				success: {
 					DEFAULT: 'hsl(var(--success))',
-					foreground: 'hsl(var(--success-foreground))'
+					foreground: 'hsl(var(--success-foreground))',
+					background: 'var(--background-success)',
+					border: 'var(--border-success)'
 				},
 				warning: {
 					DEFAULT: 'hsl(var(--warning))',
-					foreground: 'hsl(var(--warning-foreground))'
+					foreground: 'hsl(var(--warning-foreground))',
+					background: 'var(--background-warning)',
+					border: 'var(--border-warning)'
 				},
 				info: {
 					DEFAULT: 'hsl(var(--info))',
-					foreground: 'hsl(var(--info-foreground))'
+					foreground: 'hsl(var(--info-foreground))',
+					background: 'var(--background-info)',
+					border: 'var(--border-info)'
 				},
 				muted: {
 					DEFAULT: 'var(--muted)',
-					foreground: 'hsl(var(--muted-foreground))'
+					foreground: 'var(--muted-foreground)'
 				},
 				disabled: {
 					DEFAULT: 'var(--muted)',

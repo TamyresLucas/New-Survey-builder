@@ -9,6 +9,7 @@ interface SidebarCardProps {
     isSelected?: boolean;
     isHovered?: boolean;
     isDragged?: boolean;
+    isCollapsed?: boolean;
     onClick?: (e: React.MouseEvent) => void;
     onMouseEnter?: () => void;
     onMouseLeave?: () => void;
@@ -30,6 +31,7 @@ export const SidebarCard: React.FC<SidebarCardProps> = ({
     isSelected,
     isHovered,
     isDragged,
+    isCollapsed,
     onClick,
     onMouseEnter,
     onMouseLeave,
@@ -47,7 +49,14 @@ export const SidebarCard: React.FC<SidebarCardProps> = ({
             {dropIndicator}
             <div
                 data-block-id={id}
-                className={isDragged ? 'opacity-30' : ''}
+                className={`
+                    mx-2 mb-2 rounded-lg border transition-all
+                    ${isDragged ? 'opacity-30' : ''}
+                    ${isSelected ? 'border-2 border-primary shadow-md' :
+                        isHovered ? 'border-primary/50 shadow-sm' :
+                            'border-outline-variant'}
+                    ${className}
+                `}
             >
                 <div
                     draggable={!!onDragStart}
@@ -56,7 +65,7 @@ export const SidebarCard: React.FC<SidebarCardProps> = ({
                     onClick={onClick}
                     onMouseEnter={onMouseEnter}
                     onMouseLeave={onMouseLeave}
-                    className={`px-4 h-[40px] cursor-pointer border-b border-t border-outline flex items-center justify-between group ${isSelected ? 'bg-primary text-on-primary' : isHovered ? 'bg-surface-container-lowest border-outline-hover' : 'bg-surface-container hover:bg-surface-container-lowest hover:border-outline-hover'} ${className}`}
+                    className={`px-4 h-[40px] cursor-pointer flex items-center justify-between group rounded-t-md ${isCollapsed ? 'rounded-b-md' : 'border-b border-outline-variant'} ${isSelected ? 'bg-primary text-on-primary' : isHovered ? 'bg-surface-container-lowest' : 'bg-surface-container hover:bg-surface-container-lowest'}`}
                 >
                     <div className="flex items-center cursor-grab flex-grow truncate">
                         <div className="relative w-4 h-4 mr-2 flex-shrink-0 flex items-center justify-center">
@@ -65,16 +74,29 @@ export const SidebarCard: React.FC<SidebarCardProps> = ({
                         </div>
                         <h3 className={`text-sm font-semibold truncate ${isSelected ? 'text-on-primary' : 'text-on-surface'}`}>
                             {title}
-                            {subtitle}
                         </h3>
+                        {subtitle}
                     </div>
-                    {actionsMenu && (
-                        <div className={`relative flex-shrink-0 transition-opacity ${actionsMenuRef ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} ref={actionsMenuRef}>
-                            {actionsMenu}
-                        </div>
-                    )}
+
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                        {actionsMenuRef && (
+                            <div
+                                ref={actionsMenuRef}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <button className={`p-1 rounded-full hover:bg-black/10 transition-colors ${isSelected ? 'text-on-primary' : 'text-on-surface-variant'}`}>
+                                    <MoreIcon className="text-xl" />
+                                </button>
+                                {actionsMenu}
+                            </div>
+                        )}
+                    </div>
                 </div>
-                {children}
+                {!isCollapsed && children && (
+                    <div className="bg-surface-container rounded-b-md">
+                        {children}
+                    </div>
+                )}
             </div>
         </React.Fragment>
     );

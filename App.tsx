@@ -3,7 +3,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { Survey, Block, Question, QuestionType, ToolboxItemData, LogicIssue, SurveyStatus } from './types';
 import Header from './components/Header';
 import SubHeader from './components/SubHeader';
-import LeftSidebar from './components/LeftSidebar';
+import LeftSidebar from './components/navigation/LeftSidebar';
 import BuildPanel from './components/BuildPanel';
 import BlueprintSidebar from './components/BlueprintSidebar';
 import { PrintSidebar } from './components/PrintSidebar';
@@ -525,7 +525,7 @@ const App: React.FC = () => {
                     showToast(isDraft ? "Survey published successfully!" : "Changes were published!", 'success');
                 }}
                 lastSaved={survey.lastSaved}
-                onCopyLink={() => showToast("Link copied successfully", 'success')}
+                onCopyLink={(linkType) => showToast(`${linkType === 'live' ? 'Live' : 'Preview'} link copied successfully`, 'success')}
             />
 
             <SubHeader
@@ -572,6 +572,15 @@ const App: React.FC = () => {
                 }}
                 onImportSurvey={() => setIsImportModalOpen(true)}
                 lastSaved={survey.lastSaved}
+                onToggleCollapseAll={() => {
+                    if (allBlocksCollapsed) {
+                        handleExpandAllBlocks();
+                    } else {
+                        handleCollapseAllBlocks();
+                    }
+                }}
+                allBlocksCollapsed={allBlocksCollapsed}
+                activeMainTab={activeMainTab}
             />
 
 
@@ -579,14 +588,6 @@ const App: React.FC = () => {
                 <LeftSidebar
                     activeTab={activeMainTab}
                     onTabSelect={handleTabSelect}
-                    onToggleCollapseAll={() => {
-                        if (allBlocksCollapsed) {
-                            handleExpandAllBlocks();
-                        } else {
-                            handleCollapseAllBlocks();
-                        }
-                    }}
-                    allBlocksCollapsed={allBlocksCollapsed}
                 />
 
                 {activeMainTab === 'Blueprint' && isBlueprintPanelOpen && (

@@ -173,37 +173,51 @@ export const SidebarBlock: React.FC<SidebarBlockProps> = ({
             actionsMenu={actionsMenu}
             actionsMenuRef={openMenuBlockId === block.id ? actionsMenuRef : null}
             dropIndicator={(!isSearching && showBlockDropIndicator) ? <DropIndicator /> : null}
+            isCollapsed={isCollapsed}
         >
             {!isCollapsed && (
                 <ul
-                    className="p-2 space-y-1"
+                    className={`p-2 ${block.questions.length > 0 ? 'space-y-1' : ''}`}
                     onDragOver={!isSearching ? (e) => handleContentDragOver(e, block.id) : undefined}
                     onDrop={!isSearching ? handleContentDrop : undefined}
                     onDragLeave={!isSearching ? handleContentDragLeave : undefined}
                 >
-                    {block.questions.map(question => (
-                        <SidebarQuestion
-                            key={question.id}
-                            question={question}
-                            isSelected={selectedQuestion?.id === question.id}
-                            isQuestionDragged={draggedContentId === question.id}
-                            showDropIndicator={dropContentTarget?.blockId === block.id && dropContentTarget?.questionId === question.id}
-                            onSelectQuestion={onSelectQuestion}
-                            onDragStart={(e: React.DragEvent) => handleContentDragStart(e, question.id)}
-                            onDragEnd={handleContentDragEnd}
-                            TypeIcon={questionTypeIconMap.get(question.type) || RadioIcon}
-                            onDeleteQuestion={onDeleteQuestion}
-                            onCopyQuestion={onCopyQuestion}
-                            onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
-                            onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
-                            onMoveTo={onMoveTo}
-                            onUpdateQuestion={onUpdateQuestion}
-                            hasIssues={logicIssues.some(i => i.questionId === question.id)}
-                            onQuestionHover={onQuestionHover}
-                            isHovered={hoveredQuestionId === question.id}
-                        />
-                    ))}
-                    {!isSearching && dropContentTarget?.blockId === block.id && dropContentTarget.questionId === null && <DropIndicator small />}
+                    {block.questions.length > 0 ? (
+                        <>
+                            {block.questions.map(question => (
+                                <SidebarQuestion
+                                    key={question.id}
+                                    question={question}
+                                    isSelected={selectedQuestion?.id === question.id}
+                                    isQuestionDragged={draggedContentId === question.id}
+                                    showDropIndicator={dropContentTarget?.blockId === block.id && dropContentTarget?.questionId === question.id}
+                                    onSelectQuestion={onSelectQuestion}
+                                    onDragStart={(e: React.DragEvent) => handleContentDragStart(e, question.id)}
+                                    onDragEnd={handleContentDragEnd}
+                                    TypeIcon={questionTypeIconMap.get(question.type) || RadioIcon}
+                                    onDeleteQuestion={onDeleteQuestion}
+                                    onCopyQuestion={onCopyQuestion}
+                                    onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
+                                    onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
+                                    onMoveTo={onMoveTo}
+                                    onUpdateQuestion={onUpdateQuestion}
+                                    hasIssues={logicIssues.some(i => i.questionId === question.id)}
+                                    onQuestionHover={onQuestionHover}
+                                    isHovered={hoveredQuestionId === question.id}
+                                />
+                            ))}
+                            {!isSearching && dropContentTarget?.blockId === block.id && dropContentTarget.questionId === null && <DropIndicator small />}
+                        </>
+                    ) : (
+                        <div
+                            className={`py-2 flex items-center justify-center text-sm rounded border border-dashed transition-all ${!isSearching && dropContentTarget?.blockId === block.id
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'border-outline-variant text-on-surface-variant'
+                                }`}
+                        >
+                            {!isSearching && dropContentTarget?.blockId === block.id ? 'Drop here' : 'Drag and drop your first question'}
+                        </div>
+                    )}
                 </ul>
             )}
         </SidebarCard>

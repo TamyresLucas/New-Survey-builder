@@ -38,7 +38,7 @@ export const Icon = React.forwardRef<HTMLSpanElement, IconProps>(
                 style={{
                     fontSize: computedSize ? (typeof computedSize === 'number' ? `${computedSize}px` : computedSize) : undefined,
                     lineHeight: 1,
-                    fontVariationSettings: fill === false ? "'FILL' 0" : undefined,
+                    fontVariationSettings: `'FILL' ${fill ? 1 : 0}`,
                     ...style
                 }}
                 {...props}

@@ -67,12 +67,7 @@ export const blockReducer = (state: Survey, action: Action): Survey => {
             const newBlock: Block = {
                 id: generateId('block'),
                 title: 'New block',
-                questions: [{
-                    id: generateId('q'),
-                    qid: '', // Will be renumbered
-                    text: 'This is a description question placeholder.',
-                    type: QTEnum.Description
-                }]
+                questions: []
             };
             const targetIndex = newState.blocks.findIndex((b: Block) => b.id === blockId);
             if (targetIndex === -1) return state;
@@ -210,12 +205,7 @@ export const blockReducer = (state: Survey, action: Action): Survey => {
             const newBlock: Block = {
                 id: generateId('block'),
                 title: 'New block',
-                questions: [{
-                    id: generateId('q'),
-                    qid: '',
-                    text: 'This is a description question placeholder.',
-                    type: QTEnum.Description
-                }]
+                questions: []
             };
 
             if (targetBlockId === null) {

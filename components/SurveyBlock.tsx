@@ -305,7 +305,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
 
   return (
     <div
-      className={`${printMode ? 'bg-surface' : 'bg-surface-container'} border rounded-lg mb-8 transition-all ${isBlockDragging ? 'opacity-50' : ''
+      className={`${printMode ? 'bg-surface' : 'bg-surface-container'} border rounded-lg transition-all ${isBlockDragging ? 'opacity-50' : ''
         } ${isSelected ? 'border-2 border-primary shadow-md' : isBlockHovered ? 'border-primary/50 shadow-sm' : 'border-outline-variant'} ${hasDisplayLogic ? 'border-dashed' : ''}`}
       data-block-id={block.id}
       onMouseEnter={() => onBlockHover?.(block.id)}
@@ -474,8 +474,13 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
               )}
             </>
           ) : (
-            <div className="text-center py-8">
-              <span className="text-on-surface-variant text-sm">Empty block</span>
+            <div
+              className={`py-6 text-center text-sm rounded-lg border-2 border-dashed transition-all ${(draggedQuestionId || isToolboxDragOver)
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-outline-variant text-on-surface-variant'
+                }`}
+            >
+              {(draggedQuestionId || isToolboxDragOver) ? 'Drop here' : 'Drag and drop your first question'}
             </div>
           )}
         </div>

@@ -1,5 +1,5 @@
 import type { StorybookConfig } from '@storybook/react-vite';
-import { mergeConfig } from 'vite';
+import { mergeConfig, loadEnv } from 'vite';
 import path from 'path';
 
 const config: StorybookConfig = {
@@ -28,7 +28,13 @@ const config: StorybookConfig = {
     "disableTelemetry": true
   },
   async viteFinal(config, { configType }) {
+    const env = loadEnv(configType || 'development', process.cwd(), '');
+
     return mergeConfig(config, {
+      define: {
+        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || ''),
+        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || ''),
+      },
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '../src'),

@@ -2,6 +2,8 @@ import React, { useEffect, useState, memo, useRef, useMemo } from 'react';
 import type { Survey, Question, ToolboxItemData, QuestionType, Choice, LogicIssue, Block, PageInfo } from '../types';
 import SurveyBlock from './SurveyBlock';
 import { QuestionType as QTEnum } from '../types';
+import { Button } from './Button';
+import { PlusIcon } from './icons';
 
 interface SurveyCanvasProps {
   survey: Survey;
@@ -312,6 +314,19 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
             onBlockHover={onBlockHover}
             totalPages={pageInfoMap.size > 0 ? Math.max(...Array.from(pageInfoMap.values()).map(p => p.pageNumber)) : 1}
           />
+          <div className="flex justify-center py-4">
+            <Button
+              variant="tertiary-primary"
+              size="large"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddBlock(block.id, 'below');
+              }}
+            >
+              <PlusIcon className="text-xl mr-2" />
+              Add block
+            </Button>
+          </div>
         </React.Fragment>
       ))}
       {dropTargetBlockId === null && (draggedBlockId || isDraggingNewBlock) && <DropIndicator />}

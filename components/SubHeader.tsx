@@ -1,6 +1,7 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
-import { DotsHorizontalIcon, EyeIcon, PrintIcon, ImageIcon } from './icons';
+import { DotsHorizontalIcon, EyeIcon, PrintIcon, ImageIcon, UnfoldMoreIcon, UnfoldLessIcon } from './icons';
 import { DropdownList, DropdownItem, DropdownDivider } from './DropdownList';
+import { Button } from './Button';
 
 interface SubHeaderProps {
   onTogglePreview: () => void;
@@ -11,9 +12,12 @@ interface SubHeaderProps {
   onImportSurvey: () => void;
   onCopySurveyFlow?: () => void;
   lastSaved?: string;
+  onToggleCollapseAll?: () => void;
+  allBlocksCollapsed?: boolean;
+  activeMainTab?: string;
 }
 
-const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurvey, onExportCsv, onPrintBlueprint, onPrintSurvey, onImportSurvey, onCopySurveyFlow, lastSaved }) => {
+const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurvey, onExportCsv, onPrintBlueprint, onPrintSurvey, onImportSurvey, onCopySurveyFlow, lastSaved, onToggleCollapseAll, allBlocksCollapsed, activeMainTab }) => {
   const navItems = ['Design', 'Test', 'Distribute', 'Results', 'Analyze'];
   const activeItem = 'Design';
 
@@ -56,6 +60,21 @@ const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurve
 
       {/* Right-aligned Actions */}
       <div className="flex-1 flex items-center justify-end gap-2">
+        {activeMainTab !== 'Flow' && onToggleCollapseAll && (
+          <Button
+            variant="tertiary"
+            size="large"
+            onClick={onToggleCollapseAll}
+            aria-label={allBlocksCollapsed ? "Expand all" : "Collapse all"}
+          >
+            {allBlocksCollapsed ? (
+              <UnfoldMoreIcon className="text-xl mr-2" />
+            ) : (
+              <UnfoldLessIcon className="text-xl mr-2" />
+            )}
+            {allBlocksCollapsed ? "Expand all" : "Collapse all"}
+          </Button>
+        )}
         <button
           onClick={onTogglePreview}
           className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-on-primary bg-primary rounded-md hover:opacity-90 transition-opacity"

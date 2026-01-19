@@ -66,32 +66,25 @@ interface BlockActionsMenuProps {
 export const BlockActionsMenu: React.FC<BlockActionsMenuProps> = ({ onEdit, onMoveUp, canMoveUp = true, onMoveDown, canMoveDown = true, onDuplicate, onAddSimpleQuestion, onAddFromLibrary, onAddBlockAbove, onAddBlockBelow, onSelectAll, canSelectAll = true, onUnselectAll, canUnselectAll = true, onExpand, canExpand = true, onCollapse, canCollapse = true, onDelete }) => {
   return (
     <DropdownList className="absolute top-full right-0 mt-2 w-48">
-      {onEdit && (
-        <>
-          <DropdownItem onClick={onEdit}>Edit block</DropdownItem>
-          <DropdownDivider />
-        </>
-      )}
-      {(onMoveUp || onMoveDown) && (
-        <>
-          {onMoveUp && <DropdownItem onClick={onMoveUp} disabled={!canMoveUp}>Move up</DropdownItem>}
-          {onMoveDown && <DropdownItem onClick={onMoveDown} disabled={!canMoveDown}>Move down</DropdownItem>}
-          <DropdownDivider />
-        </>
-      )}
-      {onDuplicate && (
-        <>
-          <DropdownItem onClick={onDuplicate}>Duplicate</DropdownItem>
-          <DropdownDivider />
-        </>
-      )}
-
       {onAddSimpleQuestion && (
         <DropdownItem onClick={onAddSimpleQuestion}>Add new question</DropdownItem>
       )}
       {onAddFromLibrary && <DropdownItem onClick={onAddFromLibrary}>Add from library</DropdownItem>}
       {onAddBlockAbove && <DropdownItem onClick={onAddBlockAbove}>Add block above</DropdownItem>}
       {onAddBlockBelow && <DropdownItem onClick={onAddBlockBelow}>Add block below</DropdownItem>}
+
+      {onDuplicate && (
+        <>
+          <DropdownDivider />
+          <DropdownItem onClick={onDuplicate}>Duplicate</DropdownItem>
+        </>
+      )}
+
+      {(onEdit || onMoveUp || onMoveDown) && <DropdownDivider />}
+
+      {onEdit && <DropdownItem onClick={onEdit}>Edit block</DropdownItem>}
+      {onMoveUp && <DropdownItem onClick={onMoveUp} disabled={!canMoveUp}>Move up</DropdownItem>}
+      {onMoveDown && <DropdownItem onClick={onMoveDown} disabled={!canMoveDown}>Move down</DropdownItem>}
 
       {(canSelectAll || canUnselectAll) && <DropdownDivider />}
 

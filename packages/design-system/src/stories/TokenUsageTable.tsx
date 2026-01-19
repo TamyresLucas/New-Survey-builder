@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
+// import { cn } from '@/lib/utils';
 
 interface TokenData {
     token: string;
@@ -41,17 +41,17 @@ const TokenRow = ({ data }: { data: TokenData }) => {
 
     useEffect(() => {
         // Helper to get variable value
-        const getVar = (element: Element, variable: string) => {
+        /* const getVar = (element: Element, variable: string) => {
             const val = getComputedStyle(element).getPropertyValue(variable).trim();
             return val || '-';
-        };
+        }; */
 
         // 1. Get Light Value (from documentElement, assuming it's default or forcefully light)
         // Actually, documentElement might be dark if toggle is On.
         // To be safe, we should create specific container contexts.
 
         const resolveValues = () => {
-            const tempLight = document.createElement('div');
+            // const tempLight = document.createElement('div');
             // Ensure no dark class, but also need to make sure it's not nested in a dark parent?
             // CSS variables cascade. 
             // Shadcn uses .dark class. Light is default (root).

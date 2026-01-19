@@ -404,7 +404,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
         !printMode && (
           <div className="px-4 border-b border-outline">
             <nav className="-mb-px flex space-x-6">
-              {['Toolbox', 'Content', 'Library'].map(tab => (
+              {['Toolbox', 'Outline', 'Library'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => handleTabClick(tab)}
@@ -437,7 +437,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
         )
       }
       <div className="p-4 border-b border-outline">
-        {activeTab === 'Content' && (
+        {activeTab === 'Outline' && (
           <DropdownField
             value={questionTypeFilter}
             onChange={setQuestionTypeFilter}
@@ -526,7 +526,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             {!isTextSearching && dropToolboxTargetIndex === filteredToolboxItems.length && <DropIndicator />}
           </ul>
         )}
-        {(activeTab === 'Content' || printMode) && (
+        {(activeTab === 'Outline' || printMode) && (
           <div
             ref={contentListRef}
             className="bg-surface min-h-full"

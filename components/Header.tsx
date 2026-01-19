@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { changelogs } from '../changelogs/changelogData';
-import { LinkIcon, BellIcon, QuestionIcon, GridIcon, CheckmarkIcon, SunIcon, MoonIcon, SparkleIcon, PublishIcon, HistoryIcon } from './icons';
+import { LinkIcon, BellIcon, QuestionIcon, GridIcon, CheckmarkIcon, SunIcon, MoonIcon, SparkleIcon, PublishIcon, HistoryIcon, ChevronDownIcon } from './icons';
 import { AppChangelogModal } from './AppChangelogModal';
 import { EditableText } from './EditableText';
 import { useTheme } from '../contexts/ThemeContext';
@@ -8,6 +8,7 @@ import { DropdownList, DropdownItem, DropdownDivider } from './DropdownList';
 import { Toggle } from './Toggle';
 import type { SurveyStatus } from '../types';
 import { Badge } from './Badge';
+import { Button } from './Button';
 
 interface HeaderProps {
   surveyName: string;
@@ -19,7 +20,7 @@ interface HeaderProps {
   onToggleActivateSurvey: () => void;
   onUpdateLiveSurvey: () => void;
   lastSaved?: string;
-  onCopyLink?: () => void;
+  onCopyLink?: (linkType: 'preview' | 'live') => void;
 }
 
 const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onToggleGeminiPanel, onUpdateSurveyName,
@@ -33,7 +34,9 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
   const [isCopied, setIsCopied] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
+  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
 
   const currentVersion = changelogs[0]?.version || 'v1.0.0';
@@ -51,16 +54,29 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false);
       }
+      if (shareMenuRef.current && !shareMenuRef.current.contains(event.target as Node)) {
+        setIsShareMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [userMenuRef]);
+  }, [userMenuRef, shareMenuRef]);
 
 
-  const handleCopyClick = () => {
+  const handleCopyClick = (linkType: 'preview' | 'live') => {
     setIsCopied(true);
+    setIsShareMenuOpen(false);
     if (onCopyLink) {
-      onCopyLink();
+      onCopyLink(linkType);
+    }
+  };
+
+  const handleShareButtonClick = () => {
+    if (surveyStatus === 'active') {
+      setIsShareMenuOpen(prev => !prev);
+    } else {
+      // For draft/stopped, directly copy preview link
+      handleCopyClick('preview');
     }
   };
 
@@ -127,20 +143,34 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
             );
           })()}
 
-          <div className="relative group/tooltip">
-            <button
-              onClick={handleCopyClick}
-              className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors ${isCopied
-                ? 'bg-success text-on-success'
-                : 'border border-[color:var(--button-btn-bd-def)] text-on-surface hover:bg-surface-container-lowest'
-                }`}
-              aria-label={isCopied ? "Link copied" : "Copy link"}
+          <div className="relative" ref={shareMenuRef}>
+            <Button
+              variant="secondary"
+              size="large"
+              onClick={handleShareButtonClick}
+              className={isCopied ? '!bg-success !text-on-success !border-success' : ''}
+              aria-label={isCopied ? "Link copied" : "Share"}
+              aria-haspopup={surveyStatus === 'active' ? 'true' : undefined}
+              aria-expanded={surveyStatus === 'active' ? isShareMenuOpen : undefined}
             >
-              {isCopied ? <CheckmarkIcon className="text-xl" /> : <LinkIcon className="text-xl" />}
-            </button>
-            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-max bg-surface-container-highest text-on-surface text-xs rounded-md px-2 py-1 shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
-              {isCopied ? "Link copied" : "Copy link"}
-            </div>
+              {isCopied ? <CheckmarkIcon className="text-lg" /> : <LinkIcon className="text-lg" />}
+              <span className="ml-1">{isCopied ? "Copied" : "Share"}</span>
+              {surveyStatus === 'active' && !isCopied && (
+                <ChevronDownIcon className={`text-base ml-1 transition-transform ${isShareMenuOpen ? 'rotate-180' : ''}`} />
+              )}
+            </Button>
+            {isShareMenuOpen && surveyStatus === 'active' && (
+              <div className="absolute top-full right-0 mt-2 z-20">
+                <DropdownList className="w-40">
+                  <DropdownItem onClick={() => handleCopyClick('preview')}>
+                    Preview
+                  </DropdownItem>
+                  <DropdownItem onClick={() => handleCopyClick('live')}>
+                    Live
+                  </DropdownItem>
+                </DropdownList>
+              </div>
+            )}
           </div>
           <div className="h-6 w-px bg-outline-variant mx-1"></div>
           <button

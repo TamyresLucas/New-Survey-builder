@@ -134,3 +134,7 @@ export const ArrowUpIcon: React.FC<IconProps> = ({ className, style }) => <Mater
 export const UnfoldMoreIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="unfold_more" className={className} style={style} />;
 export const UnfoldLessIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="unfold_less" className={className} style={style} />;
 export const ImageIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="image" className={className} style={style} />;
+export const CarouselIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="view_carousel" className={className} style={style} />;
+export const ClickMapIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="touch_app" className={className} style={style} />;
+export const CommentBoxIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="chat_bubble_outline" className={className} style={style} />;
+export const HotSpotIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="ads_click" className={className} style={style} />;

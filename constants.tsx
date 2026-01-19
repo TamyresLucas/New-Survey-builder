@@ -37,6 +37,12 @@ import {
   StarRatingIcon,
   TextHighlighterIcon,
   TimerIcon,
+  // New imports
+  CarouselIcon,
+  ClickMapIcon,
+  CommentBoxIcon,
+  HotSpotIcon,
+  ImageIcon,
 } from './components/icons';
 import { generateId } from './utils';
 
@@ -55,37 +61,43 @@ export const mainNavItems: NavItem[] = [
 
 export const toolboxItems: ToolboxItemData[] = [
   { name: 'Block', icon: BlockIcon },
-  { name: 'Page Break', icon: PageBreakIcon },
-  { name: 'Description', icon: DescriptionToolboxIcon },
-  { name: 'Checkbox', icon: CheckboxToolboxIcon },
-  { name: 'Radio Button', icon: RadioIcon },
-  { name: 'Text Entry', icon: TextEntryIcon },
-  { name: 'Choice Grid', icon: ChoiceGridIcon },
-  { name: 'Autocomplete', icon: AutocompleteIcon },
+  { name: 'Auto Complete Dropdown', icon: AutocompleteIcon },
   { name: 'Card Sort', icon: CardSortIcon },
-  { name: 'Custom Question', icon: CustomQuestionIcon },
-  { name: 'Date Time Answer', icon: DateTimeIcon },
-  { name: 'Drag And Drop Ranking', icon: DragDropIcon },
-  { name: 'Drill-Down', icon: DrillDownIcon },
-  { name: 'Drop-Down List', icon: DropDownIcon },
-  { name: 'Email Address Answer', icon: EmailIcon },
+  { name: 'Carousel', icon: CarouselIcon },
+  { name: 'Cascading Dropdown', icon: DrillDownIcon },
+  { name: 'Check Box', icon: CheckboxToolboxIcon },
+  { name: 'Choice Grid', icon: ChoiceGridIcon },
+  { name: 'Click Map', icon: ClickMapIcon },
+  { name: 'Comment Box', icon: CommentBoxIcon },
+  { name: 'Custom Grid', icon: HybridGridIcon },
+  { name: 'Custom Scripting', icon: CustomQuestionIcon },
+  { name: 'Date & Time', icon: DateTimeIcon },
+  { name: 'Description', icon: DescriptionToolboxIcon },
+  { name: 'Drag and Drop Ranking', icon: DragDropIcon },
+  { name: 'Dropdown', icon: DropDownIcon },
+  { name: 'Email Address', icon: EmailIcon },
+  { name: 'Email Collector', icon: RespondentEmailIcon },
   { name: 'File Upload', icon: FileUploadIcon },
-  { name: 'Hybrid Grid', icon: HybridGridIcon },
+  { name: 'Hot Spot', icon: HotSpotIcon },
+  { name: 'Image Grid', icon: ImageIcon },
+  { name: 'Image Select', icon: ImageIcon },
+  { name: 'Language Preference', icon: RespondentLanguageIcon },
   { name: 'Lookup Table', icon: LookupTableIcon },
-  { name: 'Net Promoter (NPS)', icon: NpsIcon },
+  { name: 'Metadata Collector', icon: RespondentMetadataIcon },
+  { name: 'NPS', icon: NpsIcon },
+  { name: 'Numeric Input', icon: NumericAnswerIcon },
   { name: 'Numeric Ranking', icon: NumericRankingIcon },
-  { name: 'Numeric Answer', icon: NumericAnswerIcon },
-  { name: 'Respondent Email', icon: RespondentEmailIcon },
-  { name: 'Respondent Language', icon: RespondentLanguageIcon },
-  { name: 'Respondent Metadata', icon: RespondentMetadataIcon },
-  { name: 'Respondent Phone', icon: RespondentPhoneIcon },
-  { name: 'Respondent Time Zone', icon: ClockIcon },
+  { name: 'Page Break', icon: PageBreakIcon },
+  { name: 'Phone Number', icon: RespondentPhoneIcon },
+  { name: 'Radio Button', icon: RadioIcon },
   { name: 'Running Total', icon: RunningTotalIcon },
   { name: 'Secured Temporary Variable', icon: SecuredVariableIcon },
   { name: 'Signature', icon: SignatureIcon },
   { name: 'Slider', icon: SliderIcon },
   { name: 'Star Rating', icon: StarRatingIcon },
   { name: 'Text Highlighter', icon: TextHighlighterIcon },
+  { name: 'Text Input', icon: TextEntryIcon },
+  { name: 'Time Zone', icon: ClockIcon },
   { name: 'Timer', icon: TimerIcon },
 ];
 
@@ -101,3 +113,14 @@ export const TEXT_ENTRY_NODE_HEIGHT = 120;
 export const MULTIPLE_CHOICE_NODE_BASE_HEIGHT = 100;
 export const MULTIPLE_CHOICE_OPTION_HEIGHT = 32;
 export const LOGIC_NODE_HEIGHT = 80;
+
+export const questionGroups: Record<string, string[]> = {
+  'Advanced & Interactive': ['Card Sort', 'Carousel', 'Click Map', 'Comment Box', 'Custom Scripting', 'File Upload', 'Hot Spot', 'Signature', 'Text Highlighter', 'Timer'],
+  'Grid': ['Choice Grid', 'Custom Grid', 'Image Grid', 'Running Total'],
+  'Input': ['Date & Time', 'Email Address', 'Numeric Input', 'Text Input'],
+  'Multiple choices': ['Auto Complete Dropdown', 'Cascading Dropdown', 'Check Box', 'Dropdown', 'Image Select', 'Radio Button'],
+  'Rating & Scoring': ['Drag and Drop Ranking', 'NPS', 'Numeric Ranking', 'Slider', 'Star Rating'],
+  'Structural': ['Block', 'Description', 'Lookup Table', 'Page Break'],
+  'System Variable': ['Email Collector', 'Language Preference', 'Metadata Collector', 'Phone Number', 'Secured Temporary Variable', 'Time Zone']
+};
+

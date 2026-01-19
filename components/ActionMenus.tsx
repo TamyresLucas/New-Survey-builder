@@ -7,7 +7,7 @@ export const QuestionTypeSelectionMenuContent: React.FC<{
   onSelect: (type: QuestionType) => void;
   toolboxItems: ToolboxItemData[];
 }> = ({ onSelect, toolboxItems }) => {
-  const enabledTypes = new Set(['Description', 'Checkbox', 'Radio Button', 'Text Entry', 'Choice Grid']);
+  const enabledTypes = new Set(['Description', 'Check Box', 'Radio Button', 'Text Input', 'Choice Grid']);
 
   const questionTypeOptions = toolboxItems
     .filter(item => item.name !== 'Block' && item.name !== 'Page Break')

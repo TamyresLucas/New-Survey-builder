@@ -11,6 +11,42 @@ export interface ChangelogEntry {
 // NOTE: Always update 'time' to the current local time when adding an entry.
 export const changelogs: ChangelogEntry[] = [
     {
+        id: '2026-01-19-1',
+        version: 'v1.0.27',
+        date: '2026-01-19',
+        time: '3:22 PM',
+        request: 'Update Question Type Names',
+        improvements: [
+            'Terminology: Rename "Text Entry" to "Text Input".',
+            'Terminology: Rename "Checkbox" to "Check Box".',
+            'Terminology: Rename "Autocomplete" to "Auto Complete Dropdown".',
+            'Terminology: Rename "Custom Question" to "Custom Scripting".',
+            'Terminology: Rename "Date Time Answer" to "Date & Time".',
+            'Terminology: Rename "Drill-Down" to "Cascading Dropdown".',
+            'Terminology: Rename "Drop-Down List" to "Dropdown".',
+            'Terminology: Rename "Email Address Answer" to "Email Address".',
+            'Terminology: Rename "Hybrid Grid" to "Custom Grid".',
+            'Terminology: Rename "Net Promoter (NPS)" to "NPS".',
+            'Terminology: Rename "Numeric Answer" to "Numeric Input".',
+            'Terminology: Rename "Respondent Email" to "Email Collector".',
+            'Terminology: Rename "Respondent Language" to "Language Preference".',
+            'Terminology: Rename "Respondent Metadata" to "Metadata Collector".',
+            'Terminology: Rename "Respondent Phone" to "Phone Number".',
+            'Terminology: Rename "Respondent Time Zone" to "Time Zone".',
+            'Terminology: Rename "Image Selector" to "Image Select".',
+            'Terminology: Rename "Image Choice Grid" to "Image Grid".',
+            'UX: Grouped toolbox items into categories (Advanced & Interactive, Grid, Input, etc.) for better organization.'
+        ],
+        technicalChanges: [
+            'Modified types.ts: Updated QuestionType enum string values to match new nomenclature.',
+            'Modified constants.tsx: Updated toolboxItems array with new names.',
+            'Modified components/ActionMenus.tsx: Updated enabledTypes Set.',
+            'Modified components/BuildPanel.tsx: Updated enabledToolboxItems Set and filter logic.',
+            'Modified constants.tsx: Added questionGroups definition.',
+            'Modified components/BuildPanel.tsx: Implemented group-based filtering logic.'
+        ]
+    },
+    {
         id: '2026-01-06-1',
         version: 'v1.0.26',
         date: '2026-01-06',

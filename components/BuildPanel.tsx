@@ -2,6 +2,7 @@ import React, { useState, useRef, useMemo, useEffect, memo, useCallback } from '
 import { SearchIcon, PanelLeftIcon, RadioIcon, WarningIcon, DragIndicatorIcon, ChevronDownIcon, DotsHorizontalIcon, AsteriskIcon } from './icons';
 import type { Survey, Question, ToolboxItemData, QuestionType, Block, LogicIssue } from '../types';
 import { QuestionType as QTEnum } from '../types';
+import { questionGroups } from '../constants';
 import { customerFeedbackSurvey } from '../data/test-surveys';
 import { BlockActionsMenu, QuestionActionsMenu } from './ActionMenus';
 import { DropdownField } from './DropdownField';
@@ -47,7 +48,7 @@ interface BuildPanelProps {
   hoveredBlockId?: string | null;
 }
 
-const enabledToolboxItems = new Set(['Block', 'Page Break', 'Description', 'Checkbox', 'Radio Button', 'Text Entry', 'Choice Grid']);
+
 
 import { DropIndicator } from './DropIndicator';
 import { SidebarBlock } from './SidebarBlock';
@@ -60,6 +61,8 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   onMoveQuestionToExistingBlock, onMoveTo, onAddPageBreakAfterQuestion, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock, onUpdateQuestion,
   printMode = false, onQuestionHover, hoveredQuestionId, onBlockHover, hoveredBlockId
 }) => {
+  const enabledToolboxItems = useMemo(() => new Set(toolboxItems.map(item => item.name)), [toolboxItems]);
+
   const [activeTab, setActiveTab] = useState('Toolbox');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -120,11 +123,8 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   const filteredToolboxItems = useMemo(() => {
     let items = toolboxItems;
 
-    if (toolboxFilter === 'Multiple Choice') {
-      const allowedNames = new Set(['Radio Button', 'Checkbox', 'Choice Grid']);
-      items = items.filter(item => allowedNames.has(item.name));
-    } else if (toolboxFilter === 'Text') {
-      const allowedNames = new Set(['Text Entry']);
+    if (toolboxFilter !== 'All') {
+      const allowedNames = new Set(questionGroups[toolboxFilter] || []);
       items = items.filter(item => allowedNames.has(item.name));
     }
 
@@ -463,8 +463,10 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             onChange={setToolboxFilter}
             options={[
               { value: 'All', label: 'All question types' },
-              { value: 'Multiple Choice', label: 'Multiple Choice' },
-              { value: 'Text', label: 'Text' }
+              ...Object.keys(questionGroups).map(group => ({
+                value: group,
+                label: group
+              }))
             ]}
           />
         )}

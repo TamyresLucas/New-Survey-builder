@@ -2,7 +2,7 @@ export const CHANGELOG_DATA = [
     {
         "date": "2026-01-19",
         "features": [
-            "Add Shadcn token nomenclature to Survey Builder (47 tokens aligned with Design System)"
+            "Add Shadcn token nomenclature to Survey Builder (47 color tokens + 25 typography tokens)"
         ],
         "fixes": [
             "Update Email Address icon to Mail"

@@ -63,7 +63,7 @@
             'elevation-2': 'var(--elevation-2)',
             'elevation-3': 'var(--elevation-3)',
             'elevation-4': 'var(--elevation-4)',
-            
+
             // New Elevation Surface Tokens
             'surface-0': 'var(--surface-0)',
             'surface-1': 'var(--surface-1)',
@@ -71,7 +71,7 @@
             'surface-3': 'var(--surface-3)',
             'surface-4': 'var(--surface-4)',
             'surface-5': 'var(--surface-5)',
-            
+
             // Added secondary color
             secondary: 'var(--color-secondary)',
           },
@@ -100,7 +100,84 @@
   <link rel="stylesheet" href="https://unpkg.com/@xyflow/react@12.8.6/dist/style.css" />
   <style id="custom-theme">
     :root {
+      /* ============================================
+         SHADCN/DESIGN SYSTEM TOKEN NOMENCLATURE
+         These tokens follow the Design System naming
+         and reference the legacy Voxco values below
+         ============================================ */
+
+      /* Core Background & Foreground */
+      --background: var(--md-sys-color-surface);
+      --foreground: var(--text-txt-pri);
+
+      /* Card & Popover */
+      --card: var(--md-sys-color-surface-container);
+      --card-foreground: var(--text-txt-pri);
+      --popover: var(--background--surface-bg-def);
+      --popover-foreground: var(--text-txt-pri);
+
+      /* Primary */
+      --primary: var(--semantic-pri);
+      --primary-foreground: var(--text-txt-on-primary);
+
+      /* Secondary */
+      --secondary: var(--button-button-secondary);
+      --secondary-foreground: var(--text-txt-pri);
+
+      /* Muted */
+      --muted: var(--background--surface-bg-hov);
+      --muted-foreground: var(--text-txt-sec);
+
+      /* Accent */
+      --accent: var(--background--surface-bg-sel);
+      --accent-foreground: var(--text-txt-pri);
+
+      /* Status Colors */
+      --destructive: var(--semantic-err);
+      --destructive-foreground: var(--text-txt-on-color);
+      --success: var(--semantic-suc);
+      --success-foreground: var(--text-txt-on-success);
+      --warning: var(--semantic-warn);
+      --warning-foreground: var(--text-txt-on-color);
+      --info: var(--semantic-info);
+      --info-foreground: var(--notification-info-txt);
+
+      /* Status Backgrounds & Borders */
+      --background-destructive: var(--notification-err-bg);
+      --border-destructive: var(--notification-err-bd);
+      --background-success: var(--notification-suc-bg);
+      --border-success: var(--notification-suc-bd);
+      --background-warning: var(--notification-warn-bg);
+      --border-warning: var(--notification-warn-bd);
+      --background-info: var(--notification-info-bg);
+      --border-info: var(--notification-info-bd);
+
+      /* Secondary Hover & Disabled States */
+      --secondary-hover: var(--button-button-secondary-hover);
+      --disabled-foreground: var(--text-txt-on-color-disable);
+      --placeholder-foreground: var(--text-txt-sec);
+
+      /* Border & Input */
+      --border: var(--border-bd-def);
+      --input: var(--input-field-input-bd-def);
+      --ring: var(--border-bd-sel);
+
+      /* Chart Colors */
+      --chart-1: var(--foundation-chart-grape);
+      --chart-2: var(--foundation-chart-mint);
+      --chart-3: var(--foundation-chart-blackberry);
+      --chart-4: var(--foundation-chart-lime);
+      --chart-5: var(--foundation-chart-peach);
+
+      /* Radius */
+      --radius: 0.5rem;
+
+      /* ============================================
+         LEGACY VOXCO TOKENS (Original Values)
+         ============================================ */
+
       /* Light Mode Tokens */
+
       --semantic-pri: var(--foundation-periwinkle-dark);
       --semantic-suc: var(--foundation-green-dark);
       --semantic-err: var(--foundation-coral);
@@ -358,6 +435,79 @@
 
     .dark {
       color-scheme: dark;
+
+      /* ============================================
+         SHADCN/DESIGN SYSTEM TOKEN NOMENCLATURE
+         Dark mode overrides
+         ============================================ */
+
+      /* Core Background & Foreground */
+      --background: var(--md-sys-color-surface);
+      --foreground: var(--text-txt-pri);
+
+      /* Card & Popover */
+      --card: var(--md-sys-color-surface-container);
+      --card-foreground: var(--text-txt-pri);
+      --popover: var(--background--surface-bg-def);
+      --popover-foreground: var(--text-txt-pri);
+
+      /* Primary */
+      --primary: var(--semantic-pri);
+      --primary-foreground: var(--text-txt-on-primary);
+
+      /* Secondary */
+      --secondary: var(--button-button-secondary);
+      --secondary-foreground: var(--text-txt-pri);
+
+      /* Muted */
+      --muted: var(--background--surface-bg-hov);
+      --muted-foreground: var(--text-txt-sec);
+
+      /* Accent */
+      --accent: var(--background--surface-bg-sel);
+      --accent-foreground: var(--text-txt-pri);
+
+      /* Status Colors */
+      --destructive: var(--semantic-err);
+      --destructive-foreground: var(--text-txt-on-color);
+      --success: var(--semantic-suc);
+      --success-foreground: var(--text-txt-on-success);
+      --warning: var(--semantic-warn);
+      --warning-foreground: var(--text-txt-on-color);
+      --info: var(--semantic-info);
+      --info-foreground: var(--notification-info-txt);
+
+      /* Status Backgrounds & Borders */
+      --background-destructive: var(--notification-err-bg);
+      --border-destructive: var(--notification-err-bd);
+      --background-success: var(--notification-suc-bg);
+      --border-success: var(--notification-suc-bd);
+      --background-warning: var(--notification-warn-bg);
+      --border-warning: var(--notification-warn-bd);
+      --background-info: var(--notification-info-bg);
+      --border-info: var(--notification-info-bd);
+
+      /* Secondary Hover & Disabled States */
+      --secondary-hover: var(--button-button-secondary-hover);
+      --disabled-foreground: var(--text-txt-on-color-disable);
+      --placeholder-foreground: var(--text-txt-sec);
+
+      /* Border & Input */
+      --border: var(--border-bd-def);
+      --input: var(--input-field-input-bd-def);
+      --ring: var(--border-bd-sel);
+
+      /* Chart Colors */
+      --chart-1: var(--foundation-chart-grape);
+      --chart-2: var(--foundation-chart-mint);
+      --chart-3: var(--foundation-chart-blackberry);
+      --chart-4: var(--foundation-chart-lime);
+      --chart-5: var(--foundation-chart-peach);
+
+      /* ============================================
+         LEGACY VOXCO TOKENS (Dark Mode Values)
+         ============================================ */
+
       /* Dark Mode Tokens */
       --semantic-pri: #b8beff;
       --semantic-suc: var(--foundation-green-dark);
@@ -367,22 +517,28 @@
       --semantic-warn: var(--foundation-tangerine);
       --semantic-info: #6366f1;
       --semantic-shd: #000000;
+
       /* Material Design 3 Surface System */
       /* Old: #141318 / 84% sat - Updated to #12131a (15% sat) per Specs-CORRECTED */
-      --md-sys-color-surface: #12131a; 
-      
+      --md-sys-color-surface: #12131a;
+
       /* New Elevation System (Surface 0-5) */
       --surface-0: #12131a;
-      --surface-1: #1e1f26; /* +5% lightness (approx) */
-      --surface-2: #23242b; /* +8% lightness (approx) */
-      --surface-3: #282930; /* +11% lightness (approx) */
-      --surface-4: #2a2b32; /* +12% lightness (approx) */
-      --surface-5: #2f3037; /* +14% lightness (approx) */
-      
+      --surface-1: #1e1f26;
+      /* +5% lightness (approx) */
+      --surface-2: #23242b;
+      /* +8% lightness (approx) */
+      --surface-3: #282930;
+      /* +11% lightness (approx) */
+      --surface-4: #2a2b32;
+      /* +12% lightness (approx) */
+      --surface-5: #2f3037;
+      /* +14% lightness (approx) */
+
       /* Added Secondary Color */
       /* Old: #5FDD9D - Updated to #6bc59a */
       --color-secondary: #6bc59a;
-      
+
       --md-sys-color-surface-dim: hsl(240 6% 6%);
       --md-sys-color-surface-bright: hsl(230 5% 20%);
       --md-sys-color-surface-container-lowest: hsl(230 5% 11%);

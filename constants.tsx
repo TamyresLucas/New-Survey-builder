@@ -30,6 +30,7 @@ import {
   RespondentLanguageIcon,
   RespondentMetadataIcon,
   RespondentPhoneIcon,
+  RespondentTimeZoneIcon,
   RunningTotalIcon,
   SecuredVariableIcon,
   SignatureIcon,
@@ -97,7 +98,7 @@ export const toolboxItems: ToolboxItemData[] = [
   { name: 'Star Rating', icon: StarRatingIcon },
   { name: 'Text Highlighter', icon: TextHighlighterIcon },
   { name: 'Text Input', icon: TextEntryIcon },
-  { name: 'Time Zone', icon: ClockIcon },
+  { name: 'Time Zone', icon: RespondentTimeZoneIcon },
   { name: 'Timer', icon: TimerIcon },
 ];
 

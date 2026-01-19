@@ -9,6 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Typography Stress Test (2026-01-19)
+- Added `TypographyStressTest.tsx` component for visual stress testing of typography configurations
+- Added `TypographyStressTest.stories.tsx` with 4 story variants:
+  - `Default` - Interactive font switching across all scenarios
+  - `WithInter` - Baseline test with default Inter font
+  - `WithRoboto` - Cross-font compatibility test
+  - `WithPlayfairDisplay` - Serif font extreme stress test
+- Includes 5 stress test scenarios:
+  - Scenario A: Standard width question card with long wrapping text
+  - Scenario B: Mobile width (320px) constrained layout
+  - Scenario C: Nested typography with all heading levels (H1-H4)
+  - Scenario D: All text sizes (xs to 4xl) side-by-side
+  - Scenario E: Component integration (Alerts with typography)
+- Real-time font family switching with instant DOM updates
+- Validates line-height and vertical rhythm preservation
+
+#### Typography Design Tokens Refactor (2026-01-19)
+- Added typography tokens to `src/styles/tokens.css`:
+  - Font family primitives: `--font-family-sans`, `--font-family-heading`, `--font-family-body`
+  - Font size scale: `--font-size-xs` through `--font-size-4xl`
+  - Line heights: `--line-height-none` through `--line-height-loose`
+  - Font weights: `--font-weight-normal` through `--font-weight-extrabold`
+  - Semantic tokens: `--typography-h1-size`, `--typography-body-size`
+- Added Google Fonts Inter import in `src/index.css` for Ghost Font Prevention
+- Added compatibility bridge: `--font-sans` now points to `var(--font-family-sans)`
+- Updated `tailwind.config.js` with array syntax for fontSize (includes lineHeight)
+- Refactored `FontPreview.tsx` to use direct DOM manipulation (no custom events)
+- Refactored `TypeScale.tsx` to use Tailwind classes instead of inline styles
+- Simplified `.storybook/preview.ts` decorator (removed event listeners)
+- Updated `Typography.mdx` documentation with CSS Variable columns
+
 #### Color Palette Stress Test (2026-01-19)
 - Added `ColorPaletteStressTest.tsx` component for visual stress testing of color configurations
 - Added `ColorPaletteStressTest.stories.tsx` with 8 preset stories for extreme palette testing

@@ -16,16 +16,7 @@ export const TypeScale = () => {
               <span className="text-sm font-medium text-foreground">H1</span>
               <code className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">text-4xl font-extrabold tracking-tight</code>
             </div>
-            <div
-              className="font-sans text-foreground"
-              style={{
-                fontSize: '2.25rem',
-                lineHeight: '2.5rem',
-                fontWeight: 800,
-                letterSpacing: '-0.025em',
-                fontFamily: 'var(--font-sans)'
-              }}
-            >
+            <div className="font-heading text-foreground text-4xl font-extrabold tracking-tight">
               Taxing Laughter: The Joke Tax Chronicles
             </div>
             <div className="text-xs text-muted-foreground">Use for page titles and primary headings</div>
@@ -36,16 +27,7 @@ export const TypeScale = () => {
               <span className="text-sm font-medium text-foreground">H2</span>
               <code className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">text-3xl font-semibold tracking-tight</code>
             </div>
-            <div
-              className="font-sans text-foreground"
-              style={{
-                fontSize: '1.875rem',
-                lineHeight: '2.25rem',
-                fontWeight: 600,
-                letterSpacing: '-0.025em',
-                fontFamily: 'var(--font-sans)'
-              }}
-            >
+            <div className="font-heading text-foreground text-3xl font-semibold tracking-tight">
               The People of the Kingdom
             </div>
             <div className="text-xs text-muted-foreground">Use for section headings</div>
@@ -56,16 +38,7 @@ export const TypeScale = () => {
               <span className="text-sm font-medium text-foreground">H3</span>
               <code className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">text-2xl font-semibold tracking-tight</code>
             </div>
-            <div
-              className="font-sans text-foreground"
-              style={{
-                fontSize: '1.5rem',
-                lineHeight: '2rem',
-                fontWeight: 600,
-                letterSpacing: '-0.025em',
-                fontFamily: 'var(--font-sans)'
-              }}
-            >
+            <div className="font-heading text-foreground text-2xl font-semibold tracking-tight">
               The Joke Tax
             </div>
             <div className="text-xs text-muted-foreground">Use for subsection headings</div>
@@ -76,16 +49,7 @@ export const TypeScale = () => {
               <span className="text-sm font-medium text-foreground">H4</span>
               <code className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">text-xl font-semibold tracking-tight</code>
             </div>
-            <div
-              className="font-sans text-foreground"
-              style={{
-                fontSize: '1.25rem',
-                lineHeight: '1.75rem',
-                fontWeight: 600,
-                letterSpacing: '-0.025em',
-                fontFamily: 'var(--font-sans)'
-              }}
-            >
+            <div className="font-heading text-foreground text-xl font-semibold tracking-tight">
               People stopped telling jokes
             </div>
             <div className="text-xs text-muted-foreground">Use for card titles and minor headings</div>
@@ -101,16 +65,9 @@ export const TypeScale = () => {
           <div className="space-y-3 pb-6 border-b border-border">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-foreground">Paragraph</span>
-              <code className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">leading-7 [&:not(:first-child)]:mt-6</code>
+              <code className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">text-base leading-relaxed</code>
             </div>
-            <div
-              className="font-sans text-foreground"
-              style={{
-                fontSize: '1rem',
-                lineHeight: '1.75rem',
-                fontFamily: 'var(--font-sans)'
-              }}
-            >
+            <div className="font-body text-foreground text-base leading-relaxed">
               The king, seeing how much happier his subjects were, realized the error of his ways and repealed the joke tax. The kingdom was filled with laughter once more.
             </div>
             <div className="text-xs text-muted-foreground">Default body text with comfortable line height</div>
@@ -121,14 +78,7 @@ export const TypeScale = () => {
               <span className="text-sm font-medium text-foreground">Lead</span>
               <code className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">text-xl text-muted-foreground</code>
             </div>
-            <div
-              className="text-muted-foreground"
-              style={{
-                fontSize: '1.25rem',
-                lineHeight: '1.75rem',
-                fontFamily: 'var(--font-sans)'
-              }}
-            >
+            <div className="font-body text-muted-foreground text-xl leading-relaxed">
               A modal dialog that interrupts the user with important content and expects a response.
             </div>
             <div className="text-xs text-muted-foreground">Use for introduction paragraphs and subtitles</div>
@@ -146,15 +96,7 @@ export const TypeScale = () => {
               <span className="text-sm font-medium text-foreground">Large</span>
               <code className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">text-lg font-semibold</code>
             </div>
-            <div
-              className="font-sans text-foreground"
-              style={{
-                fontSize: '1.125rem',
-                lineHeight: '1.75rem',
-                fontWeight: 600,
-                fontFamily: 'var(--font-sans)'
-              }}
-            >
+            <div className="font-sans text-foreground text-lg font-semibold">
               Are you absolutely sure?
             </div>
             <div className="text-xs text-muted-foreground">Use for emphasized statements and confirmations</div>
@@ -165,15 +107,7 @@ export const TypeScale = () => {
               <span className="text-sm font-medium text-foreground">Small / Label</span>
               <code className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">text-sm font-medium leading-none</code>
             </div>
-            <div
-              className="font-sans text-foreground"
-              style={{
-                fontSize: '0.875rem',
-                lineHeight: '1.25rem',
-                fontWeight: 500,
-                fontFamily: 'var(--font-sans)'
-              }}
-            >
+            <div className="font-sans text-foreground text-sm font-medium leading-none">
               Email address
             </div>
             <div className="text-xs text-muted-foreground">Use for form labels and metadata</div>
@@ -184,14 +118,7 @@ export const TypeScale = () => {
               <span className="text-sm font-medium text-foreground">Muted</span>
               <code className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">text-sm text-muted-foreground</code>
             </div>
-            <div
-              className="text-muted-foreground"
-              style={{
-                fontSize: '0.875rem',
-                lineHeight: '1.25rem',
-                fontFamily: 'var(--font-sans)'
-              }}
-            >
+            <div className="font-sans text-muted-foreground text-sm">
               Enter your email address.
             </div>
             <div className="text-xs text-muted-foreground">Use for helper text and descriptions</div>

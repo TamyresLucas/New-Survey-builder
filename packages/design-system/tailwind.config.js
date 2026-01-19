@@ -10,7 +10,37 @@ export default {
 	theme: {
 		extend: {
 			fontFamily: {
+				// Bridge variable for maximum safety
 				sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+				// New semantic families
+				heading: ['var(--font-family-heading)', 'system-ui', 'sans-serif'],
+				body: ['var(--font-family-body)', 'system-ui', 'sans-serif'],
+			},
+			fontSize: {
+				// ARRAY SYNTAX: [Size, { lineHeight }] - CRITICAL for vertical rhythm
+				xs: ['var(--font-size-xs)', { lineHeight: 'var(--line-height-tight)' }],
+				sm: ['var(--font-size-sm)', { lineHeight: 'var(--line-height-normal)' }],
+				base: ['var(--font-size-base)', { lineHeight: 'var(--line-height-normal)' }],
+				lg: ['var(--font-size-lg)', { lineHeight: 'var(--line-height-snug)' }],
+				xl: ['var(--font-size-xl)', { lineHeight: 'var(--line-height-snug)' }],
+				'2xl': ['var(--font-size-2xl)', { lineHeight: 'var(--line-height-tight)' }],
+				'3xl': ['var(--font-size-3xl)', { lineHeight: 'var(--line-height-tight)' }],
+				'4xl': ['var(--font-size-4xl)', { lineHeight: 'var(--line-height-tight)' }],
+			},
+			fontWeight: {
+				normal: 'var(--font-weight-normal)',
+				medium: 'var(--font-weight-medium)',
+				semibold: 'var(--font-weight-semibold)',
+				bold: 'var(--font-weight-bold)',
+				extrabold: 'var(--font-weight-extrabold)',
+			},
+			lineHeight: {
+				none: 'var(--line-height-none)',
+				tight: 'var(--line-height-tight)',
+				snug: 'var(--line-height-snug)',
+				normal: 'var(--line-height-normal)',
+				relaxed: 'var(--line-height-relaxed)',
+				loose: 'var(--line-height-loose)',
 			},
 			colors: {
 				border: 'var(--border)',

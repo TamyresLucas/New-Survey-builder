@@ -10,11 +10,11 @@ import { TypeScale } from './TypeScale';
     # Text style
 
     <div className="text-lg text-muted-foreground">
-      The text system establishes a vertical rhythm and modular scale for all typography. It relies on standard Tailwind CSS classes relative to the root font size.
+      The text system establishes a vertical rhythm and modular scale for all typography. It relies on CSS variables for dynamic theming and Tailwind CSS classes for consistent application.
     </div>
 
     <div className="p-4 bg-muted/30 border rounded-lg text-sm text-muted-foreground border-l-4 border-l-primary">
-      <strong>Note:</strong> Prefer using semantic text utilities relative to the component (e.g., `text-sm` for details, `text-lg` for headers) rather than custom pixel values.
+      <strong>Note:</strong> Prefer using semantic text utilities relative to the component (e.g., `text-sm` for details, `text-lg` for headers) rather than custom pixel values. The font family can be changed dynamically via the Branding > Typography page.
     </div>
 
 
@@ -27,7 +27,7 @@ import { TypeScale } from './TypeScale';
   <div className="space-y-8">
     <div className="space-y-2">
       <h2 className="font-sans text-2xl font-semibold border-b pb-2">Scale</h2>
-      <div className="text-muted-foreground">The modular type scale for font sizes.</div>
+      <div className="text-muted-foreground">The modular type scale for font sizes, backed by CSS variables for dynamic theming.</div>
     </div>
 
     <div className="w-full overflow-auto">
@@ -35,6 +35,7 @@ import { TypeScale } from './TypeScale';
           <thead>
             <tr className="table-header-row">
               <th className="p-3 font-medium text-sm text-muted-foreground">Token</th>
+              <th className="p-3 font-medium text-sm text-muted-foreground">CSS Variable</th>
               <th className="p-3 font-medium text-sm text-muted-foreground w-24">Size</th>
               <th className="p-3 font-medium text-sm text-muted-foreground w-24">Line Height</th>
             </tr>
@@ -42,43 +43,103 @@ import { TypeScale } from './TypeScale';
           <tbody className="divide-y">
             <tr className="table-body-row">
               <td className="p-3 font-mono text-xs text-muted-foreground">text-xs</td>
-              <td className="p-3 text-xs text-muted-foreground">12px</td>
-              <td className="p-3 text-xs text-muted-foreground">16px</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--font-size-xs)</td>
+              <td className="p-3 text-xs text-muted-foreground">12px (0.75rem)</td>
+              <td className="p-3 text-xs text-muted-foreground">1.25 (tight)</td>
             </tr>
-            <tr className="transition-colors hover:bg-accent hover:text-accent-foreground">
+            <tr className="table-body-row">
               <td className="p-3 font-mono text-xs text-muted-foreground">text-sm</td>
-              <td className="p-3 text-xs text-muted-foreground">14px</td>
-              <td className="p-3 text-xs text-muted-foreground">20px</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--font-size-sm)</td>
+              <td className="p-3 text-xs text-muted-foreground">14px (0.875rem)</td>
+              <td className="p-3 text-xs text-muted-foreground">1.5 (normal)</td>
             </tr>
-            <tr className="transition-colors hover:bg-accent hover:text-accent-foreground">
+            <tr className="table-body-row">
               <td className="p-3 font-mono text-xs text-muted-foreground">text-base</td>
-              <td className="p-3 text-xs text-muted-foreground">16px</td>
-              <td className="p-3 text-xs text-muted-foreground">24px</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--font-size-base)</td>
+              <td className="p-3 text-xs text-muted-foreground">16px (1rem)</td>
+              <td className="p-3 text-xs text-muted-foreground">1.5 (normal)</td>
             </tr>
-            <tr className="transition-colors hover:bg-accent hover:text-accent-foreground">
+            <tr className="table-body-row">
               <td className="p-3 font-mono text-xs text-muted-foreground">text-lg</td>
-              <td className="p-3 text-xs text-muted-foreground">18px</td>
-              <td className="p-3 text-xs text-muted-foreground">28px</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--font-size-lg)</td>
+              <td className="p-3 text-xs text-muted-foreground">18px (1.125rem)</td>
+              <td className="p-3 text-xs text-muted-foreground">1.375 (snug)</td>
             </tr>
-            <tr className="transition-colors hover:bg-accent hover:text-accent-foreground">
+            <tr className="table-body-row">
               <td className="p-3 font-mono text-xs text-muted-foreground">text-xl</td>
-              <td className="p-3 text-xs text-muted-foreground">20px</td>
-              <td className="p-3 text-xs text-muted-foreground">28px</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--font-size-xl)</td>
+              <td className="p-3 text-xs text-muted-foreground">20px (1.25rem)</td>
+              <td className="p-3 text-xs text-muted-foreground">1.375 (snug)</td>
             </tr>
-            <tr className="transition-colors hover:bg-accent hover:text-accent-foreground">
+            <tr className="table-body-row">
               <td className="p-3 font-mono text-xs text-muted-foreground">text-2xl</td>
-              <td className="p-3 text-xs text-muted-foreground">24px</td>
-              <td className="p-3 text-xs text-muted-foreground">32px</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--font-size-2xl)</td>
+              <td className="p-3 text-xs text-muted-foreground">24px (1.5rem)</td>
+              <td className="p-3 text-xs text-muted-foreground">1.25 (tight)</td>
             </tr>
-            <tr className="transition-colors hover:bg-accent hover:text-accent-foreground">
+            <tr className="table-body-row">
               <td className="p-3 font-mono text-xs text-muted-foreground">text-3xl</td>
-              <td className="p-3 text-xs text-muted-foreground">30px</td>
-              <td className="p-3 text-xs text-muted-foreground">36px</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--font-size-3xl)</td>
+              <td className="p-3 text-xs text-muted-foreground">30px (1.875rem)</td>
+              <td className="p-3 text-xs text-muted-foreground">1.25 (tight)</td>
             </tr>
-            <tr className="transition-colors hover:bg-accent hover:text-accent-foreground">
+            <tr className="table-body-row">
               <td className="p-3 font-mono text-xs text-muted-foreground">text-4xl</td>
-              <td className="p-3 text-xs text-muted-foreground">36px</td>
-              <td className="p-3 text-xs text-muted-foreground">40px</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--font-size-4xl)</td>
+              <td className="p-3 text-xs text-muted-foreground">36px (2.25rem)</td>
+              <td className="p-3 text-xs text-muted-foreground">1.25 (tight)</td>
+            </tr>
+          </tbody>
+        </table>
+    </div>
+  </div>
+
+  {/* Line Heights Section */}
+  <div className="space-y-8">
+    <div className="space-y-2">
+      <h2 className="font-sans text-2xl font-semibold border-b pb-2">Line Heights</h2>
+      <div className="text-muted-foreground">Standard line heights for vertical rhythm and readability.</div>
+    </div>
+
+    <div className="w-full overflow-auto">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="table-header-row">
+              <th className="p-3 font-medium text-sm text-muted-foreground">Token</th>
+              <th className="p-3 font-medium text-sm text-muted-foreground">CSS Variable</th>
+              <th className="p-3 font-medium text-sm text-muted-foreground w-24">Value</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            <tr className="table-body-row">
+              <td className="p-3 font-mono text-xs text-muted-foreground">leading-none</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--line-height-none)</td>
+              <td className="p-3 text-xs text-muted-foreground">1</td>
+            </tr>
+            <tr className="table-body-row">
+              <td className="p-3 font-mono text-xs text-muted-foreground">leading-tight</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--line-height-tight)</td>
+              <td className="p-3 text-xs text-muted-foreground">1.25</td>
+            </tr>
+            <tr className="table-body-row">
+              <td className="p-3 font-mono text-xs text-muted-foreground">leading-snug</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--line-height-snug)</td>
+              <td className="p-3 text-xs text-muted-foreground">1.375</td>
+            </tr>
+            <tr className="table-body-row">
+              <td className="p-3 font-mono text-xs text-muted-foreground">leading-normal</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--line-height-normal)</td>
+              <td className="p-3 text-xs text-muted-foreground">1.5</td>
+            </tr>
+            <tr className="table-body-row">
+              <td className="p-3 font-mono text-xs text-muted-foreground">leading-relaxed</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--line-height-relaxed)</td>
+              <td className="p-3 text-xs text-muted-foreground">1.625</td>
+            </tr>
+            <tr className="table-body-row">
+              <td className="p-3 font-mono text-xs text-muted-foreground">leading-loose</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--line-height-loose)</td>
+              <td className="p-3 text-xs text-muted-foreground">2</td>
             </tr>
           </tbody>
         </table>
@@ -97,29 +158,72 @@ import { TypeScale } from './TypeScale';
           <thead>
             <tr className="table-header-row">
               <th className="p-3 font-medium text-sm text-muted-foreground">Token</th>
+              <th className="p-3 font-medium text-sm text-muted-foreground">CSS Variable</th>
               <th className="p-3 font-medium text-sm text-muted-foreground w-24">Weight</th>
             </tr>
           </thead>
           <tbody className="divide-y">
-            <tr className="transition-colors hover:bg-accent hover:text-accent-foreground">
+            <tr className="table-body-row">
               <td className="p-3 font-mono text-xs text-muted-foreground">font-normal</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--font-weight-normal)</td>
               <td className="p-3 text-xs text-muted-foreground">400</td>
             </tr>
-            <tr className="transition-colors hover:bg-accent hover:text-accent-foreground">
+            <tr className="table-body-row">
               <td className="p-3 font-mono text-xs text-muted-foreground">font-medium</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--font-weight-medium)</td>
               <td className="p-3 text-xs text-muted-foreground">500</td>
             </tr>
-            <tr className="transition-colors hover:bg-accent hover:text-accent-foreground">
+            <tr className="table-body-row">
               <td className="p-3 font-mono text-xs text-muted-foreground">font-semibold</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--font-weight-semibold)</td>
               <td className="p-3 text-xs text-muted-foreground">600</td>
             </tr>
-            <tr className="transition-colors hover:bg-accent hover:text-accent-foreground">
+            <tr className="table-body-row">
               <td className="p-3 font-mono text-xs text-muted-foreground">font-bold</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--font-weight-bold)</td>
               <td className="p-3 text-xs text-muted-foreground">700</td>
             </tr>
-            <tr className="transition-colors hover:bg-accent hover:text-accent-foreground">
+            <tr className="table-body-row">
               <td className="p-3 font-mono text-xs text-muted-foreground">font-extrabold</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--font-weight-extrabold)</td>
               <td className="p-3 text-xs text-muted-foreground">800</td>
+            </tr>
+          </tbody>
+        </table>
+    </div>
+  </div>
+
+  {/* Font Families Section */}
+  <div className="space-y-8 pb-16">
+    <div className="space-y-2">
+      <h2 className="font-sans text-2xl font-semibold border-b pb-2">Font Families</h2>
+      <div className="text-muted-foreground">Semantic font family tokens for consistent typography across the design system.</div>
+    </div>
+
+    <div className="w-full overflow-auto">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="table-header-row">
+              <th className="p-3 font-medium text-sm text-muted-foreground">Token</th>
+              <th className="p-3 font-medium text-sm text-muted-foreground">CSS Variable</th>
+              <th className="p-3 font-medium text-sm text-muted-foreground">Usage</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            <tr className="table-body-row">
+              <td className="p-3 font-mono text-xs text-muted-foreground">font-sans</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--font-sans)</td>
+              <td className="p-3 text-xs text-muted-foreground">Default font for all components (compatibility bridge)</td>
+            </tr>
+            <tr className="table-body-row">
+              <td className="p-3 font-mono text-xs text-muted-foreground">font-heading</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--font-family-heading)</td>
+              <td className="p-3 text-xs text-muted-foreground">Headings and titles (H1-H6)</td>
+            </tr>
+            <tr className="table-body-row">
+              <td className="p-3 font-mono text-xs text-muted-foreground">font-body</td>
+              <td className="p-3 font-mono text-xs text-muted-foreground">var(--font-family-body)</td>
+              <td className="p-3 text-xs text-muted-foreground">Body text and paragraphs</td>
             </tr>
           </tbody>
         </table>

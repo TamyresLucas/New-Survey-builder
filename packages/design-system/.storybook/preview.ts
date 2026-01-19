@@ -3,14 +3,6 @@ import React, { useEffect } from 'react';
 import { useDarkMode } from 'storybook-dark-mode';
 import '../src/index.css';
 
-// Type definitions for custom events
-declare global {
-  interface WindowEventMap {
-    'color-changed': CustomEvent<Record<string, string>>;
-    'font-changed': Event;
-  }
-}
-
 const preview: Preview = {
   parameters: {
     controls: {
@@ -60,27 +52,26 @@ const preview: Preview = {
         document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
       }, [isDark]);
 
-      // Handle dynamic font changes from FontPreview
+      // Apply saved font from localStorage on mount (simplified - no event listener needed)
       useEffect(() => {
         const html = document.documentElement;
+        const savedFont = localStorage.getItem('global-font') || 'Inter';
 
-        const updateFont = () => {
-          const savedFont = localStorage.getItem('global-font') || 'Inter';
-          html.style.setProperty('--font-sans', `"${savedFont}", system-ui, sans-serif`);
+        // Set all font family CSS variables atomically
+        const fontValue = `"${savedFont}", system-ui, sans-serif`;
+        html.style.setProperty('--font-family-sans', fontValue);
+        html.style.setProperty('--font-family-heading', fontValue);
+        html.style.setProperty('--font-family-body', fontValue);
 
-          const linkId = `font-global-${savedFont}`;
-          if (!document.getElementById(linkId)) {
-            const link = document.createElement('link');
-            link.id = linkId;
-            link.href = `https://fonts.googleapis.com/css2?family=${savedFont.replace(/ /g, '+')}:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap`;
-            link.rel = 'stylesheet';
-            document.head.appendChild(link);
-          }
-        };
-
-        updateFont();
-        window.addEventListener('font-changed', updateFont);
-        return () => window.removeEventListener('font-changed', updateFont);
+        // Ensure the font is loaded from Google Fonts
+        const linkId = `font-global-${savedFont}`;
+        if (!document.getElementById(linkId)) {
+          const link = document.createElement('link');
+          link.id = linkId;
+          link.href = `https://fonts.googleapis.com/css2?family=${savedFont.replace(/ /g, '+')}:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap`;
+          link.rel = 'stylesheet';
+          document.head.appendChild(link);
+        }
       }, []);
 
       return React.createElement(Story);
@@ -89,4 +80,3 @@ const preview: Preview = {
 };
 
 export default preview;
-

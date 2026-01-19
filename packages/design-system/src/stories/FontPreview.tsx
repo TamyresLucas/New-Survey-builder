@@ -36,10 +36,12 @@ export const FontPreview = () => {
     const handleFontChange = (newFont: string) => {
         setFont(newFont);
         localStorage.setItem('global-font', newFont);
-        // Notify decorator to update
-        window.dispatchEvent(new CustomEvent('font-changed', {
-            detail: { font: newFont }
-        }));
+
+        // ATOMIC UPDATE: Directly set CSS variables (no custom events needed)
+        const fontValue = `"${newFont}", system-ui, sans-serif`;
+        document.documentElement.style.setProperty('--font-family-sans', fontValue);
+        document.documentElement.style.setProperty('--font-family-heading', fontValue);
+        document.documentElement.style.setProperty('--font-family-body', fontValue);
     };
 
     useEffect(() => {

@@ -63,6 +63,17 @@
             'elevation-2': 'var(--elevation-2)',
             'elevation-3': 'var(--elevation-3)',
             'elevation-4': 'var(--elevation-4)',
+            
+            // New Elevation Surface Tokens
+            'surface-0': 'var(--surface-0)',
+            'surface-1': 'var(--surface-1)',
+            'surface-2': 'var(--surface-2)',
+            'surface-3': 'var(--surface-3)',
+            'surface-4': 'var(--surface-4)',
+            'surface-5': 'var(--surface-5)',
+            
+            // Added secondary color
+            secondary: 'var(--color-secondary)',
           },
           transitionDuration: {
             'instant': 'var(--duration-instant)',
@@ -357,7 +368,21 @@
       --semantic-info: #6366f1;
       --semantic-shd: #000000;
       /* Material Design 3 Surface System */
-      --md-sys-color-surface: hsl(240 6% 10%);
+      /* Old: #141318 / 84% sat - Updated to #12131a (15% sat) per Specs-CORRECTED */
+      --md-sys-color-surface: #12131a; 
+      
+      /* New Elevation System (Surface 0-5) */
+      --surface-0: #12131a;
+      --surface-1: #1e1f26; /* +5% lightness (approx) */
+      --surface-2: #23242b; /* +8% lightness (approx) */
+      --surface-3: #282930; /* +11% lightness (approx) */
+      --surface-4: #2a2b32; /* +12% lightness (approx) */
+      --surface-5: #2f3037; /* +14% lightness (approx) */
+      
+      /* Added Secondary Color */
+      /* Old: #5FDD9D - Updated to #6bc59a */
+      --color-secondary: #6bc59a;
+      
       --md-sys-color-surface-dim: hsl(240 6% 6%);
       --md-sys-color-surface-bright: hsl(230 5% 20%);
       --md-sys-color-surface-container-lowest: hsl(230 5% 11%);
@@ -382,7 +407,8 @@
       --notification-warn-bg: var(--foundation-tangerine-light);
       --notification-suc-bg: var(--foundation-green-light);
       --notification-info-bg: var(--foundation-primary-gradients-primary-20);
-      --border-bd-def: #363D65;
+      /* Old: #938F99 - Updated to #aca8b3 per Specs-CORRECTED */
+      --border-bd-def: #aca8b3;
       --border-bd-hov: #6B7280;
       --border-bd-sel: var(--foundation-periwinkle-dark);
       --border-bd-dis: #1F2937;

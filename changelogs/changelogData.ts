@@ -11,6 +11,39 @@ export interface ChangelogEntry {
 // NOTE: Always update 'time' to the current local time when adding an entry.
 export const changelogs: ChangelogEntry[] = [
     {
+        id: '2026-01-19-3',
+        version: 'v1.0.29',
+        date: '2026-01-19',
+        time: '5:41 PM',
+        request: 'Stress Test Dark Mode',
+        improvements: [
+            'Validation: Created a new "Dark Mode Stress Test" story in Storybook.',
+            'Validation: Implemented a visual compliance checklist for dark mode tokens (Reduced Saturation, Elevation System, Secondary Color).',
+            'Validation: Added visual tests for component contrast on elevated surfaces (surface-0 to surface-5).'
+        ],
+        technicalChanges: [
+            'Created packages/design-system/src/stories/DarkModeStressTest.tsx: Implemented stress test component.',
+            'Created packages/design-system/src/stories/DarkModeStressTest.stories.tsx: Defined Storybook story.'
+        ]
+    },
+    {
+        id: '2026-01-19-2',
+        version: 'v1.0.28',
+        date: '2026-01-19',
+        time: '4:08 PM',
+        request: 'Implement Dark Mode Best Practices',
+        improvements: [
+            'Dark Mode: Reduced background saturation and updated surface color to #12131a for better accessibility.',
+            'Dark Mode: Updated outline color to #aca8b3 and added secondary color #6bc59a.',
+            'Dark Mode: Implemented 6-level elevation system (surface-0 to surface-5) to enhance depth perception.'
+        ],
+        technicalChanges: [
+            'Modified index.html: Updated CSS variables (--md-sys-color-surface, --border-bd-def) in dark mode.',
+            'Modified index.html: Added new CSS variables for elevation (--surface-0 to --surface-5) and secondary color.',
+            'Modified index.html: Updated Tailwind config to include new elevation and secondary color tokens.'
+        ]
+    },
+    {
         id: '2026-01-19-1',
         version: 'v1.0.27',
         date: '2026-01-19',
@@ -387,10 +420,10 @@ export const changelogs: ChangelogEntry[] = [
             'Created reusable Alert component (with icon aligned to first line, 16x16px, hug height) and applied it to "Otherwise" path disabled message.',
             'Documented Alert component in documentation/components/Alert.md.',
             'Reduced Alert component gap to 8px (gap-2).',
-            'Removed "Otherwise path disabled" message from Branching Logic Editor.',
+            'Removed "Otherwise path disabled" message from BranchingLogicEditor.',
             'Hidden "Otherwise" section logic separator when logic is exhaustive.',
             'Refactored BranchingLogicEditor to use reusable BranchLogicSet component.',
-
+            'Created reusable Toggle component and applied it to Advanced Tab settings.'
         ],
         technicalChanges: [
             'Updated BuildPanel.tsx and SurveyStructureWidget.tsx logic for "Issues" label.',
@@ -429,6 +462,7 @@ export const changelogs: ChangelogEntry[] = [
             'Refactored ScalePointItem.tsx and ScalePointActions.tsx to use Button and TextField',
             'Updated ChoiceBehaviorSection.tsx, QuestionBehaviorSection.tsx, and SkipLogicEditor.tsx to use Button component',
             'Updated Button.tsx: Changed large button padding from px-4 to px-2',
+            'Updated Button.tsx: Fixed secondary variant text color to text-on-surface',
             'Updated Button.tsx: Fixed secondary variant text color to text-on-surface',
             'Updated documentation/components/Buttons.md with new padding specifications'
         ]

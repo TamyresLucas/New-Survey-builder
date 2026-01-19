@@ -79,7 +79,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Token reference table includes WCAG AA/AAA compliance indicators
 
 ### Fixed
-- N/A
+
+#### Table Stories Badge Tokens (2026-01-19)
+- Fixed hardcoded `bg-green-500` color in Table.stories.tsx badges
+- Replaced `variant="default" className="bg-green-500"` with `variant="success"` in `getStatusBadge()` function
+- Updated SurveyResponses story "Complete" badges to use `variant="success"` instead of hardcoded color override
+- Now properly uses design system tokens (`bg-success-background`, `border-success-border`) for theme compliance
 
 ## [0.1.0] - 2026-01-01
 

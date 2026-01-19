@@ -103,7 +103,7 @@ export const WithFooter: Story = {
 const getStatusBadge = (status: string) => {
     switch (status) {
         case "Paid":
-            return <Badge variant="default" className="bg-green-500">Paid</Badge>;
+            return <Badge variant="success">Paid</Badge>;
         case "Pending":
             return <Badge variant="secondary">Pending</Badge>;
         case "Unpaid":
@@ -279,10 +279,9 @@ export const SurveyResponses: Story = {
                             <TableCell>
                                 <Badge
                                     variant={
-                                        response.status === "Complete" ? "default" :
+                                        response.status === "Complete" ? "success" :
                                             response.status === "Partial" ? "secondary" : "outline"
                                     }
-                                    className={response.status === "Complete" ? "bg-green-500" : ""}
                                 >
                                     {response.status}
                                 </Badge>

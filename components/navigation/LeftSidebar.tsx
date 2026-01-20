@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import type { NavItem } from '../../types';
 import { mainNavItems } from '../../constants';
-
+import { Button } from '../Button';
 import { PanelLeftIcon, ArrowUpIcon } from '../icons';
 
 interface LeftSidebarProps {
@@ -28,18 +28,20 @@ const LeftSidebar: React.FC<LeftSidebarProps> = memo(({ activeTab, onTabSelect }
       ))}
       <div className="flex-1" />
       {activeTab !== 'Flow' && (
-        <>
-          <button
+        <div className="flex justify-center mb-2">
+          <Button
+            variant="ghost"
+            size="large"
+            iconOnly
             onClick={() => {
               const el = document.getElementById('print-canvas-scroll-container') || document.getElementById('main-canvas-scroll-container');
               if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className="flex flex-col items-center justify-center w-full h-16 transition-colors gap-1 text-on-surface-variant hover:text-primary mb-2"
             aria-label="Back to top"
           >
             <ArrowUpIcon className="text-xl" />
-          </button>
-        </>
+          </Button>
+        </div>
       )}
     </nav>
   );

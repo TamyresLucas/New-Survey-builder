@@ -3,6 +3,7 @@ import type { Block, Question, ToolboxItemData, QuestionType, Choice, Survey, Lo
 import QuestionCard from './QuestionCard';
 import { ChevronDownIcon, DotsHorizontalIcon, DragIndicatorIcon } from './icons';
 import { BlockActionsMenu, QuestionTypeSelectionMenuContent } from './ActionMenus';
+import { Button } from './Button';
 import { QuestionType as QTEnum } from '../types';
 import type { PageInfo } from '../types';
 import { SurveyFlowDisplay, IncomingLogicDisplay } from './LogicDisplays';
@@ -354,15 +355,18 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
         </div>
         {!printMode && (
           <div className="relative actions-menu-area flex-shrink-0" ref={actionsMenuRef}>
-            <button
+            <Button
+              variant="ghost"
+              size="large"
+              iconOnly
               onClick={(e) => { e.stopPropagation(); setIsActionsMenuOpen(prev => !prev); }}
-              className={`w-8 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-lowest rounded-md transition-colors ${isActionsMenuOpen ? '!bg-surface-container-lowest' : ''}`}
+              active={isActionsMenuOpen}
               aria-haspopup="true"
               aria-expanded={isActionsMenuOpen}
               aria-label="Block actions"
             >
               <DotsHorizontalIcon className="text-xl" />
-            </button>
+            </Button>
             {isActionsMenuOpen && (
               <BlockActionsMenu
                 onEdit={() => { onSelectBlock(block); setIsActionsMenuOpen(false); }}

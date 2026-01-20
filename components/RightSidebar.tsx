@@ -62,10 +62,10 @@ export const RightSidebar: React.FC<{
                     Edit {question.qid}
                 </h2>
                 <div className="flex items-center gap-2">
-                    <Button variant="tertiary" iconOnly onClick={onToggleExpand} aria-label={isExpanded ? 'Collapse panel' : 'Expand panel'}>
+                    <Button variant="ghost" size="large" iconOnly onClick={onToggleExpand} aria-label={isExpanded ? 'Collapse panel' : 'Expand panel'}>
                         {isExpanded ? <CollapseIcon className="text-xl" /> : <ExpandIcon className="text-xl" />}
                     </Button>
-                    <Button variant="tertiary" iconOnly onClick={onClose} aria-label="Close panel">
+                    <Button variant="ghost" size="large" iconOnly onClick={onClose} aria-label="Close panel">
                         <XIcon className="text-xl" />
                     </Button>
                 </div>

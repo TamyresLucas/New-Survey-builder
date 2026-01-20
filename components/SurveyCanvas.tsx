@@ -316,14 +316,14 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
           />
           <div className="flex justify-center py-4">
             <Button
-              variant="tertiary-primary"
+              variant="ghost-primary"
               size="large"
               onClick={(e) => {
                 e.stopPropagation();
                 onAddBlock(block.id, 'below');
               }}
             >
-              <PlusIcon className="text-xl mr-2" />
+              <PlusIcon className="text-xl" />
               Add block
             </Button>
           </div>

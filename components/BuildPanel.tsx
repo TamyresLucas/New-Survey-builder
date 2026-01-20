@@ -394,7 +394,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium text-on-surface" style={{ fontFamily: "'Outfit', sans-serif" }}>Build</h2>
           {!printMode && (
-            <Button variant="tertiary" iconOnly onClick={onClose} aria-label="Collapse build panel">
+            <Button variant="ghost" size="large" iconOnly onClick={onClose} aria-label="Collapse build panel">
               <PanelLeftIcon className="text-xl" />
             </Button>
           )}

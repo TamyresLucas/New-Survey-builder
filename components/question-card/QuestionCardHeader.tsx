@@ -147,7 +147,8 @@ export const QuestionCardHeader: React.FC<QuestionCardHeaderProps> = ({
 
                         <div ref={actionsMenuContainerRef} className="relative transition-opacity">
                             <Button
-                                variant="tertiary"
+                                variant="ghost"
+                                size="large"
                                 iconOnly
                                 onClick={(e) => {
                                     e.stopPropagation();

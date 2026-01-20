@@ -62,37 +62,41 @@ const SubHeader: React.FC<SubHeaderProps> = memo(({ onTogglePreview, onCopySurve
       <div className="flex-1 flex items-center justify-end gap-2">
         {activeMainTab !== 'Flow' && onToggleCollapseAll && (
           <Button
-            variant="tertiary"
+            variant="ghost"
             size="large"
             onClick={onToggleCollapseAll}
             aria-label={allBlocksCollapsed ? "Expand all" : "Collapse all"}
           >
             {allBlocksCollapsed ? (
-              <UnfoldMoreIcon className="text-xl mr-2" />
+              <UnfoldMoreIcon className="text-xl" />
             ) : (
-              <UnfoldLessIcon className="text-xl mr-2" />
+              <UnfoldLessIcon className="text-xl" />
             )}
             {allBlocksCollapsed ? "Expand all" : "Collapse all"}
           </Button>
         )}
-        <button
+        <Button
+          variant="primary"
+          size="large"
           onClick={onTogglePreview}
-          className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-on-primary bg-primary rounded-md hover:opacity-90 transition-opacity"
         >
           <EyeIcon className="text-base leading-none" />
           <span>Preview</span>
-        </button>
+        </Button>
 
         <div className="relative" ref={actionsMenuRef}>
-          <button
+          <Button
+            variant="ghost"
+            size="large"
+            iconOnly
             onClick={(e) => { e.stopPropagation(); setIsActionsOpen(prev => !prev); }}
-            className={`w-8 h-8 flex items-center justify-center text-on-surface bg-transparent rounded-md hover:bg-surface-container-lowest transition-colors ${isActionsOpen ? '!bg-surface-container-high' : ''}`}
+            active={isActionsOpen}
             aria-haspopup="true"
             aria-expanded={isActionsOpen}
             aria-label="Actions"
           >
             <DotsHorizontalIcon className="text-xl" />
-          </button>
+          </Button>
           {isActionsOpen && (
             <div className="absolute top-full right-0 mt-2 z-20">
               <DropdownList className="w-56">

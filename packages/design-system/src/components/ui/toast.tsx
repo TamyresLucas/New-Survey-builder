@@ -27,11 +27,11 @@ const toastVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-primary/40 text-foreground [&>svg]:text-primary [&>.material-symbols-rounded]:text-primary bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_90%)]",
+        default: "border-primary/20 text-foreground [&>svg]:text-primary [&>.material-symbols-rounded]:text-primary bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_90%)]",
         destructive: "destructive group border-destructive/40 bg-[color-mix(in_oklab,hsl(var(--destructive)),hsl(var(--background))_90%)] text-foreground [&>svg]:text-destructive [&>.material-symbols-rounded]:text-destructive",
         success: "group border-success/40 bg-[color-mix(in_oklab,hsl(var(--success)),hsl(var(--background))_90%)] text-foreground [&>svg]:text-success [&>.material-symbols-rounded]:text-success",
         warning: "group border-warning/40 bg-[color-mix(in_oklab,hsl(var(--warning)),hsl(var(--background))_90%)] text-foreground [&>svg]:text-warning [&>.material-symbols-rounded]:text-warning",
-        info: "group border-primary/40 bg-[color-mix(in_oklab,hsl(var(--info)),hsl(var(--background))_90%)] text-foreground [&>svg]:text-info [&>.material-symbols-rounded]:text-info",
+        info: "group border-primary/20 bg-[color-mix(in_oklab,hsl(var(--info)),hsl(var(--background))_90%)] text-foreground [&>svg]:text-info [&>.material-symbols-rounded]:text-info",
       },
     },
     defaultVariants: {

@@ -37,43 +37,74 @@
         /* Points the legacy Shadcn variable to the new dynamic token */
         --font-sans: var(--font-family-sans);
 
-        --background: 0 0% 100%;
-        --foreground: 222.2 84% 4.9%;
-        --card: 0 0% 100%;
-        --card-foreground: 222.2 84% 4.9%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 222.2 84% 4.9%;
-        --primary: 233 86% 64%;
-        --primary-foreground: 210 40% 98%;
-        --secondary: color-mix(in oklab, hsl(var(--primary)) 5%, hsl(var(--background)));
-        --secondary-hover: color-mix(in oklab, hsl(var(--primary)) 15%, hsl(var(--background)));
-        --secondary-foreground: 222.2 47.4% 11.2%;
-        --muted: color-mix(in oklab, hsl(var(--primary)) 10%, hsl(var(--background)));
-        --muted-foreground: color-mix(in oklab, hsl(var(--primary)) 30%, hsl(var(--foreground)));
-        --disabled-foreground: color-mix(in oklab, hsl(var(--primary)) 40%, hsl(var(--background)));
+        /* ============================================
+           CONNECTED TO SEMANTIC TOKENS (tokens.css)
+           ============================================ */
+
+        /* Backgrounds (HSL for Tailwind opacity) */
+        --background: var(--surface-hsl);
+        --foreground: var(--text-pri-hsl);
+
+        /* Cards (HSL for Tailwind opacity) */
+        --card: var(--surface-container-hsl);
+        --card-foreground: var(--text-pri-hsl);
+
+        /* Popovers (HSL for Tailwind opacity) */
+        --popover: var(--surface-container-hsl);
+        --popover-foreground: var(--text-pri-hsl);
+
+        /* Primary - Connected to semantic-pri (HSL for Tailwind opacity) */
+        --primary: var(--semantic-pri-hsl);
+        --primary-foreground: var(--text-on-primary-hsl);
+
+        /* Secondary */
+        --secondary: var(--md-sys-color-surface-dim);
+        --secondary-hover: var(--md-sys-color-surface-bright);
+        --secondary-foreground: var(--text-txt-pri);
+
+        /* Muted (HSL for Tailwind opacity) */
+        --muted: var(--surface-dim-hsl);
+        --muted-foreground: var(--text-txt-sec);
+        --disabled-foreground: var(--foundation-primary-gradients-primary-40);
         --placeholder-foreground: rgba(0, 0, 0, 0.6);
-        --accent: color-mix(in oklab, hsl(var(--primary)) 10%, hsl(var(--background)));
-        --accent-foreground: 222.2 47.4% 11.2%;
-        --destructive: 350 60% 54%;
-        --destructive-foreground: 210 40% 98%;
-        --background-destructive: color-mix(in oklab, hsl(var(--destructive)) 10%, hsl(var(--background)));
-        --border-destructive: color-mix(in oklab, hsl(var(--destructive)) 50%, hsl(var(--background)));
-        --success: 165 100% 26%;
-        --success-foreground: 210 40% 98%;
-        --background-success: color-mix(in oklab, hsl(var(--success)) 10%, hsl(var(--background)));
-        --border-success: color-mix(in oklab, hsl(var(--success)) 50%, hsl(var(--background)));
-        --warning: 38 92% 50%;
-        --warning-foreground: 210 40% 98%;
-        --background-warning: color-mix(in oklab, hsl(var(--warning)) 10%, hsl(var(--background)));
-        --border-warning: color-mix(in oklab, hsl(var(--warning)) 50%, hsl(var(--background)));
-        --info: var(--primary);
-        --info-foreground: var(--primary-foreground);
-        --background-info: color-mix(in oklab, hsl(var(--info)) 10%, hsl(var(--background)));
-        --border-info: color-mix(in oklab, hsl(var(--info)) 50%, hsl(var(--background)));
-        --border: color-mix(in oklab, color-mix(in oklab, hsl(var(--primary)), hsl(0 0% 70%) 40%) 50%, hsl(var(--background)));
-        --input: color-mix(in oklab, color-mix(in oklab, hsl(var(--primary)), hsl(0 0% 70%) 40%) 50%, hsl(var(--background)));
-        --ring: 222.2 84% 4.9%;
+
+        /* Accent (HSL for Tailwind opacity) */
+        --accent: var(--surface-accent-hsl);
+        --accent-foreground: var(--text-pri-hsl);
+
+        /* Destructive - Connected to semantic-err (HSL for Tailwind opacity) */
+        --destructive: var(--semantic-err-hsl);
+        --destructive-foreground: var(--text-on-primary-hsl);
+        --background-destructive: var(--notification-err-bg);
+        --border-destructive: var(--notification-err-bd);
+
+        /* Success - Connected to semantic-suc (HSL for Tailwind opacity) */
+        --success: var(--semantic-suc-hsl);
+        --success-foreground: var(--text-on-primary-hsl);
+        --background-success: var(--notification-suc-bg);
+        --border-success: var(--notification-suc-bd);
+
+        /* Warning - Connected to semantic-warn (HSL for Tailwind opacity) */
+        --warning: var(--semantic-warn-hsl);
+        --warning-foreground: var(--text-txt-pri);
+        --background-warning: var(--notification-warn-bg);
+        --border-warning: var(--notification-warn-bd);
+
+        /* Info - Connected to semantic-info (HSL for Tailwind opacity) */
+        --info: var(--semantic-info-hsl);
+        --info-foreground: var(--text-on-primary-hsl);
+        --background-info: var(--notification-info-bg);
+        --border-info: var(--notification-info-bd);
+
+        /* Borders & Inputs */
+        --border: var(--border-bd-def);
+        --input: var(--input-field-input-bd-dis);
+        --ring: var(--semantic-pri-hsl);
+
+        /* Radius - keep original value */
         --radius: 0.5rem;
+
+        /* Chart colors - keep HSL for flexibility */
         --chart-1: 12 76% 61%;
         --chart-2: 173 58% 39%;
         --chart-3: 197 37% 24%;
@@ -82,42 +113,71 @@
     }
 
     .dark {
-        --background: 222.2 84% 4.9%;
-        --foreground: 210 40% 98%;
-        --card: 222.2 84% 4.9%;
-        --card-foreground: 210 40% 98%;
-        --popover: 222.2 84% 4.9%;
-        --popover-foreground: 210 40% 98%;
-        --primary: 210 40% 98%;
-        --primary-foreground: 222.2 47.4% 11.2%;
-        --secondary: color-mix(in oklab, hsl(var(--primary)) 5%, hsl(var(--background)));
-        --secondary-hover: color-mix(in oklab, hsl(var(--primary)) 15%, hsl(var(--background)));
-        --secondary-foreground: 210 40% 98%;
-        --muted: color-mix(in oklab, hsl(var(--primary)) 10%, hsl(var(--background)));
-        --muted-foreground: color-mix(in oklab, hsl(var(--primary)) 30%, hsl(var(--foreground)));
-        --disabled-foreground: color-mix(in oklab, hsl(var(--primary)) 40%, hsl(var(--background)));
+        /* ============================================
+           DARK MODE - CONNECTED TO SEMANTIC TOKENS
+           ============================================ */
+
+        /* Backgrounds (HSL for Tailwind opacity) */
+        --background: var(--surface-hsl);
+        --foreground: var(--text-pri-hsl);
+
+        /* Cards (HSL for Tailwind opacity) */
+        --card: var(--surface-container-hsl);
+        --card-foreground: var(--text-pri-hsl);
+
+        /* Popovers (HSL for Tailwind opacity) */
+        --popover: var(--surface-container-hsl);
+        --popover-foreground: var(--text-pri-hsl);
+
+        /* Primary - Connected to semantic-pri (HSL for Tailwind opacity) */
+        --primary: var(--semantic-pri-hsl);
+        --primary-foreground: var(--text-on-primary-hsl);
+
+        /* Secondary */
+        --secondary: var(--md-sys-color-surface-dim);
+        --secondary-hover: var(--md-sys-color-surface-bright);
+        --secondary-foreground: var(--text-txt-pri);
+
+        /* Muted (HSL for Tailwind opacity) */
+        --muted: var(--surface-dim-hsl);
+        --muted-foreground: var(--text-txt-sec);
+        --disabled-foreground: var(--foundation-primary-gradients-primary-40);
         --placeholder-foreground: rgba(255, 255, 255, 0.6);
-        --accent: color-mix(in oklab, hsl(var(--primary)) 10%, hsl(var(--background)));
-        --accent-foreground: 210 40% 98%;
-        --destructive: 0 62.8% 30.6%;
-        --destructive-foreground: 210 40% 98%;
-        --destructive-background: color-mix(in oklab, hsl(var(--destructive)) 10%, hsl(var(--background)));
-        --border-destructive: color-mix(in oklab, hsl(var(--destructive)) 50%, hsl(var(--background)));
-        --success: 142 70% 45%;
-        --success-foreground: 144 61% 20%;
-        --success-background: color-mix(in oklab, hsl(var(--success)) 10%, hsl(var(--background)));
-        --border-success: color-mix(in oklab, hsl(var(--success)) 50%, hsl(var(--background)));
-        --warning: 38 92% 50%;
-        --warning-foreground: 48 96% 89%;
-        --warning-background: color-mix(in oklab, hsl(var(--warning)) 10%, hsl(var(--background)));
-        --border-warning: color-mix(in oklab, hsl(var(--warning)) 50%, hsl(var(--background)));
-        --info: var(--primary);
-        --info-foreground: var(--primary-foreground);
-        --info-background: color-mix(in oklab, hsl(var(--info)) 10%, hsl(var(--background)));
-        --border-info: color-mix(in oklab, hsl(var(--info)) 50%, hsl(var(--background)));
-        --border: color-mix(in oklab, color-mix(in oklab, hsl(var(--primary)), hsl(0 0% 30%) 40%) 50%, hsl(var(--background)));
-        --input: color-mix(in oklab, color-mix(in oklab, hsl(var(--primary)), hsl(0 0% 30%) 40%) 50%, hsl(var(--background)));
-        --ring: 212.7 26.8% 83.9%;
+
+        /* Accent (HSL for Tailwind opacity) */
+        --accent: var(--surface-accent-hsl);
+        --accent-foreground: var(--text-pri-hsl);
+
+        /* Destructive - Connected to semantic-err (HSL for Tailwind opacity) */
+        --destructive: var(--semantic-err-hsl);
+        --destructive-foreground: var(--text-on-primary-hsl);
+        --destructive-background: var(--notification-err-bg);
+        --border-destructive: var(--notification-err-bd);
+
+        /* Success - Connected to semantic-suc (HSL for Tailwind opacity) */
+        --success: var(--semantic-suc-hsl);
+        --success-foreground: var(--text-on-primary-hsl);
+        --success-background: var(--notification-suc-bg);
+        --border-success: var(--notification-suc-bd);
+
+        /* Warning - Connected to semantic-warn (HSL for Tailwind opacity) */
+        --warning: var(--semantic-warn-hsl);
+        --warning-foreground: var(--text-txt-pri);
+        --warning-background: var(--notification-warn-bg);
+        --border-warning: var(--notification-warn-bd);
+
+        /* Info - Connected to semantic-info (HSL for Tailwind opacity) */
+        --info: var(--semantic-info-hsl);
+        --info-foreground: var(--text-on-primary-hsl);
+        --info-background: var(--notification-info-bg);
+        --border-info: var(--notification-info-bd);
+
+        /* Borders & Inputs */
+        --border: var(--border-bd-def);
+        --input: var(--input-field-input-bd-dis);
+        --ring: var(--semantic-pri-hsl);
+
+        /* Chart colors - keep HSL for flexibility */
         --chart-1: 220 70% 50%;
         --chart-2: 160 60% 45%;
         --chart-3: 30 80% 55%;
@@ -143,7 +203,7 @@
     /* For TableHeader component (applies to tr inside thead.table-header) */
     .table-header tr,
     .table-header-row {
-        background-color: color-mix(in oklab, hsl(var(--primary)) 10%, hsl(var(--background)));
+        background-color: transparent;
         transition-property: color, background-color;
         transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
         transition-duration: 150ms;
@@ -151,8 +211,8 @@
 
     .table-header tr:hover,
     .table-header-row:hover {
-        background-color: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background)));
-        color: hsl(var(--accent-foreground));
+        background-color: transparent;
+        color: hsl(var(--foreground));
     }
 
     .table-body-row {
@@ -164,8 +224,13 @@
     }
 
     .table-body-row:hover {
-        background-color: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background)));
-        color: hsl(var(--accent-foreground));
+        background-color: color-mix(in oklab, hsl(var(--primary)) 10%, hsl(var(--background)));
+        color: hsl(var(--foreground));
+    }
+
+    .table-body-row[data-state='selected'] {
+        color: hsl(var(--primary));
+        box-shadow: inset 2px 0 0 0 hsl(var(--primary));
     }
 
     /* Utility for placeholder text using placeholder-foreground token */
@@ -275,4 +340,11 @@
     .variant-info {
         @apply border-info/50 bg-info/10 text-info dark:border-info;
     }
+}
+
+/* Navigation Menu - Selected state hover */
+[data-state="open"]:hover,
+[data-active]:hover,
+[data-active="true"]:hover {
+    color: hsl(var(--primary)) !important;
 }

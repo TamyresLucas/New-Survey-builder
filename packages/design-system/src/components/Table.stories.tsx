@@ -13,6 +13,7 @@ import {
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
+import { TableRowActions } from './ui/table-row-actions';
 
 const meta = {
     title: 'Components/Data Display/Table',
@@ -225,8 +226,12 @@ export const WithActions: Story = {
                         <TableCell>{getStatusBadge(invoice.paymentStatus)}</TableCell>
                         <TableCell>{invoice.totalAmount}</TableCell>
                         <TableCell className="text-right">
-                            <Button variant="ghost" size="sm">Edit</Button>
-                            <Button variant="ghost" size="sm" className="text-destructive">Delete</Button>
+                            <TableRowActions
+                                actions={[
+                                    { label: "Edit", onClick: () => console.log("Edit", invoice), icon: "edit" },
+                                    { label: "Delete", onClick: () => console.log("Delete", invoice), variant: "destructive", icon: "delete" }
+                                ]}
+                            />
                         </TableCell>
                     </TableRow>
                 ))}
@@ -287,7 +292,11 @@ export const SurveyResponses: Story = {
                                 </Badge>
                             </TableCell>
                             <TableCell className="text-right">
-                                <Button variant="ghost" size="sm">View</Button>
+                                <TableRowActions
+                                    actions={[
+                                        { label: "View", onClick: () => console.log("View", response), icon: "visibility" }
+                                    ]}
+                                />
                             </TableCell>
                         </TableRow>
                     ))}

@@ -109,28 +109,28 @@ export const SurveyQuestion: Story = {
             <h3 className="font-medium mb-2">How satisfied are you with our service?</h3>
             <p className="text-sm text-muted-foreground mb-4">Please select one option.</p>
             <RadioGroup>
-                <div className="flex items-start space-x-2 p-2 rounded hover:bg-accent">
+                <div className="flex items-start space-x-2 p-2 rounded hover:bg-primary/10">
                     <RadioGroupItem value="very-satisfied" id="q-vs" className="mt-0.5" />
                     <div className="grid gap-0.5 leading-none">
                         <Label htmlFor="q-vs">Very Satisfied</Label>
                         <p className="text-xs text-muted-foreground">Exceeded my expectations</p>
                     </div>
                 </div>
-                <div className="flex items-start space-x-2 p-2 rounded hover:bg-accent">
+                <div className="flex items-start space-x-2 p-2 rounded hover:bg-primary/10">
                     <RadioGroupItem value="satisfied" id="q-s" className="mt-0.5" />
                     <div className="grid gap-0.5 leading-none">
                         <Label htmlFor="q-s">Satisfied</Label>
                         <p className="text-xs text-muted-foreground">Met my expectations</p>
                     </div>
                 </div>
-                <div className="flex items-start space-x-2 p-2 rounded hover:bg-accent">
+                <div className="flex items-start space-x-2 p-2 rounded hover:bg-primary/10">
                     <RadioGroupItem value="neutral" id="q-n" className="mt-0.5" />
                     <div className="grid gap-0.5 leading-none">
                         <Label htmlFor="q-n">Neutral</Label>
                         <p className="text-xs text-muted-foreground">Neither satisfied nor dissatisfied</p>
                     </div>
                 </div>
-                <div className="flex items-start space-x-2 p-2 rounded hover:bg-accent">
+                <div className="flex items-start space-x-2 p-2 rounded hover:bg-primary/10">
                     <RadioGroupItem value="dissatisfied" id="q-d" className="mt-0.5" />
                     <div className="grid gap-0.5 leading-none">
                         <Label htmlFor="q-d">Dissatisfied</Label>
@@ -151,7 +151,7 @@ export const CardStyle: Story = {
             <RadioGroup defaultValue="standard" className="grid gap-3">
                 <Label
                     htmlFor="card-free"
-                    className="flex items-center justify-between rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary"
+                    className="flex items-center justify-between rounded-lg border-2 border-primary/20 bg-popover p-4 hover:bg-primary/10 cursor-pointer [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/20 [&:has([data-state=checked])]:text-foreground"
                 >
                     <div className="flex items-center gap-3">
                         <RadioGroupItem value="free" id="card-free" />
@@ -164,7 +164,7 @@ export const CardStyle: Story = {
                 </Label>
                 <Label
                     htmlFor="card-standard"
-                    className="flex items-center justify-between rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary"
+                    className="flex items-center justify-between rounded-lg border-2 border-primary/20 bg-popover p-4 hover:bg-primary/10 cursor-pointer [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/20 [&:has([data-state=checked])]:text-foreground"
                 >
                     <div className="flex items-center gap-3">
                         <RadioGroupItem value="standard" id="card-standard" />
@@ -177,7 +177,7 @@ export const CardStyle: Story = {
                 </Label>
                 <Label
                     htmlFor="card-pro"
-                    className="flex items-center justify-between rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary"
+                    className="flex items-center justify-between rounded-lg border-2 border-primary/20 bg-popover p-4 hover:bg-primary/10 cursor-pointer [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/20 [&:has([data-state=checked])]:text-foreground"
                 >
                     <div className="flex items-center gap-3">
                         <RadioGroupItem value="pro" id="card-pro" />
@@ -201,7 +201,7 @@ export const CardStyleWithIcons: Story = {
             <RadioGroup defaultValue="email" className="grid grid-cols-3 gap-3">
                 <Label
                     htmlFor="contact-email"
-                    className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/5"
+                    className="flex flex-col items-center justify-center rounded-lg border-2 border-primary/20 bg-popover p-4 hover:bg-primary/10 cursor-pointer [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/20 [&:has([data-state=checked])]:text-foreground"
                 >
                     <RadioGroupItem value="email" id="contact-email" className="sr-only" />
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -211,7 +211,7 @@ export const CardStyleWithIcons: Story = {
                 </Label>
                 <Label
                     htmlFor="contact-phone"
-                    className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/5"
+                    className="flex flex-col items-center justify-center rounded-lg border-2 border-primary/20 bg-popover p-4 hover:bg-primary/10 cursor-pointer [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/20 [&:has([data-state=checked])]:text-foreground"
                 >
                     <RadioGroupItem value="phone" id="contact-phone" className="sr-only" />
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -221,7 +221,7 @@ export const CardStyleWithIcons: Story = {
                 </Label>
                 <Label
                     htmlFor="contact-sms"
-                    className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/5"
+                    className="flex flex-col items-center justify-center rounded-lg border-2 border-primary/20 bg-popover p-4 hover:bg-primary/10 cursor-pointer [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/20 [&:has([data-state=checked])]:text-foreground"
                 >
                     <RadioGroupItem value="sms" id="contact-sms" className="sr-only" />
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

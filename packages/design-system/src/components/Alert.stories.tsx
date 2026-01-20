@@ -189,11 +189,31 @@ export const AllVariants: Story = {
 
 export const Compact: Story = {
     render: () => (
-        <Alert className="w-[350px] py-2">
-            <InfoIcon className="h-4 w-4" />
-            <AlertDescription>
-                Survey saved as draft.
-            </AlertDescription>
-        </Alert>
+        <div className="w-[350px] space-y-4">
+            <Alert className="py-2">
+                <InfoIcon className="h-4 w-4" />
+                <AlertDescription>
+                    Survey saved as draft.
+                </AlertDescription>
+            </Alert>
+            <Alert variant="success" className="py-2">
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertDescription>
+                    Survey published successfully.
+                </AlertDescription>
+            </Alert>
+            <Alert variant="warning" className="py-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                    Unaved changes in draft.
+                </AlertDescription>
+            </Alert>
+            <Alert variant="destructive" className="py-2">
+                <XCircle className="h-4 w-4" />
+                <AlertDescription>
+                    Failed to save survey.
+                </AlertDescription>
+            </Alert>
+        </div>
     ),
 };

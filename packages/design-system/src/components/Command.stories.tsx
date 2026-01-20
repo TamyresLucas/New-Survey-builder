@@ -48,7 +48,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
     render: (args) => (
-        <Command className="rounded-lg border shadow-md md:min-w-[450px]" {...args}>
+        <Command className="rounded-lg shadow-md md:min-w-[450px]" {...args}>
             <CommandInput placeholder="Type a command or search..." />
             <CommandList>
                 <CommandEmpty>No results found.</CommandEmpty>
@@ -171,7 +171,7 @@ export const GlobalSearch: Story = {
 
 export const WithSubSections: Story = {
     render: () => (
-        <Command className="rounded-lg border shadow-md md:min-w-[450px]">
+        <Command className="rounded-lg shadow-md md:min-w-[450px]">
             <CommandInput placeholder="Search documentation..." />
             <CommandList className="h-[300px]">
                 <CommandEmpty>No results found.</CommandEmpty>
@@ -228,7 +228,7 @@ export const WithSubSections: Story = {
 
 export const SurveyActions: Story = {
     render: () => (
-        <Command className="rounded-lg border shadow-md md:min-w-[450px]">
+        <Command className="rounded-lg shadow-md md:min-w-[450px]">
             <CommandInput placeholder="Search survey actions..." />
             <CommandList>
                 <CommandEmpty>No results found.</CommandEmpty>

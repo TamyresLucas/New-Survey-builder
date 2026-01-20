@@ -14,7 +14,7 @@ const buttonVariants = cva(
           "bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:[&:not([data-loading=true])]:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_90%)] disabled:[&:not([data-loading=true])]:text-primary/40",
         success: "bg-success text-success-foreground hover:bg-success/90 disabled:[&:not([data-loading=true])]:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_90%)] disabled:[&:not([data-loading=true])]:text-primary/40",
         outline:
-          "border border-primary/40 bg-transparent hover:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_80%)] hover:text-accent-foreground disabled:[&:not([data-loading=true])]:bg-background disabled:[&:not([data-loading=true])]:text-primary/40 disabled:[&:not([data-loading=true])]:border-muted-foreground/20",
+          "border border-primary/40 bg-transparent hover:bg-primary/10 disabled:[&:not([data-loading=true])]:bg-background disabled:[&:not([data-loading=true])]:text-primary/40 disabled:[&:not([data-loading=true])]:border-muted-foreground/20",
         secondary:
           "bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_90%)] text-secondary-foreground hover:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_80%)] disabled:[&:not([data-loading=true])]:bg-transparent disabled:[&:not([data-loading=true])]:text-primary/40",
         ghost: "hover:text-primary disabled:[&:not([data-loading=true])]:text-primary/40",

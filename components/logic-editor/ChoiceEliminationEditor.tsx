@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import type { Question } from '../../types';
+import { QuestionType } from '../../types';
 import { PlusIcon, ChevronDownIcon } from '../icons';
 import { truncate } from '../../utils';
 
@@ -27,7 +28,7 @@ export const ChoiceEliminationEditor: React.FC<{
   const compatibleSourceQuestions = useMemo(() =>
     previousQuestions.filter(q =>
       q.choices && q.choices.length > 0 &&
-      (q.type === 'Radio Button' || q.type === 'Checkbox' || q.type === 'Drop-Down List')
+      (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.DropDownList)
     ),
     [previousQuestions]);
 

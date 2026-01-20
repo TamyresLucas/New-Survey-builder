@@ -5,12 +5,15 @@
     --lng1771-row-selected: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background)));
     --lng1771-primary-50: hsl(var(--primary));
     --lng1771-gray-00: hsl(var(--background));
-    --lng1771-gray-02: var(--muted);
-    /* Alternating row background - 5% primary */
-    --lng1771-gray-10: var(--muted);
+    --lng1771-gray-02: transparent;
+    /* Was muted, set to transparent to remove alternating row effect */
+    /* Alternating row background - disable by setting to transparent */
+    --lng1771-gray-10: transparent;
     --lng1771-gray-20: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background)));
     --lng1771-gray-80: hsl(var(--foreground));
     --lng1771-focus-outline: hsl(var(--primary));
+    background-color: hsl(var(--background));
+    /* Use opaque background token */
 }
 
 /* Alternating row styling */
@@ -27,22 +30,27 @@
 }
 
 /* Row selection highlight */
+/* Row selection highlight - Match Table Selection (Text color, no bg, left border/shadow) */
 [data-ln-row-selected="true"] {
-    background-color: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background))) !important;
+    background-color: transparent !important;
+    color: hsl(var(--primary)) !important;
+    box-shadow: inset 2px 0 0 0 hsl(var(--primary)) !important;
 }
 
 [data-ln-row-selected="true"]:hover {
-    background-color: color-mix(in oklab, hsl(var(--primary)) 30%, hsl(var(--background))) !important;
+    background-color: color-mix(in oklab, hsl(var(--primary)) 10%, hsl(var(--background))) !important;
+    color: hsl(var(--primary)) !important;
+    box-shadow: inset 2px 0 0 0 hsl(var(--primary)) !important;
 }
 
 /* Row hover effect - same as ghost button */
 [data-ln-row]:hover {
-    background-color: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background)));
+    background-color: color-mix(in oklab, hsl(var(--primary)) 10%, hsl(var(--background)));
 }
 
 /* Apply hover background to cells to override any internal backgrounds */
 [data-ln-row]:hover [data-ln-cell] {
-    background-color: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background))) !important;
+    background-color: color-mix(in oklab, hsl(var(--primary)) 10%, hsl(var(--background))) !important;
 }
 
 /* Row actions - hidden by default, visible on hover */
@@ -57,9 +65,12 @@
 }
 
 /* Header styling */
+/* Header styling - Match Table Header */
 [data-ln-header-cell] {
-    font-weight: 600;
-    background-color: var(--muted);
+    font-weight: 500;
+    color: var(--muted-foreground);
+    background-color: transparent;
+    /* Table header often has transparent or specific bg */
     border-bottom: 1px solid color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background))) !important;
     cursor: pointer;
     user-select: none;
@@ -69,13 +80,14 @@
 }
 
 [data-ln-header-cell]:hover {
-    background-color: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background)));
+    background-color: transparent;
     color: hsl(var(--accent-foreground));
 }
 
 /* Cell styling with vertical centering */
+/* Cell styling with vertical centering - Remove vertical borders */
 [data-ln-cell] {
-    border-right: 1px solid color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background))) !important;
+    border-right: none !important;
     border-bottom: 1px solid color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background))) !important;
     display: flex;
     align-items: center;
@@ -98,7 +110,12 @@
 }
 
 /* Sort indicator styling */
-.sort-indicator {
+[data-ln-sort-indicator] {
     margin-left: 4px;
     font-size: 0.75rem;
+}
+
+/* Editable cell styling */
+[data-ln-editable="true"]:hover {
+    color: hsl(var(--accent-foreground));
 }

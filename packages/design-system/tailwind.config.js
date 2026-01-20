@@ -14,6 +14,10 @@ export default {
 				sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
 			},
 			colors: {
+				/* ============================================
+				   HSL WRAPPERS - Enables Tailwind opacity utilities
+				   e.g., text-primary/40, bg-primary/10
+				   ============================================ */
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
@@ -30,26 +34,26 @@ export default {
 				destructive: {
 					DEFAULT: 'hsl(var(--destructive))',
 					foreground: 'hsl(var(--destructive-foreground))',
-					border: 'hsl(var(--destructive))', /* O segredo das bordas */
+					border: 'var(--border-destructive)',
 				},
 				success: {
 					DEFAULT: 'hsl(var(--success))',
 					foreground: 'hsl(var(--success-foreground))',
-					border: 'hsl(var(--success))', /* O segredo das bordas */
+					border: 'var(--border-success)',
 				},
 				warning: {
 					DEFAULT: 'hsl(var(--warning))',
 					foreground: 'hsl(var(--warning-foreground))',
-					border: 'hsl(var(--warning))', /* O segredo das bordas */
+					border: 'var(--border-warning)',
 				},
 				info: {
 					DEFAULT: 'hsl(var(--info))',
 					foreground: 'hsl(var(--info-foreground))',
-					border: 'hsl(var(--info))', /* O segredo das bordas */
+					border: 'var(--border-info)',
 				},
 				muted: {
-					DEFAULT: 'var(--muted)',
-					foreground: 'var(--muted-foreground)'
+					DEFAULT: 'hsl(var(--muted))',
+					foreground: 'hsl(var(--muted-foreground))'
 				},
 				accent: {
 					DEFAULT: 'hsl(var(--accent))',

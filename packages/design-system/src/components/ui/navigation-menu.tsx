@@ -41,7 +41,7 @@ NavigationMenuList.displayName = NavigationMenuPrimitive.List.displayName
 const NavigationMenuItem = NavigationMenuPrimitive.Item
 
 const navigationMenuTriggerStyle = cva(
-  "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_80%)] hover:text-accent-foreground focus:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_80%)] focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=open]:text-accent-foreground data-[state=open]:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_80%)] data-[state=open]:hover:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_80%)] data-[state=open]:focus:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_80%)]"
+  "group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:text-primary focus:text-primary focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent data-[state=open]:bg-accent [&[data-state=open]:hover]:text-primary"
 )
 
 const NavigationMenuTrigger = React.forwardRef<

@@ -74,6 +74,30 @@
   --semantic-err-hov: var(--foundation-coral);
   --semantic-warn: var(--foundation-tangerine);
   --semantic-info: var(--foundation-periwinkle-dark);
+
+  /* =========================================
+     HSL TOKENS (Shadcn Compatibility Layer)
+     Same colors as semantic tokens, HSL format
+     ========================================= */
+  --semantic-pri-hsl: 233 86% 64%;
+  --semantic-suc-hsl: 161 100% 26%;
+  --semantic-err-hsl: 352 84% 64%;
+  --semantic-warn-hsl: 26 92% 48%;
+  --semantic-info-hsl: 233 86% 64%;
+  --semantic-pri-hov-hsl: 233 100% 67%;
+
+  /* Surface HSL (for backgrounds) */
+  --surface-hsl: 0 0% 100%;
+  --surface-dim-hsl: 233 100% 93%;
+  --surface-container-hsl: 0 0% 100%;
+
+  /* Text HSL */
+  --text-pri-hsl: 0 0% 14%;
+  --text-on-primary-hsl: 0 0% 100%;
+
+  /* Accent surface (light tint for hover/active states) */
+  --surface-accent-hsl: 233 100% 95%;
+
   --semantic-shd: #232323;
   /* Material Design 3 Surface System */
   --md-sys-color-surface: var(--foundation-neutral-scale-primary-10);
@@ -332,6 +356,30 @@
   --semantic-err-hov: var(--foundation-coral);
   --semantic-warn: var(--foundation-tangerine);
   --semantic-info: #6366f1;
+
+  /* =========================================
+     HSL TOKENS (Shadcn Compatibility Layer)
+     Same colors as semantic tokens, HSL format
+     ========================================= */
+  --semantic-pri-hsl: 235 100% 86%;
+  --semantic-suc-hsl: 161 100% 26%;
+  --semantic-err-hsl: 352 84% 64%;
+  --semantic-warn-hsl: 35 93% 67%;
+  --semantic-info-hsl: 239 84% 67%;
+  --semantic-pri-hov-hsl: 235 100% 86%;
+
+  /* Surface HSL (for backgrounds) */
+  --surface-hsl: 240 6% 10%;
+  --surface-dim-hsl: 240 6% 6%;
+  --surface-container-hsl: 228 18% 14%;
+
+  /* Text HSL */
+  --text-pri-hsl: 0 0% 100%;
+  --text-on-primary-hsl: 230 50% 21%;
+
+  /* Accent surface (light tint for hover/active states) */
+  --surface-accent-hsl: 233 20% 20%;
+
   --semantic-shd: #000000;
   /* Material Design 3 Surface System */
   --md-sys-color-surface: hsl(240 6% 10%);

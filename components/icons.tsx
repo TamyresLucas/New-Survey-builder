@@ -54,13 +54,13 @@ export const RadioIcon: React.FC<IconProps> = ({ className, style }) => <Materia
 export const RadioButtonUncheckedIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="radio_button_unchecked" className={className} style={style} />;
 export const TextAnswerIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="title" className={className} style={style} />;
 export const ChoiceGridIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="grid_view" className={className} style={style} fill={1} />;
-export const AutocompleteIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="arrow_drop_down_circle" className={className} style={style} fill={1} />;
+export const AutocompleteIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="arrow_drop_down" className={className} style={style} fill={1} />;
 export const CardSortIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="style" className={className} style={style} />;
 export const CustomQuestionIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="code" className={className} style={style} />;
 export const DateTimeIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="event" className={className} style={style} />;
 export const DragDropIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="move_up" className={className} style={style} />;
-export const DrillDownIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="arrow_drop_down_circle" className={className} style={style} fill={1} />;
-export const DropDownIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="arrow_drop_down_circle" className={className} style={style} fill={1} />;
+export const DrillDownIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="arrow_drop_down" className={className} style={style} fill={1} />;
+export const DropDownIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="arrow_drop_down" className={className} style={style} fill={1} />;
 export const EmailIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="mail" className={className} style={style} />;
 export const HybridGridIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="dashboard_customize" className={className} style={style} />;
 export const OpenEndAnswerIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="edit_note" className={className} style={style} />;
@@ -106,6 +106,7 @@ export const ToggleOffIcon: React.FC<IconProps> = ({ className, style }) => <Mat
 export const ChevronRightIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="chevron_right" className={className} style={style} />;
 export const ChevronLeftIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="chevron_left" className={className} style={style} />;
 export const MoreVertIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="more_vert" className={className} style={style} />;
+export const MoreIcon = MoreVertIcon; // Alias for MoreVertIcon
 export const CheckCircleIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="check_circle" className={className} style={style} />;
 
 // Preview Icons

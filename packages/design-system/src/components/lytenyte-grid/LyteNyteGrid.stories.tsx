@@ -382,40 +382,43 @@ const Icon = ({ name, size = 20 }: { name: string; size?: number }) => (
     </span>
 );
 
-// Row actions cell renderer
+import { TableRowActions } from '../ui/table-row-actions';
+
+// Row actions cell renderer using standard component
 const RowActionsCell = ({ row }: { row: Employee | undefined }) => {
     if (!row) return null;
 
+    // Simulate different action counts for demonstration if needed, 
+    // or just standard set. I'll use standard set to show dropdown.
+    // To show single button, we could filter.
+
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 row-action-button">
-                    <Icon name={ICONS.moreVert} />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => console.log('View', row)}>
-                    <Icon name={ICONS.visibility} size={18} />
-                    <span>View Details</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => console.log('Edit', row)}>
-                    <Icon name={ICONS.edit} size={18} />
-                    <span>Edit</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => console.log('Duplicate', row)}>
-                    <Icon name={ICONS.contentCopy} size={18} />
-                    <span>Duplicate</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    onClick={() => console.log('Delete', row)}
-                    className="text-destructive focus:text-destructive"
-                >
-                    <Icon name={ICONS.delete} size={18} />
-                    <span>Delete</span>
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <TableRowActions
+            actions={[
+                {
+                    label: 'View Details',
+                    icon: ICONS.visibility,
+                    onClick: () => console.log('View', row)
+                },
+                {
+                    label: 'Edit',
+                    icon: ICONS.edit,
+                    onClick: () => console.log('Edit', row)
+                },
+                {
+                    label: 'Duplicate',
+                    icon: ICONS.contentCopy,
+                    onClick: () => console.log('Duplicate', row)
+                },
+                {
+                    label: 'Delete',
+                    icon: ICONS.delete,
+                    onClick: () => console.log('Delete', row),
+                    variant: 'destructive',
+                    separatorBefore: true
+                },
+            ]}
+        />
     );
 };
 

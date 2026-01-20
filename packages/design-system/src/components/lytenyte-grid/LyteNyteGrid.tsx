@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react';
+import { useId } from 'react';
 import { Grid, useClientRowDataSource } from '@1771technologies/lytenyte-core';
 import type { Column, RowLayout, SortModelItem, RowDetailRendererFn } from '@1771technologies/lytenyte-core/types';
 import '@1771technologies/lytenyte-core/grid.css';
@@ -123,7 +123,11 @@ function RowSection<D = any>({
                 return (
                     <Grid.Row row={row} key={row.id}>
                         {row.cells.map((c) => (
-                            <Grid.Cell key={c.id} cell={c} />
+                            <Grid.Cell
+                                key={c.id}
+                                cell={c}
+                                data-ln-editable={c.column.editable ? 'true' : undefined}
+                            />
                         ))}
                     </Grid.Row>
                 );

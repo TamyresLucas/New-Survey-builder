@@ -2,10 +2,24 @@ export const CHANGELOG_DATA = [
     {
         "date": "2026-01-20",
         "features": [
-            "Added 'ghost-primary' button variant with primary color text at 100% opacity by default, full primary background on hover with primary-foreground text for WCAG compliant contrast",
-            "Standardized form components hover state (Input, Select, Textarea, InputOTP): border changes to primary 100%, background changes to primary 20% for consistent interactive feedback"
+            "Updated Command component to use 'bg-primary/10' for selected state, matching DropdownMenu tokens",
+            "Updated Badge component to use normal font weight for 'outline', 'destructive', 'success', 'warning', and 'secondary' variants (default remains bold)"
         ],
         "fixes": []
+    },
+    {
+        "date": "2026-01-20",
+        "features": [
+            "Added 'ghost-primary' button variant with primary color text at 100% opacity by default, full primary background on hover with primary-foreground text for WCAG compliant contrast",
+            "Standardized form components hover state (Input, Select, Textarea, InputOTP): border changes to primary 100%, background changes to primary 20% for consistent interactive feedback",
+            "Refactored all component borders (light and dark mode) to use 'Primary 20%' (border-primary/20) by updating global CSS tokens, removing black/dark borders completely",
+            "Updated Table and DataGrid row hover states to maintain standard foreground text color (referencing standard foreground token) instead of accent foreground",
+            "Updated Table and DataGrid selected row text color to use 'Primary 100%' and added 2px left border (via box-shadow) while maintaining default background",
+            "Implemented 'TableRowActions' component to standardize row actions and updated 'Table' and 'DataGrid' stories to use this new pattern"
+        ],
+        "fixes": [
+            "Updated Dropdown, Autocomplete Dropdown, and Cascading Dropdown question type icons to use the standard Google Material 'arrow_drop_down' icon"
+        ]
     },
     {
         "date": "2026-01-19",

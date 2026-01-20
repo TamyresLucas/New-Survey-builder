@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { DragIndicatorIcon } from './icons';
+import { DragIndicatorIcon, MoreIcon } from './icons';
 
 interface SidebarCardProps {
     id: string;

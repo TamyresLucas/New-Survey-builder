@@ -41,7 +41,7 @@ const Menubar = React.forwardRef<
   <MenubarPrimitive.Root
     ref={ref}
     className={cn(
-      "flex h-10 items-center space-x-1 rounded-md border border-primary/40 bg-transparent p-1",
+      "flex h-10 items-center space-x-1 rounded-md border border-primary/20 bg-transparent p-1",
       className
     )}
     {...props}
@@ -56,7 +56,7 @@ const MenubarTrigger = React.forwardRef<
   <MenubarPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm font-medium outline-none focus:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_80%)] focus:text-accent-foreground data-[state=open]:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_80%)] data-[state=open]:text-accent-foreground",
+      "flex cursor-default select-none items-center rounded-sm px-3 py-1.5 text-sm font-medium outline-none focus:bg-primary/10 data-[state=open]:bg-primary/10",
       className
     )}
     {...props}
@@ -73,7 +73,7 @@ const MenubarSubTrigger = React.forwardRef<
   <MenubarPrimitive.SubTrigger
     ref={ref}
     className={cn(
-      "flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_80%)] focus:text-accent-foreground data-[state=open]:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_80%)] data-[state=open]:text-accent-foreground",
+      "flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-primary/10 data-[state=open]:bg-primary/10",
       inset && "pl-8",
       className
     )}
@@ -134,7 +134,7 @@ const MenubarItem = React.forwardRef<
   <MenubarPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_80%)] focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[disabled]:text-primary/40",
+      "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-primary/10 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[disabled]:text-primary/40",
       inset && "pl-8",
       className
     )}
@@ -150,7 +150,7 @@ const MenubarCheckboxItem = React.forwardRef<
   <MenubarPrimitive.CheckboxItem
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_80%)] focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[disabled]:text-primary/40",
+      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-primary/10 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:rounded-none data-[state=checked]:border-b data-[state=checked]:border-primary-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[disabled]:text-primary/40",
       className
     )}
     checked={checked}
@@ -173,7 +173,7 @@ const MenubarRadioItem = React.forwardRef<
   <MenubarPrimitive.RadioItem
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_80%)] focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[disabled]:text-primary/40",
+      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-primary/10 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:rounded-none data-[state=checked]:border-b data-[state=checked]:border-primary-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[disabled]:text-primary/40",
       className
     )}
     {...props}
@@ -212,7 +212,7 @@ const MenubarSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <MenubarPrimitive.Separator
     ref={ref}
-    className={cn("-mx-1 my-1 h-px bg-primary/40", className)}
+    className={cn("-mx-1 my-1 h-px bg-primary/20", className)}
     {...props}
   />
 ))

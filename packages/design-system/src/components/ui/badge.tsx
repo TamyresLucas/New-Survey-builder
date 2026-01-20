@@ -9,11 +9,11 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        outline: "text-foreground border-primary/40",
-        destructive: "border-destructive/40 bg-[color-mix(in_oklab,hsl(var(--destructive)),hsl(var(--background))_90%)] text-foreground [&>svg]:text-destructive [&>.material-symbols-rounded]:text-destructive hover:bg-destructive/20",
-        success: "border-success/40 bg-[color-mix(in_oklab,hsl(var(--success)),hsl(var(--background))_90%)] text-foreground [&>svg]:text-success [&>.material-symbols-rounded]:text-success hover:bg-success/20",
-        warning: "border-warning/40 bg-[color-mix(in_oklab,hsl(var(--warning)),hsl(var(--background))_90%)] text-foreground [&>svg]:text-warning [&>.material-symbols-rounded]:text-warning hover:bg-warning/20",
-        secondary: "border-primary/40 bg-[color-mix(in_oklab,hsl(var(--info)),hsl(var(--background))_90%)] text-foreground [&>svg]:text-info [&>.material-symbols-rounded]:text-info hover:bg-info/20",
+        outline: "text-foreground border-primary/40 font-normal",
+        destructive: "border-destructive/40 bg-[color-mix(in_oklab,hsl(var(--destructive)),hsl(var(--background))_90%)] text-foreground [&>svg]:text-destructive [&>.material-symbols-rounded]:text-destructive hover:bg-destructive/20 font-normal",
+        success: "border-success/40 bg-[color-mix(in_oklab,hsl(var(--success)),hsl(var(--background))_90%)] text-foreground [&>svg]:text-success [&>.material-symbols-rounded]:text-success hover:bg-success/20 font-normal",
+        warning: "border-warning/40 bg-[color-mix(in_oklab,hsl(var(--warning)),hsl(var(--background))_90%)] text-foreground [&>svg]:text-warning [&>.material-symbols-rounded]:text-warning hover:bg-warning/20 font-normal",
+        secondary: "border-primary/40 bg-[color-mix(in_oklab,hsl(var(--info)),hsl(var(--background))_90%)] text-foreground [&>svg]:text-info [&>.material-symbols-rounded]:text-info hover:bg-info/20 font-normal",
       },
     },
     defaultVariants: {

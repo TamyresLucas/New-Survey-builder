@@ -167,7 +167,7 @@ export const NoSearchResults: Story = {
 
 export const Error: Story = {
     args: {
-        icon: <ErrorIcon />,
+        icon: <div className="flex items-center justify-center rounded-full bg-destructive/10 p-4 text-destructive"><ErrorIcon /></div>,
         title: "Something went wrong",
         description: "We couldn't load your data. Please try again or contact support if the problem persists.",
         action: {
@@ -181,7 +181,7 @@ export const Error: Story = {
 
 export const InCard: Story = {
     render: () => (
-        <div className="w-full max-w-2xl border rounded-lg bg-card">
+        <div className="w-full max-w-2xl border border-primary/20 rounded-lg bg-card">
             <EmptyState
                 icon={<ResponsesIcon />}
                 title="No responses yet"

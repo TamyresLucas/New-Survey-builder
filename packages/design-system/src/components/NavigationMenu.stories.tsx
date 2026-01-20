@@ -168,7 +168,10 @@ export const SimpleLinks: Story = {
                     </NavigationMenuLink>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                    <NavigationMenuLink 
+                        className={navigationMenuTriggerStyle()} 
+                        active
+                    >
                         Surveys
                     </NavigationMenuLink>
                 </NavigationMenuItem>

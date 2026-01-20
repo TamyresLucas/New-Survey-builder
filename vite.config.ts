@@ -22,12 +22,12 @@ const copyWebConfig = () => ({
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
-  
+
   // Determine base path based on build target
   // IIS deployment needs '/SurveyBuilderPoc/' (virtual directory)
   // Azure App Service needs '/' (root deployment)
   const basePath = process.env.BUILD_TARGET === 'azure' ? '/' : '/SurveyBuilderPoc/';
-  
+
   return {
     base: basePath,
     server: {
@@ -43,7 +43,8 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
-      }
+      },
+      dedupe: ['react', 'react-dom'],
     },
     build: {
       outDir: 'dist',

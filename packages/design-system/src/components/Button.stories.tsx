@@ -12,7 +12,7 @@ const meta = {
     argTypes: {
         variant: {
             control: 'select',
-            options: ['default', 'destructive', 'success', 'outline', 'secondary', 'ghost', 'ghost-destructive', 'ghost-success', 'link'],
+            options: ['default', 'destructive', 'success', 'outline', 'secondary', 'ghost', 'ghost-destructive', 'ghost-success', 'ghost-primary', 'link'],
         },
         size: {
             control: 'select',
@@ -88,6 +88,13 @@ export const GhostSuccess: Story = {
     },
 };
 
+export const GhostPrimary: Story = {
+    args: {
+        variant: 'ghost-primary',
+        children: 'Ghost Primary',
+    },
+};
+
 export const Link: Story = {
     args: {
         variant: 'link',
@@ -136,6 +143,7 @@ export const DisabledAllVariants: Story = {
             <Button variant="secondary" disabled>Secondary</Button>
             <Button variant="ghost" disabled>Ghost</Button>
             <Button variant="ghost-success" disabled>Ghost Success</Button>
+            <Button variant="ghost-primary" disabled>Ghost Primary</Button>
             <Button variant="link" disabled>Link</Button>
         </div>
     ),
@@ -171,6 +179,7 @@ export const LoadingAllVariants: Story = {
                 <Button variant="outline" isLoading><Spinner />Loading...</Button>
                 <Button variant="secondary" isLoading><Spinner />Loading...</Button>
                 <Button variant="ghost-success" isLoading><Spinner />Loading...</Button>
+                <Button variant="ghost-primary" isLoading><Spinner />Loading...</Button>
             </div>
         );
     },

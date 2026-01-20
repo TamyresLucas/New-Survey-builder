@@ -8,15 +8,15 @@ const alertVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-info-background text-foreground border-info-border [&>svg]:text-info [&>.material-symbols-rounded]:text-info",
+        default: "border-primary/40 text-foreground [&>svg]:text-primary [&>.material-symbols-rounded]:text-primary bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_90%)]",
         destructive:
-          "bg-destructive-background text-foreground border-destructive-border [&>svg]:text-destructive [&>.material-symbols-rounded]:text-destructive",
+          "border-destructive/40 text-foreground dark:border-destructive [&>svg]:text-destructive [&>.material-symbols-rounded]:text-destructive bg-[color-mix(in_oklab,hsl(var(--destructive)),hsl(var(--background))_90%)]",
         success:
-          "bg-success-background text-foreground border-success-border [&>svg]:text-success [&>.material-symbols-rounded]:text-success",
+          "border-success/40 text-foreground dark:border-success [&>svg]:text-success [&>.material-symbols-rounded]:text-success bg-[color-mix(in_oklab,hsl(var(--success)),hsl(var(--background))_90%)]",
         warning:
-          "bg-warning-background text-foreground border-warning-border [&>svg]:text-warning [&>.material-symbols-rounded]:text-warning",
+          "border-warning/40 text-foreground dark:border-warning [&>svg]:text-warning [&>.material-symbols-rounded]:text-warning bg-[color-mix(in_oklab,hsl(var(--warning)),hsl(var(--background))_90%)]",
         info:
-          "bg-info-background text-foreground border-info-border [&>svg]:text-info [&>.material-symbols-rounded]:text-info",
+          "border-primary/40 text-foreground dark:border-info [&>svg]:text-info [&>.material-symbols-rounded]:text-info bg-[color-mix(in_oklab,hsl(var(--info)),hsl(var(--background))_90%)]",
       },
     },
     defaultVariants: {

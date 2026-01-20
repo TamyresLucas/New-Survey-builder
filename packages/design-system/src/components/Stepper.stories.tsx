@@ -26,7 +26,7 @@ const Stepper = ({ steps, currentStep, orientation = 'horizontal' }: StepperProp
                                     ? "bg-primary border-primary text-primary-foreground"
                                     : index === currentStep
                                         ? "border-primary text-primary"
-                                        : "border-input text-muted-foreground"
+                                        : "border-primary/40 text-muted-foreground"
                             )}>
                                 {index < currentStep ? (
                                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -81,7 +81,7 @@ const Stepper = ({ steps, currentStep, orientation = 'horizontal' }: StepperProp
                             ? "bg-primary border-primary text-primary-foreground"
                             : index === currentStep
                                 ? "bg-background border-primary text-primary" // Added bg-background
-                                : "bg-background border-input text-muted-foreground" // Added bg-background
+                                : "bg-background border-primary/40 text-muted-foreground" // Added bg-background
                     )}>
                         {index < currentStep ? (
                             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -128,7 +128,7 @@ const PlanSelectionCards = ({ value, onValueChange }: PlanSelectionCardsProps) =
             <Label
                 key={plan.value}
                 htmlFor={`plan-${plan.value}`}
-                className="flex items-center justify-between rounded-lg border-2 border-muted bg-popover p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary"
+                className="flex items-center justify-between rounded-lg border-2 border-muted bg-popover p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground hover:border-primary/20 [&:has([data-state=checked])]:border-primary"
             >
                 <div className="flex items-center gap-3">
                     <RadioGroupItem value={plan.value} id={`plan-${plan.value}`} />
@@ -174,7 +174,7 @@ const WizardDemo = () => {
         <div className="w-full max-w-2xl space-y-8">
             <Stepper steps={steps} currentStep={currentStep} />
 
-            <div className="min-h-[200px] p-6 border rounded-lg">
+            <div className="min-h-[200px] p-6 border border-primary/20 rounded-lg">
                 {currentStep === 0 && (
                     <div className="space-y-4">
                         <h3 className="text-lg font-medium">Personal Information</h3>
@@ -343,7 +343,7 @@ export const SurveyWizard: Story = {
             <div className="w-full max-w-2xl space-y-6">
                 <Stepper steps={steps} currentStep={currentStep} />
 
-                <div className="p-6 border rounded-lg min-h-[150px] flex items-center justify-center">
+                <div className="p-6 border border-primary/20 rounded-lg min-h-[150px] flex items-center justify-center">
                     <p className="text-muted-foreground">
                         Step {currentStep + 1}: {steps[currentStep].title}
                     </p>

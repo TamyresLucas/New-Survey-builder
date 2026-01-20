@@ -12,7 +12,7 @@ const preview: Preview = {
       },
     },
     layout: 'padded',
-    backgrounds: { disable: true },
+    backgrounds: { disabled: true },
     options: {
       storySort: {
         order: ['Branding', 'Design Tokens', 'Design Patterns', 'Components', '*'],

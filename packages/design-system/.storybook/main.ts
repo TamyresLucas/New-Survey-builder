@@ -8,7 +8,6 @@ const config: StorybookConfig = {
     "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)"
   ],
   "addons": [
-    "@storybook/addon-essentials",
     "@chromatic-com/storybook",
     "@storybook/addon-a11y",
     "@storybook/addon-docs",
@@ -18,9 +17,6 @@ const config: StorybookConfig = {
     "name": "@storybook/react-vite",
     "options": {}
   },
-  "docs": {
-    "autodocs": "tag"
-  },
   "typescript": {
     "reactDocgen": "react-docgen-typescript"
   },
@@ -28,6 +24,7 @@ const config: StorybookConfig = {
     "disableTelemetry": true
   },
   async viteFinal(config, { configType }) {
+    // Carrega variáveis de ambiente
     const env = loadEnv(configType || 'development', process.cwd(), '');
 
     return mergeConfig(config, {
@@ -37,10 +34,12 @@ const config: StorybookConfig = {
       },
       resolve: {
         alias: {
-          '@': path.resolve(__dirname, '../src'),
+          // Usa o diretório atual (process.cwd) para resolver o caminho
+          '@': path.resolve(process.cwd(), 'src'),
         },
       },
     });
-  },
+  }
 };
+
 export default config;

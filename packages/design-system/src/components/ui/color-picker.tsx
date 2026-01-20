@@ -121,7 +121,7 @@ export function ColorPicker({
                 <Button
                     variant="outline"
                     className={cn(
-                        "w-full justify-start text-left font-normal px-2",
+                        "w-full justify-start text-left font-normal px-2 border-primary/40",
                         !value && "text-muted-foreground",
                         className
                     )}
@@ -137,7 +137,7 @@ export function ColorPicker({
                     </div>
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 p-3 mb-10 mr-10" align="start">
+            <PopoverContent className="w-64 p-3 mb-10 mr-10 border-primary/40 bg-popover" align="start">
                 <div className="space-y-3">
 
                     {/* Picker Area */}

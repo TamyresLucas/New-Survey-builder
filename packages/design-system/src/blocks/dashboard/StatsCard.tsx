@@ -226,8 +226,12 @@ const StatsCard = React.forwardRef<
     className,
     ...props
 }, ref) => {
+    const cardVariant = trend?.type === 'negative' ? 'destructive' :
+        trend?.type === 'positive' ? 'success' :
+            'default' as any;
+
     return (
-        <Card ref={ref} className={cn("w-full", className)} {...props}>
+        <Card ref={ref} variant={cardVariant} className={cn("w-full", className)} {...props}>
             <CardHeader className="pb-2">
                 <CardDescription className="text-sm font-medium">
                     {title}

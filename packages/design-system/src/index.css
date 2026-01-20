@@ -24,6 +24,12 @@
         direction: ltr;
         -webkit-font-feature-settings: 'liga';
         -webkit-font-smoothing: antialiased;
+        /* FILLED and ROUNDED by default */
+        font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    .material-symbols-rounded.unfilled {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     }
 
     :root {
@@ -37,22 +43,22 @@
         --card-foreground: 222.2 84% 4.9%;
         --popover: 0 0% 100%;
         --popover-foreground: 222.2 84% 4.9%;
-        --primary: 220 100% 50%;
+        --primary: 233 86% 64%;
         --primary-foreground: 210 40% 98%;
         --secondary: color-mix(in oklab, hsl(var(--primary)) 5%, hsl(var(--background)));
         --secondary-hover: color-mix(in oklab, hsl(var(--primary)) 15%, hsl(var(--background)));
         --secondary-foreground: 222.2 47.4% 11.2%;
-        --muted: color-mix(in oklab, hsl(var(--primary)) 5%, hsl(var(--background)));
+        --muted: color-mix(in oklab, hsl(var(--primary)) 10%, hsl(var(--background)));
         --muted-foreground: color-mix(in oklab, hsl(var(--primary)) 30%, hsl(var(--foreground)));
         --disabled-foreground: color-mix(in oklab, hsl(var(--primary)) 40%, hsl(var(--background)));
         --placeholder-foreground: rgba(0, 0, 0, 0.6);
         --accent: color-mix(in oklab, hsl(var(--primary)) 10%, hsl(var(--background)));
         --accent-foreground: 222.2 47.4% 11.2%;
-        --destructive: 0 84.2% 60.2%;
+        --destructive: 350 60% 54%;
         --destructive-foreground: 210 40% 98%;
         --background-destructive: color-mix(in oklab, hsl(var(--destructive)) 10%, hsl(var(--background)));
         --border-destructive: color-mix(in oklab, hsl(var(--destructive)) 50%, hsl(var(--background)));
-        --success: 142 76% 36%;
+        --success: 165 100% 26%;
         --success-foreground: 210 40% 98%;
         --background-success: color-mix(in oklab, hsl(var(--success)) 10%, hsl(var(--background)));
         --border-success: color-mix(in oklab, hsl(var(--success)) 50%, hsl(var(--background)));
@@ -87,7 +93,7 @@
         --secondary: color-mix(in oklab, hsl(var(--primary)) 5%, hsl(var(--background)));
         --secondary-hover: color-mix(in oklab, hsl(var(--primary)) 15%, hsl(var(--background)));
         --secondary-foreground: 210 40% 98%;
-        --muted: color-mix(in oklab, hsl(var(--primary)) 5%, hsl(var(--background)));
+        --muted: color-mix(in oklab, hsl(var(--primary)) 10%, hsl(var(--background)));
         --muted-foreground: color-mix(in oklab, hsl(var(--primary)) 30%, hsl(var(--foreground)));
         --disabled-foreground: color-mix(in oklab, hsl(var(--primary)) 40%, hsl(var(--background)));
         --placeholder-foreground: rgba(255, 255, 255, 0.6);
@@ -137,7 +143,7 @@
     /* For TableHeader component (applies to tr inside thead.table-header) */
     .table-header tr,
     .table-header-row {
-        background-color: var(--muted);
+        background-color: color-mix(in oklab, hsl(var(--primary)) 10%, hsl(var(--background)));
         transition-property: color, background-color;
         transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
         transition-duration: 150ms;
@@ -145,20 +151,20 @@
 
     .table-header tr:hover,
     .table-header-row:hover {
-        background-color: var(--accent);
+        background-color: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background)));
         color: hsl(var(--accent-foreground));
     }
 
     .table-body-row {
         border-bottom-width: 1px;
-        border-color: var(--border);
+        border-color: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background)));
         transition-property: color, background-color;
         transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
         transition-duration: 150ms;
     }
 
     .table-body-row:hover {
-        background-color: var(--accent);
+        background-color: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background)));
         color: hsl(var(--accent-foreground));
     }
 
@@ -246,4 +252,27 @@
 
 .dark .diagram-controls {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+@layer components {
+
+    /* VIBE: DESTRUCTIVE (Erro/Perigo) */
+    .variant-destructive {
+        @apply border-destructive/50 bg-destructive/10 text-destructive dark:border-destructive;
+    }
+
+    /* VIBE: SUCCESS (Sucesso) */
+    .variant-success {
+        @apply border-success/50 bg-success/10 text-success dark:border-success;
+    }
+
+    /* VIBE: WARNING (Aviso) */
+    .variant-warning {
+        @apply border-warning/50 bg-warning/10 text-warning dark:border-warning;
+    }
+
+    /* VIBE: INFO / SECONDARY (Informação) */
+    .variant-info {
+        @apply border-info/50 bg-info/10 text-info dark:border-info;
+    }
 }

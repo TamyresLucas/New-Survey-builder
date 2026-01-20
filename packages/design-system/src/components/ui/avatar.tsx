@@ -39,7 +39,7 @@ const AvatarFallback = React.forwardRef<
   <AvatarPrimitive.Fallback
     ref={ref}
     className={cn(
-      "flex h-full w-full items-center justify-center rounded-full bg-muted",
+      "flex h-full w-full items-center justify-center rounded-full bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_90%)] text-primary",
       className
     )}
     {...props}

@@ -25,7 +25,7 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
             </div>
 
             {/* Message bubble */}
-            <div className="max-w-[80%] bg-card border border-border px-4 py-3 rounded-md shadow-sm">
+            <div className="max-w-[80%] bg-card border border-primary/20 px-4 py-3 rounded-md shadow-sm">
                 {isLoading ? (
                     <div className="flex items-center gap-1.5">
                         <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />

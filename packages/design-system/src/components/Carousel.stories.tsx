@@ -30,7 +30,7 @@ export const Default: Story = {
                 {Array.from({ length: 5 }).map((_, index) => (
                     <CarouselItem key={index}>
                         <div className="p-1">
-                            <Card>
+                            <Card className="border-primary/40">
                                 <CardContent className="flex aspect-square items-center justify-center p-6">
                                     <span className="text-4xl font-semibold">{index + 1}</span>
                                 </CardContent>
@@ -54,7 +54,7 @@ export const MultipleItems: Story = {
                 {Array.from({ length: 8 }).map((_, index) => (
                     <CarouselItem key={index} className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/3">
                         <div className="p-1">
-                            <Card>
+                            <Card className="border-primary/40">
                                 <CardContent className="flex aspect-square items-center justify-center p-6">
                                     <span className="text-2xl font-semibold">{index + 1}</span>
                                 </CardContent>
@@ -84,7 +84,7 @@ export const Vertical: Story = {
                 {Array.from({ length: 5 }).map((_, index) => (
                     <CarouselItem key={index} className="pt-1 md:basis-1/2">
                         <div className="p-1">
-                            <Card>
+                            <Card className="border-primary/40">
                                 <CardContent className="flex items-center justify-center p-6">
                                     <span className="text-3xl font-semibold">{index + 1}</span>
                                 </CardContent>
@@ -124,7 +124,7 @@ const CarouselWithIndicators = () => {
                     {Array.from({ length: 5 }).map((_, index) => (
                         <CarouselItem key={index}>
                             <div className="p-1">
-                                <Card>
+                                <Card className="border-primary/40">
                                     <CardContent className="flex aspect-square items-center justify-center p-6">
                                         <span className="text-4xl font-semibold">{index + 1}</span>
                                     </CardContent>
@@ -140,7 +140,7 @@ const CarouselWithIndicators = () => {
                 {Array.from({ length: count }).map((_, index) => (
                     <button
                         key={index}
-                        className={`h-2 w-2 rounded-full transition-colors ${current === index + 1 ? 'bg-primary' : 'bg-muted'
+                        className={`h-2 w-2 rounded-full transition-colors ${current === index + 1 ? 'bg-primary' : 'bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_80%)]'
                             }`}
                         onClick={() => api?.scrollTo(index)}
                         aria-label={`Go to slide ${index + 1}`}
@@ -173,7 +173,7 @@ export const Loop: Story = {
                 {Array.from({ length: 5 }).map((_, index) => (
                     <CarouselItem key={index}>
                         <div className="p-1">
-                            <Card>
+                            <Card className="border-primary/40">
                                 <CardContent className="flex aspect-square items-center justify-center p-6">
                                     <span className="text-4xl font-semibold">{index + 1}</span>
                                 </CardContent>
@@ -286,7 +286,7 @@ export const SurveyQuestionTypes: Story = {
             <CarouselContent className="-ml-2">
                 {questionTypes.map((type, index) => (
                     <CarouselItem key={index} className="pl-2 basis-1/3">
-                        <Card className="cursor-pointer hover:border-primary transition-colors">
+                        <Card className="cursor-pointer border-primary/40 hover:border-primary transition-colors">
                             <CardContent className="flex flex-col items-center justify-center p-4 text-center">
                                 <span className="text-3xl mb-2">{type.icon}</span>
                                 <p className="font-medium text-sm">{type.name}</p>
@@ -313,7 +313,7 @@ export const Sizes: Story = {
                     <CarouselContent>
                         {Array.from({ length: 3 }).map((_, index) => (
                             <CarouselItem key={index}>
-                                <Card>
+                                <Card className="border-primary/40">
                                     <CardContent className="flex aspect-video items-center justify-center p-6">
                                         <span className="text-2xl font-semibold">{index + 1}</span>
                                     </CardContent>
@@ -331,7 +331,7 @@ export const Sizes: Story = {
                     <CarouselContent>
                         {Array.from({ length: 3 }).map((_, index) => (
                             <CarouselItem key={index}>
-                                <Card>
+                                <Card className="border-primary/40">
                                     <CardContent className="flex aspect-video items-center justify-center p-6">
                                         <span className="text-2xl font-semibold">{index + 1}</span>
                                     </CardContent>

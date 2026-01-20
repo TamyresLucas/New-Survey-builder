@@ -2,49 +2,20 @@ import tailwindcssAnimate from "tailwindcss-animate";
 
 /** @type {import('tailwindcss').Config} */
 export default {
+	darkMode: ['class'],
+	safelist: ["dark"],
 	content: [
-		"./index.html",
 		"./src/**/*.{js,ts,jsx,tsx,mdx}",
+		"./.storybook/**/*.{js,ts,jsx,tsx}"
 	],
-	darkMode: 'class',
 	theme: {
 		extend: {
 			fontFamily: {
-				// Bridge variable for maximum safety
 				sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
-				// New semantic families
-				heading: ['var(--font-family-heading)', 'system-ui', 'sans-serif'],
-				body: ['var(--font-family-body)', 'system-ui', 'sans-serif'],
-			},
-			fontSize: {
-				// ARRAY SYNTAX: [Size, { lineHeight }] - CRITICAL for vertical rhythm
-				xs: ['var(--font-size-xs)', { lineHeight: 'var(--line-height-tight)' }],
-				sm: ['var(--font-size-sm)', { lineHeight: 'var(--line-height-normal)' }],
-				base: ['var(--font-size-base)', { lineHeight: 'var(--line-height-normal)' }],
-				lg: ['var(--font-size-lg)', { lineHeight: 'var(--line-height-snug)' }],
-				xl: ['var(--font-size-xl)', { lineHeight: 'var(--line-height-snug)' }],
-				'2xl': ['var(--font-size-2xl)', { lineHeight: 'var(--line-height-tight)' }],
-				'3xl': ['var(--font-size-3xl)', { lineHeight: 'var(--line-height-tight)' }],
-				'4xl': ['var(--font-size-4xl)', { lineHeight: 'var(--line-height-tight)' }],
-			},
-			fontWeight: {
-				normal: 'var(--font-weight-normal)',
-				medium: 'var(--font-weight-medium)',
-				semibold: 'var(--font-weight-semibold)',
-				bold: 'var(--font-weight-bold)',
-				extrabold: 'var(--font-weight-extrabold)',
-			},
-			lineHeight: {
-				none: 'var(--line-height-none)',
-				tight: 'var(--line-height-tight)',
-				snug: 'var(--line-height-snug)',
-				normal: 'var(--line-height-normal)',
-				relaxed: 'var(--line-height-relaxed)',
-				loose: 'var(--line-height-loose)',
 			},
 			colors: {
-				border: 'var(--border)',
-				input: 'var(--input)',
+				border: 'hsl(var(--border))',
+				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
@@ -53,44 +24,35 @@ export default {
 					foreground: 'hsl(var(--primary-foreground))'
 				},
 				secondary: {
-					DEFAULT: 'var(--secondary)',
-					hover: 'var(--secondary-hover)',
+					DEFAULT: 'hsl(var(--secondary))',
 					foreground: 'hsl(var(--secondary-foreground))'
 				},
 				destructive: {
 					DEFAULT: 'hsl(var(--destructive))',
 					foreground: 'hsl(var(--destructive-foreground))',
-					background: 'var(--background-destructive)',
-					border: 'var(--border-destructive)'
+					border: 'hsl(var(--destructive))', /* O segredo das bordas */
 				},
 				success: {
 					DEFAULT: 'hsl(var(--success))',
 					foreground: 'hsl(var(--success-foreground))',
-					background: 'var(--background-success)',
-					border: 'var(--border-success)'
+					border: 'hsl(var(--success))', /* O segredo das bordas */
 				},
 				warning: {
 					DEFAULT: 'hsl(var(--warning))',
 					foreground: 'hsl(var(--warning-foreground))',
-					background: 'var(--background-warning)',
-					border: 'var(--border-warning)'
+					border: 'hsl(var(--warning))', /* O segredo das bordas */
 				},
 				info: {
 					DEFAULT: 'hsl(var(--info))',
 					foreground: 'hsl(var(--info-foreground))',
-					background: 'var(--background-info)',
-					border: 'var(--border-info)'
+					border: 'hsl(var(--info))', /* O segredo das bordas */
 				},
 				muted: {
 					DEFAULT: 'var(--muted)',
 					foreground: 'var(--muted-foreground)'
 				},
-				disabled: {
-					DEFAULT: 'var(--muted)',
-					foreground: 'var(--disabled-foreground)'
-				},
 				accent: {
-					DEFAULT: 'var(--accent)',
+					DEFAULT: 'hsl(var(--accent))',
 					foreground: 'hsl(var(--accent-foreground))'
 				},
 				popover: {
@@ -116,27 +78,17 @@ export default {
 			},
 			keyframes: {
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
 				},
-
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-
 			}
 		}
 	},

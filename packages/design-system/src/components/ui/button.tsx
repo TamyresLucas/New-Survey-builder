@@ -5,24 +5,26 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:[&:not([data-loading=true])]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_.material-symbols-rounded]:pointer-events-none [&_.material-symbols-rounded]:text-[1rem] [&_.material-symbols-rounded]:leading-none",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:[&:not([data-loading=true])]:opacity-50 disabled:[&:not([data-loading=true])]:text-primary/40 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_.material-symbols-rounded]:pointer-events-none [&_.material-symbols-rounded]:text-[1rem] [&_.material-symbols-rounded]:leading-none",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 disabled:[&:not([data-loading=true])]:bg-muted disabled:[&:not([data-loading=true])]:text-disabled-foreground",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 disabled:[&:not([data-loading=true])]:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_90%)] disabled:[&:not([data-loading=true])]:text-primary/40",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:[&:not([data-loading=true])]:bg-muted disabled:[&:not([data-loading=true])]:text-disabled-foreground",
-        success: "bg-success text-success-foreground hover:bg-success/90 disabled:[&:not([data-loading=true])]:bg-muted disabled:[&:not([data-loading=true])]:text-disabled-foreground",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:[&:not([data-loading=true])]:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_90%)] disabled:[&:not([data-loading=true])]:text-primary/40",
+        success: "bg-success text-success-foreground hover:bg-success/90 disabled:[&:not([data-loading=true])]:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_90%)] disabled:[&:not([data-loading=true])]:text-primary/40",
         outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground disabled:[&:not([data-loading=true])]:bg-background disabled:[&:not([data-loading=true])]:text-disabled-foreground disabled:[&:not([data-loading=true])]:border-muted-foreground/20",
+          "border border-primary/40 bg-transparent hover:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_80%)] hover:text-accent-foreground disabled:[&:not([data-loading=true])]:bg-background disabled:[&:not([data-loading=true])]:text-primary/40 disabled:[&:not([data-loading=true])]:border-muted-foreground/20",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary-hover disabled:[&:not([data-loading=true])]:bg-transparent disabled:[&:not([data-loading=true])]:text-disabled-foreground",
-        ghost: "hover:bg-accent hover:text-accent-foreground disabled:[&:not([data-loading=true])]:text-disabled-foreground",
+          "bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_90%)] text-secondary-foreground hover:bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_80%)] disabled:[&:not([data-loading=true])]:bg-transparent disabled:[&:not([data-loading=true])]:text-primary/40",
+        ghost: "hover:text-primary disabled:[&:not([data-loading=true])]:text-primary/40",
         "ghost-destructive":
-          "text-destructive hover:bg-destructive/10 hover:text-destructive disabled:[&:not([data-loading=true])]:text-disabled-foreground",
+          "text-destructive hover:bg-destructive/10 hover:text-destructive disabled:[&:not([data-loading=true])]:text-primary/40",
         "ghost-success":
-          "text-success hover:bg-success/10 hover:text-success disabled:[&:not([data-loading=true])]:text-disabled-foreground",
-        link: "text-primary underline-offset-4 hover:underline disabled:[&:not([data-loading=true])]:text-disabled-foreground",
+          "text-success hover:bg-success/10 hover:text-success disabled:[&:not([data-loading=true])]:text-primary/40",
+        "ghost-primary":
+          "text-primary hover:bg-primary hover:text-primary-foreground disabled:[&:not([data-loading=true])]:text-primary/40",
+        link: "text-primary underline-offset-4 hover:underline disabled:[&:not([data-loading=true])]:text-primary/40",
       },
       size: {
         default: "h-10 px-4 py-2",

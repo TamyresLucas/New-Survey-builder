@@ -17,6 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
 import {
     getComputedColorRGB,
     calculateContrastRatio,
@@ -283,6 +284,9 @@ export const ColorPaletteStressTest = ({
     const [palette, setPalette] = useState<PaletteConfig>(PRESET_PALETTES[preset]);
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [activePreset, setActivePreset] = useState<string>(preset);
+    const [customDefault, setCustomDefault] = useState<PaletteConfig | null>(null);
+    const { toast } = useToast();
+    const [isDirty, setIsDirty] = useState(false);
 
     // Apply palette to CSS variables
     const applyPalette = useCallback((p: PaletteConfig) => {
@@ -320,19 +324,37 @@ export const ColorPaletteStressTest = ({
     // Handle preset selection
     const handlePresetChange = (presetKey: string) => {
         setActivePreset(presetKey);
-        setPalette(PRESET_PALETTES[presetKey as keyof typeof PRESET_PALETTES]);
+        if (presetKey === 'default' && customDefault) {
+            setPalette(customDefault);
+        } else {
+            setPalette(PRESET_PALETTES[presetKey as keyof typeof PRESET_PALETTES]);
+        }
+        setIsDirty(false);
     };
 
     // Handle individual color change
     const handleColorChange = (key: keyof PaletteConfig, value: string) => {
         setPalette(prev => ({ ...prev, [key]: value }));
         setActivePreset('custom');
+        setIsDirty(true);
     };
 
     // Reset to default
     const handleReset = () => {
-        handlePresetChange('default');
+        setActivePreset('default');
+        setPalette(customDefault || PRESET_PALETTES.default);
         setIsDarkMode(false);
+        setIsDirty(false);
+    };
+
+    const handleSave = () => {
+        // Here we would save to localStorage
+        // For this story, we just simulate it by updating the custom default state
+        setCustomDefault(palette);
+        setIsDirty(false);
+        toast({
+            title: "Palette saved successfully!",
+        });
     };
 
     return (
@@ -422,9 +444,14 @@ export const ColorPaletteStressTest = ({
                                 </div>
 
                                 {/* Reset Button */}
-                                <Button variant="outline" className="w-full" onClick={handleReset}>
-                                    Reset to Default
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button variant="outline" className="w-full" onClick={handleReset}>
+                                        Reset All to Defaults
+                                    </Button>
+                                    <Button variant="default" className="w-full" onClick={handleSave} disabled={!isDirty}>
+                                        Save Palette
+                                    </Button>
+                                </div>
                             </CardContent>
                         </Card>
 

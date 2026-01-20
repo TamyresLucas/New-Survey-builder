@@ -101,7 +101,7 @@ export const Composer: React.FC<ComposerProps> = ({
     }, [attachments, onAttachmentsChange]);
 
     return (
-        <div className={cn('border-t border-border bg-card', className)}>
+        <div className={cn('border-t border-primary/20 bg-card', className)}>
             {/* Attachments preview */}
             {attachments.length > 0 && (
                 <div className="flex flex-wrap gap-2 px-4 pt-3">
@@ -169,7 +169,7 @@ export const Composer: React.FC<ComposerProps> = ({
                         id="composer-input"
                         className={cn(
                             'w-full h-12 px-5 pr-14 rounded-full composer-input',
-                            'bg-background border border-input',
+                            'bg-transparent border border-primary/40',
                             'text-sm text-foreground',
                             'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
                             'disabled:opacity-50 disabled:cursor-not-allowed'

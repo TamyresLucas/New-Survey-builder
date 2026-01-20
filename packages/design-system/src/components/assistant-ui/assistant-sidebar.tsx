@@ -38,9 +38,9 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
     className,
 }) => {
     return (
-        <div className={cn('flex flex-col h-full bg-card border-l border-border', className)}>
+        <div className={cn('flex flex-col h-full bg-card border-l border-primary/20', className)}>
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border">
+            <div className="flex items-center justify-between p-4 border-b border-primary/20">
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                         <Sparkles className="w-4 h-4 text-primary" />

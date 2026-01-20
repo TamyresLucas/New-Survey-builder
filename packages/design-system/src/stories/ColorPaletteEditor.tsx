@@ -6,9 +6,9 @@ import Color from "color"
 
 // Define the tokens we want to manage
 const BRAND_TOKENS = [
-    { name: "primary", label: "Primary", default: "220 100% 50%" },
-    { name: "success", label: "Success", default: "142 76% 36%" },
-    { name: "destructive", label: "Destructive", default: "0 84.2% 60.2%" },
+    { name: "primary", label: "Primary", default: "233 86% 64%" },
+    { name: "success", label: "Success", default: "165 100% 26%" },
+    { name: "destructive", label: "Destructive", default: "350 60% 54%" },
     { name: "warning", label: "Warning", default: "38 92% 50%" },
 ] as const
 

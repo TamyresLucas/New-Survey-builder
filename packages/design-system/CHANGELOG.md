@@ -75,10 +75,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `Colors.mdx` documentation
 
 ### Changed
+- Updated `switch.tsx` to use `primary` for the active state background and `primary/20` for the inactive state background to ensure WCAG compliance.
+
 - Design Tokens/Colors page now shows static vs dynamic token distinction
 - Token reference table includes WCAG AA/AAA compliance indicators
 
 ### Fixed
+
+#### Badge and Toast Soft Aesthetic Standardization (2026-01-19)
+- Refactored `badge.tsx` semantic variants (`destructive`, `success`, `warning`, `secondary`) to use soft styling pattern
+- Refactored `toast.tsx` semantic variants (`destructive`, `success`, `warning`, `info`) to use soft styling pattern
+- Applied consistent opacity-based class pattern:
+  - Border: `border-{color}/50` (50% opacity)
+  - Background: `bg-{color}/10` (10% opacity)
+  - Text: `text-foreground` (solid foreground color for readability)
+- Badge `secondary` variant now uses `info` color tokens as per design spec
+- Replaced legacy `variant-*` custom utility classes with explicit Tailwind classes for better maintainability
+
+#### Alert Soft Aesthetic Standardization (2026-01-19)
+- Refactored `alert.tsx` semantic variants (`destructive`, `success`, `warning`, `info`) to use soft styling pattern
+- Applied consistent opacity-based class pattern:
+  - Border: `border-{color}/50` (50% opacity)
+  - Background: `bg-{color}/10` (10% opacity)
+  - Text: `text-foreground` (solid foreground color for readability)
+  - Icons: `[&>svg]:text-{color}` (colored icons)
+
+#### Badge, Toast, and Alert Icon Color Integration (2026-01-19)
+- Updated `badge.tsx`, `toast.tsx`, and `alert.tsx` variants to include `[&>svg]:text-{color}` AND `[&>.material-symbols-rounded]:text-{color}`
+- Solves issue where Material Symbols icons appeared black because `[&>svg]` selector did not target them
+- Ensures uniform icon coloring across all component types (SVG and Font Icons)
+- completes the Soft Aesthetic Standardization across Alert, Badge, and Toast components
+
+#### Opaque Background Standardization (2026-01-19)
+- Updated `badge.tsx`, `toast.tsx`, and `alert.tsx` to use solid color-mix backgrounds instead of transparency
+- New pattern: `bg-[color-mix(in_oklab,hsl(var(--{color})),hsl(var(--background))_90%)]`
+- Solves visual glitches when components are placed on non-white backgrounds while maintaining the tinted aesthetic
 
 #### Table Stories Badge Tokens (2026-01-19)
 - Fixed hardcoded `bg-green-500` color in Table.stories.tsx badges

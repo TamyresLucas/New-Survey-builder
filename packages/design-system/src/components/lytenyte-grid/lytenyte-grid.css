@@ -2,13 +2,13 @@
 
 /* Override LyteNyte's built-in CSS variables with design tokens */
 .lng-grid {
-    --lng1771-row-selected: hsl(var(--primary) / 0.15);
+    --lng1771-row-selected: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background)));
     --lng1771-primary-50: hsl(var(--primary));
     --lng1771-gray-00: hsl(var(--background));
     --lng1771-gray-02: var(--muted);
     /* Alternating row background - 5% primary */
     --lng1771-gray-10: var(--muted);
-    --lng1771-gray-20: var(--border);
+    --lng1771-gray-20: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background)));
     --lng1771-gray-80: hsl(var(--foreground));
     --lng1771-focus-outline: hsl(var(--primary));
 }
@@ -28,21 +28,21 @@
 
 /* Row selection highlight */
 [data-ln-row-selected="true"] {
-    background-color: hsl(var(--primary) / 0.15) !important;
+    background-color: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background))) !important;
 }
 
 [data-ln-row-selected="true"]:hover {
-    background-color: hsl(var(--primary) / 0.25) !important;
+    background-color: color-mix(in oklab, hsl(var(--primary)) 30%, hsl(var(--background))) !important;
 }
 
 /* Row hover effect - same as ghost button */
 [data-ln-row]:hover {
-    background-color: var(--accent);
+    background-color: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background)));
 }
 
 /* Apply hover background to cells to override any internal backgrounds */
 [data-ln-row]:hover [data-ln-cell] {
-    background-color: var(--accent) !important;
+    background-color: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background))) !important;
 }
 
 /* Row actions - hidden by default, visible on hover */
@@ -60,7 +60,7 @@
 [data-ln-header-cell] {
     font-weight: 600;
     background-color: var(--muted);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background))) !important;
     cursor: pointer;
     user-select: none;
     display: flex;
@@ -69,14 +69,14 @@
 }
 
 [data-ln-header-cell]:hover {
-    background-color: var(--accent);
+    background-color: color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background)));
     color: hsl(var(--accent-foreground));
 }
 
 /* Cell styling with vertical centering */
 [data-ln-cell] {
-    border-right: 1px solid color-mix(in hsl, var(--border) 30%, transparent);
-    border-bottom: 1px solid color-mix(in hsl, var(--border) 30%, transparent);
+    border-right: 1px solid color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background))) !important;
+    border-bottom: 1px solid color-mix(in oklab, hsl(var(--primary)) 20%, hsl(var(--background))) !important;
     display: flex;
     align-items: center;
     padding: 0 12px;

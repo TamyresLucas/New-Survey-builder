@@ -78,19 +78,43 @@ const DiagramCanvasInner: React.FC<DiagramCanvasProps> = ({
     const defaultEdgeOptions = useMemo(
         () => ({
             style: {
-                stroke: 'var(--border)',
+                stroke: 'hsl(var(--foreground))',
                 strokeWidth: 2,
             },
             markerEnd: {
                 type: 'arrowclosed' as const,
-                color: 'var(--border)',
+                color: 'hsl(var(--foreground))',
             },
         }),
         []
     );
 
+    // Inject styles for selected edges to use primary color
+    // This is necessary because ReactFlow applies the 'selected' class to the edge group
+    // and we need to target the path and marker within it.
+    // The marker color is trickier with CSS variables because markers are defined in <defs>,
+    // but ReactFlow might handle marker color updates if we update the edge style props dynamically.
+    // simpler approach for now is CSS targeting path.
+    // For markers to change color on selection without JS, we might rely on the fact that markerEnd can take a color.
+    // If we want FULL CSS control, we might need a custom edge.
+    // However, let's try to set the default to foreground.
+    // AND add a style tag or className to ReactFlow to handle selection.
+
+    // Actually, to change marker color on selection via CSS is hard because it's an SVG marker reference.
+    // But changing the STROKE is easy.
     return (
         <div className={cn('w-full h-full min-h-[400px]', className)}>
+            <style>
+                {`
+                    .react-flow__edge.selected .react-flow__edge-path {
+                        stroke: hsl(var(--primary)) !important;
+                    }
+                    .react-flow__edge.selected .react-flow__arrowhead {
+                        fill: hsl(var(--primary)) !important;
+                        stroke: hsl(var(--primary)) !important; 
+                    }
+                `}
+            </style>
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -110,7 +134,7 @@ const DiagramCanvasInner: React.FC<DiagramCanvasProps> = ({
                         variant={backgroundVariant}
                         gap={16}
                         size={1}
-                        className="bg-muted"
+                        className="bg-[color-mix(in_oklab,hsl(var(--primary)),hsl(var(--background))_90%)]"
                     />
                 )}
                 {showControls && <Controls className="diagram-controls" />}

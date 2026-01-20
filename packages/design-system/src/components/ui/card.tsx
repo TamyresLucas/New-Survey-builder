@@ -2,16 +2,33 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+import { cva, type VariantProps } from "class-variance-authority"
+
+const cardVariants = cva(
+  "rounded-lg border border-primary/20",
+  {
+    variants: {
+      variant: {
+        default: "bg-card text-card-foreground shadow-sm",
+        destructive: "border-destructive/40 text-foreground [&>svg]:text-destructive [&>.material-symbols-rounded]:text-destructive bg-[color-mix(in_oklab,hsl(var(--destructive)),hsl(var(--background))_90%)]",
+        success: "border-success/40 text-foreground [&>svg]:text-success [&>.material-symbols-rounded]:text-success bg-[color-mix(in_oklab,hsl(var(--success)),hsl(var(--background))_90%)]",
+        warning: "border-warning/40 text-foreground [&>svg]:text-warning [&>.material-symbols-rounded]:text-warning bg-[color-mix(in_oklab,hsl(var(--warning)),hsl(var(--background))_90%)]",
+        info: "border-primary/40 text-foreground [&>svg]:text-info [&>.material-symbols-rounded]:text-info bg-[color-mix(in_oklab,hsl(var(--info)),hsl(var(--background))_90%)]",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
+
 const Card = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof cardVariants>
+>(({ className, variant, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
-      className
-    )}
+    className={cn(cardVariants({ variant }), className)}
     {...props}
   />
 ))

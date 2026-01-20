@@ -16,6 +16,7 @@ import {
     DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { ChevronRight, Home, Slash } from './ui/icons';
+import { Badge } from "./ui/badge";
 
 const meta = {
     title: 'Components/Navigation/Breadcrumb',
@@ -278,9 +279,7 @@ export const WithBadge: Story = {
                 <BreadcrumbItem>
                     <BreadcrumbPage className="flex items-center gap-2">
                         Customer Satisfaction
-                        <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                            Draft
-                        </span>
+                        <Badge variant="secondary">Draft</Badge>
                     </BreadcrumbPage>
                 </BreadcrumbItem>
             </BreadcrumbList>

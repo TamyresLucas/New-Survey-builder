@@ -152,7 +152,7 @@ export const WithBadge: Story = {
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="unread" className="flex items-center gap-2">
                     Unread
-                    <Badge variant="secondary" className="h-5 px-1.5 text-xs">12</Badge>
+                    <Badge variant="destructive" className="h-5 px-1.5 text-xs">12</Badge>
                 </TabsTrigger>
                 <TabsTrigger value="archived">Archived</TabsTrigger>
             </TabsList>
@@ -195,11 +195,11 @@ export const VerticalTabs: Story = {
     render: () => (
         <div className="flex gap-4 w-[500px]">
             <Tabs defaultValue="general" orientation="vertical" className="flex gap-4 w-full">
-                <TabsList className="flex flex-col h-auto">
-                    <TabsTrigger value="general" className="justify-start">General</TabsTrigger>
-                    <TabsTrigger value="security" className="justify-start">Security</TabsTrigger>
-                    <TabsTrigger value="notifications" className="justify-start">Notifications</TabsTrigger>
-                    <TabsTrigger value="billing" className="justify-start">Billing</TabsTrigger>
+                <TabsList className="flex flex-col h-auto bg-transparent">
+                    <TabsTrigger value="general" className="w-full justify-start rounded-none border-r-2 border-transparent data-[state=active]:text-primary data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none">General</TabsTrigger>
+                    <TabsTrigger value="security" className="w-full justify-start rounded-none border-r-2 border-transparent data-[state=active]:text-primary data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none">Security</TabsTrigger>
+                    <TabsTrigger value="notifications" className="w-full justify-start rounded-none border-r-2 border-transparent data-[state=active]:text-primary data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none">Notifications</TabsTrigger>
+                    <TabsTrigger value="billing" className="w-full justify-start rounded-none border-r-2 border-transparent data-[state=active]:text-primary data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none">Billing</TabsTrigger>
                 </TabsList>
                 <div className="flex-1">
                     <TabsContent value="general">
@@ -340,22 +340,22 @@ export const SurveyTabs: Story = {
 export const UnderlineStyle: Story = {
     render: () => (
         <Tabs defaultValue="profile" className="w-[400px]">
-            <TabsList className="bg-transparent border-b rounded-none w-full justify-start gap-4 p-0">
+            <TabsList className="bg-transparent border-b border-primary/20 rounded-none w-full justify-start gap-4 p-0">
                 <TabsTrigger
                     value="profile"
-                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none"
+                    className="rounded-none border-b-2 border-transparent hover:text-primary data-[state=active]:text-primary data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none"
                 >
                     Profile
                 </TabsTrigger>
                 <TabsTrigger
                     value="settings"
-                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none"
+                    className="rounded-none border-b-2 border-transparent hover:text-primary data-[state=active]:text-primary data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none"
                 >
                     Settings
                 </TabsTrigger>
                 <TabsTrigger
                     value="team"
-                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none"
+                    className="rounded-none border-b-2 border-transparent hover:text-primary data-[state=active]:text-primary data-[state=active]:border-primary data-[state=active]:bg-transparent shadow-none"
                 >
                     Team
                 </TabsTrigger>

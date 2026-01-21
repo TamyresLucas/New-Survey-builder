@@ -2,6 +2,13 @@ export const CHANGELOG_DATA = [
     {
         "date": "2026-01-20",
         "features": [
+            "Configured Tailwind CSS to scan local design system package and created a debug component for integration verification."
+        ],
+        "fixes": []
+    },
+    {
+        "date": "2026-01-20",
+        "features": [
             "Updated Command component to use 'bg-primary/10' for selected state, matching DropdownMenu tokens",
             "Updated Badge component to use normal font weight for 'outline', 'destructive', 'success', 'warning', and 'secondary' variants (default remains bold)"
         ],

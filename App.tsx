@@ -37,7 +37,6 @@ import { validateSurveyLogic } from './logicValidator';
 import { WarningIcon, CheckmarkIcon, XIcon, PanelRightIcon, CheckCircleIcon, PanelLeftIcon } from './components/icons';
 import { Button } from './components/Button';
 import { DebugDS } from './components/DebugDS';
-import { DebugDS } from './components/DebugDS';
 
 type ToastType = 'error' | 'success';
 

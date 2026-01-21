@@ -2,6 +2,17 @@ export const CHANGELOG_DATA = [
     {
         "date": "2026-01-20",
         "features": [
+            "Configured Tailwind CSS to scan local design system package for correct styling."
+        ],
+        "fixes": [
+            "Updated tailwind.config.js to include ./packages/design-system/src path.",
+            "Created src/components/DebugDS.tsx smoke test component.",
+            "Mounted DebugDS in App.tsx."
+        ]
+    },
+    {
+        "date": "2026-01-20",
+        "features": [
             "Configured Tailwind CSS to scan local design system package and created a debug component for integration verification."
         ],
         "fixes": []
@@ -29,7 +40,7 @@ export const CHANGELOG_DATA = [
         ]
     },
     {
-        "date": "2026-01-19",
+        "date": "2025-12-19",
         "features": [
             "Token synchronization: Survey Builder now imports Design System CSS for unified tokens",
             "Refined Alert, Badge, and Toast styles: Default uses Soft Primary (10% bg, 40% border), 'info' uses primary border, and all semantic borders set to 40% opacity",

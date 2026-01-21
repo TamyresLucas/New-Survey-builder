@@ -36,7 +36,7 @@ import { validateSurveyLogic } from './logicValidator';
 // Icons
 import { WarningIcon, CheckmarkIcon, XIcon, PanelRightIcon, CheckCircleIcon, PanelLeftIcon } from './components/icons';
 import { Button } from './components/Button';
-import { DebugDS } from './components/DebugDS';
+
 
 type ToastType = 'error' | 'success';
 
@@ -494,8 +494,7 @@ const App: React.FC = () => {
 
     return (
         <div className="flex flex-col h-screen bg-surface text-on-surface overflow-hidden font-sans print:h-auto print:overflow-visible">
-            {/* DEBUG: Temporary smoke test for Design System integration */}
-            <DebugDS />
+
 
             <Header
                 surveyName={survey.title}

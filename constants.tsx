@@ -62,10 +62,10 @@ export const mainNavItems: NavItem[] = [
 
 export const toolboxItems: ToolboxItemData[] = [
   { name: 'Block', icon: BlockIcon },
-  { name: 'Auto Complete Dropdown', icon: AutocompleteIcon },
+  { name: 'Auto Complete Dropdown', icon: DropDownIcon },
   { name: 'Card Sort', icon: CardSortIcon },
   { name: 'Carousel', icon: CarouselIcon },
-  { name: 'Cascading Dropdown', icon: DrillDownIcon },
+  { name: 'Cascading Dropdown', icon: DropDownIcon },
   { name: 'Check Box', icon: CheckboxToolboxIcon },
   { name: 'Choice Grid', icon: ChoiceGridIcon },
   { name: 'Click Map', icon: ClickMapIcon },

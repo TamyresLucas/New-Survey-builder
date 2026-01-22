@@ -61,7 +61,7 @@ const meta = {
     className: { control: 'text' },
   },
   // Use `fn` to spy on the onClick/onDragStart/onDragEnd events
-  args: { 
+  args: {
     onDragStart: fn(),
     onDragEnd: fn(),
     onClick: fn(),
@@ -125,22 +125,7 @@ export const Dragging: Story = {
   },
 };
 
-export const WithEndAction: Story = {
-  args: {
-    icon: Square,
-    label: 'Check Box',
-    isEnabled: true,
-    endAction: (
-      <button className="p-1 rounded hover:bg-gray-100">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <path d="M12 16v-4"></path>
-          <path d="M12 8h.01"></path>
-        </svg>
-      </button>
-    ),
-  },
-};
+
 
 // Define sample toolbox items for the stories
 const sampleToolboxItems = [
@@ -282,77 +267,6 @@ export const GroupedByCategory: Story = {
   ),
 };
 
-export const InteractiveDemo: Story = {
-  args: {
-    icon: Square,
-    label: 'Check Box',
-    isEnabled: true,
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'This demo shows how the component responds to user interactions. Check the Actions tab to see events logged.'
-      }
-    }
-  }
-};
 
-export const DarkModePreview: Story = {
-  parameters: {
-    backgrounds: { default: 'dark' },
-    docs: {
-      description: {
-        story: 'ToolboxItem component in dark mode. Note: The actual appearance depends on the theme implementation.'
-      }
-    }
-  },
-  render: () => (
-    <div className="dark bg-gray-900 p-4 rounded w-80">
-      <ToolboxItem
-        icon={Square}
-        label="Check Box"
-        isEnabled={true}
-      />
-      <ToolboxItem
-        icon={RadioButtonChecked}
-        label="Radio Button"
-        isEnabled={false}
-      />
-      <ToolboxItem
-        icon={Grid2X2}
-        label="Choice Grid"
-        isDragging={true}
-      />
-    </div>
-  ),
-};
 
-export const CustomTheme: Story = {
-  parameters: {
-    docs: {
-      description: {
-        story: 'ToolboxItem with custom theming applied via CSS variables or utility classes.'
-      }
-    }
-  },
-  render: () => (
-    <div className="p-4 rounded w-80" style={{
-      '--custom-bg': '#f0f0f0',
-      '--custom-hover-bg': '#e0e0e0',
-      '--custom-border': '#cccccc',
-    } as React.CSSProperties}>
-      <ToolboxItem
-        icon={Star}
-        label="Star Rating"
-        isEnabled={true}
-        className="bg-[--custom-bg] hover:bg-[--custom-hover-bg] border-b-[--custom-border]"
-      />
-      <ToolboxItem
-        icon={Tune}
-        label="Slider"
-        isEnabled={true}
-        className="bg-[--custom-bg] hover:bg-[--custom-hover-bg] border-b-[--custom-border]"
-      />
-    </div>
-  ),
-};
+

@@ -2,6 +2,13 @@ import { useState, useEffect } from "react"
 import { ColorPicker } from "../components/ui/color-picker"
 import { Button } from "../components/ui/button"
 import { Label } from "../components/ui/label"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "../components/ui/select"
 import Color from "color"
 
 // Define the tokens we want to manage
@@ -23,6 +30,7 @@ const CHART_TOKENS = [
 const ALL_TOKENS = [...BRAND_TOKENS, ...CHART_TOKENS]
 
 type TokenName = typeof ALL_TOKENS[number]["name"]
+type Product = "Voxco" | "Ascribe" | "Discuss"
 
 // Helper: Convert "H S L%" string to Hex
 const hslStringToHex = (hslString: string): string => {
@@ -139,56 +147,94 @@ const updateDynamicTheme = (currentColors: Record<string, string>) => {
 }
 
 export function ColorPaletteEditor() {
+    const [selectedProduct, setSelectedProduct] = useState<Product>("Voxco")
     const [colors, setColors] = useState<Record<string, string>>({})
+
+    const PRODUCT_SPECIFIC_TOKENS = ["primary"];
+    const SHARED_STORAGE_KEY = "global-colors-shared";
+    const getProductStorageKey = (product: Product) => `global-colors-${product}`;
 
     // Initialize state
     useEffect(() => {
-        const savedColorsStr = localStorage.getItem("global-colors")
-        let initialColors: Record<string, string> = {}
+        loadColorsForProduct(selectedProduct)
+    }, [selectedProduct])
 
-        if (savedColorsStr) {
-            try {
-                initialColors = JSON.parse(savedColorsStr)
-
-                // Clean up legacy 'info' if exists
-                if (initialColors.info) {
-                    delete initialColors.info
-                    localStorage.setItem("global-colors", JSON.stringify(initialColors))
-                }
-            } catch (e) {
-                console.warn("Failed to parse saved colors, using defaults", e)
-                localStorage.removeItem("global-colors")
-            }
+    const loadColorsForProduct = (product: Product) => {
+        // 1. Load Shared Colors
+        const sharedColorsStr = localStorage.getItem(SHARED_STORAGE_KEY);
+        let sharedColors: Record<string, string> = {};
+        if (sharedColorsStr) {
+            try { sharedColors = JSON.parse(sharedColorsStr); } catch (e) { console.warn("Failed to parse shared colors", e); }
         }
 
-        // Convert HSL values from storage to HEX for the picker state
+        // 2. Load Product Specific Colors
+        const productColorsStr = localStorage.getItem(getProductStorageKey(product));
+        let productColors: Record<string, string> = {};
+        if (productColorsStr) {
+            try { productColors = JSON.parse(productColorsStr); } catch (e) { console.warn("Failed to parse product colors", e); }
+        }
+
+        // 3. Merge (Product overrides shared if collision, though we manage split keys)
+        // Ensure defaults are present if not in storage
+        const initialColors: Record<string, string> = {};
+
+        ALL_TOKENS.forEach(token => {
+            if (PRODUCT_SPECIFIC_TOKENS.includes(token.name)) {
+                initialColors[token.name] = productColors[token.name] || token.default.split(' ')[0] // fallback if needed, but logic below handles it better
+            } else {
+                initialColors[token.name] = sharedColors[token.name] || token.default.split(' ')[0]
+            }
+        });
+
+        // Convert HSL values from storage/defaults to HEX for the picker state
         const hexState: Record<string, string> = {}
         ALL_TOKENS.forEach(token => {
-            const hslValue = initialColors[token.name] || token.default
+            // Priority: Product Storage > Shared Storage > Default
+            // But strict logic: 
+            // If product specific: check product storage -> default
+            // If shared: check shared storage -> default
+
+            let hslValue = token.default;
+
+            if (PRODUCT_SPECIFIC_TOKENS.includes(token.name)) {
+                if (productColors[token.name]) hslValue = productColors[token.name];
+            } else {
+                if (sharedColors[token.name]) hslValue = sharedColors[token.name];
+            }
+
             hexState[token.name] = hslStringToHex(hslValue)
         })
         setColors(hexState)
 
-        // Initial application of styles
+        // Apply styles
         updateDynamicTheme(hexState);
-    }, [])
+    }
 
     const handleColorChange = (token: TokenName, newHex: string) => {
         const newColors = { ...colors, [token]: newHex };
-        setColors(newColors);
+        setColors(newColors); // Update UI immediately
 
-        // Update Storage (Store HSL as before for consistency, though we use HEX state internally)
-        const savedColors = JSON.parse(localStorage.getItem("global-colors") || "{}");
         const newHsl = hexToHslString(newHex);
-        savedColors[token] = newHsl;
+        const isProductSpecific = PRODUCT_SPECIFIC_TOKENS.includes(token);
+        const storageKey = isProductSpecific ? getProductStorageKey(selectedProduct) : SHARED_STORAGE_KEY;
 
-        localStorage.setItem("global-colors", JSON.stringify(savedColors))
+        const savedColors = JSON.parse(localStorage.getItem(storageKey) || "{}");
+        savedColors[token] = newHsl;
+        localStorage.setItem(storageKey, JSON.stringify(savedColors));
 
         // Update CSS via Style Tag
         updateDynamicTheme(newColors);
 
+        // Dispatch event with merged colors (we might need to reconstruct full state from storage to be accurate, 
+        // but for now responding with current full state `newColors` mapped to HSL is enough for live preview if listeners use it)
+        // Re-constructing full HSL export:
+        const fullHslState: Record<string, string> = {};
+        Object.entries(newColors).forEach(([key, hex]) => {
+            fullHslState[key] = hexToHslString(hex);
+        });
+
         window.dispatchEvent(new CustomEvent('color-changed', {
-            detail: savedColors
+            detail: fullHslState
         }))
     }
 
@@ -201,19 +247,47 @@ export function ColorPaletteEditor() {
 
     const resetAll = () => {
         const startState: Record<string, string> = {};
-        const savedColors: Record<string, string> = {};
+        const sharedColorsToSave: Record<string, string> = {};
+        const productColorsToSave: Record<string, string> = {}; // For current product
 
         ALL_TOKENS.forEach(token => {
             const defaultHex = hslStringToHex(token.default);
             startState[token.name] = defaultHex;
-            savedColors[token.name] = token.default;
+
+            if (PRODUCT_SPECIFIC_TOKENS.includes(token.name)) {
+                // If we reset all, we are resetting for THIS product + Shared
+                // We do NOT clear other products' data
+                // We clear current product's specific overrides
+                // Actually, if we just want to reset to defaults, we should probably clear the entries in storage.
+            }
         })
 
         setColors(startState);
-        localStorage.removeItem("global-colors");
+
+        // Reset Shared Storage
+        // For shared tokens, remove them from shared storage effectively resetting to default
+        const currentShared = JSON.parse(localStorage.getItem(SHARED_STORAGE_KEY) || "{}");
+        // We only remove the tokens managed by this editor (ALL_TOKENS minus Primary)
+        ALL_TOKENS.forEach(t => {
+            if (!PRODUCT_SPECIFIC_TOKENS.includes(t.name)) {
+                delete currentShared[t.name];
+            }
+        });
+        localStorage.setItem(SHARED_STORAGE_KEY, JSON.stringify(currentShared));
+
+        // Reset Product Storage
+        const currentProduct = JSON.parse(localStorage.getItem(getProductStorageKey(selectedProduct)) || "{}");
+        PRODUCT_SPECIFIC_TOKENS.forEach(t => {
+            delete currentProduct[t];
+        });
+        localStorage.setItem(getProductStorageKey(selectedProduct), JSON.stringify(currentProduct));
+
         updateDynamicTheme(startState);
 
-        window.dispatchEvent(new CustomEvent('color-changed', { detail: savedColors }));
+        const defaultHslState: Record<string, string> = {};
+        ALL_TOKENS.forEach(t => defaultHslState[t.name] = t.default);
+
+        window.dispatchEvent(new CustomEvent('color-changed', { detail: defaultHslState }));
     }
 
     const ColorCard = ({ token }: { token: typeof ALL_TOKENS[number] }) => (
@@ -248,18 +322,35 @@ export function ColorPaletteEditor() {
     return (
         <div className="space-y-8 p-6 max-w-5xl bg-card rounded-xl border shadow-sm">
             <div className="flex items-center justify-between border-b pb-4">
-                <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Brand Color Palette</h2>
-                    <p className="text-muted-foreground mt-1">
-                        Customize the color tokens for the design system. Changes are applied globally.
-                    </p>
+                <div className="space-y-4">
+                    <div>
+                        <h2 className="text-2xl font-bold tracking-tight">Product Color Palette</h2>
+                        <p className="text-muted-foreground mt-1">
+                            Customize the color tokens for the selected product. Changes are saved per product.
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <div className="w-[200px]">
+                            <Select value={selectedProduct} onValueChange={(val) => setSelectedProduct(val as Product)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Product" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Voxco">Voxco</SelectItem>
+                                    <SelectItem value="Ascribe">Ascribe</SelectItem>
+                                    <SelectItem value="Discuss">Discuss</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
                 </div>
                 <Button variant="outline" onClick={resetAll}>Reset All to Defaults</Button>
             </div>
 
-            {/* Brand Colors Section */}
+            {/* Product Colors Section */}
             <div>
-                <h3 className="text-lg font-semibold mb-4">Brand Colors</h3>
+                <h3 className="text-lg font-semibold mb-4">Product Colors</h3>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                     {BRAND_TOKENS.map((token) => (
                         <ColorCard key={token.name} token={token} />
@@ -293,7 +384,7 @@ export function ColorPaletteEditor() {
                     </div>
 
                     <div>
-                        <p className="text-xs text-muted-foreground mb-2">Brand Swatches</p>
+                        <p className="text-xs text-muted-foreground mb-2">Product Swatches</p>
                         <div className="flex gap-2">
                             <div className="w-12 h-12 bg-primary rounded" title="Primary" />
                             <div className="w-12 h-12 bg-success rounded" title="Success" />

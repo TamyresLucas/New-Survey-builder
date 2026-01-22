@@ -28,14 +28,14 @@ const popularFonts = [
 export const FontPreview = () => {
     const [font, setFont] = useState(() => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem('global-font') || 'Inter';
+            return localStorage.getItem('global-typography-shared') || 'Inter';
         }
         return 'Inter';
     });
 
     const handleFontChange = (newFont: string) => {
         setFont(newFont);
-        localStorage.setItem('global-font', newFont);
+        localStorage.setItem('global-typography-shared', newFont);
 
         // ATOMIC UPDATE: Directly set CSS variables (no custom events needed)
         const fontValue = `"${newFont}", system-ui, sans-serif`;

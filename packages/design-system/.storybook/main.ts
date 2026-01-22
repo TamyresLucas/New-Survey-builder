@@ -38,6 +38,9 @@ const config: StorybookConfig = {
           '@': path.resolve(process.cwd(), 'src'),
         },
       },
+      optimizeDeps: {
+        include: ['@1771technologies/lytenyte-core'],
+      },
     });
   }
 };

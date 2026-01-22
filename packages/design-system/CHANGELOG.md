@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Foresight Storybook Home Page (2026-01-21)
+- Created `Welcome.mdx` with Foresight Design System branding
+- Replaced "Quick Start" and "Documentation" list with interactive navigation cards
+- Modern gradient styling with dark mode support
+- Updated `preview.ts` storySort to show Foresight first
+- Updated "Built for discuss's values" section to use Card components in a 3-column grid layout
+- Removed explicit "Documentation" header for a cleaner flow
+
+#### FileUpload (Dropzone) Token Standardization (2026-01-21)
+- Replaced hardcoded `text-white` with `text-destructive-foreground` in remove button
+- Changed default border from `border-muted-foreground/25` to `border-primary/20`
+- Updated drag active background from `bg-primary/5` to `bg-primary/10` for consistency
+
+#### Design Tokens Colors Page UX Improvements (2026-01-21)
+- **DynamicColorPalette.tsx**:
+  - Redesigned color swatches with card layout and larger previews (h-20)
+  - Added click-to-copy functionality with visual feedback
+  - Added "Dynamic" badge for color-mix derived tokens
+  - Added category icons (Material Symbols) for visual hierarchy
+  - Improved hover effects with scale and shadow transitions
+  - Responsive grid: 2→3→4→5 columns based on viewport
+- **Colors.mdx**:
+  - Added hero section with gradient background
+  - Redesigned Quick Reference as interactive cards
+  - Added Material Symbols icons to section headers
+  - Improved visual hierarchy with consistent spacing
+
 #### HSL Tokens for Shadcn Compatibility (2026-01-20)
 - **tokens.css HSL Layer**:
   - Added HSL format tokens parallel to existing HEX semantic tokens

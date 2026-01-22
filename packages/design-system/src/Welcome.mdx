@@ -1,0 +1,121 @@
+import { Meta } from '@storybook/blocks';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './components/ui/table';
+import { Card, CardHeader, CardTitle, CardDescription } from './components/ui/card';
+
+<Meta title="foresight/Welcome" />
+
+<div style={{ maxWidth: '800px', margin: '0 auto', padding: '3rem 1.5rem' }}>
+
+<h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>🔭 foresight Design System</h1>
+
+<p style={{ fontSize: '1.125rem', marginBottom: '1rem' }}><strong>The design system for discuss, voxco survey builder, and ascribe</strong></p>
+
+<p style={{ color: '#64748b' }}>See further with data. Build research tools that reveal patterns before they become obvious.</p>
+
+<h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginTop: '4rem', marginBottom: '1rem' }}>What foresight does</h2>
+
+<p>foresight is the <strong>shared foundation</strong> across discuss products. It lets researchers work across quanti, quali, and integrated workflows without starting from scratch.</p>
+
+<p><strong>It helps you see further</strong> – connecting today's data to tomorrow's decisions.</p>
+
+<h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginTop: '2rem', marginBottom: '0.75rem' }}>Built for discuss's values</h3>
+
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '1rem' }}>
+  <Card>
+    <CardHeader>
+      <CardTitle className="text-base">🎯 Researchers at the center</CardTitle>
+      <CardDescription>Components designed for research workflows, not generic apps</CardDescription>
+    </CardHeader>
+  </Card>
+  <Card>
+    <CardHeader>
+      <CardTitle className="text-base">👁️ Transparency</CardTitle>
+      <CardDescription>No black boxes, just clear, documented building blocks</CardDescription>
+    </CardHeader>
+  </Card>
+  <Card>
+    <CardHeader>
+      <CardTitle className="text-base">🧠 Human understanding</CardTitle>
+      <CardDescription>Optimized for the real work of surfacing human insight</CardDescription>
+    </CardHeader>
+  </Card>
+</div>
+
+<h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginTop: '4rem', marginBottom: '1rem' }}>See further, together</h2>
+
+<p style={{ marginBottom: '1.5rem' }}>foresight powers the <strong>discuss ecosystem</strong>:</p>
+
+<Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>Product</TableHead>
+      <TableHead>Role</TableHead>
+      <TableHead>foresight Powers</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow>
+      <TableCell className="font-medium">discuss</TableCell>
+      <TableCell>Qualitative research platform</TableCell>
+      <TableCell>Interviews, focus groups, transcription UI</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell className="font-medium">voxco</TableCell>
+      <TableCell>Survey builder (quantitative)</TableCell>
+      <TableCell>Question authoring, previews, logic flows</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell className="font-medium">ascribe</TableCell>
+      <TableCell>Quanti + quali bridge</TableCell>
+      <TableCell>Data integration, mixed-method workflows</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+
+<p style={{ marginTop: '1.5rem' }}><strong>16 shared foundations</strong> + <strong>100+ specialized components</strong> = one system, infinite research possibilities.</p>
+
+
+
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginTop: '1rem' }}>
+  <a href="/?path=/docs/branding-typography--docs" style={{ textDecoration: 'none', color: 'inherit' }}>
+    <Card className="h-full hover:border-primary/50 transition-colors cursor-pointer">
+      <CardHeader>
+        <CardTitle className="text-base">🎨 Branding</CardTitle>
+        <CardDescription>Logo, colors, and visual identity</CardDescription>
+      </CardHeader>
+    </Card>
+  </a>
+
+  <a href="/?path=/docs/design-tokens-colors--docs" style={{ textDecoration: 'none', color: 'inherit' }}>
+    <Card className="h-full hover:border-primary/50 transition-colors cursor-pointer">
+      <CardHeader>
+        <CardTitle className="text-base">💎 Design Tokens</CardTitle>
+        <CardDescription>Colors, typography, spacing, shadows</CardDescription>
+      </CardHeader>
+    </Card>
+  </a>
+
+  <a href="/?path=/docs/components-actions-button--docs" style={{ textDecoration: 'none', color: 'inherit' }}>
+    <Card className="h-full hover:border-primary/50 transition-colors cursor-pointer">
+      <CardHeader>
+        <CardTitle className="text-base">🧩 Components</CardTitle>
+        <CardDescription>Buttons, inputs, cards, dialogs, and more</CardDescription>
+      </CardHeader>
+    </Card>
+  </a>
+
+  <a href="/?path=/docs/patterns-sidebar--docs" style={{ textDecoration: 'none', color: 'inherit' }}>
+    <Card className="h-full hover:border-primary/50 transition-colors cursor-pointer">
+      <CardHeader>
+        <CardTitle className="text-base">📐 Patterns</CardTitle>
+        <CardDescription>Sidebar, forms, data tables, navigation</CardDescription>
+      </CardHeader>
+    </Card>
+  </a>
+</div>
+
+<div style={{ textAlign: 'center', marginTop: '4rem', color: '#64748b' }}>
+  <strong>foresight</strong> · v0.0.0 · Built with React + Tailwind CSS + Radix UI
+</div>
+
+</div>

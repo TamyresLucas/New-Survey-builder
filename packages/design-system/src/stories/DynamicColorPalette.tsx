@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import {
     COLOR_TOKENS,
     getTokensByCategory,
-    isStaticToken,
     isDynamicToken,
     type ColorTokenKey,
     type ColorToken,
@@ -27,73 +26,91 @@ const ColorSwatch = ({ tokenKey, token, showContrast = false }: ColorSwatchProps
         ratio: number;
         passes: boolean;
     } | null>(null);
+    const [copied, setCopied] = useState(false);
 
-    useEffect(() => {
-        const updateValues = () => {
-            // Get computed RGB (works for both static and dynamic tokens)
-            const rgb = getComputedColorRGB(token.variable);
-            if (rgb) {
-                setComputedValue(formatRGB(rgb));
-            }
+    const updateValues = useCallback(() => {
+        const rgb = getComputedColorRGB(token.variable);
+        if (rgb) {
+            setComputedValue(formatRGB(rgb));
+        }
 
-            // Calculate contrast if it's a foreground token
-            if (showContrast && tokenKey.includes('foreground')) {
-                const bgKey = tokenKey.replace('-foreground', '') as ColorTokenKey;
-                if (COLOR_TOKENS[bgKey]) {
-                    const ratio = getContrastRatioBetweenVariables(
-                        COLOR_TOKENS[bgKey].variable,
-                        token.variable
-                    );
-                    if (ratio) {
-                        const compliance = checkWCAGCompliance(ratio);
-                        setContrastInfo({ ratio, passes: compliance.aa });
-                    }
+        if (showContrast && tokenKey.includes('foreground')) {
+            const bgKey = tokenKey.replace('-foreground', '') as ColorTokenKey;
+            if (COLOR_TOKENS[bgKey]) {
+                const ratio = getContrastRatioBetweenVariables(
+                    COLOR_TOKENS[bgKey].variable,
+                    token.variable
+                );
+                if (ratio) {
+                    const compliance = checkWCAGCompliance(ratio);
+                    setContrastInfo({ ratio, passes: compliance.aa });
                 }
             }
-        };
+        }
+    }, [token.variable, tokenKey, showContrast]);
 
+    useEffect(() => {
         updateValues();
-
-        // Watch for theme changes
         const observer = new MutationObserver(updateValues);
         observer.observe(document.documentElement, {
             attributes: true,
-            attributeFilter: ['class'],
+            attributeFilter: ['class', 'style'],
         });
-
         return () => observer.disconnect();
-    }, [token.variable, tokenKey, showContrast]);
+    }, [updateValues]);
+
+    const handleCopy = async () => {
+        await navigator.clipboard.writeText(token.variable);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+    };
 
     return (
-        <div className="flex flex-col gap-2">
-            <div
-                className={cn('h-16 w-full rounded-md border shadow-sm', token.className)}
-                title={token.usage}
-            />
-            <div className="flex flex-col text-xs">
-                <span className="font-semibold">{tokenKey}</span>
-                <span className="text-muted-foreground font-mono text-[10px]">
-                    {token.variable}
-                </span>
+        <div
+            className="group relative flex flex-col gap-3 p-4 rounded-xl border border-primary/20 bg-background hover:border-primary/40 hover:shadow-md transition-all cursor-pointer"
+            onClick={handleCopy}
+            title={`Click to copy: ${token.variable}`}
+        >
+            {/* Color Preview */}
+            <div className="relative">
+                <div
+                    className="h-20 w-full rounded-lg border border-primary/10 shadow-inner transition-transform group-hover:scale-[1.02]"
+                    style={{ backgroundColor: `var(${token.variable})` }}
+                />
                 {isDynamicToken(token) && (
-                    <span className="text-muted-foreground font-mono text-[10px] italic">
-                        (dynamic)
+                    <span className="absolute top-2 right-2 px-1.5 py-0.5 text-[10px] font-medium bg-background/90 backdrop-blur-sm rounded-md border border-primary/20 text-primary">
+                        Dynamic
                     </span>
                 )}
-                <span className="text-muted-foreground font-mono opacity-75 text-[10px]">
-                    {computedValue}
-                </span>
-                {contrastInfo && (
-                    <span
-                        className={cn(
-                            'font-mono text-[10px] mt-1',
-                            contrastInfo.passes ? 'text-success' : 'text-warning'
-                        )}
-                    >
-                        {contrastInfo.passes ? '✓' : '⚠'} {contrastInfo.ratio.toFixed(2)}:1
+                {copied && (
+                    <span className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg text-sm font-medium text-success">
+                        ✓ Copied!
                     </span>
                 )}
             </div>
+
+            {/* Token Info */}
+            <div className="flex flex-col gap-1">
+                <span className="font-semibold text-sm text-foreground truncate">{tokenKey}</span>
+                <span className="font-mono text-[11px] text-muted-foreground truncate">
+                    {token.variable}
+                </span>
+                <span className="font-mono text-[10px] text-muted-foreground/70">
+                    {computedValue}
+                </span>
+            </div>
+
+            {/* Contrast Badge */}
+            {contrastInfo && (
+                <div className={cn(
+                    'absolute bottom-14 right-4 px-2 py-1 rounded-md text-[10px] font-mono font-medium',
+                    contrastInfo.passes
+                        ? 'bg-success/10 text-success border border-success/30'
+                        : 'bg-warning/10 text-warning border border-warning/30'
+                )}>
+                    {contrastInfo.passes ? '✓' : '⚠'} {contrastInfo.ratio.toFixed(1)}:1
+                </div>
+            )}
         </div>
     );
 };
@@ -106,11 +123,21 @@ export const DynamicColorPalette = ({ showContrast = false }: DynamicColorPalett
     const groupedTokens = getTokensByCategory();
 
     return (
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-10">
             {Object.entries(groupedTokens).map(([category, tokens]) => (
-                <div key={category}>
-                    <h3 className="text-lg font-medium mb-4">{category}</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div key={category} className="space-y-4">
+                    {/* Category Header */}
+                    <div className="flex items-center gap-3 pb-3 border-b border-primary/20">
+                        <div>
+                            <h3 className="text-lg font-semibold text-foreground">{category}</h3>
+                            <p className="text-xs text-muted-foreground">
+                                {tokens.length} token{tokens.length > 1 ? 's' : ''}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Color Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                         {tokens.map((token) => {
                             const key = Object.keys(COLOR_TOKENS).find(
                                 (k) => COLOR_TOKENS[k as ColorTokenKey] === token

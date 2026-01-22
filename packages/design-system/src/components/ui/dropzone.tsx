@@ -1,6 +1,6 @@
 import * as React from "react"
 import { useDropzone, type DropzoneOptions } from "react-dropzone"
-import { CloudUpload, File as FileIcon, X, Image as ImageIcon } from "./icons"
+import { File as FileIcon, X, Image as ImageIcon } from "./icons"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -71,7 +71,7 @@ export function Dropzone({
                 )}
                 <button
                     onClick={(e) => removeFile(e, index)}
-                    className="absolute top-1 right-1 bg-destructive text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                     <X className="w-3 h-3" />
                 </button>
@@ -106,15 +106,13 @@ export function Dropzone({
                 {...getRootProps()}
                 className={cn(
                     "border-2 border-dashed rounded-lg p-6 cursor-pointer transition-colors text-center",
-                    isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50",
+                    isDragActive ? "border-primary bg-primary/10" : "border-primary/20 hover:border-primary/50 hover:bg-primary/10",
                     className
                 )}
             >
                 <input {...getInputProps()} />
                 <div className="flex flex-col items-center justify-center gap-2">
-                    <div className="p-3 bg-muted rounded-full">
-                        <CloudUpload className="h-6 w-6 text-muted-foreground" />
-                    </div>
+                    <span className="material-symbols-rounded text-4xl text-muted-foreground">{type === 'image' ? 'image' : 'upload_file'}</span>
                     <p className="text-sm font-medium">{dropMessage}</p>
                     <p className="text-xs text-muted-foreground">
                         {type === 'image' ? "Supports: JPG, PNG, GIF" : "Supports: All file types"}

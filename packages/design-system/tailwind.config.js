@@ -18,8 +18,8 @@ export default {
 				   HSL WRAPPERS - Enables Tailwind opacity utilities
 				   e.g., text-primary/40, bg-primary/10
 				   ============================================ */
-				border: 'hsl(var(--border))',
-				input: 'hsl(var(--input))',
+				border: 'var(--border)',
+				input: 'var(--input)',
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',

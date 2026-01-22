@@ -24,7 +24,7 @@ export const ScaleTable = () => {
           {scales.map((scale, index) => (
             <tr
               key={scale.token}
-              className={(index % 2 === 1 ? 'bg-muted/5 table-body-row' : 'table-body-row')}
+              className={(index % 2 === 1 ? 'bg-primary/5 table-body-row' : 'table-body-row')}
             >
               <td className="p-3 font-mono text-xs text-muted-foreground">{scale.token}</td>
               <td className="p-3 text-xs text-muted-foreground">{scale.size}</td>
@@ -59,7 +59,7 @@ export const WeightsTable = () => {
           {weights.map((weight, index) => (
             <tr
               key={weight.token}
-              className={(index % 2 === 1 ? 'bg-muted/5 table-body-row' : 'table-body-row')}
+              className={(index % 2 === 1 ? 'bg-primary/5 table-body-row' : 'table-body-row')}
             >
               <td className="p-3 font-mono text-xs text-muted-foreground">{weight.token}</td>
               <td className="p-3 text-xs text-muted-foreground">{weight.weight}</td>

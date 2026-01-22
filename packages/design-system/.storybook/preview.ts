@@ -15,7 +15,7 @@ const preview: Preview = {
     backgrounds: { disabled: true },
     options: {
       storySort: {
-        order: ['Branding', 'Design Tokens', 'Design Patterns', 'Components', '*'],
+        order: ['foresight', 'Branding', 'Design Tokens', 'Components', 'Patterns', 'Survey Builder', 'Blocks', 'Survey Rendering', '*'],
         method: 'alphabetical',
       },
     },

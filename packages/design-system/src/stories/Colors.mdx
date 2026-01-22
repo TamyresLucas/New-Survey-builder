@@ -5,77 +5,59 @@ import { ColorExportButton } from "./ColorExportButton";
 
 <Meta title="Design Tokens/Colors" />
 
-<div className="flex flex-col justify-center min-h-screen gap-12 px-5 py-16 box-border bg-background text-foreground">
+# Colors
 
-  {/* Header Section */}
-  <div className="space-y-4">
-    # Colors
+The foresight design system uses semantic color tokens with **static HSL values** and **dynamic color-mix()** derived colors. Colors adapt automatically when the primary color or theme changes.
 
-    <div className="text-lg text-muted-foreground">
-      The design system uses a semantic color scale with **two types of tokens**: static HSL values and dynamic `color-mix()` derived colors. This ensures consistency across themes while allowing colors to adapt automatically when the primary color changes.
-    </div>
+---
 
-    <div className="p-4 bg-muted/30 border rounded-lg text-sm text-muted-foreground border-l-4 border-l-primary">
-      <strong>Note:</strong> Some tokens (like <code className="text-primary bg-muted px-1 rounded">--secondary</code>, <code className="text-primary bg-muted px-1 rounded">--muted</code>, <code className="text-primary bg-muted px-1 rounded">--accent</code>) are derived dynamically from <code className="text-primary bg-muted px-1 rounded">--primary</code> using CSS <code className="text-primary bg-muted px-1 rounded">color-mix()</code>.
-    </div>
-  </div>
+## Quick Reference
 
-  {/* Usage Principles */}
-  <div className="space-y-6">
-    <h2 className="text-2xl font-semibold border-b pb-2">Usage Principles</h2>
-    <div className="text-muted-foreground">Effective use of color tokens requires understanding their roles.</div>
-
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-      <div className="space-y-2">
-        <h3 className="font-semibold text-foreground">1. Semantic Naming</h3>
-        <div className="text-sm text-muted-foreground">Tokens are named by intent, not appearance.</div>
-        <ul className="text-sm list-disc pl-4 space-y-1 mt-2">
-          <li><span className="text-success font-medium">Correct:</span> <code>bg-destructive</code></li>
-          <li><span className="text-destructive font-medium">Incorrect:</span> <code>bg-red-500</code></li>
-        </ul>
-      </div>
-
-      <div className="space-y-2">
-        <h3 className="font-semibold text-foreground">2. Pairings</h3>
-        <div className="text-sm text-muted-foreground">Always match background tokens with their foregrounds.</div>
-        <ul className="text-sm list-disc pl-4 space-y-1 mt-2">
-          <li><code>bg-primary</code> → <code>text-primary-foreground</code></li>
-          <li><code>bg-muted</code> → <code>text-muted-foreground</code></li>
-        </ul>
-      </div>
-
-      <div className="space-y-2">
-        <h3 className="font-semibold text-foreground">3. Token Types</h3>
-        <div className="text-sm text-muted-foreground">Know which tokens are static vs dynamic.</div>
-        <ul className="text-sm list-disc pl-4 space-y-1 mt-2">
-          <li><strong>Static:</strong> Fixed HSL values</li>
-          <li><strong>Dynamic:</strong> Derived via color-mix()</li>
-        </ul>
-      </div>
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
+  <div className="p-5 rounded-lg border border-primary/20 bg-background">
+    <h3 className="font-semibold mb-2">1. Semantic Naming</h3>
+    <p className="text-sm text-muted-foreground mb-3">Tokens are named by intent, not appearance.</p>
+    <div className="space-y-1 text-sm">
+      <div>✓ <code className="bg-muted px-1.5 py-0.5 rounded text-xs">bg-destructive</code></div>
+      <div>✗ <code className="bg-muted px-1.5 py-0.5 rounded text-xs line-through opacity-60">bg-red-500</code></div>
     </div>
   </div>
 
-  {/* Visual Palette */}
-  <div className="space-y-8">
-    <div className="space-y-2 flex items-center justify-between">
-      <div>
-        <h2 className="text-2xl font-semibold border-b pb-2">Visual Palette</h2>
-        <div className="text-muted-foreground mt-2">Live visualization of the current theme's colors. Dynamic tokens are marked.</div>
-      </div>
-      <ColorExportButton />
+  <div className="p-5 rounded-lg border border-primary/20 bg-background">
+    <h3 className="font-semibold mb-2">2. Token Pairings</h3>
+    <p className="text-sm text-muted-foreground mb-3">Always match backgrounds with their foregrounds.</p>
+    <div className="space-y-1 text-xs font-mono">
+      <div>bg-primary → text-primary-foreground</div>
+      <div>bg-muted → text-muted-foreground</div>
     </div>
-    
-    <DynamicColorPalette showContrast={true} />
   </div>
 
-  {/* Token Reference */}
-  <div className="space-y-8 pb-16">
-    <div className="space-y-2">
-      <h2 className="text-2xl font-semibold border-b pb-2">Token Reference</h2>
-      <div className="text-muted-foreground">Complete list of all tokens with static values (where applicable), computed values, and WCAG contrast compliance.</div>
+  <div className="p-5 rounded-lg border border-primary/20 bg-background">
+    <h3 className="font-semibold mb-2">3. Token Types</h3>
+    <p className="text-sm text-muted-foreground mb-3">Static vs dynamic token behavior.</p>
+    <div className="space-y-1 text-sm">
+      <div><strong>Static:</strong> Fixed HSL values</div>
+      <div><strong>Dynamic:</strong> Derived via color-mix()</div>
     </div>
-
-    <TokenUsageTable />
   </div>
-
 </div>
+
+---
+
+## Visual Palette
+
+Live visualization of current theme colors. Click any swatch to copy the token.
+
+<div className="flex justify-end mb-4">
+  <ColorExportButton />
+</div>
+
+<DynamicColorPalette showContrast={true} />
+
+---
+
+## Token Reference
+
+Complete list of all tokens with static values, computed values, and WCAG contrast compliance.
+
+<TokenUsageTable />

@@ -1,0 +1,130 @@
+import { Meta } from '@storybook/blocks';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+
+<Meta title="Survey Builder/Build Panel" />
+
+<div style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem' }}>
+
+<h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Build Panel</h1>
+
+<p style={{ color: '#64748b', marginBottom: '2rem' }}>
+The Build Panel is the primary sidebar in the Survey Builder that contains the Toolbox, Outline, and Library tabs.
+</p>
+
+<h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginTop: '2rem', marginBottom: '1rem' }}>Overview</h2>
+
+<p>The Build Panel provides three main views:</p>
+
+<ul style={{ paddingLeft: '1.5rem', lineHeight: '2', marginTop: '1rem' }}>
+  <li><strong>Toolbox</strong> - Drag question types onto the canvas</li>
+  <li><strong>Outline</strong> - View and navigate survey structure (blocks/questions)</li>
+  <li><strong>Library</strong> - Access saved surveys and templates</li>
+</ul>
+
+<h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginTop: '2.5rem', marginBottom: '1rem' }}>Component Files</h2>
+
+<Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>Component</TableHead>
+      <TableHead>Path</TableHead>
+      <TableHead>Description</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow>
+      <TableCell className="font-medium">BuildPanel</TableCell>
+      <TableCell className="font-mono text-xs">components/BuildPanel.tsx</TableCell>
+      <TableCell>Main container with tabs and state</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell className="font-medium">SidebarToolboxItem</TableCell>
+      <TableCell className="font-mono text-xs">components/SidebarToolboxItem.tsx</TableCell>
+      <TableCell>Individual toolbox item row</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell className="font-medium">SidebarQuestion</TableCell>
+      <TableCell className="font-mono text-xs">components/SidebarQuestion.tsx</TableCell>
+      <TableCell>Question item in Outline tab</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell className="font-medium">SidebarBlock</TableCell>
+      <TableCell className="font-mono text-xs">components/SidebarBlock.tsx</TableCell>
+      <TableCell>Block header in Outline tab</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell className="font-medium">SidebarLibrarySurvey</TableCell>
+      <TableCell className="font-mono text-xs">components/SidebarLibrarySurvey.tsx</TableCell>
+      <TableCell>Survey item in Library tab</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+
+<h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginTop: '2.5rem', marginBottom: '1rem' }}>Props Interface</h2>
+
+```typescript
+interface BuildPanelProps {
+  onClose: () => void;
+  survey: Survey;
+  onSelectQuestion: (question: Question | null, options?: { tab?: string; focusOn?: string }) => void;
+  selectedQuestion: Question | null;
+  selectedBlock: string | null;
+  onSelectBlock: (blockId: string | null) => void;
+  toolboxItems: ToolboxItemData[];
+  onReorderToolbox: (items: ToolboxItemData[]) => void;
+  onReorderQuestion: (questionId: string, targetBlockId: string, targetIndex: number) => void;
+  onReorderBlock: (blockId: string, targetIndex: number) => void;
+  logicIssues: LogicIssue[];
+  printMode?: boolean;
+}
+```
+
+<h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginTop: '2.5rem', marginBottom: '1rem' }}>Styling Tokens</h2>
+
+<Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>Element</TableHead>
+      <TableHead>Token</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow>
+      <TableCell>Item Height</TableCell>
+      <TableCell className="font-mono text-xs">h-[40px]</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>Item Background</TableCell>
+      <TableCell className="font-mono text-xs">bg-surface-container</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>Hover Background</TableCell>
+      <TableCell className="font-mono text-xs">bg-surface-container-lowest</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>Item Border</TableCell>
+      <TableCell className="font-mono text-xs">border-b border-outline</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>Icon Color</TableCell>
+      <TableCell className="font-mono text-xs">text-primary</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>Tab Active</TableCell>
+      <TableCell className="font-mono text-xs">text-primary border-b-2 border-primary</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+
+<h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginTop: '2.5rem', marginBottom: '1rem' }}>Interactions</h2>
+
+<ul style={{ paddingLeft: '1.5rem', lineHeight: '2', marginTop: '1rem' }}>
+  <li><strong>Drag from Toolbox</strong> - Adds new question to canvas</li>
+  <li><strong>Drag within Toolbox</strong> - Reorders toolbox items</li>
+  <li><strong>Drag in Outline</strong> - Reorders questions/blocks</li>
+  <li><strong>Click Question</strong> - Selects and scrolls to question on canvas</li>
+  <li><strong>Search</strong> - Filters questions by text/label/QID</li>
+  <li><strong>Dropdown Filter</strong> - Filters by question type or issues</li>
+</ul>
+
+</div>

@@ -99,7 +99,7 @@
         /* Borders & Inputs */
         --border: var(--border-bd-def);
         --input: var(--input-field-input-bd-dis);
-        --ring: var(--semantic-pri-hsl);
+        --ring: var(--primary);
 
         /* Radius - keep original value */
         --radius: 0.5rem;
@@ -175,7 +175,7 @@
         /* Borders & Inputs */
         --border: var(--border-bd-def);
         --input: var(--input-field-input-bd-dis);
-        --ring: var(--semantic-pri-hsl);
+        --ring: var(--primary);
 
         /* Chart colors - keep HSL for flexibility */
         --chart-1: 220 70% 50%;
@@ -340,11 +340,4 @@
     .variant-info {
         @apply border-info/50 bg-info/10 text-info dark:border-info;
     }
-}
-
-/* Navigation Menu - Selected state hover */
-[data-state="open"]:hover,
-[data-active]:hover,
-[data-active="true"]:hover {
-    color: hsl(var(--primary)) !important;
 }

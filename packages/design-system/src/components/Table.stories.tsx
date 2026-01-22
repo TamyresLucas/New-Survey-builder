@@ -323,7 +323,7 @@ export const Striped: Story = {
                 {invoices.map((invoice, index) => (
                     <TableRow
                         key={invoice.invoice}
-                        className={index % 2 === 0 ? "bg-muted/50" : ""}
+                        className={index % 2 === 0 ? "bg-primary/5" : ""}
                     >
                         <TableCell className="font-medium">{invoice.invoice}</TableCell>
                         <TableCell>{invoice.paymentStatus}</TableCell>

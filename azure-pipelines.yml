@@ -42,6 +42,11 @@ stages:
         npm ci --prefer-offline --no-audit
       displayName: 'Install dependencies'
 
+    # Build design-system package first (required by main app)
+    - script: |
+        cd packages/design-system && npm run build
+      displayName: 'Build design-system package'
+
     # Build application for IIS (with /SurveyBuilderPoc/ base path)
     - script: |
         npm run build:iis

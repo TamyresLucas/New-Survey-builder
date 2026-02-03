@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- Fixed drag and drop functionality by correcting the execution order of `preventDefault()` and `stopPropagation()` in `SurveyBlock`, `SurveyCanvas`, and `QuestionCard` component handlers.
+
 ### Changed
 - Removed unused stories (`DarkModePreview`, `InteractiveDemo`, `CustomTheme`, `WithEndAction`) from `ToolboxItem` component documentation in Storybook.
 - Refactored `ColorPaletteEditor` to "Product Color Palette" with dropdown support for multiple products (Voxco, Ascribe, Discuss).

@@ -335,8 +335,16 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
       >
         <div className={`flex items-center ${!printMode ? 'cursor-grab' : ''} flex-grow min-w-0 mr-2`}>
           {/* DragIndicatorIcon removed but drag functionality preserved via parent div */}
-          <div className="flex items-center cursor-pointer collapse-toggle-area w-full" onClick={(e) => { e.stopPropagation(); if (!printMode) onToggleCollapse(); }}>
-            {!printMode && <ChevronDownIcon className={`text-xl mr-2 text-on-surface transition-transform duration-200 flex-shrink-0 ${isCollapsed ? '-rotate-90' : ''}`} />}
+          <div className="flex items-center w-full">
+            {!printMode && (
+              <button
+                className="collapse-toggle-area flex-shrink-0 p-0 mr-2 bg-transparent border-none cursor-pointer hover:bg-surface-container-highest rounded transition-colors"
+                onClick={(e) => { e.stopPropagation(); onToggleCollapse(); }}
+                aria-label={isCollapsed ? "Expand block" : "Collapse block"}
+              >
+                <ChevronDownIcon className={`text-xl text-on-surface transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
+              </button>
+            )}
             <div className="truncate flex items-center w-full">
               <span className="font-bold text-base text-on-surface mr-2">{block.bid}</span>
               <EditableText
@@ -354,7 +362,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
           </div>
         </div>
         {!printMode && (
-          <div className="relative actions-menu-area flex-shrink-0" ref={actionsMenuRef}>
+          <div className={`relative actions-menu-area flex-shrink-0 transition-opacity ${isActionsMenuOpen || isBlockHovered ? 'opacity-100' : 'opacity-0'}`} ref={actionsMenuRef}>
             <Button
               variant="ghost"
               size="large"
@@ -394,11 +402,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           onDragLeave={handleDragLeave}
-          className="p-4 cursor-pointer"
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelectBlock(block);
-          }}
+          className="p-4"
         >
           {incomingBranches.length > 0 && (
             <div className="mb-6 space-y-2">
@@ -436,6 +440,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                       id={`question-card-${question.id}`}
                       isSelected={selectedQuestion?.id === question.id}
                       isChecked={checkedQuestions.has(question.id)}
+                      showBulkEditCheckbox={checkedQuestions.size > 0}
                       onSelect={onSelectQuestion}
                       onUpdateQuestion={onUpdateQuestion}
                       onUpdateBlock={onUpdateBlock}
@@ -444,6 +449,12 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                       onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
                       onMoveQuestionToExistingBlock={onMoveQuestionToExistingBlock}
                       onMoveTo={onMoveTo}
+                      onAddQuestionAbove={(qid) => onAddQuestion(QTEnum.Radio, qid, block.id)}
+                      onAddQuestionBelow={(qid) => {
+                        const idx = block.questions.findIndex(q => q.id === qid);
+                        const nextQ = block.questions[idx + 1];
+                        onAddQuestion(QTEnum.Radio, nextQ ? nextQ.id : null, block.id);
+                      }}
                       onToggleCheck={onToggleQuestionCheck}
                       toolboxItems={toolboxItems}
                       isDragging={draggedQuestionId === question.id}
@@ -484,7 +495,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                 : 'border-outline-variant text-on-surface-variant'
                 }`}
             >
-              {(draggedQuestionId || isToolboxDragOver) ? 'Drop here' : 'Drag and drop your first question'}
+              {(draggedQuestionId || isToolboxDragOver) ? 'Drop here' : 'Drag and drop question'}
             </div>
           )}
         </div>

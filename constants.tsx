@@ -116,12 +116,12 @@ export const MULTIPLE_CHOICE_OPTION_HEIGHT = 32;
 export const LOGIC_NODE_HEIGHT = 80;
 
 export const questionGroups: Record<string, string[]> = {
-  'Advanced & Interactive': ['Card Sort', 'Carousel', 'Click Map', 'Comment Box', 'Custom Scripting', 'File Upload', 'Hot Spot', 'Signature', 'Text Highlighter', 'Timer'],
-  'Grid': ['Choice Grid', 'Custom Grid', 'Image Grid', 'Running Total'],
+  'Basic': ['Text Input', 'Check Box', 'Radio Button', 'Choice Grid', 'Page Break', 'Block', 'Description', 'Lookup Table'],
   'Input': ['Date & Time', 'Email Address', 'Numeric Input', 'Text Input'],
   'Multiple choices': ['Auto Complete Dropdown', 'Cascading Dropdown', 'Check Box', 'Dropdown', 'Image Select', 'Radio Button'],
+  'Grid': ['Choice Grid', 'Custom Grid', 'Image Grid', 'Running Total'],
   'Rating & Scoring': ['Drag and Drop Ranking', 'NPS', 'Numeric Ranking', 'Slider', 'Star Rating'],
-  'Structural': ['Block', 'Description', 'Lookup Table', 'Page Break'],
+  'Advanced & Interactive': ['Card Sort', 'Carousel', 'Click Map', 'Comment Box', 'Custom Scripting', 'File Upload', 'Hot Spot', 'Signature', 'Text Highlighter', 'Timer'],
   'System Variable': ['Email Collector', 'Language Preference', 'Metadata Collector', 'Phone Number', 'Secured Temporary Variable', 'Time Zone']
 };
 

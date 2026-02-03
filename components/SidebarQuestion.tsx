@@ -17,12 +17,18 @@ interface SidebarQuestionProps {
     onCopyQuestion: (questionId: string) => void;
     onDeleteQuestion: (questionId: string) => void;
     onAddPageBreakAfterQuestion: (questionId: string) => void;
+    onAddQuestionAbove?: (questionId: string) => void;
+    onAddQuestionBelow?: (questionId: string) => void;
     onMoveQuestionToNewBlock: (questionId: string) => void;
+    onMoveQuestionToExistingBlock?: (questionId: string, targetBlockId: string) => void;
     onMoveTo?: (questionId: string) => void;
+    onAddToLibrary?: (questionId: string) => void;
+    onBulkEdit?: (questionId: string) => void;
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
     hasIssues?: boolean;
     onQuestionHover?: (id: string | null) => void;
     isHovered?: boolean;
+    blocks?: any[];
 }
 
 export const SidebarQuestion = memo(({
@@ -37,12 +43,18 @@ export const SidebarQuestion = memo(({
     onCopyQuestion,
     onDeleteQuestion,
     onAddPageBreakAfterQuestion,
+    onAddQuestionAbove,
+    onAddQuestionBelow,
     onMoveQuestionToNewBlock,
+    onMoveQuestionToExistingBlock,
     onMoveTo,
+    onAddToLibrary,
+    onBulkEdit,
     onUpdateQuestion,
     hasIssues,
     onQuestionHover,
-    isHovered
+    isHovered,
+    blocks
 }: SidebarQuestionProps) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -75,6 +87,15 @@ export const SidebarQuestion = memo(({
     const handlePreview = () => {
         onSelectQuestion(question, { tab: 'Preview' });
         setIsMenuOpen(false);
+    };
+
+    const handleMoveToBlock = (target: string | 'new') => {
+        setIsMenuOpen(false);
+        if (target === 'new') {
+            onMoveQuestionToNewBlock(question.id);
+        } else if (onMoveQuestionToExistingBlock) {
+            onMoveQuestionToExistingBlock(question.id, target);
+        }
     };
 
     const DisplayIcon = hasIssues ? WarningIcon : TypeIcon;
@@ -137,8 +158,14 @@ export const SidebarQuestion = memo(({
                             onDelete={() => { onDeleteQuestion(question.id); setIsMenuOpen(false); }}
                             onDuplicate={() => { onCopyQuestion(question.id); setIsMenuOpen(false); }}
                             onAddPageBreak={() => { onAddPageBreakAfterQuestion(question.id); setIsMenuOpen(false); }}
+                            onAddQuestionAbove={onAddQuestionAbove ? () => { onAddQuestionAbove(question.id); setIsMenuOpen(false); } : undefined}
+                            onAddQuestionBelow={onAddQuestionBelow ? () => { onAddQuestionBelow(question.id); setIsMenuOpen(false); } : undefined}
                             onMoveToNewBlock={() => { onMoveQuestionToNewBlock(question.id); setIsMenuOpen(false); }}
                             onMoveTo={onMoveTo ? () => { onMoveTo(question.id); setIsMenuOpen(false); } : undefined}
+                            onAddToLibrary={onAddToLibrary ? () => { onAddToLibrary(question.id); setIsMenuOpen(false); } : undefined}
+                            onBulkEdit={onBulkEdit ? () => { onBulkEdit(question.id); setIsMenuOpen(false); } : undefined}
+                            blocks={blocks}
+                            onMoveToBlock={handleMoveToBlock}
                             onPreview={handlePreview}
                             onActivate={handleActivate}
                             onDeactivate={handleDeactivate}

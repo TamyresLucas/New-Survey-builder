@@ -35,8 +35,13 @@ interface SidebarBlockProps {
     onDeleteQuestion: (questionId: string) => void;
     onCopyQuestion: (questionId: string) => void;
     onAddPageBreakAfterQuestion: (questionId: string) => void;
+    onAddQuestionAbove?: (questionId: string) => void;
+    onAddQuestionBelow?: (questionId: string) => void;
     onMoveQuestionToNewBlock: (questionId: string) => void;
+    onMoveQuestionToExistingBlock?: (questionId: string, targetBlockId: string) => void;
     onMoveTo?: (questionId: string) => void;
+    onAddToLibrary?: (questionId: string) => void;
+    onBulkEdit?: (questionId: string) => void;
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
     hoveredQuestionId: string | null;
     onQuestionHover: (id: string | null) => void;
@@ -83,8 +88,13 @@ export const SidebarBlock: React.FC<SidebarBlockProps> = ({
     onDeleteQuestion,
     onCopyQuestion,
     onAddPageBreakAfterQuestion,
+    onAddQuestionAbove,
+    onAddQuestionBelow,
     onMoveQuestionToNewBlock,
+    onMoveQuestionToExistingBlock,
     onMoveTo,
+    onAddToLibrary,
+    onBulkEdit,
     onUpdateQuestion,
     hoveredQuestionId,
     onQuestionHover,
@@ -132,10 +142,6 @@ export const SidebarBlock: React.FC<SidebarBlockProps> = ({
             {openMenuBlockId === block.id && (
                 <BlockActionsMenu
                     onEdit={() => { onSelectBlock(block); onToggleMenu(block.id); }}
-                    onMoveUp={() => { onMoveBlockUp(block.id); onToggleMenu(block.id); }}
-                    canMoveUp={canMoveUp}
-                    onMoveDown={() => { onMoveBlockDown(block.id); onToggleMenu(block.id); }}
-                    canMoveDown={canMoveDown}
                     onDuplicate={() => { onCopyBlock(block.id); onToggleMenu(block.id); }}
                     onAddSimpleQuestion={() => { onAddQuestionToBlock(block.id, QTEnum.Checkbox); onToggleMenu(block.id); }}
                     onAddFromLibrary={() => { onAddFromLibrary(); onToggleMenu(block.id); }}
@@ -171,7 +177,8 @@ export const SidebarBlock: React.FC<SidebarBlockProps> = ({
             onDragStart={!isSearching ? (e) => handleBlockDragStart(e, block.id) : undefined}
             onDragEnd={!isSearching ? handleBlockDragEnd : undefined}
             actionsMenu={actionsMenu}
-            actionsMenuRef={openMenuBlockId === block.id ? actionsMenuRef : null}
+            actionsMenuRef={actionsMenuRef}
+            isMenuOpen={openMenuBlockId === block.id}
             dropIndicator={(!isSearching && showBlockDropIndicator) ? <DropIndicator /> : null}
             isCollapsed={isCollapsed}
         >
@@ -198,8 +205,14 @@ export const SidebarBlock: React.FC<SidebarBlockProps> = ({
                                     onDeleteQuestion={onDeleteQuestion}
                                     onCopyQuestion={onCopyQuestion}
                                     onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
+                                    onAddQuestionAbove={onAddQuestionAbove}
+                                    onAddQuestionBelow={onAddQuestionBelow}
                                     onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
+                                    onMoveQuestionToExistingBlock={onMoveQuestionToExistingBlock}
                                     onMoveTo={onMoveTo}
+                                    onAddToLibrary={onAddToLibrary}
+                                    onBulkEdit={onBulkEdit}
+                                    blocks={survey.blocks}
                                     onUpdateQuestion={onUpdateQuestion}
                                     hasIssues={logicIssues.some(i => i.questionId === question.id)}
                                     onQuestionHover={onQuestionHover}

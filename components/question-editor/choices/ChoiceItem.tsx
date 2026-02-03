@@ -55,7 +55,7 @@ const ChoiceItem: React.FC<ChoiceItemProps> = ({
         >
             <div className={`flex items-center gap-2 transition-opacity ${isDragged ? 'opacity-30' : ''}`}>
                 <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing" aria-label="Reorder choice">
-                    <DragIndicatorIcon className="text-lg" />
+                    <DragIndicatorIcon className="text-base" />
                 </span>
                 <div className="flex-grow">
                     <TextField

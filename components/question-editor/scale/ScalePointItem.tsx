@@ -44,13 +44,19 @@ const ScalePointItem: React.FC<ScalePointItemProps> = ({
         <div
             className="group"
             draggable={true}
-            onDragStart={(e) => onDragStart(e, scalePoint.id)}
+            onDragStart={(e) => {
+                if (!(e.target as HTMLElement).closest('.drag-handle')) {
+                    e.preventDefault();
+                    return;
+                }
+                onDragStart(e, scalePoint.id);
+            }}
             onDragOver={(e) => onDragOver(e, scalePoint.id)}
             onDragEnd={onDragEnd}
         >
             <div className={`flex items-center gap-2 transition-opacity ${isDragged ? 'opacity-30' : ''}`}>
-                <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing" aria-label="Reorder column">
-                    <DragIndicatorIcon className="text-lg" />
+                <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing drag-handle" aria-label="Reorder column">
+                    <DragIndicatorIcon className="text-base" />
                 </span>
                 <div className="flex-grow">
                     <TextField

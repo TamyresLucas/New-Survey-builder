@@ -1,6 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import type { Question, QuestionType, ToolboxItemData, Survey, Block } from '../types';
-import { ChevronRightIcon, DownloadIcon, ChevronLeftIcon, BlockIcon } from './icons';
+import {
+  ChevronRightIcon, ChevronLeftIcon, BlockIcon,
+  PageBreakIcon, ArrowUpIcon, ArrowDownIcon, DriveFileMoveIcon,
+  ContentCopyIcon, LibraryAddIcon, EyeIcon, VisibilityOffIcon,
+  DeleteIcon, CheckCircleIcon, PlusIcon,
+  EditIcon, CheckboxFilledIcon, CheckboxOutlineIcon,
+  UnfoldMoreIcon, UnfoldLessIcon
+} from './icons';
+
 import { DropdownList, DropdownItem, DropdownDivider } from './DropdownList';
 
 export const QuestionTypeSelectionMenuContent: React.FC<{
@@ -66,40 +74,49 @@ interface BlockActionsMenuProps {
 export const BlockActionsMenu: React.FC<BlockActionsMenuProps> = ({ onEdit, onMoveUp, canMoveUp = true, onMoveDown, canMoveDown = true, onDuplicate, onAddSimpleQuestion, onAddFromLibrary, onAddBlockAbove, onAddBlockBelow, onSelectAll, canSelectAll = true, onUnselectAll, canUnselectAll = true, onExpand, canExpand = true, onCollapse, canCollapse = true, onDelete }) => {
   return (
     <DropdownList className="absolute top-full right-0 mt-2 w-48">
+      {/* Add Actions - Primary Color */}
       {onAddSimpleQuestion && (
-        <DropdownItem onClick={onAddSimpleQuestion}>Add new question</DropdownItem>
+        <DropdownItem onClick={onAddSimpleQuestion} icon={PlusIcon} variant="primary">Add new question</DropdownItem>
       )}
-      {onAddFromLibrary && <DropdownItem onClick={onAddFromLibrary}>Add from library</DropdownItem>}
-      {onAddBlockAbove && <DropdownItem onClick={onAddBlockAbove}>Add block above</DropdownItem>}
-      {onAddBlockBelow && <DropdownItem onClick={onAddBlockBelow}>Add block below</DropdownItem>}
+      {onAddBlockAbove && <DropdownItem onClick={onAddBlockAbove} icon={PlusIcon} variant="primary">Add block above</DropdownItem>}
+      {onAddBlockBelow && <DropdownItem onClick={onAddBlockBelow} icon={PlusIcon} variant="primary">Add block below</DropdownItem>}
 
+      <DropdownDivider />
+
+      {/* Move Actions */}
+      {onMoveUp && <DropdownItem onClick={onMoveUp} disabled={!canMoveUp} icon={ArrowUpIcon}>Move up</DropdownItem>}
+      {onMoveDown && <DropdownItem onClick={onMoveDown} disabled={!canMoveDown} icon={ArrowDownIcon}>Move down</DropdownItem>}
+
+      {/* Duplicate */}
       {onDuplicate && (
-        <>
-          <DropdownDivider />
-          <DropdownItem onClick={onDuplicate}>Duplicate</DropdownItem>
-        </>
+        <DropdownItem onClick={onDuplicate} icon={ContentCopyIcon}>Duplicate</DropdownItem>
       )}
 
-      {(onEdit || onMoveUp || onMoveDown) && <DropdownDivider />}
+      {/* Save to Library */}
+      {onAddFromLibrary && (
+        <DropdownItem onClick={onAddFromLibrary} icon={LibraryAddIcon}>Save to library</DropdownItem>
+      )}
 
-      {onEdit && <DropdownItem onClick={onEdit}>Edit block</DropdownItem>}
-      {onMoveUp && <DropdownItem onClick={onMoveUp} disabled={!canMoveUp}>Move up</DropdownItem>}
-      {onMoveDown && <DropdownItem onClick={onMoveDown} disabled={!canMoveDown}>Move down</DropdownItem>}
+      {/* Edit Block */}
+      {onEdit && (
+        <DropdownItem onClick={onEdit} icon={EditIcon}>Edit block</DropdownItem>
+      )}
 
-      {(canSelectAll || canUnselectAll) && <DropdownDivider />}
-
-      {canSelectAll && onSelectAll && <DropdownItem onClick={onSelectAll}>Select All</DropdownItem>}
-      {canUnselectAll && onUnselectAll && <DropdownItem onClick={onUnselectAll}>Unselect All</DropdownItem>}
-
+      {/* Expand/Collapse */}
       {(canExpand || canCollapse) && <DropdownDivider />}
+      {canExpand && onExpand && <DropdownItem onClick={onExpand} icon={UnfoldMoreIcon}>Expand block</DropdownItem>}
+      {canCollapse && onCollapse && <DropdownItem onClick={onCollapse} icon={UnfoldLessIcon}>Collapse block</DropdownItem>}
 
-      {canExpand && onExpand && <DropdownItem onClick={onExpand}>Expand block</DropdownItem>}
-      {canCollapse && onCollapse && <DropdownItem onClick={onCollapse}>Collapse block</DropdownItem>}
+      {/* Bulk Edit / Unselect All */}
+      {(canSelectAll || canUnselectAll) && <DropdownDivider />}
+      {canSelectAll && onSelectAll && <DropdownItem onClick={onSelectAll} icon={EditIcon}>Bulk edit</DropdownItem>}
+      {canUnselectAll && onUnselectAll && <DropdownItem onClick={onUnselectAll} icon={CheckboxOutlineIcon}>Unselect all</DropdownItem>}
 
+      {/* Delete */}
       {onDelete && (
         <>
           <DropdownDivider />
-          <DropdownItem onClick={onDelete} variant="danger">Delete</DropdownItem>
+          <DropdownItem onClick={onDelete} variant="danger" icon={DeleteIcon}>Delete</DropdownItem>
         </>
       )}
     </DropdownList>
@@ -113,102 +130,213 @@ interface QuestionActionsMenuProps {
   onDuplicate?: () => void;
   onDelete?: () => void;
   onAddPageBreak?: () => void;
+  onAddQuestionAbove?: () => void;
+  onAddQuestionBelow?: () => void;
   onMoveToNewBlock?: () => void;
   onReplaceFromLibrary?: () => void;
+  onAddToLibrary?: () => void;
   onPreview?: () => void;
   onActivate?: () => void;
   onDeactivate?: () => void;
   blocks?: Block[];
   onMoveToBlock?: (blockId: string | 'new') => void;
   onMoveTo?: () => void;
+  onBulkEdit?: () => void;
 }
 
-export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({ question, onDuplicate, onDelete, onAddPageBreak, onMoveToNewBlock, onReplaceFromLibrary, onPreview, onActivate, onDeactivate, blocks, onMoveToBlock, onMoveTo }) => {
+export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({
+  question,
+  onDuplicate,
+  onDelete,
+  onAddPageBreak,
+  onAddQuestionAbove,
+  onAddQuestionBelow,
+  onMoveToNewBlock,
+  onReplaceFromLibrary,
+  onAddToLibrary,
+  onPreview,
+  onActivate,
+  onDeactivate,
+  blocks,
+  onMoveToBlock,
+  onMoveTo,
+  onBulkEdit
+}) => {
   const [submenu, setSubmenu] = useState<'main' | 'moveto'>('main');
+  const [openUpward, setOpenUpward] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Smart positioning: detect if menu would overflow bottom of viewport
+  useLayoutEffect(() => {
+    if (dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.top;
+      const spaceAbove = rect.top;
+
+      // If not enough space below (menu height ~400px for main, ~500px for moveto with many blocks)
+      const estimatedMenuHeight = submenu === 'moveto' ? 500 : 400;
+
+      if (spaceBelow < estimatedMenuHeight && spaceAbove > spaceBelow) {
+        setOpenUpward(true);
+      } else {
+        setOpenUpward(false);
+      }
+    }
+  }, [submenu]);
+
+  // Reset positioning when submenu changes
+  useEffect(() => {
+    setOpenUpward(false);
+  }, [submenu]);
 
   if (submenu === 'moveto' && blocks && onMoveToBlock && !onMoveTo) {
+    const positionClasses = openUpward
+      ? 'absolute bottom-full right-0 mb-2 w-64 max-h-80 overflow-y-auto'
+      : 'absolute top-full right-0 mt-2 w-64 max-h-80 overflow-y-auto';
+
     return (
-      <DropdownList className="absolute top-full right-0 mt-2 w-64 max-h-80 overflow-y-auto">
-        <DropdownItem
-          onClick={(e) => { e.stopPropagation(); setSubmenu('main'); }}
-          icon={ChevronLeftIcon}
-        >
-          Back
-        </DropdownItem>
-        <DropdownDivider />
-        <DropdownItem
-          onClick={(e) => { e.stopPropagation(); onMoveToBlock('new'); }}
-          icon={BlockIcon}
-        >
-          New block
-        </DropdownItem>
-        <div className="border-t border-outline-variant my-1"></div>
-        {blocks.map(block => (
+      <div ref={dropdownRef}>
+        <DropdownList className={positionClasses}>
           <DropdownItem
-            key={block.id}
-            onClick={(e) => { e.stopPropagation(); onMoveToBlock(block.id); }}
+            onClick={(e) => { e.stopPropagation(); setSubmenu('main'); }}
+            icon={ChevronLeftIcon}
+          >
+            Back
+          </DropdownItem>
+          <DropdownDivider />
+          <DropdownItem
+            onClick={(e) => { e.stopPropagation(); onMoveToBlock('new'); }}
             icon={BlockIcon}
           >
-            {block.title || 'Untitled Block'}
+            New block
           </DropdownItem>
-        ))}
-      </DropdownList>
+          <div className="border-t border-outline-variant my-1"></div>
+          {blocks.map(block => (
+            <DropdownItem
+              key={block.id}
+              onClick={(e) => { e.stopPropagation(); onMoveToBlock(block.id); }}
+              icon={BlockIcon}
+            >
+              {block.title || 'Untitled Block'}
+            </DropdownItem>
+          ))}
+        </DropdownList>
+      </div>
     );
   }
 
-  return (
-    <DropdownList className="absolute top-full right-0 mt-2 w-56">
-      {onMoveTo ? (
-        <DropdownItem onClick={(e) => { e.stopPropagation(); onMoveTo(); }}>
-          Move to
-        </DropdownItem>
-      ) : onMoveToBlock && blocks ? (
-        <DropdownItem
-          onClick={(e) => { e.stopPropagation(); setSubmenu('moveto'); }}
-        >
-          <div className="flex items-center justify-between w-full">
-            <span>Move to</span>
-            <ChevronRightIcon className="text-base" />
-          </div>
-        </DropdownItem>
-      ) : onMoveToNewBlock && (
-        <DropdownItem onClick={(e) => { e.stopPropagation(); onMoveToNewBlock(); }}>
-          Move to new block
-        </DropdownItem>
-      )}
-      {onDuplicate && <DropdownItem onClick={(e) => { e.stopPropagation(); onDuplicate(); }}>Duplicate</DropdownItem>}
-      {onReplaceFromLibrary && <DropdownItem onClick={(e) => { e.stopPropagation(); onReplaceFromLibrary(); }}>Replace from library</DropdownItem>}
-      <DropdownItem onClick={(e) => { e.stopPropagation(); alert('Not implemented'); }}>Add to library</DropdownItem>
-      {onAddPageBreak && <DropdownItem onClick={(e) => { e.stopPropagation(); onAddPageBreak(); }}>Add page break</DropdownItem>}
+  const positionClasses = openUpward
+    ? 'absolute bottom-full right-0 mb-2 w-64'
+    : 'absolute top-full right-0 mt-2 w-64';
 
-      {onPreview && (
-        <>
-          <DropdownDivider />
-          <DropdownItem onClick={(e) => { e.stopPropagation(); onPreview(); }}>Preview</DropdownItem>
-        </>
-      )}
-      {(onActivate || onDeactivate) && (
-        <>
-          <DropdownDivider />
-          {question.isHidden ? (
-            onActivate && <DropdownItem onClick={(e) => { e.stopPropagation(); onActivate(); }}>Activate</DropdownItem>
-          ) : (
-            onDeactivate && <DropdownItem onClick={(e) => { e.stopPropagation(); onDeactivate(); }}>Deactivate</DropdownItem>
-          )}
-        </>
-      )}
-      {onDelete && (
-        <>
-          <DropdownDivider />
-          <DropdownItem
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            variant="danger"
-          >
-            Delete
+  return (
+    <div ref={dropdownRef}>
+      <DropdownList className={positionClasses}>
+        {/* Add Page Break */}
+        {onAddPageBreak && (
+          <DropdownItem onClick={(e) => { e.stopPropagation(); onAddPageBreak(); }} icon={PlusIcon} variant="primary">
+            Add page break
           </DropdownItem>
-        </>
-      )}
-    </DropdownList>
+        )}
+
+        {/* Add Question Above/Below */}
+        {onAddQuestionAbove && (
+          <DropdownItem onClick={(e) => { e.stopPropagation(); onAddQuestionAbove(); }} icon={PlusIcon} variant="primary">
+            Add question above
+          </DropdownItem>
+        )}
+        {onAddQuestionBelow && (
+          <DropdownItem onClick={(e) => { e.stopPropagation(); onAddQuestionBelow(); }} icon={PlusIcon} variant="primary">
+            Add question below
+          </DropdownItem>
+        )}
+
+
+
+        <DropdownDivider />
+
+        {/* Move To */}
+        {onMoveTo ? (
+          <DropdownItem onClick={(e) => { e.stopPropagation(); onMoveTo(); }} icon={DriveFileMoveIcon}>
+            Move to
+          </DropdownItem>
+        ) : onMoveToBlock && blocks ? (
+          <DropdownItem
+            onClick={(e) => { e.stopPropagation(); setSubmenu('moveto'); }}
+            icon={DriveFileMoveIcon}
+          >
+            <div className="flex items-center justify-between w-full">
+              <span>Move to</span>
+              <ChevronRightIcon className="text-base" />
+            </div>
+          </DropdownItem>
+        ) : onMoveToNewBlock && (
+          <DropdownItem onClick={(e) => { e.stopPropagation(); onMoveToNewBlock(); }} icon={DriveFileMoveIcon}>
+            Move to new block
+          </DropdownItem>
+        )}
+
+        {/* Duplicate */}
+        {onDuplicate && (
+          <DropdownItem onClick={(e) => { e.stopPropagation(); onDuplicate(); }} icon={ContentCopyIcon}>
+            Duplicate
+          </DropdownItem>
+        )}
+
+        {/* Save to Library */}
+        <DropdownItem
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onAddToLibrary) onAddToLibrary();
+            else alert('Not implemented');
+          }}
+          icon={LibraryAddIcon}
+        >
+          Save to library
+        </DropdownItem>
+
+        {/* Bulk Edit */}
+        {onBulkEdit && (
+          <DropdownItem onClick={(e) => { e.stopPropagation(); onBulkEdit(); }} icon={EditIcon}>
+            Bulk edit
+          </DropdownItem>
+        )}
+
+        {/* Preview */}
+        {onPreview && (
+          <DropdownItem onClick={(e) => { e.stopPropagation(); onPreview(); }} icon={EyeIcon}>
+            Preview
+          </DropdownItem>
+        )}
+
+        <DropdownDivider />
+
+        {/* Activate / Deactivate */}
+        {(onActivate || onDeactivate) && (
+          <>
+            {question.isHidden ? (
+              onActivate && <DropdownItem onClick={(e) => { e.stopPropagation(); onActivate(); }} icon={CheckCircleIcon}>Activate</DropdownItem>
+            ) : (
+              onDeactivate && <DropdownItem onClick={(e) => { e.stopPropagation(); onDeactivate(); }} icon={VisibilityOffIcon}>Deactivate</DropdownItem>
+            )}
+          </>
+        )}
+
+        {/* Delete */}
+        {onDelete && (
+          <>
+            <DropdownItem
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              variant="danger"
+              icon={DeleteIcon}
+            >
+              Delete
+            </DropdownItem>
+          </>
+        )}
+      </DropdownList>
+    </div>
   );
 };
 

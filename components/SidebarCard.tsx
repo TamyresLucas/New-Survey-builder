@@ -10,6 +10,7 @@ interface SidebarCardProps {
     isHovered?: boolean;
     isDragged?: boolean;
     isCollapsed?: boolean;
+    isMenuOpen?: boolean;
     onClick?: (e: React.MouseEvent) => void;
     onMouseEnter?: () => void;
     onMouseLeave?: () => void;
@@ -32,6 +33,7 @@ export const SidebarCard: React.FC<SidebarCardProps> = ({
     isHovered,
     isDragged,
     isCollapsed,
+    isMenuOpen,
     onClick,
     onMouseEnter,
     onMouseLeave,
@@ -79,14 +81,12 @@ export const SidebarCard: React.FC<SidebarCardProps> = ({
                     </div>
 
                     <div className="flex items-center space-x-2 flex-shrink-0">
-                        {actionsMenuRef && (
+                        {actionsMenu && (
                             <div
-                                ref={actionsMenuRef}
+                                ref={actionsMenuRef || undefined}
                                 onClick={(e) => e.stopPropagation()}
+                                className={`relative transition-opacity ${isMenuOpen || isHovered ? 'opacity-100' : 'opacity-0'}`}
                             >
-                                <button className={`p-1 rounded-full hover:bg-black/10 transition-colors ${isSelected ? 'text-on-primary' : 'text-on-surface-variant'}`}>
-                                    <MoreIcon className="text-xl" />
-                                </button>
                                 {actionsMenu}
                             </div>
                         )}

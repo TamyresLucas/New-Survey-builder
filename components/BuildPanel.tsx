@@ -34,10 +34,14 @@ interface BuildPanelProps {
   onDeleteBlock: (blockId: string) => void;
   onDeleteQuestion: (questionId: string) => void;
   onCopyQuestion: (questionId: string) => void;
+  onAddQuestionAbove?: (questionId: string) => void;
+  onAddQuestionBelow?: (questionId: string) => void;
   onMoveQuestionToNewBlock: (questionId: string) => void;
   onMoveQuestionToExistingBlock: (questionId: string, targetBlockId: string) => void;
   onMoveTo?: (questionId: string) => void;
   onAddPageBreakAfterQuestion: (questionId: string) => void;
+  onAddToLibrary?: (questionId: string) => void;
+  onBulkEdit?: (questionId: string) => void;
   onSelectAllInBlock: (blockId: string) => void;
   onUnselectAllInBlock: (blockId: string) => void;
   onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
@@ -57,8 +61,8 @@ import { SidebarToolboxItem } from './SidebarToolboxItem';
 
 const BuildPanel: React.FC<BuildPanelProps> = memo(({
   onClose, survey, onSelectQuestion, selectedQuestion, selectedBlock, onSelectBlock, checkedQuestions, collapsedBlocks, toolboxItems, logicIssues, onReorderToolbox, onReorderQuestion, onReorderBlock,
-  onMoveBlockUp, onMoveBlockDown, onAddBlock, onCopyBlock, onAddQuestionToBlock, onExpandAllBlocks, onCollapseAllBlocks, onDeleteBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock,
-  onMoveQuestionToExistingBlock, onMoveTo, onAddPageBreakAfterQuestion, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock, onUpdateQuestion,
+  onMoveBlockUp, onMoveBlockDown, onAddBlock, onCopyBlock, onAddQuestionToBlock, onExpandAllBlocks, onCollapseAllBlocks, onDeleteBlock, onDeleteQuestion, onCopyQuestion, onAddQuestionAbove, onAddQuestionBelow, onMoveQuestionToNewBlock,
+  onMoveQuestionToExistingBlock, onMoveTo, onAddPageBreakAfterQuestion, onAddToLibrary, onBulkEdit, onExpandBlock, onCollapseBlock, onSelectAllInBlock, onUnselectAllInBlock, onUpdateQuestion,
   printMode = false, onQuestionHover, hoveredQuestionId, onBlockHover, hoveredBlockId
 }) => {
   const enabledToolboxItems = useMemo(() => new Set(toolboxItems.map(item => item.name)), [toolboxItems]);
@@ -67,7 +71,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [questionTypeFilter, setQuestionTypeFilter] = useState('All content');
-  const [toolboxFilter, setToolboxFilter] = useState('All');
+  const [toolboxFilter, setToolboxFilter] = useState('Basic');
   const [viewingLibrarySurveyId, setViewingLibrarySurveyId] = useState<string | null>(null);
   const [libraryFilter, setLibraryFilter] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -462,7 +466,6 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             value={toolboxFilter}
             onChange={setToolboxFilter}
             options={[
-              { value: 'All', label: 'All question types' },
               ...Object.keys(questionGroups).map(group => ({
                 value: group,
                 label: group
@@ -568,8 +571,13 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                   onDeleteQuestion={onDeleteQuestion}
                   onCopyQuestion={onCopyQuestion}
                   onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
+                  onAddQuestionAbove={onAddQuestionAbove}
+                  onAddQuestionBelow={onAddQuestionBelow}
                   onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
+                  onMoveQuestionToExistingBlock={onMoveQuestionToExistingBlock}
                   onMoveTo={onMoveTo}
+                  onAddToLibrary={onAddToLibrary}
+                  onBulkEdit={onBulkEdit}
                   onUpdateQuestion={onUpdateQuestion}
                   hoveredQuestionId={hoveredQuestionId}
                   onQuestionHover={onQuestionHover}

@@ -35,7 +35,7 @@ export const SidebarToolboxItem: React.FC<SidebarToolboxItemProps> = ({
                 <div className="relative w-5 h-5 mr-3 flex-shrink-0 flex items-center justify-center">
                     <Icon className={`text-xl leading-none transition-opacity duration-200 group-hover:opacity-0 ${isEnabled ? 'text-primary' : 'text-on-surface-disabled'}`} />
                     <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 opacity-0 group-hover:opacity-100 ${isEnabled ? 'text-on-surface-variant' : 'text-on-surface-disabled'}`}>
-                        <DragIndicatorIcon className="text-xl leading-none" />
+                        <DragIndicatorIcon className="text-base leading-none" />
                     </div>
                 </div>
                 <span className={`text-sm truncate ${isEnabled ? 'text-on-surface' : 'text-on-surface-disabled'}`} style={{ fontFamily: "'Open Sans', sans-serif" }}>

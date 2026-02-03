@@ -72,7 +72,7 @@ export const DropdownField: React.FC<DropdownFieldProps> = ({
             </button>
             {isOpen && (
                 <DropdownList
-                    className={`absolute top-full left-0 right-0 mt-1 w-full max-h-60 overflow-y-auto ${dropdownClassName}`}
+                    className={`absolute top-full left-0 right-0 mt-1 w-full max-h-96 overflow-y-auto ${dropdownClassName}`}
                     hasShadow={hasDropdownShadow}
                 >
                     {options.map((option) => (
@@ -80,6 +80,7 @@ export const DropdownField: React.FC<DropdownFieldProps> = ({
                             key={option.value}
                             onClick={() => handleSelect(option)}
                             disabled={option.disabled}
+                            active={option.value === value}
                             icon={option.icon}
                             iconClassName={option.iconColor}
                             className={`px-2 py-2 leading-[19px] ${option.disabled ? '' : 'hover:bg-surface-container-lowest'}`}

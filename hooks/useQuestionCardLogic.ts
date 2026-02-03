@@ -211,9 +211,9 @@ export const useQuestionCardLogic = ({
         const lines = pastedText.split('\n').filter(line => line.trim() !== '');
         if (lines.length === 0) return;
         const newChoices: Choice[] = lines.map(line => ({ id: generateId('c'), text: line.trim() }));
-        const currentChoices = question.choices || [];
-        onUpdateQuestion(question.id, { choices: [...currentChoices, ...newChoices] });
-    }, [question.id, question.choices, onUpdateQuestion]);
+        // Replace existing choices with new ones
+        onUpdateQuestion(question.id, { choices: newChoices });
+    }, [question.id, onUpdateQuestion]);
 
     const handlePasteGrid = useCallback((rowsText: string, columnsText: string) => {
         const rowLines = rowsText.split('\n').filter(line => line.trim() !== '');

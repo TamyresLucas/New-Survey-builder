@@ -21,7 +21,7 @@ export const DropdownList: React.FC<DropdownListProps> = ({ children, className 
 
 export interface DropdownItemProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     icon?: React.ComponentType<{ className?: string }>;
-    variant?: 'default' | 'danger';
+    variant?: 'default' | 'danger' | 'primary';
     active?: boolean;
     iconClassName?: string;
 }
@@ -42,6 +42,8 @@ export const DropdownItem: React.FC<DropdownItemProps> = ({
     let stateClasses = "text-on-surface hover:bg-surface-container-lowest";
     if (variant === 'danger') {
         stateClasses = "text-error hover:bg-error-container/10";
+    } else if (variant === 'primary') {
+        stateClasses = "text-primary hover:bg-primary/5";
     }
 
     if (disabled) {
@@ -49,12 +51,14 @@ export const DropdownItem: React.FC<DropdownItemProps> = ({
     }
 
     if (active) {
-        stateClasses += " bg-surface-container-high";
+        stateClasses = stateClasses.replace('text-on-surface', 'text-primary') + " font-semibold bg-transparent";
     }
 
     const defaultIconColor = disabled
         ? 'text-on-surface-variant'
-        : variant === 'danger' ? 'text-error' : 'text-primary';
+        : variant === 'danger' ? 'text-error'
+            : variant === 'primary' ? 'text-primary'
+                : '';
 
     const finalIconClass = iconClassName || defaultIconColor;
 

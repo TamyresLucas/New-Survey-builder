@@ -11,6 +11,7 @@ interface QuestionCardBodyProps {
     question: Question;
     survey: Survey;
     printMode?: boolean;
+    showBulkEditCheckbox?: boolean;
     logicIssues: LogicIssue[];
     focusedLogicSource: string | null;
 
@@ -34,7 +35,7 @@ interface QuestionCardBodyProps {
 
 export const QuestionCardBody: React.FC<QuestionCardBodyProps> = (props) => {
     const {
-        question, survey, printMode, logicIssues, focusedLogicSource,
+        question, survey, printMode, showBulkEditCheckbox = false, logicIssues, focusedLogicSource,
         onUpdateQuestion, onSelect
     } = props;
 

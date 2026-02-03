@@ -330,6 +330,49 @@ export const useSurveyActions = ({
         dispatchAndRecord({ type: SurveyActionType.ADD_PAGE_BREAK_AFTER_QUESTION, payload: { questionId } });
     }, [dispatchAndRecord]);
 
+    const handleAddQuestionAbove = useCallback((questionId: string) => {
+        // Find the question and its block
+        const question = survey.blocks.flatMap(b => b.questions).find(q => q.id === questionId);
+        if (!question) return;
+
+        const block = survey.blocks.find(b => b.questions.some(q => q.id === questionId));
+        if (!block) return;
+
+        // Add a new question above (before) the target question
+        handleAddQuestion(QTEnum.Radio, questionId, block.id);
+    }, [survey, handleAddQuestion]);
+
+    const handleAddQuestionBelow = useCallback((questionId: string) => {
+        // Find the question and its block
+        const question = survey.blocks.flatMap(b => b.questions).find(q => q.id === questionId);
+        if (!question) return;
+
+        const block = survey.blocks.find(b => b.questions.some(q => q.id === questionId));
+        if (!block) return;
+
+        // Find the index of the current question
+        const questionIndex = block.questions.findIndex(q => q.id === questionId);
+        if (questionIndex === -1) return;
+
+        // Get the next question ID (or null if this is the last question)
+        const nextQuestionId = questionIndex < block.questions.length - 1
+            ? block.questions[questionIndex + 1].id
+            : null;
+
+        // Add a new question below (after) the target question
+        handleAddQuestion(QTEnum.Radio, nextQuestionId, block.id);
+    }, [survey, handleAddQuestion]);
+
+    const handleAddToLibrary = useCallback((questionId: string) => {
+        // Placeholder for Add to Library functionality
+        showToast('Add to library functionality not yet implemented', 'error');
+    }, [showToast]);
+
+    const handleBulkEdit = useCallback((questionId: string) => {
+        // Set the question as checked to enable bulk edit mode
+        setCheckedQuestions(new Set([questionId]));
+    }, [setCheckedQuestions]);
+
     const handleUpdateBlockTitle = useCallback((blockId: string, title: string) => {
         dispatch({ type: SurveyActionType.UPDATE_BLOCK_TITLE, payload: { blockId, title } });
     }, [dispatch]);
@@ -449,6 +492,10 @@ export const useSurveyActions = ({
         handleAddChoice,
         handleDeleteChoice,
         handleAddPageBreakAfterQuestion,
+        handleAddQuestionAbove,
+        handleAddQuestionBelow,
+        handleAddToLibrary,
+        handleBulkEdit,
         handleUpdateBlockTitle,
         handleUpdateBlock,
         handleUpdateSurveyTitle,
@@ -460,7 +507,6 @@ export const useSurveyActions = ({
         handleBulkMoveToNewBlock,
         handleBulkHideQuestion,
         handleBulkHideBackButton,
-
         handleBulkForceResponse,
         handleBulkAutoAdvance,
         handleBulkMoveToExistingBlock,

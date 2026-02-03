@@ -4,7 +4,7 @@ import { QuestionType } from '../../types';
 import { Button } from '../Button';
 import {
     DotsHorizontalIcon, RadioIcon, ChevronDownIcon,
-    AsteriskIcon, VisibilityOffIcon
+    AsteriskIcon, VisibilityOffIcon, DragIndicatorIcon
 } from '../icons';
 import { QuestionActionsMenu, QuestionTypeSelectionMenuContent } from '../ActionMenus';
 import { Badge } from '../Badge';
@@ -13,6 +13,7 @@ import { Toggle } from '../Toggle'; // Standard Toggle not used here yet (using 
 interface QuestionCardHeaderProps {
     question: Question;
     isChecked: boolean;
+    showBulkEditCheckbox?: boolean;
     isTypeMenuOpen: boolean;
     isActionsMenuOpen: boolean;
     typeMenuContainerRef: React.RefObject<HTMLDivElement>;
@@ -21,6 +22,7 @@ interface QuestionCardHeaderProps {
     toolboxItems: ToolboxItemData[];
     printMode?: boolean;
     willAutoadvance: boolean;
+    isHovered?: boolean;
 
     // Editing Props
     isEditingLabel: boolean;
@@ -42,9 +44,13 @@ interface QuestionCardHeaderProps {
     onCopyQuestion: (id: string) => void;
     onDeleteQuestion: (id: string) => void;
     onAddPageBreakAfterQuestion: (id: string) => void;
+    onAddQuestionAbove: (id: string) => void;
+    onAddQuestionBelow: (id: string) => void;
     onMoveQuestionToNewBlock: (id: string) => void;
     onMoveQuestionToExistingBlock?: (id: string, targetBlockId: string) => void;
     onMoveTo?: (id: string) => void;
+    onAddToLibrary?: (id: string) => void;
+    onBulkEdit?: (id: string) => void;
     blocks?: Block[];
     handlePreview: () => void;
     handleActivate: () => void;
@@ -52,13 +58,15 @@ interface QuestionCardHeaderProps {
 }
 
 export const QuestionCardHeader: React.FC<QuestionCardHeaderProps> = ({
-    question, isChecked, isTypeMenuOpen, isActionsMenuOpen, typeMenuContainerRef, actionsMenuContainerRef,
-    questionTypeOptions, toolboxItems, printMode, willAutoadvance,
+    question, isChecked, showBulkEditCheckbox = false, isTypeMenuOpen, isActionsMenuOpen, typeMenuContainerRef, actionsMenuContainerRef,
+    questionTypeOptions, toolboxItems, printMode, willAutoadvance, isHovered,
     isEditingLabel, labelValue, labelError,
     onToggleCheck, setLabelValue, setLabelError, saveLabel, handleLabelKeyDown, handleLabelEditClick,
     setIsTypeMenuOpen, handleTypeSelect, setIsActionsMenuOpen,
-    onCopyQuestion, onDeleteQuestion, onAddPageBreakAfterQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock,
-    onMoveTo, handlePreview, handleActivate, handleDeactivate, blocks
+    onCopyQuestion, onDeleteQuestion, onAddPageBreakAfterQuestion,
+    onAddQuestionAbove, onAddQuestionBelow,
+    onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock,
+    onMoveTo, onAddToLibrary, onBulkEdit, handlePreview, handleActivate, handleDeactivate, blocks
 }) => {
     const CurrentQuestionTypeIcon = questionTypeOptions.find(o => o.type === question.type)?.icon || RadioIcon;
 
@@ -73,17 +81,23 @@ export const QuestionCardHeader: React.FC<QuestionCardHeaderProps> = ({
 
     return (
         <>
-            {/* Grid Cell 1: Checkbox */}
-            <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-input-border text-primary focus:ring-primary accent-primary self-center dark:border-outline-variant dark:bg-transparent cursor-pointer"
-                checked={isChecked}
-                onChange={(e) => {
-                    e.stopPropagation();
-                    onToggleCheck(question.id);
-                }}
-                onClick={(e) => e.stopPropagation()}
-            />
+            {/* Grid Cell 1: Checkbox or Drag Handle */}
+            <div className="w-4 h-4 self-center flex-shrink-0 flex items-center justify-center">
+                {showBulkEditCheckbox ? (
+                    <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-input-border text-primary focus:ring-primary accent-primary dark:border-outline-variant dark:bg-transparent cursor-pointer"
+                        checked={isChecked}
+                        onChange={(e) => {
+                            e.stopPropagation();
+                            onToggleCheck(question.id);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                ) : isHovered ? (
+                    <DragIndicatorIcon className="text-on-surface-variant text-base leading-none cursor-grab active:cursor-grabbing drag-handle" />
+                ) : null}
+            </div>
 
             {/* Grid Cell 2: Header */}
             <div className="flex items-center justify-between">
@@ -145,7 +159,7 @@ export const QuestionCardHeader: React.FC<QuestionCardHeaderProps> = ({
                 {!printMode && (
                     <div className="flex items-center gap-2">
 
-                        <div ref={actionsMenuContainerRef} className="relative transition-opacity">
+                        <div ref={actionsMenuContainerRef} className={`relative transition-opacity ${isActionsMenuOpen || isHovered ? 'opacity-100' : 'opacity-0'}`}>
                             <Button
                                 variant="ghost"
                                 size="large"
@@ -165,8 +179,12 @@ export const QuestionCardHeader: React.FC<QuestionCardHeaderProps> = ({
                                     onDuplicate={() => { onCopyQuestion(question.id); setIsActionsMenuOpen(false); }}
                                     onDelete={() => { onDeleteQuestion(question.id); setIsActionsMenuOpen(false); }}
                                     onAddPageBreak={() => { onAddPageBreakAfterQuestion(question.id); setIsActionsMenuOpen(false); }}
+                                    onAddQuestionAbove={() => { onAddQuestionAbove(question.id); setIsActionsMenuOpen(false); }}
+                                    onAddQuestionBelow={() => { onAddQuestionBelow(question.id); setIsActionsMenuOpen(false); }}
                                     onMoveToNewBlock={() => { onMoveQuestionToNewBlock(question.id); setIsActionsMenuOpen(false); }}
                                     onMoveTo={onMoveTo ? () => { onMoveTo(question.id); setIsActionsMenuOpen(false); } : undefined}
+                                    onAddToLibrary={onAddToLibrary ? () => { onAddToLibrary(question.id); setIsActionsMenuOpen(false); } : undefined}
+                                    onBulkEdit={onBulkEdit ? () => { onBulkEdit(question.id); setIsActionsMenuOpen(false); } : undefined}
                                     blocks={blocks}
                                     onMoveToBlock={handleMoveToBlock}
                                     onPreview={handlePreview}

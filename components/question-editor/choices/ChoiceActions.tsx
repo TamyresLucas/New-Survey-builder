@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlusIcon } from '../../icons';
+import { PlusIcon, ContentPasteIcon } from '../../icons';
 import { CopyAndPasteButton } from '../../logic-editor/shared';
 import { Button } from '../../Button';
 
@@ -16,7 +16,7 @@ const ChoiceActions: React.FC<ChoiceActionsProps> = ({ questionType, onAddChoice
                 <PlusIcon className="text-xl mr-2" /> {questionType === 'Choice Grid' ? 'Add row' : 'Add choice'}
             </Button>
             <Button variant="tertiary-primary" size="large" onClick={onPaste}>
-                <PlusIcon className="text-xl mr-2" /> Add multiple
+                <ContentPasteIcon className="text-xl mr-2" /> Copy & paste choices
             </Button>
         </div>
     );

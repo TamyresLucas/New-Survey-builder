@@ -27,6 +27,9 @@ const QuestionCard: React.FC<{
     onMoveQuestionToNewBlock: (questionId: string) => void;
     onMoveQuestionToExistingBlock: (questionId: string, targetBlockId: string) => void;
     onMoveTo?: (questionId: string) => void;
+    onAddQuestionAbove: (questionId: string) => void;
+    onAddQuestionBelow: (questionId: string) => void;
+    onAddToLibrary?: (questionId: string) => void;
     toolboxItems: ToolboxItemData[];
     isDragging: boolean;
     onDragStart: () => void;
@@ -39,11 +42,14 @@ const QuestionCard: React.FC<{
     isHovered?: boolean;
     onHover?: (id: string | null) => void;
     totalPages?: number;
+    showBulkEditCheckbox?: boolean;
 }> = memo(({
     question, survey, parentBlock, currentBlockId, logicIssues, isSelected, isChecked, onSelect, onToggleCheck, id,
-    onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onMoveTo, toolboxItems,
+    onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onMoveTo,
+    onAddQuestionAbove, onAddQuestionBelow, onAddToLibrary,
+    toolboxItems,
     isDragging, onDragStart, onDragEnd, onAddChoice, onAddPageBreakAfterQuestion, pageInfo, focusedLogicSource,
-    printMode = false, isHovered, onHover, totalPages = 1
+    printMode = false, isHovered, onHover, totalPages = 1, showBulkEditCheckbox = false
 }) => {
 
     const logic = useQuestionCardLogic({
@@ -135,7 +141,26 @@ const QuestionCard: React.FC<{
                 data-question-id={question.id}
                 draggable={!logic.draggedChoiceId}
                 onDragStart={(e) => {
-                    // Prevent question drag when choice is being dragged
+                    // Check logic.draggedChoiceId first is incorrect if we want to stop Question Drag completely when not on handle.
+                    // But actually, if we are editing text (not on handle), we don't want to drag Question.
+
+                    if (!(e.target as HTMLElement).closest('.drag-handle')) {
+                        // Allow default behavior for text selection, etc.
+                        // But prevent "Question Drag".
+                        // However, if draggable=true on container, any drag initiates drag.
+                        // If we preventDefault, we stop drag.
+                        // Text selection drag is different. text selection doesn't trigger DnD unless selected text is dragged.
+                        // But simple text selection mouse down + move usually selects text.
+                        // If draggable=true, sometimes browser tries to drag element instead of selecting text.
+                        // By preventing default, we might block native text selection drag?
+                        // Actually, standard pattern is:
+                        if (!(e.target as HTMLElement).closest('.drag-handle')) {
+                            e.preventDefault();
+                            return;
+                        }
+                    }
+
+                    // Prevent question drag when choice is being dragged (redundant if choice has its own preventDefault? NO, bubbling)
                     if (logic.draggedChoiceId) {
                         e.preventDefault();
                         return;
@@ -157,20 +182,22 @@ const QuestionCard: React.FC<{
                         onSelect(question);
                     }
                 }}
-                className={`p-4 rounded-lg border transition-all group relative grid grid-cols-[auto_1fr] items-start gap-x-3 bg-surface-container ${!printMode ? 'cursor-grab' : ''} ${isSelected
+                className={`p-4 rounded-lg border transition-all group relative grid items-start gap-x-4 bg-surface-container ${!printMode ? 'cursor-grab' : ''} ${isSelected
                     ? (hasLogicIssues ? 'border-error shadow-md' : 'border-primary shadow-md')
                     : isHovered
                         ? 'border-input-border shadow-md'
                         : question.isHidden
                             ? 'border-outline bg-surface-container opacity-60'
                             : 'border-outline hover:border-input-border hover:shadow-md'
-                    } ${isDragging ? 'opacity-50' : ''} ${logic.isAnyMenuOpen ? 'z-10' : ''} ${hasDisplayLogic ? 'border-dashed' : ''} outline-none focus-visible:ring-2 focus-visible:ring-primary`}
+                    } ${isDragging ? 'opacity-50' : ''} ${logic.isAnyMenuOpen ? 'z-10' : ''} ${hasDisplayLogic ? 'border-dashed' : ''} outline-none focus-visible:ring-2 focus-visible:ring-primary grid-cols-[auto_1fr]`}
                 tabIndex={0}
                 aria-selected={isSelected}
             >
                 <QuestionCardHeader
                     question={question}
                     isChecked={isChecked}
+                    showBulkEditCheckbox={showBulkEditCheckbox}
+                    isHovered={isHovered}
                     isTypeMenuOpen={logic.isTypeMenuOpen}
                     isActionsMenuOpen={logic.isActionsMenuOpen}
                     typeMenuContainerRef={logic.typeMenuContainerRef}
@@ -197,9 +224,18 @@ const QuestionCard: React.FC<{
                     onCopyQuestion={onCopyQuestion}
                     onDeleteQuestion={onDeleteQuestion}
                     onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
+                    onAddQuestionAbove={onAddQuestionAbove}
+                    onAddQuestionBelow={onAddQuestionBelow}
                     onMoveQuestionToNewBlock={onMoveQuestionToNewBlock}
                     onMoveQuestionToExistingBlock={onMoveQuestionToExistingBlock}
                     onMoveTo={onMoveTo}
+                    onAddToLibrary={onAddToLibrary}
+                    onBulkEdit={() => {
+                        // Automatically select the question if not already checked
+                        if (!isChecked) {
+                            onToggleCheck(question.id);
+                        }
+                    }}
                     blocks={survey.blocks}
                     handlePreview={logic.handlePreview}
                     handleActivate={logic.handleActivate}
@@ -210,6 +246,7 @@ const QuestionCard: React.FC<{
                     question={question}
                     survey={survey}
                     printMode={printMode}
+                    showBulkEditCheckbox={showBulkEditCheckbox}
                     logicIssues={logicIssues}
                     focusedLogicSource={focusedLogicSource}
                     draggedChoiceId={logic.draggedChoiceId}

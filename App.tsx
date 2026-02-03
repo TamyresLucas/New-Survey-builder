@@ -632,10 +632,14 @@ const App: React.FC = () => {
                         onDeleteBlock={actions.handleDeleteBlock}
                         onDeleteQuestion={actions.handleDeleteQuestion}
                         onCopyQuestion={actions.handleCopyQuestion}
+                        onAddQuestionAbove={actions.handleAddQuestionAbove}
+                        onAddQuestionBelow={actions.handleAddQuestionBelow}
                         onMoveQuestionToNewBlock={actions.handleMoveQuestionToNewBlock}
                         onMoveQuestionToExistingBlock={actions.handleMoveQuestionToExistingBlock}
                         onMoveTo={handleMoveTo}
                         onAddPageBreakAfterQuestion={actions.handleAddPageBreakAfterQuestion}
+                        onAddToLibrary={actions.handleAddToLibrary}
+                        onBulkEdit={actions.handleBulkEdit}
                         onExpandBlock={handleExpandBlock}
                         onCollapseBlock={handleCollapseBlock}
                         onSelectAllInBlock={actions.handleSelectAllInBlock}

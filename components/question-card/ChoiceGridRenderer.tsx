@@ -4,7 +4,7 @@ import { parseChoice } from '../../utils';
 import { Button } from '../Button';
 import { EditableText } from '../EditableText';
 import {
-    DragIndicatorIcon, RadioButtonUncheckedIcon, XIcon, PlusIcon
+    DragIndicatorIcon, RadioButtonUncheckedIcon, XIcon, PlusIcon, ContentPasteIcon
 } from '../icons';
 import { TableDropIndicator } from './common';
 
@@ -94,13 +94,19 @@ export const ChoiceGridRenderer: React.FC<ChoiceGridRendererProps> = ({
                                     <tr
                                         className={`table-body-row last:border-b-0 group/choice ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
                                         draggable
-                                        onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
+                                        onDragStart={(e) => {
+                                            if (!(e.target as HTMLElement).closest('.drag-handle')) {
+                                                e.preventDefault();
+                                                return;
+                                            }
+                                            handleChoiceDragStart(e, choice.id);
+                                        }}
                                         onDragOver={(e) => handleChoiceDragOver(e, choice.id)}
                                         onDragEnd={handleChoiceDragEnd}
                                     >
                                         <td className="p-2 text-sm text-on-surface pr-4 relative">
                                             <div className="flex items-center gap-1">
-                                                {!printMode && <DragIndicatorIcon className="text-xl text-on-surface-variant cursor-grab opacity-0 group-hover/choice:opacity-100 transition-opacity" />}
+                                                {!printMode && <DragIndicatorIcon className="text-base text-on-surface-variant cursor-grab opacity-0 group-hover/choice:opacity-100 transition-opacity drag-handle" />}
                                                 {variable && <span className="font-semibold text-on-surface">{variable}</span>}
                                                 <EditableText
                                                     html={label}
@@ -173,7 +179,7 @@ export const ChoiceGridRenderer: React.FC<ChoiceGridRendererProps> = ({
                         }}
                         className="flex items-center text-sm text-primary font-semibold transition-colors hover:bg-primary hover:text-on-primary rounded-md px-4 py-1.5"
                     >
-                        <PlusIcon className="text-base mr-1" /> Add multiple
+                        <ContentPasteIcon className="text-base mr-1" /> Copy & paste choices
                     </button>
                 </div>
             )}

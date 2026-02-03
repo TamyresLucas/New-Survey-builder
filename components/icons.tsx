@@ -136,6 +136,7 @@ export const FileExportIcon: React.FC<IconProps> = ({ className, style }) => <Ma
 export const PrintIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="print" className={className} style={style} />;
 export const BlueprintIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="map" className={className} style={style} />;
 export const ArrowUpIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="arrow_upward" className={className} style={style} />;
+export const ArrowDownIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="arrow_downward" className={className} style={style} />;
 export const UnfoldMoreIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="unfold_more" className={className} style={style} />;
 export const UnfoldLessIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="unfold_less" className={className} style={style} />;
 export const ImageIcon: React.FC<IconProps> = ({ className, style }) => <MaterialSymbol icon="image" className={className} style={style} />;

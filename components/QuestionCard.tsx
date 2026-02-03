@@ -141,26 +141,6 @@ const QuestionCard: React.FC<{
                 data-question-id={question.id}
                 draggable={!logic.draggedChoiceId}
                 onDragStart={(e) => {
-                    // Check logic.draggedChoiceId first is incorrect if we want to stop Question Drag completely when not on handle.
-                    // But actually, if we are editing text (not on handle), we don't want to drag Question.
-
-                    if (!(e.target as HTMLElement).closest('.drag-handle')) {
-                        // Allow default behavior for text selection, etc.
-                        // But prevent "Question Drag".
-                        // However, if draggable=true on container, any drag initiates drag.
-                        // If we preventDefault, we stop drag.
-                        // Text selection drag is different. text selection doesn't trigger DnD unless selected text is dragged.
-                        // But simple text selection mouse down + move usually selects text.
-                        // If draggable=true, sometimes browser tries to drag element instead of selecting text.
-                        // By preventing default, we might block native text selection drag?
-                        // Actually, standard pattern is:
-                        if (!(e.target as HTMLElement).closest('.drag-handle')) {
-                            e.preventDefault();
-                            return;
-                        }
-                    }
-
-                    // Prevent question drag when choice is being dragged (redundant if choice has its own preventDefault? NO, bubbling)
                     if (logic.draggedChoiceId) {
                         e.preventDefault();
                         return;

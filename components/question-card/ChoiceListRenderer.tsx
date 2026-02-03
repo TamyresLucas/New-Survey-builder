@@ -88,10 +88,6 @@ export const ChoiceListRenderer: React.FC<ChoiceListRendererProps> = ({
                             className={`flex flex-col group/choice transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
                             draggable={!printMode}
                             onDragStart={(e) => {
-                                if (!(e.target as HTMLElement).closest('.drag-handle')) {
-                                    e.preventDefault();
-                                    return;
-                                }
                                 handleChoiceDragStart(e, choice.id);
                             }}
                             onDragOver={(e) => handleChoiceDragOver(e, choice.id)}
@@ -121,7 +117,7 @@ export const ChoiceListRenderer: React.FC<ChoiceListRendererProps> = ({
                                     {choice.isOther && <span className="text-on-surface-variant text-sm whitespace-nowrap">Other:</span>}
 
                                     <EditableText
-                                        text={label}
+                                        html={label}
                                         onChange={(newText) => {
                                             const newFullText = variable ? `${variable} ${newText}` : newText;
                                             onUpdateChoice(choice.id, newFullText);

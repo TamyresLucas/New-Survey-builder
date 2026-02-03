@@ -4,6 +4,8 @@
 
 ### Fixed
 - Fixed drag and drop functionality by correcting the execution order of `preventDefault()` and `stopPropagation()` in `SurveyBlock`, `SurveyCanvas`, and `QuestionCard` component handlers.
+- Fixed choice drag and drop functionality by removing drag-handle verification in `ChoiceListRenderer` component.
+- Fixed choice text becoming undefined during reordering by correcting `EditableText` prop from `text` to `html` in `ChoiceListRenderer`.
 
 ### Changed
 - Removed unused stories (`DarkModePreview`, `InteractiveDemo`, `CustomTheme`, `WithEndAction`) from `ToolboxItem` component documentation in Storybook.

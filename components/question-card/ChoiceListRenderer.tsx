@@ -117,7 +117,7 @@ export const ChoiceListRenderer: React.FC<ChoiceListRendererProps> = ({
                                     {choice.isOther && <span className="text-on-surface-variant text-sm whitespace-nowrap">Other:</span>}
 
                                     <EditableText
-                                        text={label}
+                                        html={label}
                                         onChange={(newText) => {
                                             const newFullText = variable ? `${variable} ${newText}` : newText;
                                             onUpdateChoice(choice.id, newFullText);

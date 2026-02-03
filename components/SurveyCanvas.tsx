@@ -171,6 +171,8 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
   }, [selectedQuestion]);
 
   const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+
     // Ignore choice drags - those are handled within QuestionCard
     if (e.dataTransfer.types.includes('application/survey-choice')) {
       return;
@@ -181,6 +183,8 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
   };
 
   const handleBlockDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+
     // Ignore choice drags - those are handled within QuestionCard
     if (e.dataTransfer.types.includes('application/survey-choice')) {
       return;
@@ -193,8 +197,6 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
     // This handler is only for blocks. If we're not dragging a block or importing a survey, do nothing.
     // This allows the dragOver event to be handled by child SurveyBlock components for question dragging.
     if (!isDraggingExistingBlock && !isAddingNewBlock && !isImportingSurvey) return;
-
-    e.preventDefault();
 
     const blockElements = [...(e.currentTarget as HTMLDivElement).querySelectorAll('div[data-block-id]')] as HTMLDivElement[];
 
@@ -217,6 +219,8 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
   };
 
   const handleBlockDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+
     // Ignore choice drags - those are handled within QuestionCard
     if (e.dataTransfer.types.includes('application/survey-choice')) {
       return;
@@ -227,7 +231,6 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
 
     // This handler is only for blocks (move or add) or survey import.
     if (isAddingNewBlock || isImportingSurvey || draggedBlockId) {
-      e.preventDefault();
 
       if (isAddingNewBlock) {
         onAddBlockFromToolbox(dropTargetBlockId);

@@ -231,6 +231,9 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
 
 
   const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     // Ignore choice drags - those are handled within QuestionCard
     if (e.dataTransfer.types.includes('application/survey-choice')) {
       return;
@@ -240,9 +243,6 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
 
     // Only handle question drags or toolbox drags
     if (!draggedQuestionId && !isAddingFromToolbox) return;
-
-    e.preventDefault();
-    e.stopPropagation();
 
     if (isAddingFromToolbox) {
       setIsToolboxDragOver(true);
@@ -266,13 +266,13 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
   };
 
   const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     // Ignore choice drags - those are handled within QuestionCard
     if (e.dataTransfer.types.includes('application/survey-choice')) {
       return;
     }
-
-    e.preventDefault();
-    e.stopPropagation();
 
     const toolboxItemType = e.dataTransfer.getData('application/survey-toolbox-item') as QuestionType;
 

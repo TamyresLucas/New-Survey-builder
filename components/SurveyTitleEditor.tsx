@@ -37,7 +37,7 @@ export const SurveyTitleEditor: React.FC<SurveyTitleEditorProps> = ({
             <div className="max-w-4xl mx-auto">
                 <div className="relative">
                     <EditableText
-                        html={displayTitle || 'Add survey title...'}
+                        html={displayTitle ?? 'Add survey title...'}
                         onChange={handleChange}
                         className="text-3xl font-bold text-on-surface"
                         style={{ fontFamily: "'Outfit', sans-serif" }}

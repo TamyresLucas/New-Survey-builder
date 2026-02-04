@@ -14,6 +14,7 @@
 - Enabled reliable text selection in all choice and question fields while maintaining full drag-and-drop reordering functionality via handles.
 - **Survey Title feature**: Added a new `displayTitle` property to surveys that is distinct from the internal Survey Name. Survey Title is displayed to respondents in preview/live modes and appears at the top of the Survey Canvas. It auto-populates from Survey Name on creation, is editable inline with a 100-character limit, and is read-only in preview mode.
 - **Fixed Survey Title reset bug**: Survey Title now persists correctly when switching menus or entering preview mode. Root cause was UPDATE_DISPLAY_TITLE action not being routed to metaReducer in surveyReducer.ts. Fixed by: (1) adding UPDATE_DISPLAY_TITLE to Meta/Global Actions case statement in surveyReducer, (2) changing fallback patterns from `||` to `??` in SurveyCanvas and SurveyTitleEditor, (3) consolidating EditableText useEffects, and (4) enhancing migration logic.
+- **Fixed preview mode title display**: Preview mode now correctly displays the respondent-facing Survey Title (survey.displayTitle) instead of the internal Survey Name (survey.title). Updated SurveyPreview.tsx to use nullish coalescing operator (??) to fall back to survey.title only when displayTitle is null or undefined.
 
 ### Changed
 - Removed unused stories (`DarkModePreview`, `InteractiveDemo`, `CustomTheme`, `WithEndAction`) from `ToolboxItem` component documentation in Storybook.

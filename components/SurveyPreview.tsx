@@ -132,7 +132,7 @@ const PreviewContent: React.FC<PreviewContentProps> = ({
   return (
     <>
       <header className="mb-4">
-        <h1 className={`${device === 'mobile' ? 'text-xl' : 'text-3xl'} font-bold text-on-surface mb-2`}>{survey.title}</h1>
+        <h1 className={`${device === 'mobile' ? 'text-xl' : 'text-3xl'} font-bold text-on-surface mb-2`}>{survey.displayTitle ?? survey.title}</h1>
         {device === 'desktop' && <div className="w-16 h-1 bg-primary mb-8"></div>}
       </header>
       {questions.map(question => (

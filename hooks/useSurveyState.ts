@@ -13,8 +13,8 @@ const getInitialSurveyState = (): Survey => {
             const savedState = JSON.parse(savedStateJSON);
             // A simple check to ensure it's not totally invalid data
             if (savedState && savedState.title && Array.isArray(savedState.blocks)) {
-                // Migrate: Initialize displayTitle from title if not present
-                if (!savedState.displayTitle) {
+                // Migrate: Initialize displayTitle from title if not present or empty
+                if (!savedState.displayTitle || savedState.displayTitle.trim() === '') {
                     savedState.displayTitle = savedState.title;
                 }
                 return savedState;

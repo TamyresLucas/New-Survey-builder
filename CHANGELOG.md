@@ -13,7 +13,7 @@
 - Resolved "drop" issue in question drag reordering by wrapping the handle icon in a stable span element to prevent loss of drag state.
 - Enabled reliable text selection in all choice and question fields while maintaining full drag-and-drop reordering functionality via handles.
 - **Survey Title feature**: Added a new `displayTitle` property to surveys that is distinct from the internal Survey Name. Survey Title is displayed to respondents in preview/live modes and appears at the top of the Survey Canvas. It auto-populates from Survey Name on creation, is editable inline with a 100-character limit, and is read-only in preview mode.
-- **Fixed Survey Title reset bug**: Survey Title now persists correctly when switching menus or entering preview mode. Added migration logic to initialize `displayTitle` from `title` for existing surveys, and fixed comparison logic in `SurveyTitleEditor` that was preventing updates.
+- **Fixed Survey Title reset bug**: Survey Title now persists correctly when switching menus or entering preview mode. Fixed by: (1) changing fallback pattern from `||` to `??` in SurveyCanvas, (2) consolidating EditableText useEffects to properly sync content on mount and updates, and (3) enhancing migration logic to handle empty strings.
 
 ### Changed
 - Removed unused stories (`DarkModePreview`, `InteractiveDemo`, `CustomTheme`, `WithEndAction`) from `ToolboxItem` component documentation in Storybook.

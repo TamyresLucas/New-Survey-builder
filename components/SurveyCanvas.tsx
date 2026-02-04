@@ -266,7 +266,7 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
       className="max-w-4xl mx-auto pb-32"
     >
       <SurveyTitleEditor
-        displayTitle={survey.displayTitle || survey.title}
+        displayTitle={survey.displayTitle ?? survey.title}
         onUpdateDisplayTitle={onUpdateDisplayTitle}
         maxLength={100}
         readOnly={printMode}

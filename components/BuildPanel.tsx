@@ -67,7 +67,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
 }) => {
   const enabledToolboxItems = useMemo(() => new Set(toolboxItems.map(item => item.name)), [toolboxItems]);
 
-  const [activeTab, setActiveTab] = useState('Toolbox');
+  const [activeTab, setActiveTab] = useState('Add question');
   const [searchTerm, setSearchTerm] = useState('');
   const [questionTypeFilter, setQuestionTypeFilter] = useState('All content');
   const [toolboxFilter, setToolboxFilter] = useState('Basic');
@@ -123,14 +123,18 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   }, [activeTab, onSelectQuestion, selectedQuestion]);
 
   const filteredToolboxItems = useMemo(() => {
+    let items = toolboxItems;
     if (searchTerm) {
-      return toolboxItems.filter(item =>
+      items = items.filter(item =>
         item.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
+    } else {
+      const allowedNames = new Set(questionGroups[toolboxFilter] || []);
+      items = items.filter(item => allowedNames.has(item.name));
     }
 
-    const allowedNames = new Set(questionGroups[toolboxFilter] || []);
-    return toolboxItems.filter(item => allowedNames.has(item.name));
+    // Globally exclude Block and Page Break from the Add Question panel list
+    return items.filter(item => item.name !== 'Block' && item.name !== 'Page Break');
   }, [toolboxItems, searchTerm, toolboxFilter]);
 
   const questionTypeFilterOptions = useMemo(() => {
@@ -403,7 +407,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
         !printMode && (
           <div className="px-4 border-b border-outline">
             <nav className="-mb-px flex space-x-6">
-              {['Toolbox', 'Overview', 'Library'].map(tab => (
+              {['Add question', 'Overview', 'Library'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => handleTabClick(tab)}
@@ -454,7 +458,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             })}
           />
         )}
-        {activeTab === 'Toolbox' && (
+        {activeTab === 'Add question' && (
           <DropdownField
             value={toolboxFilter}
             onChange={setToolboxFilter}
@@ -480,7 +484,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
         )}
       </div>
       <div className="flex-1 overflow-y-auto overflow-x-visible">
-        {activeTab === 'Toolbox' && !printMode && (
+        {activeTab === 'Add question' && !printMode && (
           <ul
             ref={toolboxListRef}
             onDragOver={!isTextSearching ? handleToolboxDragOver : undefined}

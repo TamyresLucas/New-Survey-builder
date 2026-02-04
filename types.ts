@@ -329,6 +329,7 @@ export interface Block {
 
 export interface Survey {
   title: string;
+  displayTitle?: string; // Respondent-facing title (max 100 chars)
   blocks: Block[];
   pagingMode: 'one-per-page' | 'multi-per-page';
   globalAutoAdvance?: boolean;

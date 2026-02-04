@@ -401,6 +401,10 @@ export const useSurveyActions = ({
         dispatch({ type: SurveyActionType.UPDATE_SURVEY_TITLE, payload: { title } });
     }, [dispatch]);
 
+    const handleUpdateDisplayTitle = useCallback((displayTitle: string) => {
+        dispatch({ type: SurveyActionType.UPDATE_DISPLAY_TITLE, payload: { displayTitle } });
+    }, [dispatch]);
+
     const handlePagingModeChange = useCallback((mode: Survey['pagingMode']) => {
         dispatchAndRecord({ type: SurveyActionType.SET_PAGING_MODE, payload: { pagingMode: mode } });
     }, [dispatchAndRecord]);
@@ -499,6 +503,7 @@ export const useSurveyActions = ({
         handleUpdateBlockTitle,
         handleUpdateBlock,
         handleUpdateSurveyTitle,
+        handleUpdateDisplayTitle,
         handlePagingModeChange,
         handleGlobalAutoAdvanceChange,
         handleClearSelection,

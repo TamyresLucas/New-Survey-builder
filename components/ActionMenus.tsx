@@ -6,7 +6,7 @@ import {
   ContentCopyIcon, LibraryAddIcon, EyeIcon, VisibilityOffIcon,
   DeleteIcon, CheckCircleIcon, PlusIcon,
   EditIcon, CheckboxFilledIcon, CheckboxOutlineIcon,
-  UnfoldMoreIcon, UnfoldLessIcon
+  UnfoldMoreIcon, UnfoldLessIcon, SearchIcon
 } from './icons';
 
 import { DropdownList, DropdownItem, DropdownDivider } from './DropdownList';
@@ -15,35 +15,69 @@ export const QuestionTypeSelectionMenuContent: React.FC<{
   onSelect: (type: QuestionType) => void;
   toolboxItems: ToolboxItemData[];
 }> = ({ onSelect, toolboxItems }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Focus the search input when the menu opens
+    inputRef.current?.focus();
+  }, []);
+
   const enabledTypes = new Set(['Description', 'Check Box', 'Radio Button', 'Text Input', 'Choice Grid']);
 
-  const questionTypeOptions = toolboxItems
+  const questionTypeOptions = useMemo(() => toolboxItems
     .filter(item => item.name !== 'Block' && item.name !== 'Page Break')
+    .filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
     .map(item => ({
       type: item.name as QuestionType,
       label: item.name,
       icon: item.icon,
       isEnabled: enabledTypes.has(item.name),
-    }));
+    })), [toolboxItems, searchTerm]);
 
   return (
-    <DropdownList className="w-full max-h-80 overflow-y-auto">
-      {questionTypeOptions.map(({ type, label, icon: Icon, isEnabled }) => (
-        <DropdownItem
-          key={type}
-          onClick={(e) => {
-            if (isEnabled) {
-              e.stopPropagation();
-              onSelect(type);
-            }
-          }}
-          disabled={!isEnabled}
-          icon={Icon}
-        >
-          {label}
-        </DropdownItem>
-      ))}
-    </DropdownList>
+    <div className="flex flex-col bg-surface-container border border-outline-variant rounded-md shadow-lg z-20 overflow-hidden w-full">
+      <div className="p-2 border-b border-outline-variant bg-surface-container-low sticky top-0 z-10">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+            <SearchIcon className="text-base text-on-surface-variant" />
+          </div>
+          <input
+            ref={inputRef}
+            type="text"
+            className="w-full h-[32px] bg-surface-container-highest border border-outline-variant rounded px-8 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline focus:outline-2 focus:outline-primary transition-colors"
+            placeholder="Search question types..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          />
+        </div>
+      </div>
+      <div className="max-h-[512px] overflow-y-auto py-1">
+        {questionTypeOptions.length > 0 ? (
+          questionTypeOptions.map(({ type, label, icon: Icon, isEnabled }) => (
+            <DropdownItem
+              key={type}
+              onClick={(e) => {
+                if (isEnabled) {
+                  e.stopPropagation();
+                  onSelect(type);
+                }
+              }}
+              disabled={!isEnabled}
+              icon={Icon}
+            >
+              {label}
+            </DropdownItem>
+          ))
+        ) : (
+          <div className="px-4 py-6 text-sm text-on-surface-variant text-center italic">
+            No question types found
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

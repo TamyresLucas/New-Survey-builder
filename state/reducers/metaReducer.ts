@@ -12,6 +12,12 @@ export const metaReducer = (state: Survey, action: Action): Survey => {
             return newState;
         }
 
+        case SurveyActionType.UPDATE_DISPLAY_TITLE: {
+            const newState = JSON.parse(JSON.stringify(state));
+            newState.displayTitle = action.payload.displayTitle;
+            return newState;
+        }
+
         case SurveyActionType.SET_PAGING_MODE: {
             const newState = JSON.parse(JSON.stringify(state));
             const oldPagingMode = state.pagingMode;

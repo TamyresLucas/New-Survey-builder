@@ -68,7 +68,6 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
   const enabledToolboxItems = useMemo(() => new Set(toolboxItems.map(item => item.name)), [toolboxItems]);
 
   const [activeTab, setActiveTab] = useState('Toolbox');
-  const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [questionTypeFilter, setQuestionTypeFilter] = useState('All content');
   const [toolboxFilter, setToolboxFilter] = useState('Basic');
@@ -119,23 +118,19 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
         onSelectQuestion(null);
       }
       setQuestionTypeFilter('All content');
-      setToolboxFilter('All');
     }
     setActiveTab(tabName);
   }, [activeTab, onSelectQuestion, selectedQuestion]);
 
   const filteredToolboxItems = useMemo(() => {
-    let items = toolboxItems;
-
-    if (toolboxFilter !== 'All') {
-      const allowedNames = new Set(questionGroups[toolboxFilter] || []);
-      items = items.filter(item => allowedNames.has(item.name));
+    if (searchTerm) {
+      return toolboxItems.filter(item =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
 
-    if (!searchTerm) return items;
-    return items.filter(item =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const allowedNames = new Set(questionGroups[toolboxFilter] || []);
+    return toolboxItems.filter(item => allowedNames.has(item.name));
   }, [toolboxItems, searchTerm, toolboxFilter]);
 
   const questionTypeFilterOptions = useMemo(() => {
@@ -148,6 +143,19 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
 
   const filteredSurveyBlocks = useMemo(() => {
     let blocks = survey.blocks;
+
+    if (searchTerm) {
+      return blocks
+        .map(block => ({
+          ...block,
+          questions: block.questions.filter(question =>
+            question.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (question.label && question.label.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            question.qid.toLowerCase().includes(searchTerm.toLowerCase())
+          ),
+        }))
+        .filter(block => block.questions.length > 0);
+    }
 
     if (questionTypeFilter === 'Issues') {
       const issueQuestionIds = new Set(logicIssues.map(i => i.questionId));
@@ -176,19 +184,6 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
         .map(block => ({
           ...block,
           questions: block.questions.filter(question => question.type === questionTypeFilter),
-        }))
-        .filter(block => block.questions.length > 0);
-    }
-
-    if (searchTerm) {
-      blocks = blocks
-        .map(block => ({
-          ...block,
-          questions: block.questions.filter(question =>
-            question.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (question.label && question.label.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            question.qid.toLowerCase().includes(searchTerm.toLowerCase())
-          ),
         }))
         .filter(block => block.questions.length > 0);
     }
@@ -408,7 +403,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
         !printMode && (
           <div className="px-4 border-b border-outline">
             <nav className="-mb-px flex space-x-6">
-              {['Toolbox', 'Outline', 'Library'].map(tab => (
+              {['Toolbox', 'Overview', 'Library'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => handleTabClick(tab)}
@@ -421,27 +416,25 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
                   {tab}
                 </button>
               ))}
-              <button
-                key="Search"
-                onClick={() => {
-                  setIsSearchVisible(!isSearchVisible);
-                  if (isSearchVisible) setSearchTerm('');
-                }}
-                className={`h-[40px] flex items-center px-1 border-b-2 font-medium text-sm transition-colors ${isSearchVisible
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-on-surface-variant hover:text-primary'
-                  }`}
-                aria-label="Toggle Search"
-                aria-pressed={isSearchVisible}
-              >
-                <SearchIcon className="text-xl" />
-              </button>
             </nav>
           </div>
         )
       }
       <div className="p-4 border-b border-outline">
-        {activeTab === 'Outline' && (
+        <div className="relative mb-3">
+          <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+            <SearchIcon className="text-xl text-on-surface-variant" />
+          </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search..."
+            className="w-full h-[32px] bg-transparent border border-input-border rounded-md pl-8 pr-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-2 focus:outline-primary transition-colors"
+            style={{ fontFamily: "'Open Sans', sans-serif" }}
+          />
+        </div>
+        {activeTab === 'Overview' && (
           <DropdownField
             value={questionTypeFilter}
             onChange={setQuestionTypeFilter}
@@ -485,21 +478,6 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             ]}
           />
         )}
-        {isSearchVisible && (
-          <div className="relative mt-3">
-            <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-              <SearchIcon className="text-xl text-on-surface-variant" />
-            </div>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search..."
-              className="w-full h-[32px] bg-transparent border border-input-border rounded-md pl-8 pr-2 text-sm text-on-surface hover:border-input-border-hover focus:outline-2 focus:outline-offset-2 focus:outline-primary transition-colors"
-              style={{ fontFamily: "'Open Sans', sans-serif" }}
-            />
-          </div>
-        )}
       </div>
       <div className="flex-1 overflow-y-auto overflow-x-visible">
         {activeTab === 'Toolbox' && !printMode && (
@@ -531,7 +509,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             {!isTextSearching && dropToolboxTargetIndex === filteredToolboxItems.length && <DropIndicator />}
           </ul>
         )}
-        {(activeTab === 'Outline' || printMode) && (
+        {(activeTab === 'Overview' || printMode) && (
           <div
             ref={contentListRef}
             className="bg-surface min-h-full"

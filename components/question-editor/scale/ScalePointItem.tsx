@@ -41,24 +41,21 @@ const ScalePointItem: React.FC<ScalePointItemProps> = ({
     }, []);
 
     return (
-        <div
-            className="group"
-            draggable={true}
-            onDragStart={(e) => {
-                if (!(e.target as HTMLElement).closest('.drag-handle')) {
-                    e.preventDefault();
-                    return;
-                }
-                onDragStart(e, scalePoint.id);
-            }}
-            onDragOver={(e) => onDragOver(e, scalePoint.id)}
-            onDragEnd={onDragEnd}
-        >
-            <div className={`flex items-center gap-2 transition-opacity ${isDragged ? 'opacity-30' : ''}`}>
-                <span className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing drag-handle" aria-label="Reorder column">
+        <div className="group">
+            <div
+                className={`flex items-center gap-2 transition-opacity ${isDragged ? 'opacity-30' : ''}`}
+                onDragOver={(e) => onDragOver(e, scalePoint.id)}
+            >
+                <span
+                    className="text-on-surface-variant hover:text-on-surface cursor-grab active:cursor-grabbing drag-handle"
+                    aria-label="Reorder column"
+                    draggable={true}
+                    onDragStart={(e) => onDragStart(e, scalePoint.id)}
+                    onDragEnd={onDragEnd}
+                >
                     <DragIndicatorIcon className="text-base" />
                 </span>
-                <div className="flex-grow">
+                <div className="flex-grow" draggable={false} onDragStart={(e) => e.stopPropagation()}>
                     <TextField
                         value={scalePoint.text}
                         onChange={(e) => onTextChange(scalePoint.id, e.target.value)}

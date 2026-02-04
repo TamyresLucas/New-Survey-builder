@@ -139,15 +139,6 @@ const QuestionCard: React.FC<{
             <div
                 id={id}
                 data-question-id={question.id}
-                draggable={!logic.draggedChoiceId}
-                onDragStart={(e) => {
-                    if (logic.draggedChoiceId) {
-                        e.preventDefault();
-                        return;
-                    }
-                    onDragStart();
-                }}
-                onDragEnd={onDragEnd}
                 onClick={(e) => { e.stopPropagation(); onSelect(question); }}
                 onMouseEnter={() => onHover?.(question.id)}
                 onMouseLeave={() => onHover?.(null)}
@@ -162,7 +153,7 @@ const QuestionCard: React.FC<{
                         onSelect(question);
                     }
                 }}
-                className={`p-4 rounded-lg border transition-all group relative grid items-start gap-x-4 bg-surface-container ${!printMode ? 'cursor-grab' : ''} ${isSelected
+                className={`p-4 rounded-lg border transition-all group relative grid items-start gap-x-4 bg-surface-container ${isSelected
                     ? (hasLogicIssues ? 'border-error shadow-md' : 'border-primary shadow-md')
                     : isHovered
                         ? 'border-input-border shadow-md'
@@ -186,6 +177,9 @@ const QuestionCard: React.FC<{
                     toolboxItems={toolboxItems}
                     printMode={printMode}
                     willAutoadvance={logic.willAutoadvance}
+                    draggedChoiceId={logic.draggedChoiceId}
+                    onDragStart={onDragStart}
+                    onDragEnd={onDragEnd}
 
                     isEditingLabel={logic.isEditingLabel}
                     labelValue={logic.labelValue}

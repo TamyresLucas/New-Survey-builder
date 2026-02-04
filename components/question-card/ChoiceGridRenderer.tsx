@@ -93,20 +93,20 @@ export const ChoiceGridRenderer: React.FC<ChoiceGridRendererProps> = ({
                                     {dropTargetChoiceId === choice.id && <TableDropIndicator colSpan={numColumns} />}
                                     <tr
                                         className={`table-body-row last:border-b-0 group/choice ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
-                                        draggable
-                                        onDragStart={(e) => {
-                                            if (!(e.target as HTMLElement).closest('.drag-handle')) {
-                                                e.preventDefault();
-                                                return;
-                                            }
-                                            handleChoiceDragStart(e, choice.id);
-                                        }}
                                         onDragOver={(e) => handleChoiceDragOver(e, choice.id)}
-                                        onDragEnd={handleChoiceDragEnd}
                                     >
                                         <td className="p-2 text-sm text-on-surface pr-4 relative">
-                                            <div className="flex items-center gap-1">
-                                                {!printMode && <DragIndicatorIcon className="text-base text-on-surface-variant cursor-grab opacity-0 group-hover/choice:opacity-100 transition-opacity drag-handle" />}
+                                            <div className="flex items-center gap-1" draggable={false} onDragStart={(e) => e.stopPropagation()}>
+                                                {!printMode && (
+                                                    <span
+                                                        className="cursor-grab active:cursor-grabbing opacity-0 group-hover/choice:opacity-100 transition-opacity drag-handle"
+                                                        draggable={true}
+                                                        onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
+                                                        onDragEnd={handleChoiceDragEnd}
+                                                    >
+                                                        <DragIndicatorIcon className="text-base text-on-surface-variant" />
+                                                    </span>
+                                                )}
                                                 {variable && <span className="font-semibold text-on-surface">{variable}</span>}
                                                 <EditableText
                                                     html={label}

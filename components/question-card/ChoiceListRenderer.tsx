@@ -86,15 +86,19 @@ export const ChoiceListRenderer: React.FC<ChoiceListRendererProps> = ({
                         {dropTargetChoiceId === choice.id && <ChoiceDropIndicator />}
                         <div
                             className={`flex flex-col group/choice transition-opacity ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
-                            draggable={!printMode}
-                            onDragStart={(e) => {
-                                handleChoiceDragStart(e, choice.id);
-                            }}
                             onDragOver={(e) => handleChoiceDragOver(e, choice.id)}
-                            onDragEnd={handleChoiceDragEnd}
                         >
                             <div className="flex items-center min-h-[32px] relative py-1">
-                                {!printMode && <div className="absolute -left-7 top-1/2 -translate-y-1/2 cursor-grab opacity-0 group-hover/choice:opacity-100 drag-handle"><DragIndicatorIcon className="text-base text-on-surface-variant" /></div>}
+                                {!printMode && (
+                                    <div
+                                        className="absolute -left-7 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover/choice:opacity-100 drag-handle"
+                                        draggable={true}
+                                        onDragStart={(e) => handleChoiceDragStart(e, choice.id)}
+                                        onDragEnd={handleChoiceDragEnd}
+                                    >
+                                        <DragIndicatorIcon className="text-base text-on-surface-variant" />
+                                    </div>
+                                )}
 
                                 {question.type === QuestionType.Radio ? (
                                     index === 0 ? (
@@ -106,7 +110,7 @@ export const ChoiceListRenderer: React.FC<ChoiceListRendererProps> = ({
                                     <CheckboxOutlineIcon className="text-xl text-on-surface-variant mr-2 flex-shrink-0" />
                                 )}
 
-                                <div className="text-on-surface flex-grow flex items-center gap-2">
+                                <div className="text-on-surface flex-grow flex items-center gap-2" draggable={false} onDragStart={(e) => e.stopPropagation()}>
                                     {/* Choice ID on the left */}
                                     {variable && (
                                         <span className="font-semibold text-on-surface text-sm">

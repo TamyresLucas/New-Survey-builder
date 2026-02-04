@@ -23,6 +23,9 @@ interface QuestionCardHeaderProps {
     printMode?: boolean;
     willAutoadvance: boolean;
     isHovered?: boolean;
+    draggedChoiceId: string | null;
+    onDragStart: () => void;
+    onDragEnd: () => void;
 
     // Editing Props
     isEditingLabel: boolean;
@@ -59,7 +62,7 @@ interface QuestionCardHeaderProps {
 
 export const QuestionCardHeader: React.FC<QuestionCardHeaderProps> = ({
     question, isChecked, showBulkEditCheckbox = false, isTypeMenuOpen, isActionsMenuOpen, typeMenuContainerRef, actionsMenuContainerRef,
-    questionTypeOptions, toolboxItems, printMode, willAutoadvance, isHovered,
+    questionTypeOptions, toolboxItems, printMode, willAutoadvance, isHovered, draggedChoiceId, onDragStart, onDragEnd,
     isEditingLabel, labelValue, labelError,
     onToggleCheck, setLabelValue, setLabelError, saveLabel, handleLabelKeyDown, handleLabelEditClick,
     setIsTypeMenuOpen, handleTypeSelect, setIsActionsMenuOpen,
@@ -95,7 +98,20 @@ export const QuestionCardHeader: React.FC<QuestionCardHeaderProps> = ({
                         onClick={(e) => e.stopPropagation()}
                     />
                 ) : isHovered ? (
-                    <DragIndicatorIcon className="text-on-surface-variant text-base leading-none cursor-grab active:cursor-grabbing drag-handle" />
+                    <span
+                        className="cursor-grab active:cursor-grabbing drag-handle"
+                        draggable={!draggedChoiceId}
+                        onDragStart={(e) => {
+                            if (draggedChoiceId) {
+                                e.preventDefault();
+                                return;
+                            }
+                            onDragStart();
+                        }}
+                        onDragEnd={onDragEnd}
+                    >
+                        <DragIndicatorIcon className="text-on-surface-variant text-base leading-none" />
+                    </span>
                 ) : null}
             </div>
 

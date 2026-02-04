@@ -2,10 +2,11 @@
 
 ## [Unreleased]
 
-### Fixed
-- Fixed drag and drop functionality by correcting the execution order of `preventDefault()` and `stopPropagation()` in `SurveyBlock`, `SurveyCanvas`, and `QuestionCard` component handlers.
-- Fixed choice drag and drop functionality by removing drag-handle verification in `ChoiceListRenderer` component.
-- Fixed choice text becoming undefined during reordering by correcting `EditableText` prop from `text` to `html` in `ChoiceListRenderer`.
+- Fixed drag propagation issues where selecting text in choice fields would incorrectly trigger drag-and-drop operations.
+- Implemented "Drag Handle" pattern across `ChoiceItem`, `ScalePointItem`, `ChoiceListRenderer`, and `ChoiceGridRenderer`, moving the `draggable` attribute from the choice container to a dedicated handle icon.
+- Fixed an issue where question and choice drag events would bubble up to the question card during text selection by adding `draggable={false}` and `e.stopPropagation()` to text containers.
+- Resolved "drop" issue in question drag reordering by wrapping the handle icon in a stable span element to prevent loss of drag state.
+- Enabled reliable text selection in all choice and question fields while maintaining full drag-and-drop reordering functionality via handles.
 
 ### Changed
 - Removed unused stories (`DarkModePreview`, `InteractiveDemo`, `CustomTheme`, `WithEndAction`) from `ToolboxItem` component documentation in Storybook.

@@ -1,5 +1,6 @@
 /* 1. IMPORT FONT (Critical - Ghost Font Prevention Rule) */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
 /* Keep existing imports */
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 @import './styles/tokens.css';
@@ -36,6 +37,14 @@
         /* 2. THE COMPATIBILITY BRIDGE */
         /* Points the legacy Shadcn variable to the new dynamic token */
         --font-sans: var(--font-family-sans);
+
+        /* ============================================
+           SURVEY CONTENT TYPOGRAPHY TOKEN
+           Used for: question text, choice text, block titles, grid headers
+           NOT used for: buttons, IDs (Q1, BL1), labels, system UI
+           ============================================ */
+        --font-survey: 'Outfit', sans-serif;
+        /* Unified branding font */
 
         /* ============================================
            CONNECTED TO SEMANTIC TOKENS (tokens.css)
@@ -236,6 +245,11 @@
     /* Utility for placeholder text using placeholder-foreground token */
     .placeholder-muted::placeholder {
         color: var(--placeholder-foreground);
+    }
+
+    /* Survey Content Typography Utility */
+    .font-survey {
+        font-family: var(--font-survey);
     }
 }
 

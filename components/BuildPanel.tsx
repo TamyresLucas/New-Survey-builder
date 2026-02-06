@@ -407,7 +407,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
         !printMode && (
           <div className="px-4 border-b border-outline">
             <nav className="-mb-px flex space-x-6">
-              {['Add question', 'Overview', 'Library'].map(tab => (
+              {['Add question', 'Rearrange', 'Library'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => handleTabClick(tab)}
@@ -438,7 +438,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             style={{ fontFamily: "'Open Sans', sans-serif" }}
           />
         </div>
-        {activeTab === 'Overview' && (
+        {activeTab === 'Rearrange' && (
           <DropdownField
             value={questionTypeFilter}
             onChange={setQuestionTypeFilter}
@@ -513,7 +513,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             {!isTextSearching && dropToolboxTargetIndex === filteredToolboxItems.length && <DropIndicator />}
           </ul>
         )}
-        {(activeTab === 'Overview' || printMode) && (
+        {(activeTab === 'Rearrange' || printMode) && (
           <div
             ref={contentListRef}
             className="bg-surface min-h-full"

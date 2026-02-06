@@ -15,6 +15,7 @@ export const SurveyTitleEditor: React.FC<SurveyTitleEditorProps> = ({
     readOnly = false,
 }) => {
     const [charCount, setCharCount] = useState(displayTitle.length);
+    const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
         setCharCount(displayTitle.length);
@@ -39,15 +40,19 @@ export const SurveyTitleEditor: React.FC<SurveyTitleEditorProps> = ({
                     <EditableText
                         html={displayTitle ?? 'Add survey title...'}
                         onChange={handleChange}
-                        className="text-3xl font-bold text-on-surface"
-                        style={{ fontFamily: "'Outfit', sans-serif" }}
+                        className="font-survey text-3xl font-semibold text-on-surface"
                         readOnly={readOnly}
+                        onFocus={() => setIsEditing(true)}
+                        onBlur={() => setIsEditing(false)}
                     />
-                    {!readOnly && (
-                        <div className="absolute -bottom-6 right-0 text-xs text-on-surface-variant">
-                            {charCount}/{maxLength}
-                        </div>
-                    )}
+                    <div className="flex items-center justify-between mt-2 mb-8">
+                        <div className="w-16 h-1 bg-primary"></div>
+                        {!readOnly && isEditing && (
+                            <div className="text-xs text-on-surface-variant animate-in fade-in slide-in-from-right-1 duration-200">
+                                {charCount}/{maxLength}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

@@ -128,7 +128,7 @@ export const ChoiceListRenderer: React.FC<ChoiceListRendererProps> = ({
                                         }}
                                         onFocus={() => onSelect(question)}
                                         onKeyDown={(e) => handleKeyDown(e, index)}
-                                        className="text-on-surface flex-grow min-w-0"
+                                        className="font-survey text-base text-on-surface flex-grow min-w-0"
                                         placeholder={choice.isOther ? "Enter description" : `Choice ${index + 1}`}
                                         disabled={printMode}
                                         multiline={false}

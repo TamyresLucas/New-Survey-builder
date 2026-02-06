@@ -7,9 +7,10 @@ interface EditableTextProps {
     className?: string;
     style?: React.CSSProperties;
     readOnly?: boolean;
+    onBlur?: () => void;
 }
 
-export const EditableText: React.FC<EditableTextProps> = ({ html, onChange, onFocus, className, style, readOnly }) => {
+export const EditableText: React.FC<EditableTextProps> = ({ html, onChange, onFocus, className, style, readOnly, onBlur }) => {
     const elementRef = useRef<HTMLDivElement>(null);
     const lastHtml = useRef(html);
 
@@ -34,6 +35,7 @@ export const EditableText: React.FC<EditableTextProps> = ({ html, onChange, onFo
         if (lastHtml.current !== currentHtml) {
             onChange(currentHtml);
         }
+        onBlur?.();
     };
 
     const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {

@@ -39,12 +39,12 @@ export const ChoiceGridRenderer: React.FC<ChoiceGridRendererProps> = ({
                         <tr className="table-header-row">
                             <th className="py-2 pr-2 text-left"></th>
                             {(question.scalePoints || []).map(sp => (
-                                <th key={sp.id} className="py-2 px-3 text-center text-xs font-normal text-muted-foreground align-bottom group/header relative">
+                                <th key={sp.id} className="py-2 px-3 text-center text-sm font-medium text-muted-foreground align-bottom group/header relative">
                                     <EditableText
                                         html={sp.text}
                                         onChange={(newText) => handleScalePointTextChange(sp.id, newText)}
                                         onFocus={() => onSelect(question)}
-                                        className="text-muted-foreground"
+                                        className="font-survey text-sm font-medium text-muted-foreground"
                                         readOnly={printMode}
                                     />
                                     {!printMode && (
@@ -95,7 +95,7 @@ export const ChoiceGridRenderer: React.FC<ChoiceGridRendererProps> = ({
                                         className={`table-body-row last:border-b-0 group/choice ${draggedChoiceId === choice.id ? 'opacity-30' : ''}`}
                                         onDragOver={(e) => handleChoiceDragOver(e, choice.id)}
                                     >
-                                        <td className="p-2 text-sm text-on-surface pr-4 relative">
+                                        <td className="p-2 text-base text-on-surface pr-4 relative">
                                             <div className="flex items-center gap-1" draggable={false} onDragStart={(e) => e.stopPropagation()}>
                                                 {!printMode && (
                                                     <span
@@ -118,7 +118,7 @@ export const ChoiceGridRenderer: React.FC<ChoiceGridRendererProps> = ({
                                                         onUpdateQuestion(question.id, { choices: newChoices });
                                                     }}
                                                     onFocus={() => onSelect(question)}
-                                                    className="text-on-surface flex-grow"
+                                                    className="font-survey text-base text-on-surface flex-grow"
                                                     readOnly={printMode}
                                                 />
                                                 {!printMode && (

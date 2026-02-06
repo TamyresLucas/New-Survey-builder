@@ -61,7 +61,7 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
 
   const renderQuestionText = () => (
     <div className="mb-6">
-      <p className="text-lg text-on-surface" dangerouslySetInnerHTML={{ __html: question.text }} />
+      <p className="font-survey text-lg text-on-surface" dangerouslySetInnerHTML={{ __html: question.text }} />
       {question.forceResponse && <span className="text-sm text-error ml-1">*</span>}
     </div>
   );
@@ -118,7 +118,7 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
               ) : (
                 isSelected ? <CheckboxCheckedIcon className="text-2xl text-primary flex-shrink-0" /> : <CheckboxOutlineIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
               )}
-              <span className={`text-base ${isSelected ? 'text-on-primary-container font-medium' : 'text-on-surface'}`}>
+              <span className={`font-survey text-base ${isSelected ? 'text-on-primary-container font-medium' : 'text-on-surface'}`}>
                 {parseChoice(choice.text).label}
               </span>
             </div>
@@ -150,7 +150,7 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
                   aria-expanded={isAccordionExpanded}
                 >
                   <div className="flex-1 pr-2">
-                    <p className="text-sm text-on-surface">{label}</p>
+                    <p className="font-survey text-sm text-on-surface">{label}</p>
                     {selectedScalePoint && !isAccordionExpanded && (
                       <p className="text-xs text-primary mt-1 font-medium">{selectedScalePoint.text}</p>
                     )}
@@ -172,7 +172,7 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
                               <RadioButtonCheckedIcon className="text-2xl text-primary flex-shrink-0" /> :
                               <RadioButtonUncheckedIcon className="text-2xl text-on-surface-variant flex-shrink-0" />
                             }
-                            <span className={`text-sm ${isSelected ? 'text-primary font-medium' : 'text-on-surface'}`}>
+                            <span className={`font-survey text-sm ${isSelected ? 'text-primary font-medium' : 'text-on-surface'}`}>
                               {sp.text}
                             </span>
                           </div>
@@ -196,7 +196,7 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
             <tr className="border-b-2 border-outline-variant">
               <th className="p-3 text-left w-1/3"></th>
               {question.scalePoints.map(sp => (
-                <th key={sp.id} className="p-3 text-center text-sm font-medium text-on-surface-variant align-bottom">
+                <th key={sp.id} className="font-survey p-3 text-center text-sm font-medium text-on-surface-variant align-bottom">
                   <span>{sp.text}</span>
                 </th>
               ))}
@@ -205,7 +205,7 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
           <tbody>
             {question.choices.map((choice) => (
               <tr key={choice.id} className="border-b border-outline-variant last:border-b-0 hover:bg-surface-container-lowest">
-                <td className="p-3 text-base text-on-surface pr-4 align-middle">
+                <td className="font-survey p-3 text-base text-on-surface pr-4 align-middle">
                   {parseChoice(choice.text).label}
                 </td>
                 {question.scalePoints.map(sp => {

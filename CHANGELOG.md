@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Components
+- **Introduced QuestionDropZone**: Created a dedicated `QuestionDropZone` component to replace inline empty state logic for survey blocks. Empty blocks now automatically display this component with the label "Question drop zone".
+
+### Infrastructure
+- **Migrated to Remote Notion MCP**: Replaced discontinued local Notion MCP server with new remote `@notionhq/notion-mcp-server` using OAuth authentication. Configuration updated in `~/.cursor/mcp.json` with NOTION_TOKEN environment variable for secure integration access.
+
+### Features
 - Added a search bar to the question type selector dropdown to allow filtering question types by name.
 - Adjusted the maximum height of the question type selector and generic dropdown lists to 512px, ensuring the "Dropdown" type is the last visible item before scrolling.
 - Increased the maximum height of the question type selector and generic dropdown lists to 600px to display more options simultaneously.
@@ -15,6 +22,14 @@
 - **Survey Title feature**: Added a new `displayTitle` property to surveys that is distinct from the internal Survey Name. Survey Title is displayed to respondents in preview/live modes and appears at the top of the Survey Canvas. It auto-populates from Survey Name on creation, is editable inline with a 100-character limit, and is read-only in preview mode.
 - **Fixed Survey Title reset bug**: Survey Title now persists correctly when switching menus or entering preview mode. Root cause was UPDATE_DISPLAY_TITLE action not being routed to metaReducer in surveyReducer.ts. Fixed by: (1) adding UPDATE_DISPLAY_TITLE to Meta/Global Actions case statement in surveyReducer, (2) changing fallback patterns from `||` to `??` in SurveyCanvas and SurveyTitleEditor, (3) consolidating EditableText useEffects, and (4) enhancing migration logic.
 - **Fixed preview mode title display**: Preview mode now correctly displays the respondent-facing Survey Title (survey.displayTitle) instead of the internal Survey Name (survey.title). Updated SurveyPreview.tsx to use nullish coalescing operator (??) to fall back to survey.title only when displayTitle is null or undefined.
+- Renamed "Overview" tab to "Rearrange" in the Build Panel for better clarity of its purpose.
+
+### Typography
+- **Survey Content Typography Tokens**: Introduced a separate typography system for survey content (questions, choices, block names, etc.).
+  - Added `--font-survey` CSS variable (defaulting to `inherit`) and `.font-survey` utility class in the design system.
+  - Applied the `font-survey` class to all respondent-facing text elements across the Survey Canvas and Survey Preview (Survey Title, Block Titles, Question Text, Choice Labels, and Grid Headers).
+  - This structure allows for future customization of survey content fonts while maintaining UI consistency.
+
 
 ### Changed
 - Removed unused stories (`DarkModePreview`, `InteractiveDemo`, `CustomTheme`, `WithEndAction`) from `ToolboxItem` component documentation in Storybook.

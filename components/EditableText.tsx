@@ -7,23 +7,23 @@ interface EditableTextProps {
     className?: string;
     style?: React.CSSProperties;
     readOnly?: boolean;
+    onBlur?: () => void;
 }
 
-export const EditableText: React.FC<EditableTextProps> = ({ html, onChange, onFocus, className, style, readOnly }) => {
+export const EditableText: React.FC<EditableTextProps> = ({ html, onChange, onFocus, className, style, readOnly, onBlur }) => {
     const elementRef = useRef<HTMLDivElement>(null);
     const lastHtml = useRef(html);
 
     useEffect(() => {
-        if (elementRef.current && elementRef.current.innerHTML === '') {
-            elementRef.current.innerHTML = html;
-        }
-    }, []);
+        if (!elementRef.current) return;
 
-    useEffect(() => {
-        // Only update innerHTML if the element is NOT focused (user is not actively editing)
-        if (elementRef.current &&
-            html !== elementRef.current.innerHTML &&
-            document.activeElement !== elementRef.current) {
+        // Always sync on mount (when innerHTML is empty or different from prop)
+        // Also sync when not focused and html prop changes
+        const shouldSync =
+            elementRef.current.innerHTML === '' ||
+            (html !== elementRef.current.innerHTML && document.activeElement !== elementRef.current);
+
+        if (shouldSync) {
             elementRef.current.innerHTML = html;
         }
         lastHtml.current = html;
@@ -35,6 +35,7 @@ export const EditableText: React.FC<EditableTextProps> = ({ html, onChange, onFo
         if (lastHtml.current !== currentHtml) {
             onChange(currentHtml);
         }
+        onBlur?.();
     };
 
     const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {

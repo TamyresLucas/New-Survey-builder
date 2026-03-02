@@ -102,7 +102,6 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
         </button>
         <span
           className="font-extrabold text-xl leading-tight text-on-surface"
-          style={{ fontFamily: "'Outfit', sans-serif" }}
         >
           VOXCO
         </span>
@@ -113,8 +112,7 @@ const Header: React.FC<HeaderProps> = memo(({ surveyName, isGeminiPanelOpen, onT
               onUpdateSurveyName(newName.trim());
             }
           }}
-          className="text-base font-medium text-on-surface ml-4 min-w-[100px]"
-          style={{ fontFamily: "'Outfit', sans-serif" }}
+          className="font-survey text-base font-medium text-on-surface ml-4 min-w-[100px]"
         />
         <div className="flex items-center text-sm text-on-surface-variant ml-4" style={{ fontFamily: "'Open Sans', sans-serif" }}>
           {renderStatusBadge()}

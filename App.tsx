@@ -855,6 +855,7 @@ const App: React.FC = () => {
                                             onAddPageBreakAfterQuestion={actions.handleAddPageBreakAfterQuestion}
                                             onUpdateBlockTitle={actions.handleUpdateBlockTitle}
                                             onUpdateSurveyTitle={actions.handleUpdateSurveyTitle}
+                                            onUpdateDisplayTitle={actions.handleUpdateDisplayTitle}
                                             onAddFromLibrary={actions.handleAddSurveyFromLibrary}
                                             focusedLogicSource={focusedLogicSource}
                                             printMode={isPrintMode}

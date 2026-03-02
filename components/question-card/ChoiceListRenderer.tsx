@@ -125,7 +125,7 @@ export const ChoiceListRenderer: React.FC<ChoiceListRendererProps> = ({
                                             onUpdateChoice(choice.id, newFullText);
                                         }}
                                         onFocus={() => onSelect(question)}
-                                        className="text-on-surface flex-grow min-w-0"
+                                        className="font-survey text-base text-on-surface flex-grow min-w-0"
                                         readOnly={printMode}
                                     />
 

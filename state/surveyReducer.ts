@@ -71,6 +71,7 @@ export function surveyReducer(state: Survey, action: Action): Survey {
 
         // Meta/Global Actions
         case SurveyActionType.UPDATE_SURVEY_TITLE:
+        case SurveyActionType.UPDATE_DISPLAY_TITLE:
         case SurveyActionType.SET_PAGING_MODE:
         case SurveyActionType.REPLACE_SURVEY:
         case SurveyActionType.SET_GLOBAL_AUTOADVANCE:

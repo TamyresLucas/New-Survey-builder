@@ -9,6 +9,7 @@ import type { PageInfo } from '../types';
 import { SurveyFlowDisplay, IncomingLogicDisplay } from './LogicDisplays';
 import { EditableText } from './EditableText';
 import { Badge } from './Badge';
+import { QuestionDropZone } from './QuestionDropZone';
 
 const DropIndicator = () => (
   <div className="relative h-px w-full bg-primary my-2">
@@ -346,7 +347,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
               </button>
             )}
             <div className="truncate flex items-center w-full">
-              <span className="font-bold text-base text-on-surface mr-2">{block.bid}</span>
+              <span className="font-semibold text-base text-on-surface mr-2">{block.bid}</span>
               <EditableText
                 html={block.title}
                 onChange={(newTitle) => {
@@ -354,7 +355,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                     onUpdateBlockTitle(block.id, newTitle.trim());
                   }
                 }}
-                className="font-semibold text-base text-on-surface min-w-[50px]"
+                className="font-survey font-semibold text-base text-on-surface min-w-[50px]"
                 style={{ fontFamily: "'Open Sans', sans-serif" }}
               />
               <span className="text-sm font-normal text-on-surface-variant ml-2">({questionCount} question{questionCount !== 1 ? 's' : ''})</span>
@@ -420,7 +421,7 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
 
           {block.isSurveySection && (
             <div className="pb-4 mb-4 border-b-2 border-primary">
-              <h3 className="text-xl font-bold text-on-surface">
+              <h3 className="font-survey text-xl font-semibold text-on-surface">
                 {block.sectionName || block.title}
               </h3>
             </div>
@@ -489,14 +490,9 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
               )}
             </>
           ) : (
-            <div
-              className={`py-6 text-center text-sm rounded-lg border-2 border-dashed transition-all ${(draggedQuestionId || isToolboxDragOver)
-                ? 'border-primary bg-primary/10 text-primary'
-                : 'border-outline-variant text-on-surface-variant'
-                }`}
-            >
-              {(draggedQuestionId || isToolboxDragOver) ? 'Drop here' : 'Drag and drop question'}
-            </div>
+            <QuestionDropZone
+              isDraggedOver={draggedQuestionId !== null || isToolboxDragOver}
+            />
           )}
         </div>
       )}

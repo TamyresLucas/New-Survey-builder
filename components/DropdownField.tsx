@@ -72,7 +72,7 @@ export const DropdownField: React.FC<DropdownFieldProps> = ({
             </button>
             {isOpen && (
                 <DropdownList
-                    className={`absolute top-full left-0 right-0 mt-1 w-full max-h-96 overflow-y-auto ${dropdownClassName}`}
+                    className={`absolute top-full left-0 right-0 mt-1 w-full max-h-[512px] overflow-y-auto ${dropdownClassName}`}
                     hasShadow={hasDropdownShadow}
                 >
                     {options.map((option) => (

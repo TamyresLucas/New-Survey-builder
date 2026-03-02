@@ -2,6 +2,7 @@ import { QuestionType, Survey } from '../types';
 
 export const initialSurveyData: Survey = {
     title: 'Untitled survey',
+    displayTitle: 'Untitled survey',
     blocks: [
         {
             id: 'b_default',

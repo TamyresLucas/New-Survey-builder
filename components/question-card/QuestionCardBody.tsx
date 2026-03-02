@@ -45,7 +45,7 @@ export const QuestionCardBody: React.FC<QuestionCardBodyProps> = (props) => {
                 html={question.text}
                 onChange={(newText) => onUpdateQuestion(question.id, { text: newText })}
                 onFocus={() => onSelect(question)}
-                className="text-on-surface min-h-[24px]"
+                className="font-survey text-lg text-on-surface min-h-[24px]"
                 readOnly={printMode}
             />
 

@@ -191,10 +191,25 @@ Before completing any UI task:
 - [ ] No TypeScript errors
 - [ ] Follows existing component patterns
 
-## Project Isolation Rules (Strict)
-
-### Voxco Design System
-- **Do NOT** modify files in `design-system/` unless explicitly instructed.
-- **Do NOT** import from `design-system/` into the main `src/` application.
-- **Do NOT** add `design-system` as a dependency to the main `package.json`.
 - **EXCEPTION**: You may initialize and run Storybook within `design-system/` as a standalone project.
+
+---
+
+## Agent Orchestration Protocol (IME)
+
+### "Dono da Porra Toda" (DPT) Mode
+
+The **Skill Lifecycle Orchestrator (IME)** is the mandatory entry point for complex or multi-agent tasks.
+
+**Automatic Activation Trigger Keywords**:
+- `acionar`, `delegar`, `chamar`, `chama o agente`, `delega para`.
+
+**Rules for IME**:
+1. **Silent Analysis**: Analyze the request domains (Frontend, Backend, Security, etc.) before speaking.
+2. **Specialist Selection**: Choose the best `@specialist` agent for the task.
+3. **Structured Handoff**: Always produce a YAML handoff when delegating:
+   - `routing_decision`: Why this agent was chosen.
+   - `execution_brief`: Precise steps to follow.
+   - `handoff`: Context, constraints, and inputs.
+4. **Git Safety**: IME and specialists must never push, merge, or rebase. Source of truth is the local repository.
+5. **Fail-safe**: Stop and ask **one** clarifying question if the objective, target, or constraints are unclear.

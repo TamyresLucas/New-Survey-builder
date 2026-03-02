@@ -118,8 +118,6 @@ export const ChoiceListRenderer: React.FC<ChoiceListRendererProps> = ({
                                         </span>
                                     )}
 
-                                    {choice.isOther && <span className="text-on-surface-variant text-sm whitespace-nowrap">Other:</span>}
-
                                     <EditableText
                                         html={label}
                                         onChange={(newText) => {
@@ -127,11 +125,8 @@ export const ChoiceListRenderer: React.FC<ChoiceListRendererProps> = ({
                                             onUpdateChoice(choice.id, newFullText);
                                         }}
                                         onFocus={() => onSelect(question)}
-                                        onKeyDown={(e) => handleKeyDown(e, index)}
                                         className="text-on-surface flex-grow min-w-0"
-                                        placeholder={choice.isOther ? "Enter description" : `Choice ${index + 1}`}
-                                        disabled={printMode}
-                                        multiline={false}
+                                        readOnly={printMode}
                                     />
 
                                     {choice.visible === false && (

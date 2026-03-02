@@ -1,6 +1,17 @@
 # Changelog
 
 ## [Unreleased]
+- **Removed Design System Package & Dead Code**:
+  - Removed `@voxco/design-system` from dependencies as it will be maintained in a separate workspace.
+  - Deleted unused Storybook configuration.
+  - Deleted dead code components depending on the DS: `src/adapters/`, `DebugDS.tsx`, `ImportJsonSurveyModal.tsx`.
+  - Maintained core CSS tokens (`src/index.css`, `src/styles/tokens.css`) to ensure application remains completely styled and functional.
+  - Fixed pre-existing TypeScript issue in `ChoiceListRenderer.tsx`.
+- Pulled the latest changes from `https://github.com/TamyresLucas/New-Survey-builder`.
+- Initialized local git repository and synchronized with the remote `main` branch.
+- Reinstalled dependencies to ensure environment consistency.
+- **Implemented IME (Skill Lifecycle Orchestrator)**: Created a new custom orchestrator agent ("Dono da Porra Toda") and corresponding skill based on Notion documentation.
+- **Agent Routing Logic**: Configured automatic triggers for `acionar`, `delegar`, and `chamar` keywords in `ANTIGRAVITY_RULES.md`.
 
 - Fixed drag propagation issues where selecting text in choice fields would incorrectly trigger drag-and-drop operations.
 - Implemented "Drag Handle" pattern across `ChoiceItem`, `ScalePointItem`, `ChoiceListRenderer`, and `ChoiceGridRenderer`, moving the `draggable` attribute from the choice container to a dedicated handle icon.

@@ -23,33 +23,6 @@ export default tseslint.config(
                 'warn',
                 { allowConstantExport: true },
             ],
-            /* ============================================
-               DESIGN SYSTEM IMPORT GOVERNANCE
-               ============================================ */
-            'no-restricted-imports': [
-                'error',
-                {
-                    patterns: [
-                        {
-                            group: [
-                                '../../packages/design-system/*',
-                                '../packages/design-system/*',
-                                './packages/design-system/*',
-                                '**/packages/design-system/src/*'
-                            ],
-                            message: 'Use: import { ... } from "@voxco/design-system"'
-                        },
-                        {
-                            group: [
-                                './components/Button',
-                                '../components/Button',
-                                '**/components/Button'
-                            ],
-                            message: 'Use: import { Button } from "@/adapters" or "@voxco/design-system"'
-                        }
-                    ]
-                }
-            ]
         },
     },
 );

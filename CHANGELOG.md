@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- **Fixed Azure DevOps Build Failure**: Merged diverged `master` branch (Survey Title feature) into `main`. Resolved merge conflicts in `ChoiceListRenderer.tsx`, removed stale `BuildPanel.mdx`, and created missing `QuestionDropZone` component. Root cause: `master` was 7 commits behind `main` and the pipeline was building old code with TypeScript errors.
 - **Removed Design System Package & Dead Code**:
   - Removed `@voxco/design-system` from dependencies as it will be maintained in a separate workspace.
   - Deleted unused Storybook configuration.

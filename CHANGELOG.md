@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+- **Adjusted Dark Mode Border Tokens**: Re-configured `--border-bd-def` from `#363D65` to `#262a4a` and `--border-bd-hov` to `#363d65` in `src/styles/tokens.css` for `.dark` mode to make borders much more subtle and visually appealing, addressing feedback that borders were too prominent.
+- **Moved Lookup Table question type**: Relocated "Lookup Table" from the "Basic" category to the "Grid" category in the Build sidebar's "+Add question" panel for better categorization.
 - **Fixed Azure DevOps Build Failure**: Merged diverged `master` branch (Survey Title feature) into `main`. Resolved merge conflicts in `ChoiceListRenderer.tsx`, removed stale `BuildPanel.mdx`, and created missing `QuestionDropZone` component. Root cause: `master` was 7 commits behind `main` and the pipeline was building old code with TypeScript errors.
 - **Removed Design System Package & Dead Code**:
   - Removed `@voxco/design-system` from dependencies as it will be maintained in a separate workspace.

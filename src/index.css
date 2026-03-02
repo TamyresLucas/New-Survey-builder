@@ -239,20 +239,6 @@
     }
 }
 
-/* Override Storybook Docs Wrapper background for Dark Mode consistency */
-.sbdocs.sbdocs-wrapper {
-    background-color: transparent !important;
-}
-
-/* Override Storybook Docs Header colors to match theme */
-.sbdocs h1,
-.sbdocs h2,
-.sbdocs h3,
-.sbdocs h4,
-.sbdocs h5,
-.sbdocs h6 {
-    color: inherit !important;
-}
 
 /* React Flow Diagram Styling - Using Shadcn Tokens */
 .react-flow__edge-path {

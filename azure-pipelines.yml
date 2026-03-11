@@ -3,9 +3,11 @@
 
 trigger:
 - master
+- main
 
 pr:
 - master
+- main
 
 pool:
   vmImage: 'windows-latest'  # Use Windows for IIS deployment compatibility

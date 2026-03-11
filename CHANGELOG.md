@@ -1,4 +1,5 @@
 # Changelog
+- **Hash-based URL routing for menu tabs**: Each menu tab (Build, Flow, Blueprint, Style, Language, Settings, History) now has its own URL hash (e.g., `#build`, `#flow`). The browser remembers which tab the user was on, and back/forward buttons navigate between tabs. No new dependencies — uses native browser APIs.
 - **Renamed "Rearrange" tab to "Outline"**: Updated the Build Panel sidebar tab label from "Rearrange" to "Outline" for better clarity and alignment with the tab's purpose of showing the survey structure overview.
 - **Standardized tertiary button hover states**: Updated all `tertiary-primary`, `ghost-primary`, `ghost-destructive`, `ghost-success`, and `danger` button variants to show a subtle 20% opacity tint on hover instead of a solid background fill. Text color now remains the semantic color on hover (no longer flips to white). This creates a clear visual hierarchy between solid buttons (primary, danger-solid) and ghost/tertiary buttons.
 - **Bulk Edit "Select all" button**: Added a "Select all" button to the Bulk Edit right sidebar header. Standardized button size to "large" to match the Preview button.

@@ -28,7 +28,7 @@ import { analyzeSurveyPaths, generateSurveyCsv } from './utils';
 import { PrintDisplayOptions } from './components/PrintDisplayOptions';
 import SurveyStructureWidget from './components/SurveyStructureWidget';
 import { SurveyActionType } from './state/surveyReducer';
-import { toolboxItems as initialToolboxItems } from './constants';
+import { toolboxItems as initialToolboxItems, mainNavItems } from './constants';
 import { validateSurveyLogic } from './logicValidator';
 
 
@@ -79,6 +79,14 @@ const Toast: React.FC<{ message: string; type: ToastType; onDismiss: () => void;
     );
 };
 
+const VALID_TAB_IDS = new Set(mainNavItems.map(item => item.id));
+
+function getTabFromHash(): string {
+    const hash = window.location.hash.replace('#', '');
+    const tabId = hash.charAt(0).toUpperCase() + hash.slice(1).toLowerCase();
+    return VALID_TAB_IDS.has(tabId) ? tabId : 'Build';
+}
+
 const App: React.FC = () => {
 
 
@@ -96,7 +104,7 @@ const App: React.FC = () => {
         isDirty
     } = useSurveyState();
 
-    const [activeMainTab, setActiveMainTab] = useState('Build');
+    const [activeMainTab, setActiveMainTab] = useState(getTabFromHash);
     const [isBuildPanelOpen, setIsBuildPanelOpen] = useState(true);
     const [isBlueprintPanelOpen, setIsBlueprintPanelOpen] = useState(true);
     const [isRightSidebarExpanded, setIsRightSidebarExpanded] = useState(false);
@@ -375,6 +383,24 @@ const App: React.FC = () => {
 
         setActiveMainTab(tabId);
     }, [activeMainTab, handleSelectQuestion, handleSelectBlock]);
+
+    // Sync URL hash with active tab
+    useEffect(() => {
+        const hash = `#${activeMainTab.toLowerCase()}`;
+        if (window.location.hash !== hash) {
+            window.history.replaceState(null, '', hash);
+        }
+    }, [activeMainTab]);
+
+    // Listen for browser back/forward navigation
+    useEffect(() => {
+        const onHashChange = () => {
+            const tabFromHash = getTabFromHash();
+            setActiveMainTab(tabFromHash);
+        };
+        window.addEventListener('hashchange', onHashChange);
+        return () => window.removeEventListener('hashchange', onHashChange);
+    }, []);
 
     const allBlocksCollapsed = survey.blocks.length > 0 && collapsedBlocks.size === survey.blocks.length;
     const handleExpandAllBlocks = useCallback(() => setCollapsedBlocks(new Set()), []);

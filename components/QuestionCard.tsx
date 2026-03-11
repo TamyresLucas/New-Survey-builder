@@ -8,6 +8,8 @@ import { QuestionCardBody } from './question-card/QuestionCardBody';
 import { PasteChoicesModal } from './PasteChoicesModal';
 import { PasteGridModal } from './PasteGridModal';
 import { parseChoice } from '../utils';
+import { Button } from './Button';
+import { PlusIcon } from './icons';
 
 const QuestionCard: React.FC<{
     question: Question,
@@ -35,6 +37,8 @@ const QuestionCard: React.FC<{
     onDragStart: () => void;
     onDragEnd: () => void;
     onAddChoice: (questionId: string) => void;
+    onAddDescriptionLine: (id: string) => void;
+    onDeleteDescriptionLine: (questionId: string, lineId: string) => void;
     onAddPageBreakAfterQuestion: (questionId: string) => void;
     pageInfo?: PageInfo;
     focusedLogicSource: string | null;
@@ -48,7 +52,7 @@ const QuestionCard: React.FC<{
     onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onMoveTo,
     onAddQuestionAbove, onAddQuestionBelow, onAddToLibrary,
     toolboxItems,
-    isDragging, onDragStart, onDragEnd, onAddChoice, onAddPageBreakAfterQuestion, pageInfo, focusedLogicSource,
+    isDragging, onDragStart, onDragEnd, onAddChoice, onAddDescriptionLine, onDeleteDescriptionLine, onAddPageBreakAfterQuestion, pageInfo, focusedLogicSource,
     printMode = false, isHovered, onHover, totalPages = 1, showBulkEditCheckbox = false
 }) => {
 
@@ -229,6 +233,15 @@ const QuestionCard: React.FC<{
                     onUpdateQuestion={onUpdateQuestion}
                     onSelect={onSelect}
                     onAddChoice={onAddChoice}
+                    onAddDescriptionLine={onAddDescriptionLine}
+                    onDeleteDescriptionLine={onDeleteDescriptionLine}
+                    draggedDescLineId={logic.draggedDescLineId}
+                    dropTargetDescLineId={logic.dropTargetDescLineId}
+                    handleDescLineDragStart={logic.handleDescLineDragStart}
+                    handleDescLineDragOver={logic.handleDescLineDragOver}
+                    handleDescLineDrop={logic.handleDescLineDrop}
+                    handleDescLineDragEnd={logic.handleDescLineDragEnd}
+                    setDropTargetDescLineId={logic.setDropTargetDescLineId}
                     handleChoiceDragStart={logic.handleChoiceDragStart}
                     handleChoiceDragOver={logic.handleChoiceDragOver}
                     handleChoiceDrop={logic.handleChoiceDrop}
@@ -238,6 +251,24 @@ const QuestionCard: React.FC<{
                     setDropTargetChoiceId={logic.setDropTargetChoiceId}
                     onPaste={() => logic.setIsPasteModalOpen(true)}
                 />
+
+                {isHovered && !printMode && !isDragging && (
+                    <div className="absolute left-2 bottom-4 z-20">
+                        <Button
+                            variant="tertiary"
+                            iconOnly
+                            size="large"
+                            className="rounded"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onAddQuestionBelow(question.id);
+                            }}
+                            aria-label="Add question below"
+                        >
+                            <PlusIcon className="text-xl" />
+                        </Button>
+                    </div>
+                )}
             </div>
         </>
     );

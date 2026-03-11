@@ -53,18 +53,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
         primary: "bg-primary text-on-primary hover:bg-primary/90 active:bg-primary/90",
         secondary: "border border-[color:var(--button-btn-bd-def)] text-on-surface hover:bg-surface-container-lowest active:bg-surface-container-lowest",
         'danger-solid': "bg-error text-on-error hover:bg-error/90 active:bg-error/90",
-        
+
         // Ghost variants (from Storybook design system)
         ghost: "text-on-surface-variant hover:text-primary hover:bg-surface-container-high active:bg-surface-container-high",
-        'ghost-primary': "text-primary hover:bg-primary hover:text-on-primary active:bg-primary active:text-on-primary",
-        'ghost-destructive': "text-error hover:bg-error/10 hover:text-error active:bg-error/10",
-        'ghost-success': "text-success hover:bg-success/10 hover:text-success active:bg-success/10",
-        
+        'ghost-primary': "text-primary hover:bg-primary/20 active:bg-primary/20",
+        'ghost-destructive': "text-error hover:bg-error/20 active:bg-error/20",
+        'ghost-success': "text-success hover:bg-success/20 active:bg-success/20",
+
         // Legacy aliases (map to new ghost variants for backwards compatibility)
         tertiary: "text-on-surface-variant hover:text-primary hover:bg-surface-container-high active:bg-surface-container-high",
-        'tertiary-primary': "text-primary hover:bg-primary hover:text-on-primary active:bg-primary active:text-on-primary",
-        danger: "text-error hover:bg-error/10 hover:text-error active:bg-error/10",
-        
+        'tertiary-primary': "text-primary hover:bg-primary/20 active:bg-primary/20",
+        danger: "text-error hover:bg-error/20 active:bg-error/20",
+
         // Other variants
         outline: "border border-primary/40 bg-transparent hover:bg-primary/10 hover:text-primary active:bg-primary/10",
         link: "text-primary underline-offset-4 hover:underline active:underline",
@@ -76,12 +76,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
         secondary: "!bg-surface-container-lowest",
         'danger-solid': "!bg-error/90",
         ghost: "!text-primary !bg-surface-container-high",
-        'ghost-primary': "!bg-primary !text-on-primary",
-        'ghost-destructive': "!bg-error/10 !text-error",
-        'ghost-success': "!bg-success/10 !text-success",
+        'ghost-primary': "!bg-primary/20",
+        'ghost-destructive': "!bg-error/20",
+        'ghost-success': "!bg-success/20",
         tertiary: "!text-primary !bg-surface-container-high",
-        'tertiary-primary': "!bg-primary !text-on-primary",
-        danger: "!bg-error/10 !text-error",
+        'tertiary-primary': "!bg-primary/20",
+        danger: "!bg-error/20",
         outline: "!bg-primary/10 !text-primary",
         link: "!underline",
     };

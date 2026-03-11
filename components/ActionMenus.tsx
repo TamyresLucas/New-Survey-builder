@@ -10,6 +10,7 @@ import {
 } from './icons';
 
 import { DropdownList, DropdownItem, DropdownDivider } from './DropdownList';
+import { questionGroups } from '../constants';
 
 export const QuestionTypeSelectionMenuContent: React.FC<{
   onSelect: (type: QuestionType) => void;
@@ -23,17 +24,36 @@ export const QuestionTypeSelectionMenuContent: React.FC<{
     inputRef.current?.focus();
   }, []);
 
-  const enabledTypes = new Set(['Description', 'Check Box', 'Radio Button', 'Text Input', 'Choice Grid']);
+  const enabledTypes = new Set(['Description', 'Check Box', 'Radio Button', 'Text Input', 'Choice Grid', 'Page Break']);
 
-  const questionTypeOptions = useMemo(() => toolboxItems
-    .filter(item => item.name !== 'Block' && item.name !== 'Page Break')
-    .filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    .map(item => ({
-      type: item.name as QuestionType,
-      label: item.name,
-      icon: item.icon,
-      isEnabled: enabledTypes.has(item.name),
-    })), [toolboxItems, searchTerm]);
+  const groupedOptions = useMemo(() => {
+    const searchLower = searchTerm.toLowerCase();
+    const itemMap = new Map(toolboxItems.map(item => [item.name, item]));
+    const result: { group: string; items: any[] }[] = [];
+
+    for (const [groupName, itemNames] of Object.entries(questionGroups)) {
+      const groupItems = itemNames
+        .filter(name => name !== 'Block')
+        .filter(name => name.toLowerCase().includes(searchLower))
+        .map(name => {
+          const item = itemMap.get(name);
+          if (!item) return null;
+          return {
+            type: item.name as QuestionType,
+            label: item.name,
+            icon: item.icon,
+            isEnabled: enabledTypes.has(item.name),
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null);
+
+      if (groupItems.length > 0) {
+        result.push({ group: groupName, items: groupItems });
+      }
+    }
+
+    return result;
+  }, [toolboxItems, searchTerm]);
 
   return (
     <div className="flex flex-col bg-surface-container border border-outline-variant rounded-md shadow-lg z-20 overflow-hidden w-full">
@@ -55,21 +75,30 @@ export const QuestionTypeSelectionMenuContent: React.FC<{
         </div>
       </div>
       <div className="max-h-[512px] overflow-y-auto py-1">
-        {questionTypeOptions.length > 0 ? (
-          questionTypeOptions.map(({ type, label, icon: Icon, isEnabled }) => (
-            <DropdownItem
-              key={type}
-              onClick={(e) => {
-                if (isEnabled) {
-                  e.stopPropagation();
-                  onSelect(type);
-                }
-              }}
-              disabled={!isEnabled}
-              icon={Icon}
-            >
-              {label}
-            </DropdownItem>
+        {groupedOptions.length > 0 ? (
+          groupedOptions.map(({ group, items }, groupIndex) => (
+            <React.Fragment key={group}>
+              {groupIndex > 0 && <DropdownDivider />}
+              <div className="px-3 py-1.5 mt-1 text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                {group}
+              </div>
+              {items.map(({ type, label, icon: Icon, isEnabled }) => (
+                <DropdownItem
+                  key={type}
+                  onClick={(e) => {
+                    if (isEnabled) {
+                      e.stopPropagation();
+                      onSelect(type);
+                    }
+                  }}
+                  disabled={!isEnabled}
+                  icon={Icon}
+                  iconClassName="text-primary"
+                >
+                  {label}
+                </DropdownItem>
+              ))}
+            </React.Fragment>
           ))
         ) : (
           <div className="px-4 py-6 text-sm text-on-surface-variant text-center italic">
@@ -269,19 +298,19 @@ export const QuestionActionsMenu: React.FC<QuestionActionsMenuProps> = ({
       <DropdownList className={positionClasses}>
         {/* Add Page Break */}
         {onAddPageBreak && (
-          <DropdownItem onClick={(e) => { e.stopPropagation(); onAddPageBreak(); }} icon={PlusIcon} variant="primary">
+          <DropdownItem onClick={(e) => { e.stopPropagation(); onAddPageBreak(); }} icon={PageBreakIcon} variant="primary">
             Add page break
           </DropdownItem>
         )}
 
         {/* Add Question Above/Below */}
         {onAddQuestionAbove && (
-          <DropdownItem onClick={(e) => { e.stopPropagation(); onAddQuestionAbove(); }} icon={PlusIcon} variant="primary">
+          <DropdownItem onClick={(e) => { e.stopPropagation(); onAddQuestionAbove(); }} icon={ArrowUpIcon} variant="primary">
             Add question above
           </DropdownItem>
         )}
         {onAddQuestionBelow && (
-          <DropdownItem onClick={(e) => { e.stopPropagation(); onAddQuestionBelow(); }} icon={PlusIcon} variant="primary">
+          <DropdownItem onClick={(e) => { e.stopPropagation(); onAddQuestionBelow(); }} icon={ArrowDownIcon} variant="primary">
             Add question below
           </DropdownItem>
         )}

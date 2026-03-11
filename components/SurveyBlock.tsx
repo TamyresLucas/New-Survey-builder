@@ -56,6 +56,8 @@ interface SurveyBlockProps {
   onExpandBlock: (blockId: string) => void;
   onCollapseBlock: (blockId: string) => void;
   onAddChoice: (questionId: string) => void;
+  onAddDescriptionLine: (questionId: string) => void;
+  onDeleteDescriptionLine: (questionId: string, lineId: string) => void;
   onAddPageBreakAfterQuestion: (questionId: string) => void;
   onUpdateBlockTitle: (blockId: string, title: string) => void;
   onAddFromLibrary: (surveyId: string, targetBlockId: string | null) => void;
@@ -72,7 +74,7 @@ interface SurveyBlockProps {
 const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
   block, survey, selectedQuestion, selectedBlock, checkedQuestions, logicIssues, hasBranchingLogicInSurvey, branchedToBlockIds, onSelectQuestion, onSelectBlock, onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onMoveTo, onDeleteBlock, onReorderQuestion, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, draggedQuestionId, setDraggedQuestionId,
   isBlockDragging, onBlockDragStart, onBlockDragEnd, isCollapsed, onToggleCollapse,
-  onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onAddFromLibrary,
+  onCopyBlock, onExpandBlock, onCollapseBlock, onAddChoice, onAddDescriptionLine, onDeleteDescriptionLine, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onAddFromLibrary,
   pageInfoMap, focusedLogicSource,
   printMode = false, hoveredQuestionId, onQuestionHover, hoveredBlockId, onBlockHover, totalPages = 1
 }) => {
@@ -465,6 +467,8 @@ const SurveyBlock: React.FC<SurveyBlockProps> = memo(({
                       }}
                       onDragEnd={() => setDraggedQuestionId(null)}
                       onAddChoice={onAddChoice}
+                      onAddDescriptionLine={onAddDescriptionLine}
+                      onDeleteDescriptionLine={onDeleteDescriptionLine}
                       onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
                       pageInfo={pageInfoMap.get(question.id)}
                       focusedLogicSource={focusedLogicSource}

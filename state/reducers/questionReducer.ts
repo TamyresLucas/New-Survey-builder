@@ -240,9 +240,13 @@ export const questionReducer = (state: Survey, action: Action): Survey => {
             const newQuestion: Question = {
                 id: generateId('q'),
                 qid: '',
-                text: questionType === QTEnum.PageBreak ? 'Page Break' : 'Click to write the question text',
+                text: questionType === QTEnum.PageBreak ? 'Page Break' : (questionType === QTEnum.Description ? '' : 'Click to write the question text'),
                 type: questionType,
             };
+
+            if (questionType === QTEnum.Description) {
+                newQuestion.descriptionLines = [{ id: generateId('l'), text: 'Click to write the description' }];
+            }
 
             if (CHOICE_BASED_QUESTION_TYPES.has(questionType)) {
                 if (questionType === QTEnum.ChoiceGrid) {
@@ -263,8 +267,8 @@ export const questionReducer = (state: Survey, action: Action): Survey => {
                     newQuestion.advancedSettings = { enableMobileLayout: true };
                 } else if (questionType === QTEnum.Radio) {
                     newQuestion.choices = [
-                        { id: generateId('c'), text: 'Click to write choice 1' },
-                        { id: generateId('c'), text: 'Click to write choice 2' },
+                        { id: generateId('c'), text: 'Yes' },
+                        { id: generateId('c'), text: 'No' },
                     ];
                 } else {
                     // Checkbox and other choice-based types get 3 choices

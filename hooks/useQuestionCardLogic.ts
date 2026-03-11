@@ -33,6 +33,8 @@ export const useQuestionCardLogic = ({
     // Drag States
     const [draggedChoiceId, setDraggedChoiceId] = useState<string | null>(null);
     const [dropTargetChoiceId, setDropTargetChoiceId] = useState<string | null>(null);
+    const [draggedDescLineId, setDraggedDescLineId] = useState<string | null>(null);
+    const [dropTargetDescLineId, setDropTargetDescLineId] = useState<string | null>(null);
 
     // Editing States
     const [isEditingPageName, setIsEditingPageName] = useState(false);
@@ -189,6 +191,63 @@ export const useQuestionCardLogic = ({
         setDropTargetChoiceId(null);
     }, []);
 
+    // Description Line Drag & Drop Handlers
+    const handleDescLineDragStart = useCallback((e: React.DragEvent, lineId: string) => {
+        e.stopPropagation();
+        setDraggedDescLineId(lineId);
+        e.dataTransfer.setData('application/survey-description-line', lineId);
+        e.dataTransfer.effectAllowed = 'move';
+    }, []);
+
+    const handleDescLineDragOver = useCallback((e: React.DragEvent, lineId: string) => {
+        if (!e.dataTransfer.types.includes('application/survey-description-line')) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        if (draggedDescLineId !== lineId) {
+            setDropTargetDescLineId(lineId);
+        }
+    }, [draggedDescLineId]);
+
+    const handleDescLineDrop = useCallback((e: React.DragEvent) => {
+        if (!e.dataTransfer.types.includes('application/survey-description-line')) {
+            return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!draggedDescLineId || !question.descriptionLines) return;
+
+        const lines = [...question.descriptionLines];
+        const draggedIndex = lines.findIndex(l => l.id === draggedDescLineId);
+        if (draggedIndex === -1) return;
+
+        const [draggedItem] = lines.splice(draggedIndex, 1);
+
+        if (dropTargetDescLineId === null) {
+            lines.push(draggedItem);
+        } else {
+            const dropIndex = lines.findIndex(l => l.id === dropTargetDescLineId);
+            if (dropIndex !== -1) {
+                lines.splice(dropIndex, 0, draggedItem);
+            } else {
+                lines.push(draggedItem);
+            }
+        }
+
+        onUpdateQuestion(question.id, { descriptionLines: lines });
+        setDraggedDescLineId(null);
+        setDropTargetDescLineId(null);
+    }, [draggedDescLineId, dropTargetDescLineId, question.id, question.descriptionLines, onUpdateQuestion]);
+
+    const handleDescLineDragEnd = useCallback((e: React.DragEvent) => {
+        e.stopPropagation();
+        setDraggedDescLineId(null);
+        setDropTargetDescLineId(null);
+    }, []);
+
     // Matrix/Grid Handlers
     const handleAddColumn = useCallback(() => {
         const currentScalePoints = question.scalePoints || [];
@@ -341,7 +400,10 @@ export const useQuestionCardLogic = ({
         setLabelError,
         draggedChoiceId,
         dropTargetChoiceId,
-        setDropTargetChoiceId, // Exposed for onDragOver cleanup
+        setDropTargetChoiceId,
+        draggedDescLineId,
+        dropTargetDescLineId,
+        setDropTargetDescLineId,
         isAnyMenuOpen,
 
         // Memoized / Computeds
@@ -355,6 +417,10 @@ export const useQuestionCardLogic = ({
         handleChoiceDragOver,
         handleChoiceDrop,
         handleChoiceDragEnd,
+        handleDescLineDragStart,
+        handleDescLineDragOver,
+        handleDescLineDrop,
+        handleDescLineDragEnd,
         handleAddColumn,
         handleScalePointTextChange,
         handlePasteChoices,

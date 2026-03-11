@@ -4,6 +4,7 @@ import { QuestionType as QTEnum } from '../types';
 import { SurveyActionType, type Action } from '../state/surveyReducer';
 import { generateId } from '../utils';
 import { customerFeedbackSurvey } from '../data/test-surveys';
+import { isPlaceholderQuestion } from '../utils/isPlaceholderQuestion';
 
 interface UseSurveyActionsProps {
     survey: Survey;
@@ -20,6 +21,8 @@ interface UseSurveyActionsProps {
     setSelectedQuestion: React.Dispatch<React.SetStateAction<Question | null>>;
     setSelectedBlock: React.Dispatch<React.SetStateAction<Block | null>>;
     surveyRef: React.MutableRefObject<Survey>;
+    pendingDeleteQuestionId: string | null;
+    setPendingDeleteQuestionId: (id: string | null) => void;
 }
 
 export const useSurveyActions = ({
@@ -36,7 +39,9 @@ export const useSurveyActions = ({
     selectedBlock,
     setSelectedQuestion,
     setSelectedBlock,
-    surveyRef
+    surveyRef,
+    pendingDeleteQuestionId,
+    setPendingDeleteQuestionId
 }: UseSurveyActionsProps) => {
 
     const handleUpdateQuestion = useCallback((questionId: string, updates: Partial<Question>) => {
@@ -210,7 +215,7 @@ export const useSurveyActions = ({
         dispatchAndRecord({ type: SurveyActionType.COPY_BLOCK, payload: { blockId } });
     }, [dispatchAndRecord]);
 
-    const handleDeleteQuestion = useCallback((questionId: string) => {
+    const executeDeleteQuestion = useCallback((questionId: string) => {
         dispatchAndRecord({ type: SurveyActionType.DELETE_QUESTION, payload: { questionId } });
         if (selectedQuestion?.id === questionId) {
             setSelectedQuestion(null);
@@ -221,6 +226,25 @@ export const useSurveyActions = ({
             return newSet;
         });
     }, [selectedQuestion, dispatchAndRecord, setSelectedQuestion, setCheckedQuestions]);
+
+    const handleDeleteQuestion = useCallback((questionId: string) => {
+        const question = surveyRef.current.blocks.flatMap(b => b.questions).find(q => q.id === questionId);
+        if (!question || isPlaceholderQuestion(question)) {
+            executeDeleteQuestion(questionId);
+            return;
+        }
+        setPendingDeleteQuestionId(questionId);
+    }, [executeDeleteQuestion, surveyRef, setPendingDeleteQuestionId]);
+
+    const confirmDeleteQuestion = useCallback(() => {
+        if (!pendingDeleteQuestionId) return;
+        executeDeleteQuestion(pendingDeleteQuestionId);
+        setPendingDeleteQuestionId(null);
+    }, [pendingDeleteQuestionId, executeDeleteQuestion, setPendingDeleteQuestionId]);
+
+    const cancelDeleteQuestion = useCallback(() => {
+        setPendingDeleteQuestionId(null);
+    }, [setPendingDeleteQuestionId]);
 
     const handleDeleteQuestionFromAI = useCallback((qid: string) => {
         const questionToDelete = surveyRef.current.blocks.flatMap(b => b.questions).find(q => q.qid === qid);
@@ -286,6 +310,18 @@ export const useSurveyActions = ({
         });
     }, [survey.blocks, setCheckedQuestions]);
 
+    const handleSelectAll = useCallback(() => {
+        const allIds = new Set<string>();
+        survey.blocks.forEach(block => {
+            block.questions.forEach(q => {
+                if (q.type !== QTEnum.PageBreak) {
+                    allIds.add(q.id);
+                }
+            });
+        });
+        setCheckedQuestions(allIds);
+    }, [survey.blocks, setCheckedQuestions]);
+
     const handleCopyQuestion = useCallback((questionId: string) => {
         dispatchAndRecord({ type: SurveyActionType.COPY_QUESTION, payload: { questionId } });
     }, [dispatchAndRecord]);
@@ -318,12 +354,20 @@ export const useSurveyActions = ({
         handleSelectQuestion(null);
     }, [showToast, handleUndo, dispatchAndRecord, handleSelectQuestion]);
 
-    const handleAddChoice = useCallback((questionId: string) => {
-        dispatchAndRecord({ type: SurveyActionType.ADD_CHOICE, payload: { questionId } });
+    const handleAddChoice = useCallback((questionId: string, afterChoiceId?: string) => {
+        dispatchAndRecord({ type: SurveyActionType.ADD_CHOICE, payload: { questionId, afterChoiceId } });
     }, [dispatchAndRecord]);
 
     const handleDeleteChoice = useCallback((questionId: string, choiceId: string) => {
         dispatchAndRecord({ type: SurveyActionType.DELETE_CHOICE, payload: { questionId, choiceId } });
+    }, [dispatchAndRecord]);
+
+    const handleAddDescriptionLine = useCallback((questionId: string, afterLineId?: string) => {
+        dispatchAndRecord({ type: SurveyActionType.ADD_DESCRIPTION_LINE, payload: { questionId, afterLineId } });
+    }, [dispatchAndRecord]);
+
+    const handleDeleteDescriptionLine = useCallback((questionId: string, lineId: string) => {
+        dispatchAndRecord({ type: SurveyActionType.DELETE_DESCRIPTION_LINE, payload: { questionId, lineId } });
     }, [dispatchAndRecord]);
 
     const handleAddPageBreakAfterQuestion = useCallback((questionId: string) => {
@@ -485,8 +529,11 @@ export const useSurveyActions = ({
         handleAddBlock,
         handleCopyBlock,
         handleDeleteQuestion,
+        confirmDeleteQuestion,
+        cancelDeleteQuestion,
         handleDeleteQuestionFromAI,
         handleDeleteBlock,
+        handleSelectAll,
         handleToggleQuestionCheck,
         handleSelectAllInBlock,
         handleUnselectAllInBlock,
@@ -495,6 +542,8 @@ export const useSurveyActions = ({
         handleMoveQuestionToExistingBlock,
         handleAddChoice,
         handleDeleteChoice,
+        handleAddDescriptionLine,
+        handleDeleteDescriptionLine,
         handleAddPageBreakAfterQuestion,
         handleAddQuestionAbove,
         handleAddQuestionBelow,

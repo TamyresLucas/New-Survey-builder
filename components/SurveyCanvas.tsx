@@ -40,6 +40,8 @@ interface SurveyCanvasProps {
   onExpandBlock: (blockId: string) => void;
   onCollapseBlock: (blockId: string) => void;
   onAddChoice: (questionId: string) => void;
+  onAddDescriptionLine: (questionId: string) => void;
+  onDeleteDescriptionLine: (questionId: string, lineId: string) => void;
   onAddPageBreakAfterQuestion: (questionId: string) => void;
   onUpdateBlockTitle: (blockId: string, title: string) => void;
   onUpdateSurveyTitle: (title: string) => void;
@@ -60,7 +62,7 @@ const DropIndicator = () => (
   </div>
 );
 
-const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuestion, selectedBlock, checkedQuestions, logicIssues, onSelectQuestion, onSelectBlock, onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onMoveTo, onDeleteBlock, onReorderQuestion, onReorderBlock, onAddBlockFromToolbox, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, collapsedBlocks, onToggleBlockCollapse, onCopyBlock, onExpandAllBlocks, onCollapseAllBlocks, onExpandBlock, onCollapseBlock, onAddChoice, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onUpdateSurveyTitle, onUpdateDisplayTitle, onAddFromLibrary, focusedLogicSource,
+const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuestion, selectedBlock, checkedQuestions, logicIssues, onSelectQuestion, onSelectBlock, onUpdateQuestion, onUpdateBlock, onDeleteQuestion, onCopyQuestion, onMoveQuestionToNewBlock, onMoveQuestionToExistingBlock, onMoveTo, onDeleteBlock, onReorderQuestion, onReorderBlock, onAddBlockFromToolbox, onAddQuestion, onAddBlock, onAddQuestionToBlock, onToggleQuestionCheck, onSelectAllInBlock, onUnselectAllInBlock, toolboxItems, collapsedBlocks, onToggleBlockCollapse, onCopyBlock, onExpandAllBlocks, onCollapseAllBlocks, onExpandBlock, onCollapseBlock, onAddChoice, onAddDescriptionLine, onDeleteDescriptionLine, onAddPageBreakAfterQuestion, onUpdateBlockTitle, onUpdateSurveyTitle, onUpdateDisplayTitle, onAddFromLibrary, focusedLogicSource,
   printMode = false, hoveredQuestionId, onQuestionHover, hoveredBlockId, onBlockHover
 }) => {
   const [draggedQuestionId, setDraggedQuestionId] = useState<string | null>(null);
@@ -313,6 +315,8 @@ const SurveyCanvas: React.FC<SurveyCanvasProps> = memo(({ survey, selectedQuesti
             onExpandBlock={onExpandBlock}
             onCollapseBlock={onCollapseBlock}
             onAddChoice={onAddChoice}
+            onAddDescriptionLine={onAddDescriptionLine}
+            onDeleteDescriptionLine={onDeleteDescriptionLine}
             onAddPageBreakAfterQuestion={onAddPageBreakAfterQuestion}
             onUpdateBlockTitle={onUpdateBlockTitle}
             onAddFromLibrary={onAddFromLibrary}

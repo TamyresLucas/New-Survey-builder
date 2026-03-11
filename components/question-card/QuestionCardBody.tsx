@@ -6,6 +6,7 @@ import { DisplayLogicDisplay, SkipLogicDisplay, BranchingLogicDisplay } from '..
 import { TextEntryRenderer } from './TextEntryRenderer';
 import { ChoiceGridRenderer } from './ChoiceGridRenderer';
 import { ChoiceListRenderer } from './ChoiceListRenderer';
+import { DescriptionLinesRenderer } from './DescriptionLinesRenderer';
 
 interface QuestionCardBodyProps {
     question: Question;
@@ -22,7 +23,16 @@ interface QuestionCardBodyProps {
     // Handlers
     onUpdateQuestion: (id: string, updates: Partial<Question>) => void;
     onSelect: (question: Question, options?: any) => void;
-    onAddChoice: (id: string) => void;
+    onAddChoice: (id: string, afterChoiceId?: string) => void;
+    onAddDescriptionLine: (id: string, afterLineId?: string) => void;
+    onDeleteDescriptionLine: (questionId: string, lineId: string) => void;
+    draggedDescLineId: string | null;
+    dropTargetDescLineId: string | null;
+    handleDescLineDragStart: (e: React.DragEvent, id: string) => void;
+    handleDescLineDragOver: (e: React.DragEvent, id: string) => void;
+    handleDescLineDrop: (e: React.DragEvent) => void;
+    handleDescLineDragEnd: (e: React.DragEvent) => void;
+    setDropTargetDescLineId: (id: string | null) => void;
     handleChoiceDragStart: (e: React.DragEvent, id: string) => void;
     handleChoiceDragOver: (e: React.DragEvent, id: string) => void;
     handleChoiceDrop: (e: React.DragEvent) => void;
@@ -41,16 +51,36 @@ export const QuestionCardBody: React.FC<QuestionCardBodyProps> = (props) => {
 
     return (
         <div className="col-start-2 mt-3 min-w-0">
-            <EditableText
-                html={question.text}
-                onChange={(newText) => onUpdateQuestion(question.id, { text: newText })}
-                onFocus={() => onSelect(question)}
-                className="font-survey text-lg text-on-surface min-h-[24px]"
-                readOnly={printMode}
-            />
+            {question.type !== QuestionType.Description && (
+                <EditableText
+                    html={question.text}
+                    onChange={(newText) => onUpdateQuestion(question.id, { text: newText })}
+                    onFocus={() => onSelect(question)}
+                    className="font-survey text-lg text-on-surface min-h-[24px]"
+                    readOnly={printMode}
+                />
+            )}
 
             {question.type === QuestionType.TextEntry && (
                 <TextEntryRenderer question={question} />
+            )}
+
+            {question.type === QuestionType.Description && (
+                <DescriptionLinesRenderer
+                    question={question}
+                    printMode={printMode}
+                    onUpdateQuestion={onUpdateQuestion}
+                    onAddDescriptionLine={props.onAddDescriptionLine}
+                    onDeleteDescriptionLine={props.onDeleteDescriptionLine}
+                    onSelect={onSelect}
+                    draggedDescLineId={props.draggedDescLineId}
+                    dropTargetDescLineId={props.dropTargetDescLineId}
+                    handleDescLineDragStart={props.handleDescLineDragStart}
+                    handleDescLineDragOver={props.handleDescLineDragOver}
+                    handleDescLineDrop={props.handleDescLineDrop}
+                    handleDescLineDragEnd={props.handleDescLineDragEnd}
+                    setDropTargetDescLineId={props.setDropTargetDescLineId}
+                />
             )}
 
             {question.type === QuestionType.ChoiceGrid && (

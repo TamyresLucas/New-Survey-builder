@@ -58,6 +58,8 @@ export function surveyReducer(state: Survey, action: Action): Survey {
         // Choice Actions
         case SurveyActionType.ADD_CHOICE:
         case SurveyActionType.DELETE_CHOICE:
+        case SurveyActionType.ADD_DESCRIPTION_LINE:
+        case SurveyActionType.DELETE_DESCRIPTION_LINE:
             newState = choiceReducer(state, action);
             break;
 

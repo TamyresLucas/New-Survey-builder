@@ -20,6 +20,7 @@ import PathAnalysisPanel from './components/diagram/PathAnalysisPanel';
 
 import { ImportSurveyModal } from './components/ImportSurveyModal';
 import { MoveQuestionsModal } from './components/MoveQuestionsModal';
+import { ConfirmDeleteModal } from './components/ConfirmDeleteModal';
 import { useSurveyState } from './hooks/useSurveyState';
 import { useSelection } from './hooks/useSelection';
 import { useSurveyActions } from './hooks/useSurveyActions';
@@ -140,6 +141,9 @@ const App: React.FC = () => {
     const [toasts, setToasts] = useState<{ id: string; message: string; type: ToastType; onUndo?: () => void }[]>([]);
     const [selectedPathId, setSelectedPathId] = useState('all-paths');
 
+    // Modal state for global auto-advance confirmation
+    const [isGlobalAutoAdvanceModalOpen, setIsGlobalAutoAdvanceModalOpen] = useState(false);
+
     // Derived state for view mode
     const isDiagramView = activeMainTab === 'Flow';
 
@@ -234,6 +238,7 @@ const App: React.FC = () => {
     const [toolboxItems, setToolboxItems] = useState<ToolboxItemData[]>(initialToolboxItems);
     const [checkedQuestions, setCheckedQuestions] = useState<Set<string>>(new Set());
     const [collapsedBlocks, setCollapsedBlocks] = useState<Set<string>>(new Set());
+    const [pendingDeleteQuestionId, setPendingDeleteQuestionId] = useState<string | null>(null);
 
     const actions = useSurveyActions({
         survey,
@@ -249,7 +254,9 @@ const App: React.FC = () => {
         selectedBlock,
         setSelectedQuestion,
         setSelectedBlock,
-        surveyRef
+        surveyRef,
+        pendingDeleteQuestionId,
+        setPendingDeleteQuestionId
     });
 
     // --- Logic Validation ---
@@ -734,6 +741,7 @@ const App: React.FC = () => {
                                             <BulkEditPanel
                                                 checkedQuestionCount={checkedQuestions.size}
                                                 onClose={() => setCheckedQuestions(new Set())}
+                                                onSelectAll={actions.handleSelectAll}
                                                 onMoveTo={() => setIsMoveQuestionsModalOpen(true)}
                                                 onForceResponse={actions.handleBulkForceResponse}
                                                 onAutoAdvance={actions.handleBulkAutoAdvance}
@@ -762,6 +770,8 @@ const App: React.FC = () => {
                                                 onUpdateQuestion={actions.handleUpdateQuestion}
                                                 onAddChoice={actions.handleAddChoice}
                                                 onDeleteChoice={actions.handleDeleteChoice}
+                                                onAddDescriptionLine={actions.handleAddDescriptionLine}
+                                                onDeleteDescriptionLine={actions.handleDeleteDescriptionLine}
                                                 isExpanded={isRightSidebarExpanded}
                                                 onToggleExpand={handleToggleRightSidebarExpand}
                                                 onExpandSidebar={handleExpandRightSidebar}
@@ -852,6 +862,8 @@ const App: React.FC = () => {
                                             onExpandBlock={handleExpandBlock}
                                             onCollapseBlock={handleCollapseBlock}
                                             onAddChoice={actions.handleAddChoice}
+                                            onAddDescriptionLine={actions.handleAddDescriptionLine}
+                                            onDeleteDescriptionLine={actions.handleDeleteDescriptionLine}
                                             onAddPageBreakAfterQuestion={actions.handleAddPageBreakAfterQuestion}
                                             onUpdateBlockTitle={actions.handleUpdateBlockTitle}
                                             onUpdateSurveyTitle={actions.handleUpdateSurveyTitle}
@@ -896,6 +908,7 @@ const App: React.FC = () => {
                                             <BulkEditPanel
                                                 checkedQuestionCount={checkedQuestions.size}
                                                 onClose={() => setCheckedQuestions(new Set())}
+                                                onSelectAll={actions.handleSelectAll}
                                                 onMoveTo={() => setIsMoveQuestionsModalOpen(true)}
                                                 onForceResponse={actions.handleBulkForceResponse}
                                                 onAutoAdvance={actions.handleBulkAutoAdvance}
@@ -924,6 +937,8 @@ const App: React.FC = () => {
                                                 onUpdateQuestion={actions.handleUpdateQuestion}
                                                 onAddChoice={actions.handleAddChoice}
                                                 onDeleteChoice={actions.handleDeleteChoice}
+                                                onAddDescriptionLine={actions.handleAddDescriptionLine}
+                                                onDeleteDescriptionLine={actions.handleDeleteDescriptionLine}
                                                 isExpanded={isRightSidebarExpanded}
                                                 onToggleExpand={handleToggleRightSidebarExpand}
                                                 onExpandSidebar={handleExpandRightSidebar}
@@ -980,6 +995,12 @@ const App: React.FC = () => {
                     setIsImportModalOpen(false);
                     showToast("Survey imported successfully!", 'success');
                 }}
+            />
+
+            <ConfirmDeleteModal
+                isOpen={pendingDeleteQuestionId !== null}
+                onClose={actions.cancelDeleteQuestion}
+                onConfirm={actions.confirmDeleteQuestion}
             />
 
             {/* Toast Notifications */}

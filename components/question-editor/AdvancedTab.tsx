@@ -75,6 +75,9 @@ export const PreviewTab: React.FC<{
     question: Question;
     survey: Survey;
     isExpanded: boolean;
+    onUpdateQuestion?: (questionId: string, updates: Partial<Question>) => void;
+    onAddDescriptionLine?: (questionId: string) => void;
+    onDeleteDescriptionLine?: (questionId: string, lineId: string) => void;
 }> = ({ question, survey, isExpanded }) => {
     // We need to mock answer change and validation for single question preview
     const [answer, setAnswer] = React.useState<any>(null);
@@ -112,7 +115,7 @@ export const PreviewTab: React.FC<{
                 <div className="flex-1 overflow-y-auto p-8">
                     <div className="max-w-3xl mx-auto min-h-full">
                         <header className="mb-4">
-                            <h1 className="text-3xl font-bold text-on-surface mb-2">{survey.title}</h1>
+                            <h1 className="text-3xl font-survey font-semibold text-on-surface mb-2">{survey.displayTitle ?? survey.title}</h1>
                             <div className="w-16 h-1 bg-primary mb-8"></div>
                         </header>
                         <PreviewQuestion
@@ -143,7 +146,7 @@ export const PreviewTab: React.FC<{
                 }}
             >
                 <header className="mb-4">
-                    <h1 className="text-xl font-bold text-on-surface mb-2">{survey.title}</h1>
+                    <h1 className="text-xl font-survey font-semibold text-on-surface mb-2">{survey.displayTitle ?? survey.title}</h1>
                 </header>
                 <PreviewQuestion
                     question={question}

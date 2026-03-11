@@ -48,7 +48,8 @@ export const generateSurveyTextCopy = (survey: Survey): string => {
                 return;
             }
             if (q.type === 'Description') {
-                output += `${q.label || 'Description'}: ${stripHtml(q.text)}\n\n`;
+                const descText = q.descriptionLines?.map(l => stripHtml(l.text)).join('\n') || '';
+                output += `${q.label || 'Description'}: ${descText}\n\n`;
                 return;
             }
 
@@ -168,11 +169,12 @@ export const generateSurveyCsv = (survey: Survey): string => {
         }
 
         if (question.type === 'Description') {
+            const descText = question.descriptionLines?.map(l => stripHtml(l.text)).join('\n') || '';
             return [
                 escapeCsvField(block.bid),
                 escapeCsvField(block.title),
                 escapeCsvField(question.label),
-                escapeCsvField(stripHtml(question.text)),
+                escapeCsvField(descText),
                 escapeCsvField(question.type),
                 escapeCsvField(''), escapeCsvField(''), escapeCsvField('No'),
                 escapeCsvField(''), escapeCsvField(''), escapeCsvField(''),

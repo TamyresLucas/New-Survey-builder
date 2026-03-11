@@ -17,7 +17,7 @@ interface ChoiceListRendererProps {
     dropTargetChoiceId: string | null;
     onSelect: (question: Question) => void;
     onUpdateQuestion: (id: string, updates: Partial<Question>) => void;
-    onAddChoice: (id: string) => void;
+    onAddChoice: (id: string, afterChoiceId?: string) => void;
     handleChoiceDragStart: (e: React.DragEvent, id: string) => void;
     handleChoiceDragOver: (e: React.DragEvent, id: string) => void;
     handleChoiceDrop: (e: React.DragEvent) => void;
@@ -191,6 +191,16 @@ export const ChoiceListRenderer: React.FC<ChoiceListRendererProps> = ({
                                                 aria-label="Remove choice"
                                             >
                                                 <XIcon className="text-base" />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onAddChoice(question.id, choice.id);
+                                                }}
+                                                className="w-6 h-6 flex items-center justify-center rounded-md text-primary hover:bg-primary/10 transition-colors ml-1"
+                                                aria-label="Add choice below"
+                                            >
+                                                <PlusIcon className="text-base" />
                                             </button>
                                         </div>
                                     )}

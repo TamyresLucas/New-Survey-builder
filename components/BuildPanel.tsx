@@ -133,13 +133,13 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
       items = items.filter(item => allowedNames.has(item.name));
     }
 
-    // Globally exclude Block and Page Break from the Add Question panel list
-    return items.filter(item => item.name !== 'Block' && item.name !== 'Page Break');
+    // Globally exclude Block from the Add Question panel list
+    return items.filter(item => item.name !== 'Block');
   }, [toolboxItems, searchTerm, toolboxFilter]);
 
   const questionTypeFilterOptions = useMemo(() => {
     const types = new Set(toolboxItems
-      .filter(item => item.name !== 'Block' && item.name !== 'Page Break')
+      .filter(item => item.name !== 'Block')
       .map(item => item.name)
     );
     return ['All content', 'All question types', 'Required questions', 'Issues', ...Array.from(types)];
@@ -407,7 +407,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
         !printMode && (
           <div className="px-4 border-b border-outline">
             <nav className="-mb-px flex space-x-6">
-              {['Add question', 'Rearrange', 'Library'].map(tab => (
+              {['Add question', 'Outline', 'Library'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => handleTabClick(tab)}
@@ -438,7 +438,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             style={{ fontFamily: "'Open Sans', sans-serif" }}
           />
         </div>
-        {activeTab === 'Rearrange' && (
+        {activeTab === 'Outline' && (
           <DropdownField
             value={questionTypeFilter}
             onChange={setQuestionTypeFilter}
@@ -513,7 +513,7 @@ const BuildPanel: React.FC<BuildPanelProps> = memo(({
             {!isTextSearching && dropToolboxTargetIndex === filteredToolboxItems.length && <DropIndicator />}
           </ul>
         )}
-        {(activeTab === 'Rearrange' || printMode) && (
+        {(activeTab === 'Outline' || printMode) && (
           <div
             ref={contentListRef}
             className="bg-surface min-h-full"

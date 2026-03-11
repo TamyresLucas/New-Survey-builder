@@ -1,6 +1,17 @@
 # Changelog
+- **Renamed "Rearrange" tab to "Outline"**: Updated the Build Panel sidebar tab label from "Rearrange" to "Outline" for better clarity and alignment with the tab's purpose of showing the survey structure overview.
+- **Standardized tertiary button hover states**: Updated all `tertiary-primary`, `ghost-primary`, `ghost-destructive`, `ghost-success`, and `danger` button variants to show a subtle 20% opacity tint on hover instead of a solid background fill. Text color now remains the semantic color on hover (no longer flips to white). This creates a clear visual hierarchy between solid buttons (primary, danger-solid) and ghost/tertiary buttons.
+- **Bulk Edit "Select all" button**: Added a "Select all" button to the Bulk Edit right sidebar header. Standardized button size to "large" to match the Preview button.
 
 ## [Unreleased]
+- **Reduced spacing in Description blocks**: Decreased the vertical gap between the description title/label and the first line of text by removing redundant top margins in the `DescriptionLinesRenderer` component.
+- **Fixed Page Actions dropdown visibility**: Fixed a z-index and overflow bug where the "page actions" dropdown in the survey canvas was cut off by subsequent question cards. Added `z-10` to the page break indicator when its menu is open and ensured the menu remains visible (`opacity-100`) even when not hovered if it's currently open.
+- **Drag-and-drop reordering for Description text lines**: Added a drag handle icon to each text line in Description questions, allowing users to reorder lines by dragging — mirroring the existing choice reordering behavior. Includes drop indicators and visual feedback during drag.
+- **Multiple text lines for Description questions**: Added an "Add text line" button to Description question cards, allowing users to add, edit, and delete multiple lines of supplementary text. Each line is editable inline and behaves similarly to choices in multiple-choice questions. These lines are displayed in the main canvas and the question preview.
+- **Enter key exits inline edit mode**: Pressing Enter on any inline-editable text field (survey title, survey name, question text, choice text, row/column text, block name) now exits edit mode and saves changes — matching the click-away (blur) behavior. Prevents accidental line breaks in single-line fields.
+- **Fixed question preview survey title**: The Preview tab in the Edit Question sidebar now displays the respondent-facing Survey Title (`displayTitle`) instead of the internal survey name, and uses the `font-survey` typography class with `font-semibold` weight — matching the full Survey Preview behavior.
+- **Simplified Delete Confirmation Logic**: The delete confirmation popup now only checks the question **text** — if the question text is still a default placeholder (e.g., "Click to write the question text"), the question is deleted immediately without a popup. Previously, the check also considered choices, scale points, and logic, which caused the popup to appear even for unmodified questions.
+- **Updated "Add page break" icon**: Changed the icon for the "Add page break" option in the question actions menu from the generic plus (+) icon to the dedicated `PageBreakIcon`, matching the icon used in the Add Questions panel.
 - **Adjusted Dark Mode Border Tokens**: Re-configured `--border-bd-def` from `#363D65` to `#262a4a` and `--border-bd-hov` to `#363d65` in `src/styles/tokens.css` for `.dark` mode to make borders much more subtle and visually appealing, addressing feedback that borders were too prominent.
 - **Moved Lookup Table question type**: Relocated "Lookup Table" from the "Basic" category to the "Grid" category in the Build sidebar's "+Add question" panel for better categorization.
 - **Fixed Azure DevOps Build Failure**: Merged diverged `master` branch (Survey Title feature) into `main`. Resolved merge conflicts in `ChoiceListRenderer.tsx`, removed stale `BuildPanel.mdx`, and created missing `QuestionDropZone` component. Root cause: `master` was 7 commits behind `main` and the pipeline was building old code with TypeScript errors.
@@ -24,9 +35,14 @@
 
 ### Features
 - Added a search bar to the question type selector dropdown to allow filtering question types by name.
+- Grouped question types in the question type selector dropdown by categories (Basic, Input, Multiple choices, etc.) as defined in the Build sidebar.
+- Default choices for new Radio Button questions are now set to "Yes" and "No" by default.
+- Changed the icons for "Add question above" and "Add question below" in the question actions menu from plus icons to arrow up/down icons for better visual feedback.
+- Reverted the icons in the question type selector menu to use the primary color style.
+- Changed the quick "Add question" button that appears when hovering over a question card to use a tertiary variant style without shadow, making it less intrusive.
 - Adjusted the maximum height of the question type selector and generic dropdown lists to 512px, ensuring the "Dropdown" type is the last visible item before scrolling.
 - Increased the maximum height of the question type selector and generic dropdown lists to 600px to display more options simultaneously.
-- Removed "Block" and "Page Break" from the "Add question" side panel.
+- Restored "Page Break" option to the "Add question" side panel and categorized it under the "Basic" group. removed "Block" from the panel.
 - Renamed "Toolbox" tab to "Add question" in the Build Panel sidebar.
 - Fixed drag propagation issues where selecting text in choice fields would incorrectly trigger drag-and-drop operations.
 - Implemented "Drag Handle" pattern across `ChoiceItem`, `ScalePointItem`, `ChoiceListRenderer`, and `ChoiceGridRenderer`, moving the `draggable` attribute from the choice container to a dedicated handle icon.

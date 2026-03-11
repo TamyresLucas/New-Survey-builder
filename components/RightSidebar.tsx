@@ -16,6 +16,8 @@ export const RightSidebar: React.FC<{
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
     onAddChoice: (questionId: string) => void;
     onDeleteChoice: (questionId: string, choiceId: string) => void;
+    onAddDescriptionLine: (questionId: string) => void;
+    onDeleteDescriptionLine: (questionId: string, lineId: string) => void;
     isExpanded: boolean;
     onToggleExpand: () => void;
     onExpandSidebar: () => void;
@@ -33,6 +35,8 @@ export const RightSidebar: React.FC<{
     onUpdateQuestion,
     onAddChoice,
     onDeleteChoice,
+    onAddDescriptionLine,
+    onDeleteDescriptionLine,
     isExpanded,
     onToggleExpand,
     onExpandSidebar,
@@ -98,6 +102,8 @@ export const RightSidebar: React.FC<{
                     onUpdateQuestion={onUpdateQuestion}
                     onAddChoice={onAddChoice}
                     onDeleteChoice={onDeleteChoice}
+                    onAddDescriptionLine={onAddDescriptionLine}
+                    onDeleteDescriptionLine={onDeleteDescriptionLine}
                     isExpanded={isExpanded}
                     onExpandSidebar={onExpandSidebar}
                     onSelectBlock={onSelectBlock}

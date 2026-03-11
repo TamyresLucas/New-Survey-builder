@@ -21,6 +21,8 @@ export interface QuestionEditorProps {
     onUpdateQuestion: (questionId: string, updates: Partial<Question>) => void;
     onAddChoice: (questionId: string) => void;
     onDeleteChoice: (questionId: string, choiceId: string) => void;
+    onAddDescriptionLine: (questionId: string) => void;
+    onDeleteDescriptionLine: (questionId: string, lineId: string) => void;
     isExpanded: boolean;
     onExpandSidebar: () => void;
     onSelectBlock: (block: Block | null, options?: { tab: string; focusOn: string; }) => void;
@@ -30,6 +32,7 @@ export interface QuestionEditorProps {
 
 export const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
     question, survey, logicIssues, activeTab, focusedLogicSource, onUpdateQuestion, onAddChoice, onDeleteChoice,
+    onAddDescriptionLine, onDeleteDescriptionLine,
     isExpanded, onExpandSidebar, toolboxItems, onRequestGeminiHelp, onSelectBlock
 }) => {
 
@@ -150,6 +153,9 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = memo(({
                     question={question}
                     survey={survey}
                     isExpanded={isExpanded}
+                    onUpdateQuestion={onUpdateQuestion}
+                    onAddDescriptionLine={onAddDescriptionLine}
+                    onDeleteDescriptionLine={onDeleteDescriptionLine}
                 />
             );
 

@@ -61,6 +61,13 @@ export const EditableText: React.FC<EditableTextProps> = ({ html, onChange, onFo
         selection.addRange(range);
     };
 
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            elementRef.current?.blur();
+        }
+    };
+
     const stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
 
     return (
@@ -72,6 +79,7 @@ export const EditableText: React.FC<EditableTextProps> = ({ html, onChange, onFo
             suppressContentEditableWarning
             onBlur={handleBlur}
             onFocus={readOnly ? undefined : onFocus}
+            onKeyDown={readOnly ? undefined : handleKeyDown}
             onClick={stopPropagation}
             onMouseDown={stopPropagation} // Also stop mousedown to prevent deselect logic
             onPaste={handlePaste}

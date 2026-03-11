@@ -7,9 +7,12 @@ import {
   DriveFileMoveIcon,
 } from './icons';
 
+import { Button } from './Button';
+
 interface BulkEditPanelProps {
   checkedQuestionCount: number;
   onClose: () => void;
+  onSelectAll: () => void;
   onMoveTo: () => void;
   onForceResponse: () => void;
   onAutoAdvance: () => void;
@@ -32,6 +35,7 @@ const ActionButton: React.FC<{ icon: React.FC<{ className?: string }>, label: st
 export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
   checkedQuestionCount,
   onClose,
+  onSelectAll,
   onMoveTo,
   onForceResponse,
   onAutoAdvance,
@@ -46,9 +50,14 @@ export const BulkEditPanel: React.FC<BulkEditPanelProps> = ({
         <h2 className="text-lg font-medium text-on-surface" style={{ fontFamily: "'Outfit', sans-serif" }}>
           Bulk Edit ({checkedQuestionCount})
         </h2>
-        <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface p-1">
-          <XIcon className="text-2xl" />
-        </button>
+        <div className="flex items-center gap-2">
+          <Button variant="tertiary-primary" size="large" onClick={onSelectAll}>
+            Select all
+          </Button>
+          <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface p-1">
+            <XIcon className="text-2xl" />
+          </button>
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto" style={{ fontFamily: "'Open Sans', sans-serif" }}>
         <nav className="py-2">

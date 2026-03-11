@@ -265,14 +265,28 @@ export const PrintQuestionCard: React.FC<PrintQuestionCardProps> = ({ question, 
             </div>
 
             <div className="pl-0">
-                {/* Question Text */}
+                {/* Question Text / Description Lines */}
                 <div className="mb-6">
-                    <EditableText
-                        html={question.text || "Untitled Question"}
-                        onChange={() => { }}
-                        className="text-on-surface min-h-[24px]"
-                        readOnly={true}
-                    />
+                    {question.type === QuestionType.Description ? (
+                        <div className="space-y-4">
+                            {question.descriptionLines?.map((line) => (
+                                <EditableText
+                                    key={line.id}
+                                    html={line.text || "Untitled Line"}
+                                    onChange={() => { }}
+                                    className="text-on-surface min-h-[24px]"
+                                    readOnly={true}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <EditableText
+                            html={question.text || "Untitled Question"}
+                            onChange={() => { }}
+                            className="text-on-surface min-h-[24px]"
+                            readOnly={true}
+                        />
+                    )}
                 </div>
 
                 {/* Question Type Specific Tables - Helper to render content */}

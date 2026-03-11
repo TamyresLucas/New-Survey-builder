@@ -88,7 +88,7 @@ export const PageIndicator: React.FC<PageIndicatorProps> = ({
                     onDragStart();
                 }}
                 onDragEnd={onDragEnd}
-                className={`relative py-4 group cursor-grab ${isDragging ? 'opacity-50' : ''}`}
+                className={`relative py-4 group cursor-grab ${isDragging ? 'opacity-50' : ''} ${isActionsMenuOpen ? 'z-10' : ''}`}
                 onClick={(e) => { e.stopPropagation(); onSelect(question); }}
             >
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -96,7 +96,7 @@ export const PageIndicator: React.FC<PageIndicatorProps> = ({
                 </div>
                 {content}
                 {!printMode && (
-                    <div ref={actionsMenuContainerRef} className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div ref={actionsMenuContainerRef} className={`absolute right-0 top-1/2 -translate-y-1/2 transition-opacity ${isActionsMenuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         <button
                             onClick={toggleActionsMenu}
                             className={`p-1.5 rounded-md hover:bg-surface-container-lowest ${isActionsMenuOpen ? '!bg-surface-container-high' : ''}`}

@@ -103,7 +103,12 @@ export const generateSurveyContext = (survey: Survey, logicIssues: LogicIssue[])
                 context += `- (Page Break)\n`;
                 return;
             }
-            context += `- **${q.qid}**: ${q.text} (*${q.type}*)\n`;
+            if (q.type === QTEnum.Description) {
+                const descText = q.descriptionLines?.map(l => l.text).join(' ') || '';
+                context += `- **${q.qid}**: ${descText} (*${q.type}*)\n`;
+            } else {
+                context += `- **${q.qid}**: ${q.text} (*${q.type}*)\n`;
+            }
 
             if (q.choices && q.choices.length > 0) {
                 context += `    - **Choices**: ${q.choices.map(c => `'${c.text}'`).join(', ')}\n`;

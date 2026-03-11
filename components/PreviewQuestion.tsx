@@ -59,12 +59,15 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
     onAnswerChange(question.id, e.target.value);
   }
 
-  const renderQuestionText = () => (
-    <div className="mb-6">
-      <p className="font-survey text-lg text-on-surface" dangerouslySetInnerHTML={{ __html: question.text }} />
-      {question.forceResponse && <span className="text-sm text-error ml-1">*</span>}
-    </div>
-  );
+  const renderQuestionText = () => {
+    if (question.type === QuestionType.Description) return null;
+    return (
+      <div className="mb-6">
+        <p className="font-survey text-lg text-on-surface" dangerouslySetInnerHTML={{ __html: question.text }} />
+        {question.forceResponse && <span className="text-sm text-error ml-1">*</span>}
+      </div>
+    );
+  };
 
   const renderChoices = () => {
     if (!question.choices) return null;
@@ -266,7 +269,17 @@ export const PreviewQuestion: React.FC<PreviewQuestionProps> = ({ question, onAn
       case QuestionType.TextEntry:
         return renderTextEntry();
       case QuestionType.Description:
-        return null; // The text is already rendered
+        return (
+          <div className="space-y-4">
+            {question.descriptionLines?.map((line) => (
+              <p
+                key={line.id}
+                dangerouslySetInnerHTML={{ __html: line.text }}
+                className="font-survey text-lg text-on-surface"
+              />
+            ))}
+          </div>
+        );
       default:
         return <p className="text-sm text-on-surface-variant italic">This question type can't be displayed in the preview yet.</p>;
     }

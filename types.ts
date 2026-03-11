@@ -211,6 +211,7 @@ export interface Question {
   label?: string; // Custom label for elements like Description
   text: string;
   type: QuestionType;
+  descriptionLines?: { id: string; text: string }[];
   choices?: Choice[];
   scalePoints?: Choice[];
   isHidden?: boolean;

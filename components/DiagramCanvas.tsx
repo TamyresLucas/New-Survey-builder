@@ -711,7 +711,7 @@ const DiagramCanvasContent = React.forwardRef<DiagramCanvasHandle, DiagramCanvas
                         if (q.type === QuestionType.Description) {
                             flowNodes.push({
                                 id: q.id, type: 'description_node', position,
-                                data: { question: q.text }, width: NODE_WIDTH, height: height,
+                                data: { question: q.descriptionLines?.[0]?.text || q.label || 'Description' }, width: NODE_WIDTH, height: height,
                             });
                         } else if (q.type === QuestionType.Radio || q.type === QuestionType.Checkbox || q.type === QuestionType.ChoiceGrid) {
                             flowNodes.push({

@@ -23,6 +23,14 @@ export default tseslint.config(
                 'warn',
                 { allowConstantExport: true },
             ],
+            '@typescript-eslint/no-explicit-any': 'warn',
+            '@typescript-eslint/no-unused-vars': 'warn',
+            'prefer-const': 'warn',
+            'react-hooks/set-state-in-effect': 'warn',
+            'react-hooks/exhaustive-deps': 'warn',
+            '@typescript-eslint/no-unused-expressions': 'warn',
+            'react-hooks/static-components': 'warn',
+            '@typescript-eslint/ban-ts-comment': 'warn'
         },
     },
 );

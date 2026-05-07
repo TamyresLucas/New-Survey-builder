@@ -1,0 +1,18 @@
+services:
+  web:
+    image: node:22-bookworm
+    working_dir: /workspace
+    network_mode: host
+    environment:
+      BUILD_TARGET: azure
+      HOST: 0.0.0.0
+      IS_ALLOY: ${IS_ALLOY:-false}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      VITE_GEMINI_API_KEY: ${VITE_GEMINI_API_KEY:-}
+    volumes:
+      - .:/workspace
+      - web_node_modules:/workspace/node_modules
+    command: bash -lc "npm install --no-audit --no-fund && npm run dev -- --host 0.0.0.0 --port 3000"
+
+volumes:
+  web_node_modules:

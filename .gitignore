@@ -34,3 +34,16 @@ dist-ssr
 cloudflared
 cloudflared.tgz
 
+# Local tool configs / sync artifacts (may contain secrets, not project content)
+.gemini/
+.tmp.driveupload/
+
+# Unrelated/exploratory files kept out of version control
+components/InboxPlacement.jsx
+Specs.md
+Design system specs/
+
+# Lint/error dumps
+all-errors.json
+lint-errors.json
+
